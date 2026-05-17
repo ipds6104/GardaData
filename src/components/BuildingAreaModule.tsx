@@ -18,7 +18,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
   const [polygonData, setPolygonData] = useState<any>(null);
   const [luasTapak, setLuasTapak] = useState<number>(0);
   const [metodeDigitasi, setMetodeDigitasi] = useState<'manual' | 'auto_polygon'>('manual');
-  
+
   const [formData, setFormData] = useState({
     jumlahLantai: 1,
     jenisBangunan: 'Rumah Tinggal',
@@ -27,7 +27,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   // Pantau konektivitas untuk offline mode
   useEffect(() => {
@@ -54,18 +54,36 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
       const pending = await getPendingMeasurements();
       if (pending.length === 0) return;
 
-      for (const record of pending) {
-        const ref = doc(collection(db, 'building_measurements'), record.id);
-        await setDoc(ref, {
-          ...record,
-          syncStatus: 'synced',
-          syncedAt: serverTimestamp()
-        });
-        await markMeasurementAsSynced(record.id);
+      const token = localStorage.getItem('navigasi_token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
-      console.log(`Synced ${pending.length} records to Firebase`);
+
+      const payload = pending.map(record => ({
+        ...record,
+        // Ensure geojson is object for the API (server stringifies it for DB)
+        geojson: typeof record.geojson === 'string' ? JSON.parse(record.geojson) : record.geojson
+      }));
+
+      const response = await fetch('/api/measurements/sync', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        for (const record of pending) {
+          await markMeasurementAsSynced(record.id);
+        }
+        console.log(`Synced ${pending.length} records to MySQL API`);
+      } else {
+        throw new Error(`Server returned status ${response.status}`);
+      }
     } catch (error) {
-      console.error('Error syncing offline data:', error);
+      console.error('Error syncing offline data to API:', error);
     }
   };
 
@@ -101,7 +119,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
     try {
       const centroid = getCentroid(polygonData) || [0, 0];
       const recordId = `meas_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      
+
       const record: MeasurementRecord = {
         id: recordId,
         petugasId: user?.username || 'unknown',
@@ -126,20 +144,20 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
         await syncOfflineData();
       }
 
-      setMessage({ 
-        type: 'success', 
-        text: isOnline 
-          ? 'Data berhasil disimpan dan disinkronisasi ke server.' 
-          : 'Offline! Data disimpan lokal dan akan disinkronisasi saat terhubung.' 
+      setMessage({
+        type: 'success',
+        text: isOnline
+          ? 'Data berhasil disimpan dan disinkronisasi ke server.'
+          : 'Offline! Data disimpan lokal dan akan disinkronisasi saat terhubung.'
       });
-      
+
       // Reset form
       setPolygonData(null);
       setLuasTapak(0);
       setFormData({ jumlahLantai: 1, jenisBangunan: 'Rumah Tinggal', perkiraanLuasLantai: 0 });
       // Note: Map layer reset logic is inside MapDigitizer but difficult to trigger externally without ref.
       // We rely on the user clearing it or reloading, but ideally we'd pass a prop to clear.
-      
+
     } catch (err) {
       console.error(err);
       setMessage({ type: 'error', text: 'Gagal menyimpan data.' });
@@ -151,7 +169,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
   return (
     <div className="space-y-6 max-w-7xl mx-auto lg:h-[calc(100vh-8rem)] flex flex-col">
       <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
-        <button 
+        <button
           onClick={onBack}
           className="flex items-center gap-1 text-slate-500 hover:text-primary-600 transition-colors font-semibold group"
         >
@@ -169,7 +187,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
       <div className="flex flex-col lg:flex-row gap-6 lg:h-full lg:min-h-[600px] pb-8">
         {/* Kolom Peta */}
         <div className="w-full h-[55vh] min-h-[300px] lg:h-auto lg:flex-grow bg-white rounded-[1.5rem] lg:rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden relative shrink-0">
-          
+
           <div className="absolute top-4 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-auto sm:right-4 z-[1000] bg-white/90 backdrop-blur-md p-1.5 rounded-2xl shadow-xl flex gap-1 w-max max-w-[95%]">
             <button
               onClick={() => setAutoPolygonMode(false)}
@@ -205,9 +223,9 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
 
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Jenis Bangunan</label>
-              <select 
+              <select
                 value={formData.jenisBangunan}
-                onChange={(e) => setFormData({...formData, jenisBangunan: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, jenisBangunan: e.target.value })}
                 className="w-full px-4 py-3.5 bg-slate-50 rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary-500 outline-none font-bold text-slate-900"
               >
                 <option value="Rumah Tinggal">Rumah Tinggal</option>
@@ -220,13 +238,13 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
 
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Jumlah Lantai</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 min="1"
                 value={formData.jumlahLantai}
                 onChange={(e) => {
                   const lantai = parseInt(e.target.value) || 1;
-                  setFormData({...formData, jumlahLantai: lantai, perkiraanLuasLantai: luasTapak * lantai});
+                  setFormData({ ...formData, jumlahLantai: lantai, perkiraanLuasLantai: luasTapak * lantai });
                 }}
                 className="w-full px-4 py-3.5 bg-slate-50 rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary-500 outline-none font-bold text-slate-900"
               />
@@ -234,10 +252,10 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
 
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1 text-secondary-600">Perkiraan Luas Lantai Total (m²)</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 value={formData.perkiraanLuasLantai}
-                onChange={(e) => setFormData({...formData, perkiraanLuasLantai: parseFloat(e.target.value) || 0})}
+                onChange={(e) => setFormData({ ...formData, perkiraanLuasLantai: parseFloat(e.target.value) || 0 })}
                 className="w-full px-4 py-3.5 bg-secondary-50 rounded-2xl border border-secondary-100 focus:ring-2 focus:ring-secondary-500 outline-none font-black text-secondary-700 text-lg"
               />
               <p className="text-[10px] text-slate-400 font-medium ml-1">Nilai ini digunakan sebagai data training perkalian faktor admin di masa depan.</p>

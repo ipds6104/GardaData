@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Download, Upload, Loader2, AlertCircle, CheckCircle2, ChevronLeft, Info, FileSpreadsheet, Briefcase, Boxes, Factory } from 'lucide-react';
-import { collection, query, getDocs, orderBy, limit, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit, serverTimestamp, writeBatch, doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../lib/auth';
 import { OperationType, handleFirestoreError } from '../lib/errorUtils';
@@ -29,6 +29,50 @@ export const ClassificationModule: React.FC<ClassificationModuleProps> = ({ onBa
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const [manualForm, setManualForm] = useState({
+    mjj_occtle: '',
+    mjj_occmtd: '',
+    mjj_bidang: '',
+    mjj_kbji_label: '',
+    mjj_kbli_label: ''
+  });
+  const [savingManual, setSavingManual] = useState(false);
+
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || user.role !== 'admin') return;
+    if (!manualForm.mjj_occtle || !manualForm.mjj_kbji_label) {
+      setMessage({ type: 'error', text: 'Kegiatan Pekerjaan dan Kode KBJI wajib diisi.' });
+      return;
+    }
+
+    setSavingManual(true);
+    setMessage(null);
+
+    try {
+      const docIdStr = `${manualForm.mjj_occtle}-${manualForm.mjj_kbji_label}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const newDocRef = doc(collection(db, 'classifications'), docIdStr);
+      
+      await setDoc(newDocRef, {
+        mjj_occtle: manualForm.mjj_occtle.toUpperCase(),
+        mjj_occmtd: manualForm.mjj_occmtd.toUpperCase(),
+        mjj_bidang: manualForm.mjj_bidang.toUpperCase(),
+        mjj_kbji_label: manualForm.mjj_kbji_label.toUpperCase(),
+        mjj_kbli_label: manualForm.mjj_kbli_label.toUpperCase(),
+        updatedAt: serverTimestamp(),
+        updatedBy: user.username
+      }, { merge: true });
+
+      setMessage({ type: 'success', text: 'Data KBLI/KBJI berhasil ditambahkan secara manual.' });
+      setManualForm({ mjj_occtle: '', mjj_occmtd: '', mjj_bidang: '', mjj_kbji_label: '', mjj_kbli_label: '' });
+      handleSearch();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: `Gagal menyimpan data: ${err.message}` });
+    } finally {
+      setSavingManual(false);
+    }
+  };
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -347,6 +391,79 @@ export const ClassificationModule: React.FC<ClassificationModuleProps> = ({ onBa
                       <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleFileUpload} disabled={uploading} />
                     </label>
                   </div>
+                </div>
+
+                <div className="border-t border-slate-100 pt-12 mt-12">
+                  <div className="text-center space-y-4 mb-8">
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Tambah Data Manual</h3>
+                    <p className="text-slate-500 max-w-lg mx-auto">Masukkan referensi baru secara langsung tanpa melalui file Excel.</p>
+                  </div>
+                  
+                  <form onSubmit={handleManualSubmit} className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Kegiatan Pekerjaan *</label>
+                        <input
+                          type="text"
+                          required
+                          value={manualForm.mjj_occtle}
+                          onChange={(e) => setManualForm({ ...manualForm, mjj_occtle: e.target.value })}
+                          placeholder="Cth: BURUH BANGUNAN"
+                          className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none uppercase text-sm font-bold"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Komoditas yang Dihasilkan</label>
+                        <input
+                          type="text"
+                          value={manualForm.mjj_occmtd}
+                          onChange={(e) => setManualForm({ ...manualForm, mjj_occmtd: e.target.value })}
+                          placeholder="Cth: JASA TUKANG"
+                          className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none uppercase text-sm font-bold"
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Bidang Usaha/Perusahaan/Kantor</label>
+                        <input
+                          type="text"
+                          value={manualForm.mjj_bidang}
+                          onChange={(e) => setManualForm({ ...manualForm, mjj_bidang: e.target.value })}
+                          placeholder="Cth: KONSTRUKSI"
+                          className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none uppercase text-sm font-bold"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Kode KBJI 2014 *</label>
+                        <input
+                          type="text"
+                          required
+                          value={manualForm.mjj_kbji_label}
+                          onChange={(e) => setManualForm({ ...manualForm, mjj_kbji_label: e.target.value })}
+                          placeholder="Cth: [9313] BURUH BANGUNAN"
+                          className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none uppercase text-sm font-bold"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Kode KBLI 2025</label>
+                        <input
+                          type="text"
+                          value={manualForm.mjj_kbli_label}
+                          onChange={(e) => setManualForm({ ...manualForm, mjj_kbli_label: e.target.value })}
+                          placeholder="Cth: [41014] KONSTRUKSI KONVENSIONAL"
+                          className="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-500 outline-none uppercase text-sm font-bold"
+                        />
+                      </div>
+                    </div>
+                    
+                    <button 
+                      type="submit" 
+                      disabled={savingManual}
+                      className="w-full bg-primary-600 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
+                    >
+                      {savingManual ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                      {savingManual ? 'Menyimpan...' : 'Simpan Data Manual'}
+                    </button>
+                  </form>
                 </div>
 
                 <AnimatePresence>

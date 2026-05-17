@@ -26,8 +26,24 @@ export const initImputationDB = async () => {
 
 export const syncImputationFromFirebase = async (): Promise<ImputationData[]> => {
   try {
-    const snap = await getDocs(collection(db, 'imputation_data'));
-    let data = snap.docs.map(doc => doc.data() as ImputationData);
+    const token = localStorage.getItem('navigasi_token');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch('/api/imputations', {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    let data = await response.json();
     
     // Auto seed if empty
     if (data.length === 0) {
@@ -47,8 +63,23 @@ export const syncImputationFromFirebase = async (): Promise<ImputationData[]> =>
     
     return data;
   } catch (error) {
-    console.error('Error syncing from firebase, falling back to local cache:', error);
-    return await getLocalImputationData();
+    console.error('Error syncing from API, falling back to local cache:', error);
+    
+    // Check if we already have cache
+    const cached = await getLocalImputationData();
+    if (cached.length > 0) {
+      return cached;
+    }
+
+    // If cache is empty, seed IndexedDB with default data so the app works even offline
+    console.log("IndexedDB empty, seeding with default seed data...");
+    const localDb = await initImputationDB();
+    const tx = localDb.transaction('imputation_cache', 'readwrite');
+    for (const item of DEFAULT_IMPUTATION_DATA) {
+      await tx.objectStore('imputation_cache').put(item);
+    }
+    await tx.done;
+    return DEFAULT_IMPUTATION_DATA;
   }
 };
 
@@ -63,15 +94,25 @@ export const getLocalImputationData = async (): Promise<ImputationData[]> => {
 };
 
 export const batchUpsertImputationData = async (data: ImputationData[]): Promise<void> => {
-  const batches = [];
-  for (let i = 0; i < data.length; i += 500) {
-    const batch = writeBatch(db);
-    const chunk = data.slice(i, i + 500);
-    for (const item of chunk) {
-      const ref = doc(collection(db, 'imputation_data'), item.id);
-      batch.set(ref, item, { merge: true });
+  try {
+    const token = localStorage.getItem('navigasi_token');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
-    batches.push(batch.commit());
+
+    const response = await fetch('/api/imputations/sync', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Failed to batch upsert via API, falling back to local DB cache only:', error);
   }
-  await Promise.all(batches);
 };

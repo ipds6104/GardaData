@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, GeoJSON, Popup, LayersControl } from 'react-leaflet';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { MeasurementRecord } from '../services/indexeddb';
 import { ChevronLeft, BarChart3, MapPin, Loader2, Maximize2, Building2, Database, User } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -16,23 +14,51 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    const q = query(collection(db, 'building_measurements'), orderBy('timestamp', 'desc'));
-    
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const data = snap.docs.map(doc => doc.data() as MeasurementRecord);
-      setMeasurements(data);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error fetching data:', error);
-      setLoading(false);
-    });
+    let active = true;
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('navigasi_token');
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const response = await fetch('/api/measurements', { headers });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const data = await response.json();
+        if (active) {
+          setMeasurements(data);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error fetching measurements from MySQL:', error);
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
 
-    return () => unsubscribe();
+    setLoading(true);
+    fetchData();
+    
+    // Polling every 10 seconds to keep data updated
+    const interval = setInterval(fetchData, 10000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const totalLuasTapak = measurements.reduce((sum, item) => sum + (item.luasTapak || 0), 0);
   const totalEstimasi = measurements.reduce((sum, item) => sum + (item.perkiraanLuasLantai || 0), 0);
+  
+  const rumahMeasurements = measurements.filter(m => m.jenisBangunan === 'Rumah Tinggal');
+  const avgLuasRumah = rumahMeasurements.length > 0 ? rumahMeasurements.reduce((sum, item) => sum + (item.luasTapak || 0), 0) / rumahMeasurements.length : 0;
+  const avgEstimasi = measurements.length > 0 ? totalEstimasi / measurements.length : 0;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
@@ -50,27 +76,26 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="p-4 bg-primary-50 text-primary-600 rounded-2xl"><Building2 className="w-6 h-6" /></div>
-          <div>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Total Bangunan</p>
-            <p className="text-3xl font-black text-slate-900">{measurements.length}</p>
-          </div>
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
+        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2"><Building2 className="w-4 h-4 text-primary-500" /> Total Data</p>
+          <p className="text-2xl font-black text-slate-900">{measurements.length}</p>
         </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="p-4 bg-secondary-50 text-secondary-600 rounded-2xl"><MapPin className="w-6 h-6" /></div>
-          <div>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Total Luas Tapak</p>
-            <p className="text-3xl font-black text-slate-900">{totalLuasTapak.toFixed(2)} m²</p>
-          </div>
+        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2"><MapPin className="w-4 h-4 text-secondary-500" /> Total Tapak</p>
+          <p className="text-2xl font-black text-slate-900">{totalLuasTapak.toFixed(1)} m²</p>
         </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl"><BarChart3 className="w-6 h-6" /></div>
-          <div>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Total Perkiraan Lantai</p>
-            <p className="text-3xl font-black text-slate-900">{totalEstimasi.toFixed(2)} m²</p>
-          </div>
+        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-purple-500" /> Total Est. Lantai</p>
+          <p className="text-2xl font-black text-slate-900">{totalEstimasi.toFixed(1)} m²</p>
+        </div>
+        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2"><MapPin className="w-4 h-4 text-emerald-500" /> Rata-Rata Rumah</p>
+          <p className="text-2xl font-black text-slate-900">{avgLuasRumah.toFixed(1)} m²</p>
+        </div>
+        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-amber-500" /> Rata-Rata Est.</p>
+          <p className="text-2xl font-black text-slate-900">{avgEstimasi.toFixed(1)} m²</p>
         </div>
       </div>
 
@@ -110,7 +135,7 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
         </div>
 
         {/* Kolom Peta */}
-        <div className="w-full lg:flex-grow bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden relative shrink-0 h-[50vh] lg:h-auto">
+        <div className="w-full lg:flex-grow bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden relative shrink-0 h-[50vh] lg:min-h-[500px]">
           {loading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-50">
               <Loader2 className="w-12 h-12 text-primary-600 animate-spin" />
