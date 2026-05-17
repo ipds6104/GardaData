@@ -3,7 +3,7 @@ WORKDIR /app
 
 # Install production dependencies only to keep the image size small
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copy server code
 COPY . .

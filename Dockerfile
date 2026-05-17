@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install dependencies (utilizing Docker layer caching)
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copy all source files and compile the production build
 COPY . .
