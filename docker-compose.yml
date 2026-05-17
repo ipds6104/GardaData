@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # 1. MySQL Database Service
+  db:
+    image: mysql:8.0
+    container_name: garda_data_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: garda_data
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - garda_network
+
+  # 2. Express Backend API Service
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: garda_data_backend
+    restart: always
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=
+      - DB_NAME=garda_data
+      - DB_PORT=3306
+      - PORT=5000
+      - NODE_ENV=production
+      - JWT_SECRET=gardadatajwtsecret12345!
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    networks:
+      - garda_network
+
+  # 3. React Frontend Nginx Service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: garda_data_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - garda_network
+
+# Persistent data volumes
+volumes:
+  mysql_data:
+
+# Internal virtual networks
+networks:
+  garda_network:
+    driver: bridge
