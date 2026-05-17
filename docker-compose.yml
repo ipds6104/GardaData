@@ -11,8 +11,6 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
     volumes:
       - mysql_data:/var/lib/mysql
-    networks:
-      - garda_network
 
   # 2. Express Backend API Service
   backend:
@@ -32,8 +30,6 @@ services:
       - JWT_SECRET=gardadatajwtsecret12345!
     depends_on:
       - db
-    networks:
-      - garda_network
 
   # 3. React Frontend Nginx Service
   frontend:
@@ -44,14 +40,7 @@ services:
     restart: always
     depends_on:
       - backend
-    networks:
-      - garda_network
 
 # Persistent data volumes
 volumes:
   mysql_data:
-
-# Internal virtual networks
-networks:
-  garda_network:
-    driver: bridge
