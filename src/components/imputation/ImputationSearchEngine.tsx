@@ -43,9 +43,7 @@ export const ImputationSearchEngine: React.FC = () => {
     return filtered.slice(0, 30); // show top 30
   }, [query, activeCategory, fuse, data]);
 
-  const handleSearchCommit = (searchString: string) => {
-    if (searchString) addRecentSearch(searchString);
-  };
+  // handleSearchCommit is not used since recent searches were removed per user request
 
   const renderCardContent = (item: ImputationData) => {
     switch (item.type) {
@@ -243,7 +241,7 @@ export const ImputationSearchEngine: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                          {items.map(item => (
+                          {(items as WajibImputation[]).map(item => (
                             <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                               <td className="p-4 pl-6"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg text-xs font-black">{item.kuesioner}</span></td>
                               <td className="p-4 font-bold text-secondary-600">{item.rincianPertanyaan}</td>
