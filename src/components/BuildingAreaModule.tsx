@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Save, MapPin, Calculator, MousePointer2, AlertCircle, CheckCircle2, WifiOff, Wifi } from 'lucide-react';
+import { ChevronLeft, Save, MapPin, Calculator, MousePointer2, AlertCircle, CheckCircle2, WifiOff, Wifi, PenTool, Edit3, Trash2 } from 'lucide-react';
 import { MapDigitizer } from './map/MapDigitizer';
 import { calculateAreaSqMeters, getCentroid } from '../utils/geospatial';
 import { saveMeasurementOffline, getPendingMeasurements, markMeasurementAsSynced, MeasurementRecord } from '../services/indexeddb';
@@ -166,6 +166,43 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
     }
   };
 
+  const triggerLeafletAction = (action: 'draw' | 'edit' | 'delete' | 'save' | 'cancel') => {
+    let selector = '';
+    if (action === 'draw') selector = '.leaflet-draw-draw-polygon';
+    else if (action === 'edit') selector = '.leaflet-draw-edit-edit';
+    else if (action === 'delete') selector = '.leaflet-draw-edit-remove';
+    else if (action === 'save') selector = '.leaflet-draw-actions a[title="Save changes."], .leaflet-draw-actions a:first-child';
+    else if (action === 'cancel') selector = '.leaflet-draw-actions a[title="Cancel drawing"], .leaflet-draw-actions a[title="Cancel editing."], .leaflet-draw-actions a:last-child';
+    
+    const btn = document.querySelector(selector) as HTMLElement;
+    if (btn) {
+      btn.click();
+    } else {
+      console.warn(`Leaflet draw button for ${action} not found`);
+    }
+  };
+
+  const handleClearMap = () => {
+    const removeBtn = document.querySelector('.leaflet-draw-edit-remove') as HTMLElement;
+    if (removeBtn) {
+      removeBtn.click();
+      setTimeout(() => {
+        const clearAll = document.querySelector('.leaflet-draw-actions a[title="Clear all layers."]') as HTMLElement;
+        if (clearAll) clearAll.click();
+        setTimeout(() => {
+          const saveBtn = document.querySelector('.leaflet-draw-actions a[title="Save changes."]') as HTMLElement;
+          if (saveBtn) saveBtn.click();
+        }, 50);
+      }, 50);
+    }
+    setPolygonData(null);
+    setLuasTapak(0);
+    setFormData(prev => ({
+      ...prev,
+      perkiraanLuasLantai: 0
+    }));
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto lg:h-[calc(100vh-8rem)] flex flex-col">
       <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
@@ -185,25 +222,75 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 lg:h-full lg:min-h-[600px] pb-8">
-        {/* Kolom Peta */}
-        <div className="w-full h-[55vh] min-h-[300px] lg:h-auto lg:flex-grow bg-white rounded-[1.5rem] lg:rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden relative shrink-0">
+        {/* Kolom Peta & Kontrol */}
+        <div className="w-full lg:flex-grow flex flex-col gap-4 shrink-0">
+          
+          {/* Panel Kontrol di Luar Kotak Peta */}
+          <div className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-xl flex flex-col md:flex-row gap-4 items-center justify-between">
+            {/* Mode Switcher */}
+            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl w-full md:w-auto border border-slate-100">
+              <button
+                onClick={() => setAutoPolygonMode(false)}
+                className={`flex-1 md:flex-initial px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+                  !autoPolygonMode ? 'bg-primary-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100/50'
+                }`}
+              >
+                <MousePointer2 className="w-4 h-4 shrink-0" />
+                <span>Manual</span>
+              </button>
+              <button
+                onClick={() => setAutoPolygonMode(true)}
+                className={`flex-1 md:flex-initial px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+                  autoPolygonMode ? 'bg-primary-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100/50'
+                }`}
+              >
+                <MapPin className="w-4 h-4 shrink-0" />
+                <span>Otomatis</span>
+              </button>
+            </div>
 
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-auto sm:right-4 z-[1000] bg-white/90 backdrop-blur-md p-1.5 rounded-2xl shadow-xl flex gap-1 w-max max-w-[95%]">
-            <button
-              onClick={() => setAutoPolygonMode(false)}
-              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all ${!autoPolygonMode ? 'bg-primary-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
-            >
-              <MousePointer2 className="w-4 h-4 shrink-0" /> <span className="truncate">Manual</span>
-            </button>
-            <button
-              onClick={() => setAutoPolygonMode(true)}
-              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all ${autoPolygonMode ? 'bg-primary-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
-            >
-              <MapPin className="w-4 h-4 shrink-0" /> <span className="truncate">Auto</span>
-            </button>
+            {/* Drawing Tools (Hanya tampil di mode Manual) */}
+            {!autoPolygonMode && (
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <button
+                  onClick={() => triggerLeafletAction('draw')}
+                  className="flex-1 md:flex-initial px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors shadow-sm cursor-pointer"
+                  title="Mulai menggambar poligon baru"
+                >
+                  <PenTool className="w-4 h-4 text-primary-500 shrink-0" />
+                  <span>Gambar</span>
+                </button>
+                <button
+                  onClick={() => triggerLeafletAction('edit')}
+                  className="flex-1 md:flex-initial px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors shadow-sm cursor-pointer"
+                  title="Ubah bentuk poligon yang ada"
+                >
+                  <Edit3 className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>Edit</span>
+                </button>
+                <button
+                  onClick={handleClearMap}
+                  className="flex-1 md:flex-initial px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-red-600 hover:bg-red-50 hover:border-red-100 transition-colors shadow-sm cursor-pointer"
+                  title="Hapus semua gambar poligon"
+                >
+                  <Trash2 className="w-4 h-4 shrink-0" />
+                  <span>Hapus</span>
+                </button>
+              </div>
+            )}
+
+            {/* Keterangan Mode Otomatis */}
+            {autoPolygonMode && (
+              <div className="text-xs font-bold text-slate-500 bg-slate-50 px-4 py-3 rounded-2xl border border-slate-100 w-full md:w-auto text-center md:text-left flex items-center gap-1.5 justify-center">
+                <span className="text-primary-600 font-extrabold">💡 Mode Otomatis:</span> Klik pada area bangunan untuk membuat poligon instan.
+              </div>
+            )}
           </div>
 
-          <MapDigitizer onPolygonChange={handlePolygonChange} autoPolygonMode={autoPolygonMode} />
+          {/* Kotak Peta (Sangat Besar - h-[70vh]) */}
+          <div className="w-full h-[70vh] min-h-[400px] lg:h-auto lg:flex-grow bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden relative shrink-0">
+            <MapDigitizer onPolygonChange={handlePolygonChange} autoPolygonMode={autoPolygonMode} />
+          </div>
         </div>
 
         {/* Kolom Form */}

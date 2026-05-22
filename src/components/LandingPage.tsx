@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, Ruler, Map, ShieldCheck, ArrowRight, CheckCircle2, FileEdit } from 'lucide-react';
+import { BookOpen, Ruler, Map, ShieldCheck, ArrowRight, CheckCircle2, FileEdit, Users, Sprout, TrendingUp } from 'lucide-react';
 
 interface FeatureCardProps {
   title: string;
@@ -38,7 +38,10 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon: Ico
       </div>
     )}
     {disabled && (
-      <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Sedang Dikembangkan</span>
+      <div className="inline-flex items-center gap-2 bg-slate-50 px-3.5 py-1.5 rounded-xl border border-slate-100 w-fit mt-auto">
+        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+        <span className="text-xs font-black uppercase tracking-widest text-slate-400">Masih dalam pengembangan</span>
+      </div>
     )}
   </motion.button>
 );
@@ -99,6 +102,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           iconColor="text-purple-600"
           bgColor="bg-purple-50"
           onClick={() => onNavigate('imputation')}
+        />
+        <FeatureCard
+          title="Fenomena Sosial"
+          description="Modul pemantauan, analisis, dan pencatatan dinamika fenomena sosial masyarakat secara terstruktur."
+          icon={Users}
+          iconColor="text-rose-600"
+          bgColor="bg-rose-50"
+          disabled={true}
+          onClick={() => {}}
+        />
+        <FeatureCard
+          title="Sektor Pertanian"
+          description="Direktori data komoditas unggulan, luas lahan tanam, dan produktivitas pertanian secara berkala."
+          icon={Sprout}
+          iconColor="text-emerald-600"
+          bgColor="bg-emerald-50"
+          disabled={true}
+          onClick={() => {}}
+        />
+        <FeatureCard
+          title="Ekonomi & Pembangunan"
+          description="Indikator makro ekonomi, perkembangan industri daerah, dan status kemajuan infrastruktur."
+          icon={TrendingUp}
+          iconColor="text-amber-600"
+          bgColor="bg-amber-50"
+          disabled={true}
+          onClick={() => {}}
         />
       </div>
 

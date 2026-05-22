@@ -34,3 +34,48 @@
   }
 }
 
+/* Custom styles for Leaflet & Leaflet Draw */
+.leaflet-draw {
+  display: none !important;
+}
+
+.leaflet-draw-actions {
+  display: block !important;
+  left: 16px !important;
+  top: 16px !important;
+  z-index: 1000 !important;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(241, 245, 249, 0.8) !important;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  padding: 4px !important;
+}
+
+.leaflet-draw-actions li {
+  display: inline-block !important;
+}
+
+.leaflet-draw-actions li a {
+  background-color: transparent !important;
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 8px 16px !important;
+  height: auto !important;
+  width: auto !important;
+  line-height: normal !important;
+  border-radius: 10px !important;
+  transition: all 0.2s !important;
+  display: block !important;
+}
+
+.leaflet-draw-actions li a:hover {
+  background-color: #f1f5f9 !important;
+  color: #ff5e00 !important;
+}
+
