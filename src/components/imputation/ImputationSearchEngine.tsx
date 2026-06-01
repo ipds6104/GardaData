@@ -230,27 +230,29 @@ export const ImputationSearchEngine: React.FC = () => {
                       <div className="w-2 h-2 rounded-full bg-secondary-400"></div>
                       <h3 className="font-black text-white uppercase tracking-widest text-sm">{kategori}</h3>
                     </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-slate-50 text-slate-400 uppercase tracking-widest font-black text-[10px]">
-                          <tr>
-                            <th className="p-4 pl-6">Kuesioner</th>
-                            <th className="p-4">Rincian Pertanyaan</th>
-                            <th className="p-4">Keterangan</th>
-                            <th className="p-4 pr-6">Sumber Pendanaan</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                          {(items as WajibImputation[]).map(item => (
-                            <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="p-4 pl-6"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg text-xs font-black">{item.kuesioner}</span></td>
-                              <td className="p-4 font-bold text-secondary-600">{item.rincianPertanyaan}</td>
-                              <td className="p-4 text-xs leading-relaxed max-w-[200px]">{item.keterangan}</td>
-                              <td className="p-4 pr-6 text-xs text-slate-500 max-w-[200px] leading-relaxed">{item.sumberPendanaan}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div className="p-4 sm:p-6 space-y-4 bg-slate-50/50">
+                      {(items as WajibImputation[]).map(item => (
+                        <div key={item.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3 hover:shadow-md transition-shadow">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-50 pb-2">
+                            <span className="bg-slate-800 text-white px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shrink-0">
+                              Kuesioner: {item.kuesioner}
+                            </span>
+                            <span className="text-xs font-black text-secondary-600 bg-secondary-50 px-2.5 py-1 rounded-lg border border-secondary-100">
+                              {item.rincianPertanyaan}
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Keterangan / Panduan</p>
+                            <p className="text-xs text-slate-700 leading-relaxed font-medium">{item.keterangan}</p>
+                          </div>
+                          {item.sumberPendanaan && (
+                            <div className="bg-primary-50/50 p-3 rounded-xl border border-primary-100/50 space-y-0.5">
+                              <p className="text-[9px] font-black text-primary-500 uppercase tracking-widest">Sumber Pendanaan Imputasi</p>
+                              <p className="text-[11px] font-bold text-primary-700 leading-relaxed">{item.sumberPendanaan}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -266,29 +268,43 @@ export const ImputationSearchEngine: React.FC = () => {
                         <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
                         <h3 className="font-black text-white uppercase tracking-widest text-sm">Wajib Transfer</h3>
                       </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm whitespace-nowrap">
-                          <thead className="bg-primary-50 text-primary-600 uppercase tracking-widest font-black text-[10px]">
-                            <tr>
-                              <th className="p-4 pl-6">Penerimaan</th>
-                              <th className="p-4">Diterima (Uang)</th>
-                              <th className="p-4">Diterima (Barang)</th>
-                              <th className="p-4">Dibayar (Uang)</th>
-                              <th className="p-4 pr-6">Dibayar (Barang)</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-primary-50 text-slate-700 font-medium">
-                            {transferItems.map(item => (
-                              <tr key={item.id} className="hover:bg-primary-50/30 transition-colors">
-                                <td className="p-4 pl-6 font-bold">{item.penerimaan}</td>
-                                <td className="p-4 text-xs">{item.transferDiterimaUang}</td>
-                                <td className="p-4 text-xs">{item.transferDiterimaBarang}</td>
-                                <td className="p-4 text-xs">{item.transferDibayarUang}</td>
-                                <td className="p-4 pr-6 text-xs">{item.transferDibayarBarang}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <div className="p-4 sm:p-6 space-y-4 bg-slate-50/50">
+                        {transferItems.map(item => (
+                          <div key={item.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4 hover:shadow-md transition-shadow">
+                            <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary-500"></div>
+                              <span className="text-xs font-black text-slate-800 uppercase tracking-wide">
+                                Penerimaan: {item.penerimaan}
+                              </span>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="bg-secondary-50 p-3 rounded-xl border border-secondary-100">
+                                <p className="text-[9px] font-black text-secondary-500 uppercase tracking-widest mb-1.5">Transfer Diterima</p>
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium text-slate-700">
+                                    <strong className="font-extrabold text-secondary-700">Uang:</strong> {formatRupiah(item.transferDiterimaUang)}
+                                  </p>
+                                  <p className="text-xs font-medium text-slate-700">
+                                    <strong className="font-extrabold text-secondary-700">Barang/Jasa:</strong> {formatRupiah(item.transferDiterimaBarang)}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="bg-primary-50 p-3 rounded-xl border border-primary-100">
+                                <p className="text-[9px] font-black text-primary-500 uppercase tracking-widest mb-1.5">Transfer Dibayar</p>
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium text-slate-700">
+                                    <strong className="font-extrabold text-primary-700">Uang:</strong> {formatRupiah(item.transferDibayarUang)}
+                                  </p>
+                                  <p className="text-xs font-medium text-slate-700">
+                                    <strong className="font-extrabold text-primary-700">Barang/Jasa:</strong> {formatRupiah(item.transferDibayarBarang)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );
