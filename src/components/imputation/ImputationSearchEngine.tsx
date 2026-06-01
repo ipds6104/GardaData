@@ -210,7 +210,7 @@ export const ImputationSearchEngine: React.FC = () => {
         </div>
 
         {/* Results Grid */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 w-full min-w-0 overflow-hidden">
           {results.length > 0 ? (
             activeCategory === 'Wajib Imputasi' ? (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
