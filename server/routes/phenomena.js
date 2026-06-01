@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
-const fetch = require('node-fetch'); // Standard fetch helper
+
 
 // Helper to capitalize sentences
 function capitalizeSentences(text) {

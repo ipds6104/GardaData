@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 type UserRole = 'admin' | 'petugas' | null;
 
 interface AuthContextType {
-  user: { username: string; role: UserRole } | null;
+  user: { username: string; role: UserRole; name?: string } | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
@@ -11,7 +11,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<{ username: string; role: UserRole } | null>(null);
+  const [user, setUser] = useState<{ username: string; role: UserRole; name?: string } | null>(null);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('navigasi_user');
@@ -32,7 +32,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (response.ok) {
         const data = await response.json();
-        const newUser = { username: data.user.username, role: data.user.role as UserRole };
+        const newUser = { 
+          username: data.user.username, 
+          role: data.user.role as UserRole,
+          name: data.user.name 
+        };
         setUser(newUser);
         localStorage.setItem('navigasi_user', JSON.stringify(newUser));
         localStorage.setItem('navigasi_token', data.token);
@@ -44,18 +48,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // FALLBACK SIMULATION: If backend is offline/not started yet
     if (username === 'admin' && password === 'admin6104') {
-      const newUser = { username: 'admin', role: 'admin' as UserRole };
+      const newUser = { username: 'admin', role: 'admin' as UserRole, name: 'Administrator BPS' };
       setUser(newUser);
       localStorage.setItem('navigasi_user', JSON.stringify(newUser));
       return true;
     } else if (username === 'petugas' && password === 'petugas6104') {
-      const newUser = { username: 'petugas', role: 'petugas' as UserRole };
+      const newUser = { username: 'petugas', role: 'petugas' as UserRole, name: 'Petugas BPS' };
       setUser(newUser);
       localStorage.setItem('navigasi_user', JSON.stringify(newUser));
       return true;
     }
     return false;
   };
+
 
   const logout = () => {
     setUser(null);

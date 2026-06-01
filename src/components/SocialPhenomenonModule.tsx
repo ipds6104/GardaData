@@ -82,10 +82,19 @@ export const SocialPhenomenonModule: React.FC<SocialPhenomenonModuleProps> = ({ 
     kecamatan: KECAMATAN_LIST[0] || 'Mempawah Hilir',
     desa: '',
     sls: '',
-    petugas_name: user?.name || '',
+    petugas_name: user?.name || user?.username || 'Petugas',
     tanggal: new Date().toISOString().split('T')[0],
     deskripsi: ''
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        petugas_name: user.name || user.username || 'Petugas'
+      }));
+    }
+  }, [user]);
 
   const [agreement, setAgreement] = useState(false);
   const [isSaving, setIsSaving] = useState(false);

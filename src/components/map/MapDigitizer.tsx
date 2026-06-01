@@ -5,6 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import { generateSimulationRectangle } from '../../utils/geospatial';
+import { Check, Undo2, X } from 'lucide-react';
 
 // Fix Leaflet missing icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -30,6 +31,27 @@ const MapEvents = ({ autoPolygonMode, featureGroupRef, onAutoGenerate }: any) =>
   });
   return null;
 };
+
+// Komponen untuk mendeteksi event menggambar poligon manual
+const DrawEvents = ({ onDrawStart, onDrawStop }: any) => {
+  const map = useMap();
+  useEffect(() => {
+    const handleStart = () => onDrawStart();
+    const handleStop = () => onDrawStop();
+    
+    map.on('draw:drawstart' as any, handleStart);
+    map.on('draw:drawstop' as any, handleStop);
+    map.on('draw:created' as any, handleStop);
+    
+    return () => {
+      map.off('draw:drawstart' as any, handleStart);
+      map.off('draw:drawstop' as any, handleStop);
+      map.off('draw:created' as any, handleStop);
+    };
+  }, [map, onDrawStart, onDrawStop]);
+  return null;
+};
+
 
 const UserLocationMarker = () => {
   const map = useMap();
@@ -117,6 +139,45 @@ const LocateControl = () => {
 export const MapDigitizer: React.FC<MapDigitizerProps> = ({ onPolygonChange, autoPolygonMode }) => {
   const featureGroupRef = useRef<L.FeatureGroup>(null);
   const [currentMode, setCurrentMode] = useState<'manual' | 'auto_polygon'>('manual');
+  const [isDrawing, setIsDrawing] = useState(false);
+
+  const triggerLeafletDrawAction = (action: 'undo' | 'finish' | 'cancel') => {
+    let selector = '';
+    if (action === 'undo') {
+      selector = '.leaflet-draw-actions a[title="Delete last point drawn"], .leaflet-draw-actions a:contains("Delete")';
+    } else if (action === 'finish') {
+      selector = '.leaflet-draw-actions a[title="Finish drawing"], .leaflet-draw-actions a:contains("Save")';
+    } else if (action === 'cancel') {
+      selector = '.leaflet-draw-actions a[title="Cancel drawing"], .leaflet-draw-actions a:last-child';
+    }
+    
+    // Fallback: search all links in .leaflet-draw-actions
+    const links = document.querySelectorAll('.leaflet-draw-actions a');
+    let target: HTMLElement | null = null;
+    links.forEach((link: any) => {
+      const txt = link.textContent.toLowerCase();
+      const title = (link.title || '').toLowerCase();
+      if (action === 'undo' && (txt.includes('delete') || txt.includes('hapus') || title.includes('delete') || title.includes('last'))) {
+        target = link;
+      } else if (action === 'cancel' && (txt.includes('cancel') || txt.includes('batal') || title.includes('cancel'))) {
+        target = link;
+      }
+    });
+
+    if (target) {
+      (target as HTMLElement).click();
+    } else {
+      const btn = document.querySelector(selector) as HTMLElement;
+      if (btn) btn.click();
+    }
+
+    // Leaflet Draw finish fallback: click the first point to close
+    if (action === 'finish' && !target) {
+      const firstMarker = document.querySelector('.leaflet-marker-icon.leaflet-div-icon') as HTMLElement;
+      if (firstMarker) firstMarker.click();
+    }
+  };
+
 
   const updateGeoJSON = (mode: 'manual' | 'auto_polygon') => {
     if (featureGroupRef.current) {
@@ -231,9 +292,57 @@ export const MapDigitizer: React.FC<MapDigitizerProps> = ({ onPolygonChange, aut
           onAutoGenerate={handleAutoGenerate} 
         />
         
+        <DrawEvents 
+          onDrawStart={() => setIsDrawing(true)} 
+          onDrawStop={() => setIsDrawing(false)} 
+        />
+        
         <LocateControl />
         <UserLocationMarker />
       </MapContainer>
+
+      {isDrawing && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 bg-slate-900/95 backdrop-blur-md px-4 py-2.5 rounded-full border border-slate-700/50 shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <span className="text-white text-[10px] font-black uppercase tracking-widest mr-2 flex items-center gap-1.5 shrink-0">
+            <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+            Menggambar
+          </span>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              triggerLeafletDrawAction('undo');
+            }}
+            className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer border border-slate-700"
+            title="Hapus titik terakhir yang dibuat"
+          >
+            <Undo2 className="w-3 h-3" />
+            <span>Hapus Titik</span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              triggerLeafletDrawAction('finish');
+            }}
+            className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg shadow-blue-500/20"
+            title="Selesaikan gambar poligon"
+          >
+            <Check className="w-3 h-3 font-bold" />
+            <span>Selesai</span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              triggerLeafletDrawAction('cancel');
+            }}
+            className="flex items-center gap-1 bg-red-950 hover:bg-red-900 border border-red-900 text-red-300 hover:text-red-200 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+            title="Batalkan proses menggambar"
+          >
+            <X className="w-3 h-3" />
+            <span>Batal</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
+
