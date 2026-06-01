@@ -1,6 +1,6 @@
 import { ImputationData } from '../types/imputation';
 
-const generateId = (prefix: string, index: number) => `${prefix}_${index}_${Date.now()}`;
+const generateId = (prefix: string, index: number) => `${prefix}_${index}`;
 
 export const DEFAULT_IMPUTATION_DATA: ImputationData[] = [
   // --- NILAI IMPUTASI ---

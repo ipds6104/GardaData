@@ -69,24 +69,24 @@ export const ImputationModule: React.FC<ImputationModuleProps> = ({ onBack }) =>
             )}
 
             {user?.role === 'admin' ? (
-              <div className="flex bg-slate-200/50 p-1 rounded-full">
+              <div className="flex bg-slate-200/50 p-1 rounded-full flex-wrap sm:flex-nowrap justify-center">
                 <button
                   onClick={() => setActiveTab('search')}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'search' ? 'bg-white shadow-sm text-primary-600' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex items-center gap-1.5 px-3 sm:px-6 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide sm:tracking-widest transition-all ${activeTab === 'search' ? 'bg-white shadow-sm text-primary-600' : 'text-slate-500 hover:text-slate-700'}`}
                 >
-                  <Search className="w-4 h-4" /> Pencarian
+                  <Search className="w-3.5 h-3.5" /> Pencarian
                 </button>
                 <button
                   onClick={() => setActiveTab('admin')}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'admin' ? 'bg-white shadow-sm text-secondary-600' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex items-center gap-1.5 px-3 sm:px-6 py-2 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide sm:tracking-widest transition-all ${activeTab === 'admin' ? 'bg-white shadow-sm text-secondary-600' : 'text-slate-500 hover:text-slate-700'}`}
                 >
-                  <Database className="w-4 h-4" /> Kelola Data
+                  <Database className="w-3.5 h-3.5" /> Kelola Data
                 </button>
               </div>
             ) : (
-              <div className="bg-white border border-slate-200 px-4 py-2 rounded-full flex items-center gap-3 shadow-sm">
+              <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm">
                 <div className="w-2 h-2 rounded-full bg-secondary-500 animate-pulse" />
-                <span className="text-xs font-black uppercase tracking-widest text-slate-600">Akses Petugas</span>
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-wide sm:tracking-widest text-slate-600">Akses Petugas</span>
               </div>
             )}
           </div>

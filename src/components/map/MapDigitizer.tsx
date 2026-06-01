@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { MapContainer, TileLayer, FeatureGroup, useMapEvents, LayersControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, FeatureGroup, useMapEvents, LayersControl, useMap, Marker, Circle, Popup } from 'react-leaflet';
 import { EditControl } from 'react-leaflet-draw';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -31,25 +31,75 @@ const MapEvents = ({ autoPolygonMode, featureGroupRef, onAutoGenerate }: any) =>
   return null;
 };
 
+const UserLocationMarker = () => {
+  const map = useMap();
+  const [position, setPosition] = useState<L.LatLng | null>(null);
+  const [accuracy, setAccuracy] = useState<number>(0);
+
+  useEffect(() => {
+    const handleFound = (e: L.LocationEvent) => {
+      setPosition(e.latlng);
+      setAccuracy(e.accuracy);
+    };
+    map.on('locationfound', handleFound);
+    return () => {
+      map.off('locationfound', handleFound);
+    };
+  }, [map]);
+
+  if (position === null) return null;
+
+  const userLocationIcon = L.divIcon({
+    className: 'user-location-marker',
+    html: `<div class="relative flex items-center justify-center h-5 w-5">
+      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+      <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-blue-600 border-2 border-white shadow-md"></span>
+    </div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+  });
+
+  return (
+    <>
+      <Circle center={position} radius={accuracy} pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.15, weight: 1 }} />
+      <Marker position={position} icon={userLocationIcon}>
+        <Popup>
+          <div className="font-bold text-slate-800 text-xs">Lokasi Anda (Akurasi: {Math.round(accuracy)}m)</div>
+        </Popup>
+      </Marker>
+    </>
+  );
+};
+
 const LocateControl = () => {
   const map = useMap();
   const [locating, setLocating] = useState(false);
 
   useEffect(() => {
-    map.on('locationfound', (e) => {
+    const handleFound = () => {
       setLocating(false);
-      // Optional: tambahkan marker di lokasi user jika perlu
-    });
-    map.on('locationerror', (e) => {
+    };
+    const handleError = (e: any) => {
       setLocating(false);
       alert('Tidak dapat mendeteksi lokasi Anda. Pastikan GPS/Location menyala.');
-    });
+    };
+    map.on('locationfound', handleFound);
+    map.on('locationerror', handleError);
+    return () => {
+      map.off('locationfound', handleFound);
+      map.off('locationerror', handleError);
+    };
   }, [map]);
 
   const handleLocate = () => {
     setLocating(true);
     map.locate({ setView: true, maxZoom: 18, enableHighAccuracy: true });
   };
+
+  useEffect(() => {
+    // Auto-locate once on map load
+    handleLocate();
+  }, [map]);
 
   return (
     <div className="absolute bottom-6 right-6 z-[1000]">
@@ -182,6 +232,7 @@ export const MapDigitizer: React.FC<MapDigitizerProps> = ({ onPolygonChange, aut
         />
         
         <LocateControl />
+        <UserLocationMarker />
       </MapContainer>
     </div>
   );

@@ -112,7 +112,25 @@ export const batchUpsertImputationData = async (data: ImputationData[]): Promise
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    // Save to local cache on successful sync
+    const localDb = await initImputationDB();
+    const tx = localDb.transaction('imputation_cache', 'readwrite');
+    for (const item of data) {
+      await tx.objectStore('imputation_cache').put(item);
+    }
+    await tx.done;
   } catch (error) {
     console.error('Failed to batch upsert via API, falling back to local DB cache only:', error);
+    try {
+      const localDb = await initImputationDB();
+      const tx = localDb.transaction('imputation_cache', 'readwrite');
+      for (const item of data) {
+        await tx.objectStore('imputation_cache').put(item);
+      }
+      await tx.done;
+    } catch (dbError) {
+      console.error('Failed to write to local DB on fallback', dbError);
+    }
   }
 };

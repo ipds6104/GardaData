@@ -4,7 +4,7 @@ import { Search, Bookmark, History, Calculator, ArrowRight, X, AlertCircle } fro
 import { useImputationStore } from '../../store/imputationStore';
 import { ImputationData, ImputationType, NilaiImputation, BansosImputation, WajibImputation, WajibTransferImputation } from '../../types/imputation';
 
-const CATEGORIES = ['Semua', 'BPJS', 'BOS', 'MBG', 'Listrik', 'Bansos', 'Blok V'];
+const CATEGORIES = ['Semua', 'BPJS', 'BOS', 'MBG', 'Listrik', 'Bansos', 'Wajib Imputasi'];
 
 const formatRupiah = (value: string) => {
   if (!value) return '-';
@@ -35,7 +35,7 @@ export const ImputationSearchEngine: React.FC = () => {
       filtered = filtered.filter(item => {
         const kt = item.keywordText.toLowerCase();
         const cat = activeCategory.toLowerCase();
-        if (cat === 'blok v') return item.type === 'WAJIB_IMPUTASI' || item.type === 'WAJIB_TRANSFER';
+        if (cat === 'wajib imputasi') return item.type === 'WAJIB_IMPUTASI' || item.type === 'WAJIB_TRANSFER';
         if (cat === 'bansos') return item.type === 'BANSOS';
         return kt.includes(cat);
       });
@@ -162,7 +162,7 @@ export const ImputationSearchEngine: React.FC = () => {
     <div className="max-w-5xl mx-auto space-y-12 pb-24">
       {/* Hero Search Area */}
       <div className="text-center space-y-8">
-        <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight">
+        <h1 className="text-2xl sm:text-4xl md:text-6xl font-black text-slate-900 tracking-tight">
           Cari <span className="text-primary-500">Imputasi</span>
         </h1>
         <div className="relative max-w-3xl mx-auto group">
@@ -172,7 +172,7 @@ export const ImputationSearchEngine: React.FC = () => {
               <input
               type="text"
               className="w-full bg-transparent px-6 py-4 text-xl font-bold text-slate-900 outline-none placeholder:text-slate-300 placeholder:font-medium"
-              placeholder="Cari rubini, listrik, pkh, blok v..."
+              placeholder="Cari rubini, listrik, pkh, wajib imputasi..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -185,12 +185,12 @@ export const ImputationSearchEngine: React.FC = () => {
         </div>
 
         {/* Quick Categories */}
-        <div className="flex flex-wrap justify-center gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-3 w-full justify-start sm:justify-center scrollbar-none snap-x whitespace-nowrap px-4">
           {CATEGORIES.map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all border ${
+              className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all border shrink-0 snap-align-start ${
                 activeCategory === cat 
                 ? 'bg-slate-800 text-white border-slate-800 shadow-md' 
                 : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400 hover:bg-slate-50'
@@ -212,7 +212,7 @@ export const ImputationSearchEngine: React.FC = () => {
         {/* Results Grid */}
         <div className="lg:col-span-3">
           {results.length > 0 ? (
-            activeCategory === 'Blok V' ? (
+            activeCategory === 'Wajib Imputasi' ? (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Wajib Imputasi Grouped */}
                 {Object.entries(
@@ -231,7 +231,7 @@ export const ImputationSearchEngine: React.FC = () => {
                       <h3 className="font-black text-white uppercase tracking-widest text-sm">{kategori}</h3>
                     </div>
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
+                      <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-slate-50 text-slate-400 uppercase tracking-widest font-black text-[10px]">
                           <tr>
                             <th className="p-4 pl-6">Kuesioner</th>
@@ -267,7 +267,7 @@ export const ImputationSearchEngine: React.FC = () => {
                         <h3 className="font-black text-white uppercase tracking-widest text-sm">Wajib Transfer</h3>
                       </div>
                       <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
                           <thead className="bg-primary-50 text-primary-600 uppercase tracking-widest font-black text-[10px]">
                             <tr>
                               <th className="p-4 pl-6">Penerimaan</th>

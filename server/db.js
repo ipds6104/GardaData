@@ -50,20 +50,54 @@ const initDb = async () => {
                 synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )
         `);
+
+        // 3. Create social_phenomena table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS social_phenomena (
+                id VARCHAR(50) PRIMARY KEY,
+                judul VARCHAR(255) NOT NULL,
+                kategori VARCHAR(100) NOT NULL,
+                kecamatan VARCHAR(100) NOT NULL,
+                desa VARCHAR(100) NOT NULL,
+                sls VARCHAR(255) NOT NULL,
+                petugas_name VARCHAR(100) NOT NULL,
+                tanggal DATE NOT NULL,
+                deskripsi TEXT NOT NULL,
+                dampak TEXT NOT NULL,
+                rekomendasi TEXT,
+                helper_answers JSON,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_kecamatan (kecamatan),
+                INDEX idx_desa (desa),
+                INDEX idx_kategori (kategori),
+                INDEX idx_tanggal (tanggal)
+            )
+        `);
         
-        // Seed default admin if table is empty
-        const [rows] = await pool.query('SELECT COUNT(*) as count FROM users');
-        if (rows[0].count === 0) {
+        // Seed default users if they don't exist
+        const bcrypt = require('bcryptjs');
+        const salt = await bcrypt.genSalt(10);
+
+        const [adminRows] = await pool.query('SELECT * FROM users WHERE username = ?', ['admin']);
+        if (adminRows.length === 0) {
             console.log('Seeding default administrator into users table...');
-            const bcrypt = require('bcryptjs');
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash('admin123', salt); // Default password: admin123
-            
+            const hashedPassword = await bcrypt.hash('admin6104', salt);
             await pool.query(
                 'INSERT INTO users (id, username, password_hash, name, role) VALUES (?, ?, ?, ?, ?)',
                 ['user_admin', 'admin', hashedPassword, 'Administrator BPS', 'admin']
             );
-            console.log('Default admin seeded (username: admin, password: admin123)');
+            console.log('Default admin seeded (username: admin, password: admin6104)');
+        }
+
+        const [petugasRows] = await pool.query('SELECT * FROM users WHERE username = ?', ['petugas']);
+        if (petugasRows.length === 0) {
+            console.log('Seeding default petugas into users table...');
+            const hashedPassword = await bcrypt.hash('petugas6104', salt);
+            await pool.query(
+                'INSERT INTO users (id, username, password_hash, name, role) VALUES (?, ?, ?, ?, ?)',
+                ['user_petugas', 'petugas', hashedPassword, 'Petugas BPS', 'petugas']
+            );
+            console.log('Default petugas seeded (username: petugas, password: petugas6104)');
         }
         
         console.log('✔ MySQL Database and Tables initialized successfully');

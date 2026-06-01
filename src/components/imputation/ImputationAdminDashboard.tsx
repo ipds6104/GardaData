@@ -267,7 +267,7 @@ export const ImputationAdminDashboard: React.FC = () => {
     <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-8 lg:p-10 space-y-8">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Manajemen Data</h2>
+          <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight uppercase">Manajemen Data</h2>
           <p className="text-slate-500 font-medium">Ubah referensi data imputasi secara langsung.</p>
         </div>
       </div>

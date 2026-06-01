@@ -10,9 +10,10 @@ interface FeatureCardProps {
   bgColor: string;
   onClick: () => void;
   disabled?: boolean;
+  buttonTextColor?: string;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon: Icon, iconColor, bgColor, onClick, disabled }) => (
+const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon: Icon, iconColor, bgColor, onClick, disabled, buttonTextColor }) => (
   <motion.button
     whileHover={disabled ? {} : { y: -8, scale: 1.02 }}
     whileTap={disabled ? {} : { scale: 0.98 }}
@@ -32,7 +33,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon: Ico
       {description}
     </p>
     {!disabled && (
-      <div className="flex items-center gap-2 text-primary-600 font-bold group-hover:gap-4 transition-all">
+      <div className={`flex items-center gap-2 font-bold group-hover:gap-4 transition-all ${buttonTextColor || 'text-primary-600'}`}>
         <span>Buka Fitur</span>
         <ArrowRight className="w-5 h-5" />
       </div>
@@ -96,7 +97,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           onClick={() => onNavigate('infrastructure')}
         />
         <FeatureCard
-          title="Imputasi Susenas"
+          title="Imputasi Susenas-Seruti"
           description="Mesin pencari cerdas untuk panduan nilai imputasi lapangan secara instan dan bebas typo."
           icon={FileEdit}
           iconColor="text-purple-600"
@@ -104,13 +105,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           onClick={() => onNavigate('imputation')}
         />
         <FeatureCard
-          title="Fenomena Sosial"
-          description="Modul pemantauan, analisis, dan pencatatan dinamika fenomena sosial masyarakat secara terstruktur."
+          title="Fenomena Sosial Ekonomi"
+          description="Modul pemantauan, analisis, dan pencatatan dinamika fenomena sosial ekonomi masyarakat secara terstruktur."
           icon={Users}
           iconColor="text-rose-600"
           bgColor="bg-rose-50"
-          disabled={true}
-          onClick={() => {}}
+          onClick={() => onNavigate('social-phenomenon')}
         />
         <FeatureCard
           title="Sektor Pertanian"

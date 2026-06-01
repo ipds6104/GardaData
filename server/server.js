@@ -25,11 +25,13 @@ const db = require('./db');
 const authRoutes = require('./routes/auth');
 const measurementRoutes = require('./routes/measurements');
 const imputationRoutes = require('./routes/imputations');
+const phenomenaRoutes = require('./routes/phenomena');
 
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/measurements', measurementRoutes);
 app.use('/api/imputations', imputationRoutes);
+app.use('/api/phenomena', phenomenaRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
