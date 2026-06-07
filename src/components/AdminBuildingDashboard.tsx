@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, GeoJSON, Popup, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, Popup, LayersControl, useMap } from 'react-leaflet';
+import L from 'leaflet';
 import { MeasurementRecord } from '../services/indexeddb';
 import { ChevronLeft, BarChart3, MapPin, Loader2, Maximize2, Building2, Database, User } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -34,9 +35,23 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
           setLoading(false);
         }
       } catch (error) {
-        console.error('Error fetching measurements from MySQL:', error);
-        if (active) {
-          setLoading(false);
+        console.warn('Gagal memuat dari MySQL, menggunakan data lokal (IndexedDB):', error);
+        // FALLBACK KE INDEXEDDB
+        try {
+          const { getAllMeasurementsLocal } = await import('../services/indexeddb');
+          const localData = await getAllMeasurementsLocal();
+          if (active) {
+            // Karena data geojson dari IndexedDB mungkin berbentuk string JSON
+            const parsedData = localData.map(item => ({
+              ...item,
+              geojson: typeof item.geojson === 'string' ? JSON.parse(item.geojson) : item.geojson
+            }));
+            setMeasurements(parsedData);
+            setLoading(false);
+          }
+        } catch (localErr) {
+          console.error('Gagal memuat data lokal:', localErr);
+          if (active) setLoading(false);
         }
       }
     };
@@ -59,6 +74,26 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
   const rumahMeasurements = measurements.filter(m => m.jenisBangunan === 'Rumah Tinggal');
   const avgLuasRumah = rumahMeasurements.length > 0 ? rumahMeasurements.reduce((sum, item) => sum + (item.luasTapak || 0), 0) / rumahMeasurements.length : 0;
   const avgEstimasi = measurements.length > 0 ? totalEstimasi / measurements.length : 0;
+
+  // Komponen untuk auto-zoom peta ke data
+  const MapBoundsFitter = ({ data }: { data: MeasurementRecord[] }) => {
+    const map = useMap();
+    
+    useEffect(() => {
+      if (data && data.length > 0) {
+        const bounds = L.latLngBounds([]);
+        data.forEach((p) => {
+          if (p.latitude && p.longitude) {
+            bounds.extend([p.latitude, p.longitude]);
+          }
+        });
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [50, 50] });
+        }
+      }
+    }, [data, map]);
+    return null;
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
@@ -175,6 +210,8 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
                 />
               </LayersControl.BaseLayer>
             </LayersControl>
+
+            <MapBoundsFitter data={measurements} />
 
             {measurements.map((record) => (
               record.geojson && (

@@ -105,6 +105,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           onClick={() => onNavigate('imputation')}
         />
         <FeatureCard
+          title="Laporan Pendataan"
+          description="Aplikasi pelaporan dan monitoring progres pendataan lapangan secara real-time."
+          icon={FileEdit}
+          iconColor="text-indigo-600"
+          bgColor="bg-indigo-50"
+          onClick={() => onNavigate('cerdas-form')}
+        />
+        <FeatureCard
           title="Fenomena Sosial Ekonomi"
           description="Modul pemantauan, analisis, dan pencatatan dinamika fenomena sosial ekonomi masyarakat secara terstruktur."
           icon={Users}
@@ -122,13 +130,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           onClick={() => {}}
         />
         <FeatureCard
-          title="Ekonomi & Pembangunan"
-          description="Indikator makro ekonomi, perkembangan industri daerah, dan status kemajuan infrastruktur."
+          title="Data Strategis BPS"
+          description="Dashboard indikator makro ekonomi, sosial, dan produksi daerah. Admin dapat memperbarui data di sini."
           icon={TrendingUp}
           iconColor="text-amber-600"
           bgColor="bg-amber-50"
-          disabled={true}
-          onClick={() => {}}
+          onClick={() => onNavigate('admin-strategic-data')}
         />
       </div>
 

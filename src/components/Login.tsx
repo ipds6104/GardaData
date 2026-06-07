@@ -4,7 +4,7 @@ import { LogIn, User, Lock, AlertCircle, Database } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
 export const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, loginAsVisitor } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -83,6 +83,21 @@ export const Login: React.FC = () => {
             >
               <LogIn className="w-6 h-6" />
               MASUK
+            </button>
+
+            <div className="relative flex py-2 items-center">
+              <div className="flex-grow border-t border-slate-200"></div>
+              <span className="flex-shrink-0 mx-4 text-slate-400 text-sm font-bold uppercase tracking-wider">ATAU</span>
+              <div className="flex-grow border-t border-slate-200"></div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => loginAsVisitor()}
+              className="w-full bg-white border-2 border-slate-200 text-slate-700 py-4 rounded-2xl font-black text-lg hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-3"
+            >
+              <Database className="w-6 h-6 text-primary-500" />
+              Masuk sebagai Pengunjung
             </button>
           </form>
           

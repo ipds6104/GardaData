@@ -15,6 +15,7 @@ interface BuildingAreaModuleProps {
 export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }) => {
   const { user } = useAuth();
   const [autoPolygonMode, setAutoPolygonMode] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
   const [polygonData, setPolygonData] = useState<any>(null);
   const [luasTapak, setLuasTapak] = useState<number>(0);
   const [metodeDigitasi, setMetodeDigitasi] = useState<'manual' | 'auto_polygon'>('manual');
@@ -24,6 +25,22 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
     jenisBangunan: 'Rumah Tinggal',
     perkiraanLuasLantai: 0
   });
+
+  const [existingMeasurements, setExistingMeasurements] = useState<MeasurementRecord[]>([]);
+
+  useEffect(() => {
+    // Muat semua poligon yang ada (terutama untuk Admin)
+    const loadData = async () => {
+      try {
+        const { getAllMeasurementsLocal } = await import('../services/indexeddb');
+        const data = await getAllMeasurementsLocal();
+        setExistingMeasurements(data);
+      } catch (err) {
+        console.error('Failed to load existing measurements:', err);
+      }
+    };
+    loadData();
+  }, []);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSaving, setIsSaving] = useState(false);
@@ -167,40 +184,26 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
   };
 
   const triggerLeafletAction = (action: 'draw' | 'edit' | 'delete' | 'save' | 'cancel') => {
-    let selector = '';
-    if (action === 'draw') selector = '.leaflet-draw-draw-polygon';
-    else if (action === 'edit') selector = '.leaflet-draw-edit-edit';
-    else if (action === 'delete') selector = '.leaflet-draw-edit-remove';
-    else if (action === 'save') selector = '.leaflet-draw-actions a[title="Save changes."], .leaflet-draw-actions a:first-child';
-    else if (action === 'cancel') selector = '.leaflet-draw-actions a[title="Cancel drawing"], .leaflet-draw-actions a[title="Cancel editing."], .leaflet-draw-actions a:last-child';
-    
-    const btn = document.querySelector(selector) as HTMLElement;
-    if (btn) {
-      btn.click();
-    } else {
-      console.warn(`Leaflet draw button for ${action} not found`);
+    if (action === 'draw') {
+      (window as any).__gardaStartDraw?.();
+    } else if (action === 'edit') {
+      const editBtn = document.querySelector('.leaflet-draw-edit-edit') as HTMLElement;
+      if (editBtn) editBtn.click();
+    } else if (action === 'delete') {
+      const delBtn = document.querySelector('.leaflet-draw-edit-remove') as HTMLElement;
+      if (delBtn) delBtn.click();
+    } else if (action === 'save') {
+      (window as any).__gardaFinishDraw?.();
+    } else if (action === 'cancel') {
+      (window as any).__gardaCancelDraw?.();
     }
   };
 
   const handleClearMap = () => {
-    const removeBtn = document.querySelector('.leaflet-draw-edit-remove') as HTMLElement;
-    if (removeBtn) {
-      removeBtn.click();
-      setTimeout(() => {
-        const clearAll = document.querySelector('.leaflet-draw-actions a[title="Clear all layers."]') as HTMLElement;
-        if (clearAll) clearAll.click();
-        setTimeout(() => {
-          const saveBtn = document.querySelector('.leaflet-draw-actions a[title="Save changes."]') as HTMLElement;
-          if (saveBtn) saveBtn.click();
-        }, 50);
-      }, 50);
-    }
+    (window as any).__gardaClearLayers?.();
     setPolygonData(null);
     setLuasTapak(0);
-    setFormData(prev => ({
-      ...prev,
-      perkiraanLuasLantai: 0
-    }));
+    setFormData(prev => ({ ...prev, perkiraanLuasLantai: 0 }));
   };
 
   return (
@@ -254,11 +257,15 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
               <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                 <button
                   onClick={() => triggerLeafletAction('draw')}
-                  className="flex-1 md:flex-initial px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors shadow-sm cursor-pointer"
+                  className={`flex-1 md:flex-initial px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 border transition-all cursor-pointer shadow-sm ${
+                    isDrawing 
+                      ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-inner' 
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  }`}
                   title="Mulai menggambar poligon baru"
                 >
-                  <PenTool className="w-4 h-4 text-primary-500 shrink-0" />
-                  <span>Gambar</span>
+                  <PenTool className={`w-4 h-4 shrink-0 ${isDrawing ? 'text-blue-600' : 'text-primary-500'}`} />
+                  <span>{isDrawing ? 'Menggambar...' : 'Gambar'}</span>
                 </button>
                 <button
                   onClick={() => triggerLeafletAction('edit')}
@@ -289,7 +296,13 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
 
           {/* Kotak Peta (Sangat Besar - h-[70vh]) */}
           <div className="w-full h-[70vh] min-h-[400px] lg:h-auto lg:flex-grow bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden relative shrink-0">
-            <MapDigitizer onPolygonChange={handlePolygonChange} autoPolygonMode={autoPolygonMode} />
+            <MapDigitizer 
+              onPolygonChange={handlePolygonChange} 
+              autoPolygonMode={autoPolygonMode} 
+              onDrawingStateChange={setIsDrawing}
+              existingPolygons={existingMeasurements}
+              userRole={user?.role}
+            />
           </div>
         </div>
 

@@ -13,6 +13,9 @@ import { BuildingAreaModule } from './components/BuildingAreaModule';
 import { AdminBuildingDashboard } from './components/AdminBuildingDashboard';
 import { ImputationModule } from './components/imputation/ImputationModule';
 import { SocialPhenomenonModule } from './components/SocialPhenomenonModule';
+import { CerdasModule } from './components/CerdasModule';
+import { VisitorDashboard } from './components/VisitorDashboard';
+import { AdminStrategicData } from './components/AdminStrategicData';
 import { Login } from './components/Login';
 import { syncImputationFromFirebase } from './services/imputationService';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -81,7 +84,18 @@ function AppContent() {
           return <AdminBuildingDashboard onBack={() => setCurrentPage('landing')} />;
         }
         return <BuildingAreaModule onBack={() => setCurrentPage('landing')} />;
+      case 'cerdas-form':
+        return <CerdasModule onBack={() => setCurrentPage('landing')} />;
+      case 'admin-strategic-data':
+        if (user?.role === 'admin') {
+          return <AdminStrategicData onBack={() => setCurrentPage('landing')} />;
+        }
+        return <LandingPage onNavigate={setCurrentPage} />;
       default:
+        // Jika pengunjung, paksa tampilan Visitor Dashboard
+        if (user.role === 'pengunjung') {
+          return <VisitorDashboard />;
+        }
         return <LandingPage onNavigate={setCurrentPage} />;
     }
   };

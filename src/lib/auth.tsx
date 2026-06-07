@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type UserRole = 'admin' | 'petugas' | null;
+type UserRole = 'admin' | 'petugas' | 'pengunjung' | null;
 
 interface AuthContextType {
   user: { username: string; role: UserRole; name?: string } | null;
   login: (username: string, password: string) => Promise<boolean>;
+  loginAsVisitor: () => void;
   logout: () => void;
 }
 
@@ -19,6 +20,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(JSON.parse(savedUser));
     }
   }, []);
+
+  const loginAsVisitor = () => {
+    const visitorUser = { username: 'Pengunjung', role: 'pengunjung' as UserRole, name: 'Tamu BPS' };
+    setUser(visitorUser);
+    localStorage.setItem('navigasi_user', JSON.stringify(visitorUser));
+  };
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
@@ -62,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
 
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('navigasi_user');
@@ -69,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, loginAsVisitor, logout }}>
       {children}
     </AuthContext.Provider>
   );
