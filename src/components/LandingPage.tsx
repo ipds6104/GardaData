@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, Ruler, Map, ShieldCheck, ArrowRight, CheckCircle2, FileEdit, Users, Sprout, TrendingUp } from 'lucide-react';
+import { BookOpen, Ruler, Map, ShieldCheck, ArrowRight, CheckCircle2, FileEdit, Users, Sprout, TrendingUp, MonitorPlay } from 'lucide-react';
 
 interface FeatureCardProps {
   title: string;
@@ -73,28 +73,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
         <FeatureCard
-          title="KBLI & KBJI"
-          description="Akses cepat klasifikasi KBLI 2025 dan KBJI untuk penentuan kode lapangan usaha dan jabatan yang akurat."
-          icon={BookOpen}
-          iconColor="text-primary-600"
-          bgColor="bg-primary-50"
-          onClick={() => onNavigate('kbli-kbji')}
+          title="Learning Management System"
+          description="Pusat materi, jadwal, instrumen dan kuis pelatihan petugas pendataan yang terstruktur."
+          icon={MonitorPlay}
+          iconColor="text-sky-600"
+          bgColor="bg-sky-50"
+          onClick={() => onNavigate('lms')}
         />
         <FeatureCard
-          title="Luas Bangunan"
-          description="Kalkulator validasi luas bangunan berdasarkan parameter teknis untuk menghindari anomali data lapangan."
-          icon={Ruler}
-          iconColor="text-secondary-600"
-          bgColor="bg-secondary-50"
-          onClick={() => onNavigate('building-area')}
-        />
-        <FeatureCard
-          title="Infrastruktur Desa"
-          description="Monitoring dan update data infrastruktur pendukung desa secara real-time untuk pemetaan yang presisi."
-          icon={Map}
-          iconColor="text-accent-600"
-          bgColor="bg-accent-50"
-          onClick={() => onNavigate('infrastructure')}
+          title="Laporan Pendataan"
+          description="Aplikasi pelaporan dan monitoring progres pendataan lapangan secara real-time."
+          icon={FileEdit}
+          iconColor="text-indigo-600"
+          bgColor="bg-indigo-50"
+          onClick={() => onNavigate('cerdas-form')}
         />
         <FeatureCard
           title="Imputasi Susenas-Seruti"
@@ -105,12 +97,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           onClick={() => onNavigate('imputation')}
         />
         <FeatureCard
-          title="Laporan Pendataan"
-          description="Aplikasi pelaporan dan monitoring progres pendataan lapangan secara real-time."
-          icon={FileEdit}
-          iconColor="text-indigo-600"
-          bgColor="bg-indigo-50"
-          onClick={() => onNavigate('cerdas-form')}
+          title="Infrastruktur Desa"
+          description="Monitoring dan update data infrastruktur pendukung desa secara real-time untuk pemetaan yang presisi."
+          icon={Map}
+          iconColor="text-accent-600"
+          bgColor="bg-accent-50"
+          onClick={() => onNavigate('infrastructure')}
+        />
+        <FeatureCard
+          title="Luas Bangunan"
+          description="Kalkulator validasi luas bangunan berdasarkan parameter teknis untuk menghindari anomali data lapangan."
+          icon={Ruler}
+          iconColor="text-secondary-600"
+          bgColor="bg-secondary-50"
+          onClick={() => onNavigate('building-area')}
+        />
+        <FeatureCard
+          title="KBLI & KBJI"
+          description="Akses cepat klasifikasi KBLI 2025 dan KBJI untuk penentuan kode lapangan usaha dan jabatan yang akurat."
+          icon={BookOpen}
+          iconColor="text-primary-600"
+          bgColor="bg-primary-50"
+          onClick={() => onNavigate('kbli-kbji')}
         />
         <FeatureCard
           title="Fenomena Sosial Ekonomi"

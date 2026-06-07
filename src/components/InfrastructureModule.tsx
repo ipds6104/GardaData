@@ -5,6 +5,7 @@ import { collection, query, getDocs, orderBy, limit, serverTimestamp, writeBatch
 import { db } from '../lib/firebase';
 import { useAuth } from '../lib/auth';
 import { OperationType, handleFirestoreError } from '../lib/errorUtils';
+import { KECAMATAN_LIST, MEMPAWAH_REGIONS } from '../data/regions';
 import * as XLSX from 'xlsx';
 
 interface VillageStat {
@@ -336,6 +337,7 @@ Tambahan Data;LPM;PENIBUNG;Data Desa`;
 export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBack }) => {
   const { user } = useAuth();
   const [activeSubTab, setActiveSubTab] = useState<'search' | 'manage'>('search');
+  const [selectedKecamatan, setSelectedKecamatan] = useState<string>('');
   const [selectedVillage, setSelectedVillage] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState({
     category: '',
@@ -378,8 +380,14 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
     fetchData();
   }, [fetchData]);
 
-  const handleSearch = async (villageName: string) => {
-    if (!villageName) {
+  const filteredVillages = React.useMemo(() => {
+    if (!selectedKecamatan) return uniqueVillages;
+    const allowed = MEMPAWAH_REGIONS[selectedKecamatan].map((v: string) => v.toUpperCase());
+    return uniqueVillages.filter(v => allowed.includes(v.toUpperCase()));
+  }, [selectedKecamatan, uniqueVillages]);
+
+  const handleSearch = async (villageName: string, kecamatanName: string) => {
+    if (!villageName && !kecamatanName) {
       setInfraItems([]);
       setUniqueCategories([]);
       setUniqueYears([]);
@@ -388,8 +396,19 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
     setLoading(true);
     try {
       const infraRef = collection(db, 'infrastructure_items');
-      const q = query(infraRef, where('village', '==', villageName.toUpperCase()));
-      const snap = await getDocs(q);
+      let snap;
+
+      if (villageName) {
+        // Fetch specific village
+        const q = query(infraRef, where('village', '==', villageName.toUpperCase()));
+        snap = await getDocs(q);
+      } else {
+        // Fetch all villages in kecamatan
+        const allowed = MEMPAWAH_REGIONS[kecamatanName].map((v: string) => v.toUpperCase());
+        const q = query(infraRef, where('village', 'in', allowed));
+        snap = await getDocs(q);
+      }
+
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() })) as InfrastructureItem[];
       setInfraItems(items);
 
@@ -406,7 +425,13 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
 
   const handleVillageChange = (val: string) => {
     setSelectedVillage(val);
-    handleSearch(val);
+    handleSearch(val, selectedKecamatan);
+  };
+
+  const handleKecamatanChange = (val: string) => {
+    setSelectedKecamatan(val);
+    setSelectedVillage(''); // Reset desa ketika kecamatan berubah
+    handleSearch('', val);
   };
 
   const downloadInfraTemplate = () => {
@@ -666,11 +691,36 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
     }
   };
 
-  // Grouping for display if searching by village primarily
-  const displayStats = villageStats.find(s =>
-    s.village.toUpperCase() === selectedVillage.toUpperCase() &&
-    (!searchQuery.year || s.year === searchQuery.year)
-  );
+  // Aggregation for Display Stats
+  const displayStats = React.useMemo(() => {
+    if (selectedVillage) {
+      return villageStats.find(s =>
+        s.village.toUpperCase() === selectedVillage.toUpperCase() &&
+        (!searchQuery.year || s.year === searchQuery.year)
+      );
+    } else if (selectedKecamatan) {
+      // Aggregate stats for all villages in selected kecamatan
+      const allowed = MEMPAWAH_REGIONS[selectedKecamatan].map((v: string) => v.toUpperCase());
+      const matchingStats = villageStats.filter(s =>
+        allowed.includes(s.village.toUpperCase()) &&
+        (!searchQuery.year || s.year === searchQuery.year)
+      );
+
+      if (matchingStats.length === 0) return undefined;
+
+      return matchingStats.reduce((acc, curr) => ({
+        id: 'aggregated',
+        village: `KEC. ${selectedKecamatan.toUpperCase()}`,
+        year: curr.year || acc.year,
+        male: String(Number(acc.male || 0) + Number(curr.male || 0)),
+        female: String(Number(acc.female || 0) + Number(curr.female || 0)),
+        total: String(Number(acc.total || 0) + Number(curr.total || 0)),
+        kk: String(Number(acc.kk || 0) + Number(curr.kk || 0)),
+        agriFamily: String(Number(acc.agriFamily || 0) + Number(curr.agriFamily || 0)),
+      }), { male: '0', female: '0', total: '0', kk: '0', agriFamily: '0' } as any) as VillageStat;
+    }
+    return undefined;
+  }, [selectedVillage, selectedKecamatan, villageStats, searchQuery.year]);
 
   const filteredInfra = infraItems.filter(item => {
     const matchCategory = !searchQuery.category || item.category?.toLowerCase().includes(searchQuery.category.toLowerCase());
@@ -696,16 +746,23 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
   });
 
   // Generate summary counts
-  const summaryCounts = selectedVillage ? (
+  const summaryCounts = (selectedVillage || selectedKecamatan) ? (
     searchQuery.category ?
       Object.entries(filteredInfra.reduce((acc, item) => {
         if (!acc[item.item]) acc[item.item] = 0;
         acc[item.item]++;
         return acc;
-      }, {} as Record<string, number>)).map(([name, count]) => ({ name, count }))
+      }, {} as Record<string, number>)).map(([name, count]) => ({ name, count, isItem: true }))
       :
-      sortedCategories.map(cat => ({ name: cat, count: groupedInfra[cat].length }))
+      sortedCategories.map(cat => ({ name: cat, count: groupedInfra[cat].length, isItem: false }))
   ) : [];
+
+  const handleScrollToSection = (sectionName: string) => {
+    const el = document.getElementById(`section-${slugify(sectionName)}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -746,13 +803,21 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
           <motion.div key="search-ui" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="space-y-12">
 
             <div className="bg-white p-8 md:p-12 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <CustomCombobox
+                  icon={MapIcon}
+                  placeholder="Pilih Kecamatan"
+                  value={selectedKecamatan}
+                  onChange={handleKecamatanChange}
+                  options={KECAMATAN_LIST}
+                />
                 <CustomCombobox
                   icon={MapPin}
                   placeholder="Pilih Nama Desa"
                   value={selectedVillage}
                   onChange={handleVillageChange}
-                  options={uniqueVillages}
+                  options={filteredVillages}
+                  disabled={selectedKecamatan && filteredVillages.length === 0}
                 />
                 <CustomCombobox
                   icon={FolderOpen}
@@ -773,9 +838,9 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
               </div>
             </div>
 
-            {selectedVillage && (
+            {(selectedVillage || selectedKecamatan) && (
               <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter ml-2">Ringkasan Profil Desa {selectedVillage}</h3>
+                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter ml-2">Ringkasan Profil {selectedVillage ? `Desa ${selectedVillage}` : `Kecamatan ${selectedKecamatan}`}</h3>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   {/* Blok Kependudukan (Kiri) */}
@@ -829,10 +894,14 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
                     </h4>
                     {summaryCounts.length > 0 ? (
                       <div className="flex flex-wrap gap-3">
-                        {summaryCounts.map((sum) => (
-                          <div key={sum.name} className="flex items-center gap-3 bg-slate-50 px-4 py-3 rounded-2xl border border-slate-100 hover:border-slate-200 hover:bg-slate-100 transition-colors cursor-default">
-                            <span className="text-sm font-bold text-slate-700">{sum.name}</span>
-                            <span className="bg-primary-100 text-primary-700 text-xs font-black px-2 py-1 rounded-lg">{sum.count}</span>
+                        {summaryCounts.map((s, idx) => (
+                          <div 
+                            key={idx} 
+                            onClick={() => !s.isItem && handleScrollToSection(s.name)}
+                            className={`flex justify-between items-center bg-slate-50 px-4 py-3 rounded-xl border border-slate-100 ${!s.isItem ? 'cursor-pointer hover:bg-slate-100 hover:border-slate-200 transition-colors' : ''}`}
+                          >
+                            <span className={`text-sm ${!s.isItem ? 'font-bold text-slate-700' : 'font-medium text-slate-500'}`}>{s.name}</span>
+                            <span className="bg-white px-2 py-1 rounded-lg text-xs font-black text-primary-600 border border-primary-100 shadow-sm">{s.count}</span>
                           </div>
                         ))}
                       </div>
@@ -856,7 +925,8 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: catIdx * 0.1 }}
                     key={category}
-                    className="space-y-6"
+                    id={`section-${slugify(category)}`}
+                    className="space-y-6 scroll-mt-6"
                   >
                     <div className="flex items-center gap-4 mb-4">
                       <div className="h-[1px] flex-grow bg-slate-100" />
