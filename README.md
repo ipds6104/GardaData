@@ -130,13 +130,18 @@ Jika Anda berencana berkontribusi pada repositori ini, mohon ikuti panduan arsit
    - `src/data/`: Berisi data absolut (*static dummy/offline seeders*).
 
 2. **Aturan State Management:**
-   Aplikasi menggunakan pola manajemen _state_ lokal melalui `useState` dan _context_ melalui `useContext`. Hindari penggunaan Redux kecuali jika kompleksitas data lintas-modul benar-benar membutuhkannya. Tarik data dari Firestore sedekat mungkin ke komponen yang membutuhkannya menggunakan _hook_ standar React.
+   Aplikasi menggunakan pola manajemen _state_ lokal melalui `useState` dan _context_ melalui `useContext`. Hindari penggunaan Redux kecuali jika kompleksitas data lintas-modul benar-benar membutuhkannya. Tarik data dari API sedekat mungkin ke komponen yang membutuhkannya menggunakan _hook_ standar React. Khusus untuk modul Luas Bangunan, data kini ditarik dari *backend* MySQL kita.
 
-3. **Styling (Tailwind CSS):**
-   - Tetap gunakan standardisasi *utility-classes* dari Tailwind CSS. Hindari menambahkan CSS tradisional di berkas eksternal kecuali untuk keperluan *override* _library_ pihak ketiga (seperti peta Leaflet).
+3. **Backend API (Node.js & MySQL):**
+   - Modul Luas Bangunan telah bermigrasi sepenuhnya ke arsitektur *self-hosted* menggunakan Node.js dan MySQL untuk menghindari limitasi kuota pembacaan Firestore.
+   - Kode *backend* dapat ditemukan di direktori `/backend`. Pastikan *environment variables* (seperti `DB_HOST`, `DB_USER`, `DB_PASSWORD`) terisi dengan benar merujuk ke database MySQL.
+   - Pada aplikasi *frontend* Coolify Anda, tentukan alamat server backend menggunakan *environment variable* `VITE_API_URL` (contoh: `VITE_API_URL=https://api.garda-data.com`).
+
+4. **Styling (Tailwind CSS):**
+   - Tetap gunakan standardisasi *utility-classes* dari Tailwind CSS.
    - Pastikan warna komponen responsif. Referensi warna prioritas proyek ini adalah `slate`, `primary` (biasanya biru), `emerald`, `amber`, `rose`.
 
-4. **Pull Request Workflow:**
+5. **Pull Request Workflow:**
    - _Branching_: Buat cabang fitur dari `main` dengan format `feature/nama-fitur` atau `fix/nama-perbaikan`.
    - _Commit_: Gunakan pesan _commit_ yang deskriptif.
 
