@@ -142,4 +142,13 @@ Jika Anda berencana berkontribusi pada repositori ini, mohon ikuti panduan arsit
 
 ---
 
+## 👤 Kreator & Kontributor Utama
+
+Aplikasi **Garda Data** digagas dan dikembangkan oleh:
+- **[Ahmad Rahman](https://github.com/ahmadrahman79)** (Kreator / *Lead Developer*)
+
+Segala bentuk pertanyaan, umpan balik, atau saran perbaikan dapat langsung diajukan melalui profil GitHub di atas atau dengan membuat *Issue* pada repositori ini.
+
+---
+
 > "Sebuah instrumen pencacahan yang baik tidak hanya bergantung pada metodologi, tetapi juga seberapa mudah dan manusiawi alat tersebut digunakan oleh petugas di lapangan." - **Garda Data Core Team**
