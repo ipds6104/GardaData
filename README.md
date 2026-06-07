@@ -149,8 +149,10 @@ Jika Anda berencana berkontribusi pada repositori ini, mohon ikuti panduan arsit
 
 ## 👤 Kreator & Kontributor Utama
 
-Aplikasi **Garda Data** digagas dan dikembangkan oleh:
-- **[Ahmad Rahman](https://github.com/ahmadrahman79)** (Kreator / *Lead Developer*)
+Terima kasih kepada seluruh pihak yang telah mencurahkan waktu dan pikiran untuk membangun sistem ini.
+
+- **Ahmad Rahman** ([@ahmadrahman79](https://github.com/ahmadrahman79)) - Arsitek Utama & Lead Developer
+- **Tim IPDS 6104** ([@ipds6104](https://github.com/ipds6104)) - Infrastruktur & Deployment
 
 Segala bentuk pertanyaan, umpan balik, atau saran perbaikan dapat langsung diajukan melalui profil GitHub di atas atau dengan membuat *Issue* pada repositori ini.
 
