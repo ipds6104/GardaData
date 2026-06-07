@@ -4,6 +4,8 @@ import L from 'leaflet';
 import { MeasurementRecord } from '../services/indexeddb';
 import { ChevronLeft, BarChart3, MapPin, Loader2, Maximize2, Building2, Database, User } from 'lucide-react';
 import { motion } from 'motion/react';
+import { collection, query, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import 'leaflet/dist/leaflet.css';
 
 interface AdminBuildingDashboardProps {
@@ -18,24 +20,16 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
     let active = true;
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('navigasi_token');
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        };
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
+        const q = query(collection(db, 'building_measurements'), orderBy('timestamp', 'desc'));
+        const querySnapshot = await getDocs(q);
+        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as MeasurementRecord[];
         
-        const response = await fetch('/api/measurements', { headers });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const data = await response.json();
         if (active) {
           setMeasurements(data);
           setLoading(false);
         }
       } catch (error) {
-        console.warn('Gagal memuat dari MySQL, menggunakan data lokal (IndexedDB):', error);
+        console.warn('Gagal memuat dari Firestore, menggunakan data lokal (IndexedDB):', error);
         // FALLBACK KE INDEXEDDB
         try {
           const { getAllMeasurementsLocal } = await import('../services/indexeddb');
