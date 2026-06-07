@@ -20,16 +20,26 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
     let active = true;
     const fetchData = async () => {
       try {
-        const q = query(collection(db, 'building_measurements'), orderBy('timestamp', 'desc'));
-        const querySnapshot = await getDocs(q);
-        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as MeasurementRecord[];
+        const token = localStorage.getItem('navigasi_token');
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const baseUrl = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${baseUrl}/api/measurements`, { headers });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const data = await response.json();
         
         if (active) {
           setMeasurements(data);
           setLoading(false);
         }
       } catch (error) {
-        console.warn('Gagal memuat dari Firestore, menggunakan data lokal (IndexedDB):', error);
+        console.warn('Gagal memuat dari MySQL Backend API, menggunakan data lokal (IndexedDB):', error);
         // FALLBACK KE INDEXEDDB
         try {
           const { getAllMeasurementsLocal } = await import('../services/indexeddb');

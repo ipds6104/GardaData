@@ -71,28 +71,37 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
       const pending = await getPendingMeasurements();
       if (pending.length === 0) return;
 
-      let syncedCount = 0;
-      for (const record of pending) {
-        try {
-          const docRef = doc(db, 'building_measurements', record.id);
-          await setDoc(docRef, {
-            ...record,
-            geojson: typeof record.geojson === 'string' ? JSON.parse(record.geojson) : record.geojson,
-            syncStatus: 'synced',
-            updatedAt: serverTimestamp()
-          });
-          await markMeasurementAsSynced(record.id);
-          syncedCount++;
-        } catch (e) {
-          console.error(`Gagal sinkronisasi data ${record.id}:`, e);
-        }
+      const token = localStorage.getItem('navigasi_token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
-      
-      if (syncedCount > 0) {
-        console.log(`Synced ${syncedCount} records to Firestore`);
+
+      const payload = pending.map(record => ({
+        ...record,
+        // Ensure geojson is object for the API (server stringifies it for DB)
+        geojson: typeof record.geojson === 'string' ? JSON.parse(record.geojson) : record.geojson
+      }));
+
+      const baseUrl = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${baseUrl}/api/measurements/sync`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        for (const record of pending) {
+          await markMeasurementAsSynced(record.id);
+        }
+        console.log(`Synced ${pending.length} records to MySQL API`);
+      } else {
+        throw new Error(`Server returned status ${response.status}`);
       }
     } catch (error) {
-      console.error('Error syncing offline data to Firestore:', error);
+      console.error('Error syncing offline data to MySQL API:', error);
     }
   };
 
