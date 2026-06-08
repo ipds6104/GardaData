@@ -4,8 +4,6 @@ import L from 'leaflet';
 import { MeasurementRecord } from '../services/indexeddb';
 import { ChevronLeft, BarChart3, MapPin, Loader2, Maximize2, Building2, Database, User } from 'lucide-react';
 import { motion } from 'motion/react';
-import { collection, query, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import 'leaflet/dist/leaflet.css';
 
 interface AdminBuildingDashboardProps {

@@ -5,8 +5,6 @@ import { calculateAreaSqMeters, getCentroid } from '../utils/geospatial';
 import { saveMeasurementOffline, getPendingMeasurements, markMeasurementAsSynced, MeasurementRecord } from '../services/indexeddb';
 import { useAuth } from '../lib/auth';
 import { motion, AnimatePresence } from 'motion/react';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 
 interface BuildingAreaModuleProps {
   onBack: () => void;
