@@ -60,7 +60,7 @@ app.use((req, res, next) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: 'Terjadi kesalahan pada server.' });
+  res.status(500).json({ error: 'Terjadi kesalahan pada server.', details: err.message });
 });
 
 const PORT = process.env.PORT || 5000;
