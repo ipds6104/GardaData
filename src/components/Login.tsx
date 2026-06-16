@@ -27,126 +27,145 @@ export const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen flex bg-white font-sans">
-      {/* Kiri: Branding & Ilustrasi */}
-      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-primary-600 to-primary-800 p-12 items-center justify-center relative overflow-hidden">
-        {/* Elemen Dekoratif */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-primary-400 opacity-20 blur-[80px] rounded-full translate-y-1/3 -translate-x-1/3"></div>
+      {/* Kiri: Branding & Ilustrasi (Premium Dark Theme) */}
+      <div className="hidden lg:flex w-1/2 bg-slate-900 p-12 items-center justify-center relative overflow-hidden">
+        {/* Elemen Dekoratif: Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px]"></div>
         
-        <div className="relative z-10 text-white max-w-xl px-8">
-          <div className="mb-8">
-            <img src="/logo.png" alt="Garda Data Logo" className="w-20 h-20 object-contain drop-shadow-2xl" onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }} />
+        {/* Elemen Dekoratif: Glowing Orbs */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary-600/20 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-500/10 blur-[150px] rounded-full translate-y-1/3 -translate-x-1/3"></div>
+        <div className="absolute top-1/2 left-1/2 w-[300px] h-[300px] bg-primary-500/10 blur-[100px] rounded-full -translate-y-1/2 -translate-x-1/2"></div>
+        
+        <div className="relative z-10 text-white max-w-xl px-4 flex flex-col h-full justify-center">
+          {/* Logo with Glassmorphism */}
+          <div className="mb-10 inline-block self-start">
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-[2rem] shadow-2xl relative group cursor-default">
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <img src="/logo.png" alt="Garda Data Logo" className="w-20 h-20 object-contain drop-shadow-2xl relative z-10" onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }} />
+            </div>
           </div>
-          <h1 className="text-5xl font-black mb-6 leading-tight tracking-tight">
-            Selamat Datang di <br/><span className="text-primary-200">Garda Data</span>
+          
+          <h1 className="text-5xl xl:text-6xl font-black mb-6 leading-[1.1] tracking-tight">
+            Selamat Datang di <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 via-amber-300 to-primary-500">
+              Garda Data
+            </span>
           </h1>
-          <p className="text-primary-100/90 text-lg leading-relaxed mb-10 font-medium">
-            Satu platform terpadu untuk memudahkan petugas lapangan menjaga akurasi dan kualitas pendataan melalui sistem validasi dan pengukuran yang presisi.
+          
+          <p className="text-slate-400 text-lg leading-relaxed mb-12 font-medium max-w-md">
+            Pusat administrasi dan kualitas data lapangan terintegrasi. Menjaga akurasi dengan sistem validasi dan pengukuran presisi tinggi.
           </p>
-          <div className="flex items-center gap-4 text-primary-200">
-            <div className="w-12 h-1 bg-primary-400/50 rounded-full"></div>
-            <span className="font-bold tracking-widest uppercase text-xs">BPS Kabupaten Mempawah</span>
+          
+          <div className="mt-8 pt-10 border-t border-white/10 flex items-center gap-5">
+            <div className="w-12 h-1.5 bg-gradient-to-r from-primary-500 to-amber-400 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
+            <span className="font-black tracking-widest uppercase text-xs text-primary-300/80">BPS Kabupaten Mempawah</span>
           </div>
         </div>
       </div>
 
       {/* Kanan: Form Login */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-slate-50 relative">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-[#F8FAFC] relative">
+        {/* Dekorasi Sudut Kanan */}
+        <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-primary-100/50 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
+        
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="max-w-md w-full"
+          className="max-w-md w-full relative z-10"
         >
-          <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 p-8 sm:p-10 border border-slate-100">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/60 p-8 sm:p-12 border border-slate-100">
             <div className="text-center mb-10 lg:hidden">
-              <div className="mx-auto mb-4 flex justify-center">
-                <img src="/logo.png" alt="Garda Data Logo" className="w-16 h-16 object-contain" />
+              <div className="mx-auto mb-6 flex justify-center">
+                <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 shadow-inner">
+                  <img src="/logo.png" alt="Garda Data Logo" className="w-16 h-16 object-contain" />
+                </div>
               </div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Garda Data</h2>
-              <p className="text-slate-500 text-sm mt-1">BPS Kabupaten Mempawah</p>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Garda Data</h2>
+              <p className="text-slate-500 text-sm mt-2 font-medium">BPS Kabupaten Mempawah</p>
             </div>
 
-            <div className="mb-8 hidden lg:block">
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Masuk Akun</h2>
-              <p className="text-slate-500 text-sm mt-2 font-medium">Silakan masukkan kredensial Anda untuk melanjutkan.</p>
+            <div className="mb-10 hidden lg:block">
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Masuk Akun</h2>
+              <p className="text-slate-500 text-sm font-medium">Silakan masukkan kredensial Anda untuk melanjutkan ke dashboard.</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Username</label>
-                <div className="relative">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Username</label>
+                <div className="relative group">
                   <input
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:bg-white outline-none transition-all font-medium text-slate-700"
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:bg-white outline-none transition-all font-bold text-slate-800 placeholder-slate-400 group-hover:border-slate-300"
                     placeholder="Masukkan username"
                     required
                   />
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Password</label>
-                <div className="relative">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
+                <div className="relative group">
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:bg-white outline-none transition-all font-medium text-slate-700"
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:bg-white outline-none transition-all font-bold text-slate-800 placeholder-slate-400 group-hover:border-slate-300"
                     placeholder="••••••••"
                     required
                   />
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
                 </div>
               </div>
 
               {error && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-rose-50 text-rose-600 p-3 rounded-xl flex items-center gap-2 text-sm font-bold border border-rose-100"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-rose-50 text-rose-600 p-4 rounded-2xl flex items-center gap-3 text-sm font-bold border border-rose-100"
                 >
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <AlertCircle className="w-5 h-5 shrink-0" />
                   {error}
                 </motion.div>
               )}
 
               <button
                 type="submit"
-                className="w-full bg-primary-600 text-white py-4 mt-2 rounded-xl font-bold text-sm hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/30 flex items-center justify-center gap-2 group"
+                className="w-full bg-gradient-to-r from-primary-600 to-primary-500 text-white py-4 mt-2 rounded-2xl font-black text-base hover:from-primary-700 hover:to-primary-600 transition-all shadow-xl shadow-primary-500/25 flex items-center justify-center gap-2 group transform hover:-translate-y-0.5"
               >
                 <span>Masuk Sekarang</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
               </button>
 
-              <div className="relative flex py-4 items-center">
-                <div className="flex-grow border-t border-slate-100"></div>
-                <span className="flex-shrink-0 mx-4 text-slate-400 text-[10px] font-black uppercase tracking-widest">Atau</span>
-                <div className="flex-grow border-t border-slate-100"></div>
+              <div className="relative flex py-6 items-center">
+                <div className="flex-grow border-t border-slate-200"></div>
+                <span className="flex-shrink-0 mx-4 text-slate-400 text-xs font-black uppercase tracking-widest">Atau</span>
+                <div className="flex-grow border-t border-slate-200"></div>
               </div>
 
               <div className="relative">
                 <button
                   type="button"
                   onClick={handleGuestClick}
-                  className="w-full bg-white border border-slate-200 text-slate-600 py-3.5 rounded-xl font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2"
+                  className="w-full bg-white border-2 border-slate-100 text-slate-600 py-4 rounded-2xl font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 group"
                 >
-                  <HeartHandshake className="w-5 h-5 text-primary-500" />
+                  <HeartHandshake className="w-5 h-5 text-primary-500 group-hover:scale-110 transition-transform" />
                   Masuk sebagai Tamu
                 </button>
                 {showGuestMessage && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="absolute -top-12 left-0 right-0 bg-slate-800 text-white text-xs font-bold py-2 px-3 rounded-lg text-center shadow-lg"
+                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="absolute -top-14 left-0 right-0 bg-slate-800 text-white text-xs font-bold py-3 px-4 rounded-xl text-center shadow-2xl z-20 border border-slate-700"
                   >
                     Fitur Tamu sementara dinonaktifkan.
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
+                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45 border-r border-b border-slate-700"></div>
                   </motion.div>
                 )}
               </div>
