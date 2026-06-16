@@ -102,7 +102,7 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
+    <div className="space-y-6 max-w-7xl mx-auto flex flex-col min-h-full">
       <div className="flex items-center justify-between shrink-0">
         <button 
           onClick={onBack}
@@ -140,10 +140,10 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 flex-grow overflow-hidden pb-8">
+      <div className="flex flex-col lg:flex-row gap-6 flex-grow pb-8">
         
         {/* Kolom Daftar Data (Tabel) */}
-        <div className="w-full lg:w-1/3 bg-white rounded-[2rem] border border-slate-100 shadow-xl flex flex-col overflow-hidden shrink-0 h-[400px] lg:h-auto">
+        <div className="w-full lg:w-1/3 bg-white rounded-[2rem] border border-slate-100 shadow-xl flex flex-col overflow-hidden shrink-0 h-[400px] lg:h-[600px]">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50">
             <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
               <Database className="w-5 h-5 text-primary-600" /> Log Pengukuran
@@ -176,7 +176,7 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
         </div>
 
         {/* Kolom Peta */}
-        <div className="w-full lg:flex-grow bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden relative shrink-0 h-[50vh] lg:min-h-[500px]">
+        <div className="w-full lg:w-2/3 bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden relative shrink-0 h-[400px] lg:h-[600px]">
           {loading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-50">
               <Loader2 className="w-12 h-12 text-primary-600 animate-spin" />

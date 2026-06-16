@@ -69,13 +69,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           </p>
         </div>
 
-        {/* Illustration placeholder (similar to Gojags) */}
-        <div className="relative z-10 hidden md:block shrink-0 mt-8 md:mt-0">
-           <img src="/logo.png" alt="Illustration" className="w-48 h-48 object-contain opacity-80 mix-blend-screen drop-shadow-2xl" onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement!.innerHTML = '<div class="w-40 h-40 bg-white/10 rounded-3xl backdrop-blur-sm border border-white/20 flex items-center justify-center"><svg class="w-20 h-20 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></div>';
-           }} />
-        </div>
+
       </div>
 
       {/* Categories Grid */}

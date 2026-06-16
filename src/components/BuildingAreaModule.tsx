@@ -219,7 +219,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto lg:h-[calc(100vh-8rem)] flex flex-col">
+    <div className="space-y-6 max-w-7xl mx-auto flex flex-col min-h-full">
       <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
         <button
           onClick={onBack}
@@ -236,7 +236,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 lg:h-full lg:min-h-[600px] pb-8">
+      <div className="flex flex-col lg:flex-row gap-6 pb-8">
         {/* Kolom Peta & Kontrol */}
         <div className="w-full lg:flex-grow flex flex-col gap-4 shrink-0">
           
@@ -310,8 +310,8 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
             )}
           </div>
 
-          {/* Kotak Peta (Sangat Besar - h-[70vh]) */}
-          <div className="w-full h-[70vh] min-h-[400px] lg:h-auto lg:flex-grow bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden relative shrink-0">
+          {/* Kotak Peta */}
+          <div className="w-full h-[400px] lg:h-[600px] bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden relative shrink-0">
             <MapDigitizer 
               onPolygonChange={handlePolygonChange} 
               autoPolygonMode={autoPolygonMode} 
@@ -323,7 +323,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
         </div>
 
         {/* Kolom Form */}
-        <div className="lg:w-[400px] shrink-0 bg-white rounded-[2rem] border border-slate-100 shadow-xl p-8 flex flex-col space-y-6 h-full overflow-y-auto">
+        <div className="lg:w-[400px] shrink-0 bg-white rounded-[2rem] border border-slate-100 shadow-xl p-8 flex flex-col space-y-6 overflow-y-auto lg:h-[600px]">
           <div>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase flex items-center gap-2">
               <Calculator className="w-6 h-6 text-primary-600" /> Form Data
