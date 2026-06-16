@@ -46,18 +46,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
 
   return (
     <div className="space-y-8">
-      {/* Hero Banner (GOJAGS Style) */}
-      <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-[2rem] p-8 md:p-12 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center md:items-start justify-between min-h-[280px]">
+      {/* Hero Banner */}
+      <div className="bg-gradient-to-br from-orange-500 to-amber-400 rounded-[2rem] p-8 md:p-12 shadow-xl relative overflow-hidden flex flex-col items-center justify-center min-h-[280px]">
         {/* Background decorations */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-primary-400 opacity-20 blur-[80px] rounded-full translate-y-1/2 -translate-x-1/2"></div>
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-20 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-orange-600 opacity-20 blur-[80px] rounded-full translate-y-1/2 -translate-x-1/2"></div>
         
-        <div className="relative z-10 space-y-4 max-w-2xl text-center md:text-left">
-          <p className="text-primary-100 font-bold tracking-widest text-sm uppercase">SELAMAT DATANG DI GARDA DATA</p>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
-            {user?.username || 'Pengguna'}
-          </h1>
-          <p className="text-primary-100/90 text-sm md:text-base leading-relaxed max-w-xl font-medium pt-2">
+        <div className="relative z-10 flex flex-col items-center text-center space-y-6 w-full max-w-3xl mx-auto">
+          <p className="text-white font-black tracking-widest text-sm sm:text-base uppercase drop-shadow-md">SELAMAT DATANG DI GARDA DATA</p>
+          
+          <img 
+            src="/logo.png" 
+            alt="Garda Data Logo" 
+            className="w-auto h-24 sm:h-32 object-contain drop-shadow-2xl hover:scale-105 transition-transform" 
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }} 
+          />
+
+          <p className="text-white text-sm sm:text-base md:text-lg leading-relaxed font-bold drop-shadow-md max-w-2xl px-4">
             Pusat administrasi dan kualitas data lapangan yang terintegrasi. Terus tingkatkan akurasi dan capai target pengumpulan data Anda dengan presisi tinggi melalui platform Garda Data!
           </p>
         </div>
