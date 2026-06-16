@@ -104,7 +104,7 @@ function AppContent() {
   };
 
   return (
-    <Layout>
+    <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
       {renderContent()}
     </Layout>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, Ruler, Map, ShieldCheck, ArrowRight, CheckCircle2, FileEdit, Users, Sprout, TrendingUp, MonitorPlay } from 'lucide-react';
+import { BookOpen, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight } from 'lucide-react';
+import { useAuth } from '../lib/auth';
 
 interface FeatureCardProps {
   title: string;
@@ -9,41 +10,30 @@ interface FeatureCardProps {
   iconColor: string;
   bgColor: string;
   onClick: () => void;
-  disabled?: boolean;
-  buttonTextColor?: string;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon: Icon, iconColor, bgColor, onClick, disabled, buttonTextColor }) => (
+const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon: Icon, iconColor, bgColor, onClick }) => (
   <motion.button
-    whileHover={disabled ? {} : { y: -8, scale: 1.02 }}
-    whileTap={disabled ? {} : { scale: 0.98 }}
+    whileHover={{ y: -4, scale: 1.01 }}
+    whileTap={{ scale: 0.98 }}
     onClick={onClick}
-    disabled={disabled}
-    className={`relative group bg-white p-8 rounded-3xl border border-slate-100 shadow-sm transition-all text-left flex flex-col h-full ${
-      disabled ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-2xl hover:shadow-slate-200/50 cursor-pointer'
-    }`}
+    className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all text-left flex flex-col h-full cursor-pointer group"
   >
-    <div className={`p-4 rounded-2xl w-fit mb-6 ${bgColor}`}>
-      <Icon className={`w-8 h-8 ${iconColor}`} />
+    <div className="flex items-center gap-4 mb-4">
+      <div className={`p-3 rounded-xl ${bgColor}`}>
+        <Icon className={`w-6 h-6 ${iconColor}`} />
+      </div>
+      <h3 className="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors leading-tight">
+        {title}
+      </h3>
     </div>
-    <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">
-      {title}
-    </h3>
-    <p className="text-slate-500 leading-relaxed mb-8 flex-grow">
+    <p className="text-slate-500 text-sm leading-relaxed mb-6 flex-grow">
       {description}
     </p>
-    {!disabled && (
-      <div className={`flex items-center gap-2 font-bold group-hover:gap-4 transition-all ${buttonTextColor || 'text-primary-600'}`}>
-        <span>Buka Fitur</span>
-        <ArrowRight className="w-5 h-5" />
-      </div>
-    )}
-    {disabled && (
-      <div className="inline-flex items-center gap-2 bg-slate-50 px-3.5 py-1.5 rounded-xl border border-slate-100 w-fit mt-auto">
-        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
-        <span className="text-xs font-black uppercase tracking-widest text-slate-400">Masih dalam pengembangan</span>
-      </div>
-    )}
+    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 group-hover:text-blue-600 transition-all mt-auto uppercase tracking-widest">
+      <span>Buka Aplikasi</span>
+      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+    </div>
   </motion.button>
 );
 
@@ -52,39 +42,69 @@ interface LandingPageProps {
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
-  return (
-    <div className="space-y-16 py-8">
-      <header className="text-center space-y-6 max-w-3xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="inline-flex items-center gap-2 bg-primary-50 text-primary-700 px-4 py-2 rounded-full text-sm font-bold"
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>V1.0 Garda Data</span>
-        </motion.div>
-        <h1 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 leading-tight">
-          Garda <span className="text-primary-500">Data</span>
-        </h1>
-        <p className="text-xl text-slate-500 leading-relaxed max-w-2xl mx-auto font-medium">
-          Satu platform terpadu untuk memudahkan petugas lapangan menjaga akurasi dan kualitas pendataan melalui sistem validasi dan pengukuran yang presisi.
-        </p>
-      </header>
+  const { user } = useAuth();
 
-      <div className="space-y-12 px-4">
-        {/* Kategori: Fitur Utama */}
+  return (
+    <div className="space-y-8">
+      {/* Hero Banner (GOJAGS Style) */}
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-8 md:p-12 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center md:items-start justify-between min-h-[280px]">
+        {/* Background decorations */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-indigo-400 opacity-20 blur-[80px] rounded-full translate-y-1/2 -translate-x-1/2"></div>
+        
+        <div className="relative z-10 space-y-4 max-w-2xl text-center md:text-left">
+          <p className="text-blue-100 font-bold tracking-widest text-sm uppercase">SELAMAT DATANG DI GARDA DATA</p>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
+            {user?.username || 'Pengguna'}, <span className="text-blue-200">{user?.role === 'admin' ? 'S.Tr.Stat' : 'BPS'}</span>
+          </h1>
+          <p className="text-blue-100/90 text-sm md:text-base leading-relaxed max-w-xl font-medium pt-2">
+            Pusat administrasi dan kualitas data lapangan yang terintegrasi. Terus tingkatkan akurasi dan capai target pengumpulan data Anda dengan presisi tinggi melalui platform Garda Data!
+          </p>
+        </div>
+
+        {/* Illustration placeholder (similar to Gojags) */}
+        <div className="relative z-10 hidden md:block shrink-0 mt-8 md:mt-0">
+           <img src="/logo.png" alt="Illustration" className="w-48 h-48 object-contain opacity-80 mix-blend-screen drop-shadow-2xl" onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.parentElement!.innerHTML = '<div class="w-40 h-40 bg-white/10 rounded-3xl backdrop-blur-sm border border-white/20 flex items-center justify-center"><svg class="w-20 h-20 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></div>';
+           }} />
+        </div>
+      </div>
+
+      {/* Categories Grid */}
+      <div className="space-y-10 pt-4">
+        
+        {/* Kategori: Pelatihan */}
         <div>
-          <h2 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-2">
-            <span className="w-2 h-8 bg-blue-600 rounded-full"></span>
-            Aplikasi Utama
+          <h2 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+            <span className="w-1.5 h-6 bg-sky-500 rounded-full"></span>
+            Pelatihan
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <FeatureCard
+              title="Learning Management System"
+              description="Pusat materi, jadwal, instrumen dan kuis pelatihan petugas pendataan yang terstruktur."
+              icon={MonitorPlay}
+              iconColor="text-sky-600"
+              bgColor="bg-sky-50"
+              onClick={() => onNavigate('lms')}
+            />
+          </div>
+        </div>
+
+        {/* Kategori: Pendataan Lapangan */}
+        <div>
+          <h2 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+            <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+            Pendataan Lapangan
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <FeatureCard
               title="Pengukuran Luas Bangunan"
-              description="Kalkulator validasi luas atap bangunan berbasis citra satelit dan geospasial untuk menghindari anomali data lapangan."
-              icon={Map}
-              iconColor="text-white"
-              bgColor="bg-blue-600 shadow-lg shadow-blue-500/30"
+              description="Kalkulator validasi luas atap bangunan berbasis citra satelit dan geospasial."
+              icon={Ruler}
+              iconColor="text-blue-600"
+              bgColor="bg-blue-50"
               onClick={() => onNavigate('building-area')}
             />
             <FeatureCard
@@ -95,27 +115,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               bgColor="bg-indigo-50"
               onClick={() => onNavigate('cerdas-form')}
             />
-          </div>
-        </div>
-
-        {/* Kategori: Referensi & Pembelajaran */}
-        <div>
-          <h2 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-2">
-            <span className="w-2 h-8 bg-purple-500 rounded-full"></span>
-            Referensi & Pembelajaran
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <FeatureCard
-              title="Learning Management System"
-              description="Pusat materi, jadwal, instrumen dan kuis pelatihan petugas pendataan yang terstruktur."
-              icon={MonitorPlay}
-              iconColor="text-sky-600"
-              bgColor="bg-sky-50"
-              onClick={() => onNavigate('lms')}
-            />
-            <FeatureCard
-              title="KBLI & KBJI"
-              description="Akses cepat klasifikasi KBLI 2025 dan KBJI untuk penentuan kode lapangan usaha dan jabatan yang akurat."
+              title="KBLI 2025 & KBJI 2014"
+              description="Akses cepat klasifikasi KBLI 2025 dan KBJI untuk penentuan kode yang akurat."
               icon={BookOpen}
               iconColor="text-primary-600"
               bgColor="bg-primary-50"
@@ -123,50 +125,41 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             />
             <FeatureCard
               title="Imputasi Susenas-Seruti"
-              description="Mesin pencari cerdas untuk panduan nilai imputasi lapangan secara instan dan bebas typo."
+              description="Mesin pencari cerdas untuk panduan nilai imputasi lapangan secara instan."
               icon={FileEdit}
               iconColor="text-purple-600"
               bgColor="bg-purple-50"
               onClick={() => onNavigate('imputation')}
             />
-          </div>
-        </div>
-
-        {/* Kategori: Monitoring Wilayah */}
-        <div>
-          <h2 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-2">
-            <span className="w-2 h-8 bg-emerald-500 rounded-full"></span>
-            Monitoring Wilayah
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <FeatureCard
               title="Infrastruktur Desa"
-              description="Monitoring dan update data infrastruktur pendukung desa secara real-time untuk pemetaan yang presisi."
+              description="Monitoring dan update data infrastruktur pendukung desa secara real-time."
               icon={Map}
               iconColor="text-accent-600"
               bgColor="bg-accent-50"
               onClick={() => onNavigate('infrastructure')}
             />
+          </div>
+        </div>
+
+        {/* Kategori: Analisis dan Diseminasi */}
+        <div>
+          <h2 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+            <span className="w-1.5 h-6 bg-amber-500 rounded-full"></span>
+            Analisis dan Diseminasi
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <FeatureCard
               title="Fenomena Sosial Ekonomi"
-              description="Modul pemantauan, analisis, dan pencatatan dinamika fenomena sosial ekonomi masyarakat secara terstruktur."
+              description="Modul pemantauan, analisis, dan pencatatan dinamika fenomena sosial ekonomi."
               icon={Users}
               iconColor="text-rose-600"
               bgColor="bg-rose-50"
               onClick={() => onNavigate('social-phenomenon')}
             />
             <FeatureCard
-              title="Sektor Pertanian"
-              description="Direktori data komoditas unggulan, luas lahan tanam, dan produktivitas pertanian secara berkala."
-              icon={Sprout}
-              iconColor="text-emerald-600"
-              bgColor="bg-emerald-50"
-              disabled={true}
-              onClick={() => {}}
-            />
-            <FeatureCard
               title="Data Strategis BPS"
-              description="Dashboard indikator makro ekonomi, sosial, dan produksi daerah. Admin dapat memperbarui data di sini."
+              description="Dashboard indikator makro ekonomi, sosial, dan produksi daerah."
               icon={TrendingUp}
               iconColor="text-amber-600"
               bgColor="bg-amber-50"
@@ -174,42 +167,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             />
           </div>
         </div>
-      </div>
 
-      <section className="bg-white border border-slate-100 shadow-xl rounded-[3rem] p-12 md:p-20 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-primary-50 opacity-40 blur-[100px] -rotate-12 translate-x-1/2" />
-        <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-8">
-            <h2 className="text-4xl font-bold text-slate-900">Tentang Garda Data</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex items-center gap-3">
-                <Map className="w-6 h-6 text-primary-500 shrink-0" />
-                <div className="text-sm font-bold text-slate-700">Pemetaan Titik Lokasi</div>
-              </div>
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-secondary-500 shrink-0" />
-                <div className="text-sm font-bold text-slate-700">Monitor Infrastruktur</div>
-              </div>
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex items-center gap-3">
-                <BookOpen className="w-6 h-6 text-purple-500 shrink-0" />
-                <div className="text-sm font-bold text-slate-700">Referensi Imputasi</div>
-              </div>
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex items-center gap-3">
-                <Ruler className="w-6 h-6 text-accent-600 shrink-0" />
-                <div className="text-sm font-bold text-slate-700">Akurasi Lapangan</div>
-              </div>
-            </div>
-          </div>
-          <div className="text-slate-600 space-y-6">
-            <p className="text-lg leading-relaxed">
-              <strong className="text-slate-900">Garda Data</strong> adalah ekosistem digital inovatif yang dirancang khusus untuk menjadi pendamping andal bagi para petugas pendataan di lapangan. Aplikasi ini hadir untuk menyederhanakan proses survei sekaligus memastikan setiap informasi yang dikumpulkan memiliki kualitas dan presisi tinggi sejak dari tahap awal.
-            </p>
-            <p className="text-lg leading-relaxed">
-              Mulai dari pencarian cerdas klasifikasi ekonomi (KBLI & KBJI), kalkulator luas lantai bangunan berbasis citra satelit, direktori infrastruktur desa yang terintegrasi dengan Google Maps, hingga mesin referensi cerdas untuk imputasi Susenas-Seruti—semuanya dirangkai untuk memperlancar alur kerja Anda dan menghadirkan potret statistik yang benar-benar akurat.
-            </p>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
 };
