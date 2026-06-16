@@ -33,7 +33,11 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
         const data = await response.json();
         
         if (active) {
-          setMeasurements(data);
+          const parsedData = data.map((item: any) => ({
+            ...item,
+            geojson: typeof item.geojson === 'string' ? JSON.parse(item.geojson) : item.geojson
+          }));
+          setMeasurements(parsedData);
           setLoading(false);
         }
       } catch (error) {
@@ -70,11 +74,11 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
     };
   }, []);
 
-  const totalLuasTapak = measurements.reduce((sum, item) => sum + (item.luasTapak || 0), 0);
+  const totalLuasAtap = measurements.reduce((sum, item) => sum + (item.luasAtap || 0), 0);
   const totalEstimasi = measurements.reduce((sum, item) => sum + (item.perkiraanLuasLantai || 0), 0);
   
   const rumahMeasurements = measurements.filter(m => m.jenisBangunan === 'Rumah Tinggal');
-  const avgLuasRumah = rumahMeasurements.length > 0 ? rumahMeasurements.reduce((sum, item) => sum + (item.luasTapak || 0), 0) / rumahMeasurements.length : 0;
+  const avgLuasRumah = rumahMeasurements.length > 0 ? rumahMeasurements.reduce((sum, item) => sum + (item.luasAtap || 0), 0) / rumahMeasurements.length : 0;
   const avgEstimasi = measurements.length > 0 ? totalEstimasi / measurements.length : 0;
 
   // Komponen untuk auto-zoom peta ke data
@@ -119,8 +123,8 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
           <p className="text-2xl font-black text-slate-900">{measurements.length}</p>
         </div>
         <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2"><MapPin className="w-4 h-4 text-secondary-500" /> Total Tapak</p>
-          <p className="text-2xl font-black text-slate-900">{totalLuasTapak.toFixed(1)} m²</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2"><MapPin className="w-4 h-4 text-secondary-500" /> Total Atap</p>
+          <p className="text-2xl font-black text-slate-900">{totalLuasAtap.toFixed(1)} m²</p>
         </div>
         <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-purple-500" /> Total Est. Lantai</p>
@@ -158,8 +162,8 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
                 <p className="text-sm font-bold text-slate-900 mb-1 flex items-center gap-1.5"><User className="w-4 h-4 text-slate-400"/> {record.petugasName}</p>
                 <div className="flex gap-4 mt-3">
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">L. Tapak</p>
-                    <p className="text-sm font-bold text-primary-600">{record.luasTapak.toFixed(1)} m²</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">L. Atap</p>
+                    <p className="text-sm font-bold text-primary-600">{record.luasAtap?.toFixed(1) || '0.0'} m²</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Est. Lantai</p>
@@ -243,8 +247,8 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
                           <p className="font-bold text-sm text-slate-700">{record.jumlahLantai}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">L. Tapak</p>
-                          <p className="font-bold text-sm text-primary-600">{record.luasTapak.toFixed(1)} m²</p>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">L. Atap</p>
+                          <p className="font-bold text-sm text-primary-600">{record.luasAtap?.toFixed(1) || '0.0'} m²</p>
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Est. Lantai</p>

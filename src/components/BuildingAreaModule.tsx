@@ -14,8 +14,9 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
   const { user } = useAuth();
   const [autoPolygonMode, setAutoPolygonMode] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [polygonData, setPolygonData] = useState<any>(null);
-  const [luasTapak, setLuasTapak] = useState<number>(0);
+  const [luasAtap, setLuasAtap] = useState<number>(0);
   const [metodeDigitasi, setMetodeDigitasi] = useState<'manual' | 'auto_polygon'>('manual');
 
   const [formData, setFormData] = useState({
@@ -108,14 +109,14 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
     setMetodeDigitasi(mode);
     if (geojson) {
       const area = calculateAreaSqMeters(geojson);
-      setLuasTapak(area);
+      setLuasAtap(area);
       // Auto perbarui estimasi
       setFormData(prev => ({
         ...prev,
-        perkiraanLuasLantai: area * prev.jumlahLantai
+        perkiraanLuasLantai: area * 0.7
       }));
     } else {
-      setLuasTapak(0);
+      setLuasAtap(0);
     }
   };
 
@@ -142,7 +143,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
         petugasName: user?.username || 'Petugas',
         timestamp: Date.now(),
         geojson: polygonData,
-        luasTapak: luasTapak,
+        luasAtap: luasAtap,
         jumlahLantai: formData.jumlahLantai,
         jenisBangunan: formData.jenisBangunan,
         perkiraanLuasLantai: formData.perkiraanLuasLantai,
@@ -169,7 +170,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
 
       // Reset form
       setPolygonData(null);
-      setLuasTapak(0);
+      setLuasAtap(0);
       setFormData({ jumlahLantai: 1, jenisBangunan: 'Rumah Tinggal', perkiraanLuasLantai: 0 });
       // Note: Map layer reset logic is inside MapDigitizer but difficult to trigger externally without ref.
       // We rely on the user clearing it or reloading, but ideally we'd pass a prop to clear.
@@ -198,10 +199,22 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
     }
   };
 
+  const toggleEdit = () => {
+    if (isEditing) {
+      const saveBtn = document.querySelector('.leaflet-draw-edit-save') as HTMLElement;
+      if (saveBtn) saveBtn.click();
+      setIsEditing(false);
+    } else {
+      const editBtn = document.querySelector('.leaflet-draw-edit-edit') as HTMLElement;
+      if (editBtn) editBtn.click();
+      setIsEditing(true);
+    }
+  };
+
   const handleClearMap = () => {
     (window as any).__gardaClearLayers?.();
     setPolygonData(null);
-    setLuasTapak(0);
+    setLuasAtap(0);
     setFormData(prev => ({ ...prev, perkiraanLuasLantai: 0 }));
   };
 
@@ -267,12 +280,16 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
                   <span>{isDrawing ? 'Menggambar...' : 'Gambar'}</span>
                 </button>
                 <button
-                  onClick={() => triggerLeafletAction('edit')}
-                  className="flex-1 md:flex-initial px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors shadow-sm cursor-pointer"
-                  title="Ubah bentuk poligon yang ada"
+                  onClick={toggleEdit}
+                  className={`flex-1 md:flex-initial px-4 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 border transition-all cursor-pointer shadow-sm ${
+                    isEditing 
+                      ? 'bg-amber-50 border-amber-200 text-amber-700 shadow-inner' 
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  }`}
+                  title={isEditing ? "Simpan perubahan poligon" : "Ubah bentuk poligon yang ada"}
                 >
-                  <Edit3 className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span>Edit</span>
+                  {isEditing ? <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" /> : <Edit3 className="w-4 h-4 text-amber-500 shrink-0" />}
+                  <span>{isEditing ? 'Selesai Edit' : 'Edit'}</span>
                 </button>
                 <button
                   onClick={handleClearMap}
@@ -316,8 +333,8 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
 
           <div className="space-y-4">
             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center justify-between">
-              <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Luas Tapak (m²)</span>
-              <span className="text-2xl font-black text-primary-600">{luasTapak} m²</span>
+              <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Luas Atap (m²)</span>
+              <span className="text-2xl font-black text-primary-600">{luasAtap} m²</span>
             </div>
 
             <div className="space-y-2">
@@ -343,7 +360,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
                 value={formData.jumlahLantai}
                 onChange={(e) => {
                   const lantai = parseInt(e.target.value) || 1;
-                  setFormData({ ...formData, jumlahLantai: lantai, perkiraanLuasLantai: luasTapak * lantai });
+                  setFormData({ ...formData, jumlahLantai: lantai, perkiraanLuasLantai: luasAtap * 0.7 });
                 }}
                 className="w-full px-4 py-3.5 bg-slate-50 rounded-2xl border border-slate-100 focus:ring-2 focus:ring-primary-500 outline-none font-bold text-slate-900"
               />

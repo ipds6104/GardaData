@@ -71,80 +71,109 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
         </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
-        <FeatureCard
-          title="Learning Management System"
-          description="Pusat materi, jadwal, instrumen dan kuis pelatihan petugas pendataan yang terstruktur."
-          icon={MonitorPlay}
-          iconColor="text-sky-600"
-          bgColor="bg-sky-50"
-          onClick={() => onNavigate('lms')}
-        />
-        <FeatureCard
-          title="Laporan Pendataan"
-          description="Aplikasi pelaporan dan monitoring progres pendataan lapangan secara real-time."
-          icon={FileEdit}
-          iconColor="text-indigo-600"
-          bgColor="bg-indigo-50"
-          onClick={() => onNavigate('cerdas-form')}
-        />
-        <FeatureCard
-          title="Imputasi Susenas-Seruti"
-          description="Mesin pencari cerdas untuk panduan nilai imputasi lapangan secara instan dan bebas typo."
-          icon={FileEdit}
-          iconColor="text-purple-600"
-          bgColor="bg-purple-50"
-          onClick={() => onNavigate('imputation')}
-        />
-        <FeatureCard
-          title="Infrastruktur Desa"
-          description="Monitoring dan update data infrastruktur pendukung desa secara real-time untuk pemetaan yang presisi."
-          icon={Map}
-          iconColor="text-accent-600"
-          bgColor="bg-accent-50"
-          onClick={() => onNavigate('infrastructure')}
-        />
-        <FeatureCard
-          title="Luas Bangunan"
-          description="Kalkulator validasi luas bangunan berdasarkan parameter teknis untuk menghindari anomali data lapangan."
-          icon={Ruler}
-          iconColor="text-secondary-600"
-          bgColor="bg-secondary-50"
-          onClick={() => onNavigate('building-area')}
-        />
-        <FeatureCard
-          title="KBLI & KBJI"
-          description="Akses cepat klasifikasi KBLI 2025 dan KBJI untuk penentuan kode lapangan usaha dan jabatan yang akurat."
-          icon={BookOpen}
-          iconColor="text-primary-600"
-          bgColor="bg-primary-50"
-          onClick={() => onNavigate('kbli-kbji')}
-        />
-        <FeatureCard
-          title="Fenomena Sosial Ekonomi"
-          description="Modul pemantauan, analisis, dan pencatatan dinamika fenomena sosial ekonomi masyarakat secara terstruktur."
-          icon={Users}
-          iconColor="text-rose-600"
-          bgColor="bg-rose-50"
-          onClick={() => onNavigate('social-phenomenon')}
-        />
-        <FeatureCard
-          title="Sektor Pertanian"
-          description="Direktori data komoditas unggulan, luas lahan tanam, dan produktivitas pertanian secara berkala."
-          icon={Sprout}
-          iconColor="text-emerald-600"
-          bgColor="bg-emerald-50"
-          disabled={true}
-          onClick={() => {}}
-        />
-        <FeatureCard
-          title="Data Strategis BPS"
-          description="Dashboard indikator makro ekonomi, sosial, dan produksi daerah. Admin dapat memperbarui data di sini."
-          icon={TrendingUp}
-          iconColor="text-amber-600"
-          bgColor="bg-amber-50"
-          onClick={() => onNavigate('admin-strategic-data')}
-        />
+      <div className="space-y-12 px-4">
+        {/* Kategori: Fitur Utama */}
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-2">
+            <span className="w-2 h-8 bg-blue-600 rounded-full"></span>
+            Aplikasi Utama
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <FeatureCard
+              title="Pengukuran Luas Bangunan"
+              description="Kalkulator validasi luas atap bangunan berbasis citra satelit dan geospasial untuk menghindari anomali data lapangan."
+              icon={Map}
+              iconColor="text-white"
+              bgColor="bg-blue-600 shadow-lg shadow-blue-500/30"
+              onClick={() => onNavigate('building-area')}
+            />
+            <FeatureCard
+              title="Laporan Pendataan"
+              description="Aplikasi pelaporan dan monitoring progres pendataan lapangan secara real-time."
+              icon={FileEdit}
+              iconColor="text-indigo-600"
+              bgColor="bg-indigo-50"
+              onClick={() => onNavigate('cerdas-form')}
+            />
+          </div>
+        </div>
+
+        {/* Kategori: Referensi & Pembelajaran */}
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-2">
+            <span className="w-2 h-8 bg-purple-500 rounded-full"></span>
+            Referensi & Pembelajaran
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <FeatureCard
+              title="Learning Management System"
+              description="Pusat materi, jadwal, instrumen dan kuis pelatihan petugas pendataan yang terstruktur."
+              icon={MonitorPlay}
+              iconColor="text-sky-600"
+              bgColor="bg-sky-50"
+              onClick={() => onNavigate('lms')}
+            />
+            <FeatureCard
+              title="KBLI & KBJI"
+              description="Akses cepat klasifikasi KBLI 2025 dan KBJI untuk penentuan kode lapangan usaha dan jabatan yang akurat."
+              icon={BookOpen}
+              iconColor="text-primary-600"
+              bgColor="bg-primary-50"
+              onClick={() => onNavigate('kbli-kbji')}
+            />
+            <FeatureCard
+              title="Imputasi Susenas-Seruti"
+              description="Mesin pencari cerdas untuk panduan nilai imputasi lapangan secara instan dan bebas typo."
+              icon={FileEdit}
+              iconColor="text-purple-600"
+              bgColor="bg-purple-50"
+              onClick={() => onNavigate('imputation')}
+            />
+          </div>
+        </div>
+
+        {/* Kategori: Monitoring Wilayah */}
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-2">
+            <span className="w-2 h-8 bg-emerald-500 rounded-full"></span>
+            Monitoring Wilayah
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <FeatureCard
+              title="Infrastruktur Desa"
+              description="Monitoring dan update data infrastruktur pendukung desa secara real-time untuk pemetaan yang presisi."
+              icon={Map}
+              iconColor="text-accent-600"
+              bgColor="bg-accent-50"
+              onClick={() => onNavigate('infrastructure')}
+            />
+            <FeatureCard
+              title="Fenomena Sosial Ekonomi"
+              description="Modul pemantauan, analisis, dan pencatatan dinamika fenomena sosial ekonomi masyarakat secara terstruktur."
+              icon={Users}
+              iconColor="text-rose-600"
+              bgColor="bg-rose-50"
+              onClick={() => onNavigate('social-phenomenon')}
+            />
+            <FeatureCard
+              title="Sektor Pertanian"
+              description="Direktori data komoditas unggulan, luas lahan tanam, dan produktivitas pertanian secara berkala."
+              icon={Sprout}
+              iconColor="text-emerald-600"
+              bgColor="bg-emerald-50"
+              disabled={true}
+              onClick={() => {}}
+            />
+            <FeatureCard
+              title="Data Strategis BPS"
+              description="Dashboard indikator makro ekonomi, sosial, dan produksi daerah. Admin dapat memperbarui data di sini."
+              icon={TrendingUp}
+              iconColor="text-amber-600"
+              bgColor="bg-amber-50"
+              onClick={() => onNavigate('admin-strategic-data')}
+            />
+          </div>
+        </div>
       </div>
 
       <section className="bg-white border border-slate-100 shadow-xl rounded-[3rem] p-12 md:p-20 relative overflow-hidden">

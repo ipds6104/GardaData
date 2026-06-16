@@ -6,7 +6,7 @@ export interface MeasurementRecord {
   petugasName: string;
   timestamp: number;
   geojson: any; // The polygon GeoJSON
-  luasTapak: number; // m²
+  luasAtap: number; // m²
   jumlahLantai: number;
   jenisBangunan: string;
   perkiraanLuasLantai: number; // User input

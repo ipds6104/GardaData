@@ -22,8 +22,15 @@ const injectDrawCSS = () => {
   const style = document.createElement('style');
   style.id = id;
   style.textContent = `
-    /* Sembunyikan toolbar Leaflet Draw bawaan, kita ganti dengan UI kustom */
-    .leaflet-draw-toolbar, .leaflet-draw-section { display: none !important; }
+    /* Sembunyikan toolbar Leaflet Draw bawaan, tapi tetap bisa diklik via JS */
+    .leaflet-draw-toolbar, .leaflet-draw-section { 
+      opacity: 0 !important; 
+      pointer-events: none !important; 
+      position: absolute !important; 
+      z-index: -100 !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
 
     /* Perbesar touch/click target pada vertex poligon saat menggambar */
     .leaflet-div-icon {
@@ -352,7 +359,7 @@ const ExistingPolygonsLayer = ({ polygons, userRole }: { polygons: any[], userRo
               <div className="p-1 space-y-1">
                 <h3 className="font-bold text-slate-800 text-sm border-b pb-1 mb-1">{record.jenisBangunan}</h3>
                 <p className="text-xs text-slate-600"><b>Petugas:</b> {record.petugasName}</p>
-                <p className="text-xs text-slate-600"><b>Luas Tapak:</b> {Math.round(record.luasTapak)} m²</p>
+                <p className="text-xs text-slate-600"><b>Luas Atap:</b> {Math.round(record.luasAtap)} m²</p>
                 <p className="text-xs text-slate-600"><b>Lantai:</b> {record.jumlahLantai}</p>
                 <p className="text-xs text-slate-600"><b>Metode:</b> {record.metodeDigitasi === 'manual' ? 'Manual' : 'Otomatis'}</p>
               </div>
