@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { LogIn, User, Lock, AlertCircle, Database, ArrowRight } from 'lucide-react';
+import { LogIn, User, Lock, AlertCircle, HeartHandshake, ArrowRight } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
 export const Login: React.FC = () => {
@@ -28,10 +28,10 @@ export const Login: React.FC = () => {
   return (
     <div className="min-h-screen flex bg-white font-sans">
       {/* Kiri: Branding & Ilustrasi */}
-      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-blue-600 to-indigo-800 p-12 items-center justify-center relative overflow-hidden">
+      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-primary-600 to-primary-800 p-12 items-center justify-center relative overflow-hidden">
         {/* Elemen Dekoratif */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-400 opacity-20 blur-[80px] rounded-full translate-y-1/3 -translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-primary-400 opacity-20 blur-[80px] rounded-full translate-y-1/3 -translate-x-1/3"></div>
         
         <div className="relative z-10 text-white max-w-xl px-8">
           <div className="mb-8">
@@ -40,13 +40,13 @@ export const Login: React.FC = () => {
             }} />
           </div>
           <h1 className="text-5xl font-black mb-6 leading-tight tracking-tight">
-            Selamat Datang di <br/><span className="text-blue-200">Garda Data</span>
+            Selamat Datang di <br/><span className="text-primary-200">Garda Data</span>
           </h1>
-          <p className="text-blue-100/90 text-lg leading-relaxed mb-10 font-medium">
+          <p className="text-primary-100/90 text-lg leading-relaxed mb-10 font-medium">
             Satu platform terpadu untuk memudahkan petugas lapangan menjaga akurasi dan kualitas pendataan melalui sistem validasi dan pengukuran yang presisi.
           </p>
-          <div className="flex items-center gap-4 text-blue-200">
-            <div className="w-12 h-1 bg-blue-400/50 rounded-full"></div>
+          <div className="flex items-center gap-4 text-primary-200">
+            <div className="w-12 h-1 bg-primary-400/50 rounded-full"></div>
             <span className="font-bold tracking-widest uppercase text-xs">BPS Kabupaten Mempawah</span>
           </div>
         </div>
@@ -82,7 +82,7 @@ export const Login: React.FC = () => {
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all font-medium text-slate-700"
+                    className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:bg-white outline-none transition-all font-medium text-slate-700"
                     placeholder="Masukkan username"
                     required
                   />
@@ -97,7 +97,7 @@ export const Login: React.FC = () => {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all font-medium text-slate-700"
+                    className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:bg-white outline-none transition-all font-medium text-slate-700"
                     placeholder="••••••••"
                     required
                   />
@@ -118,7 +118,7 @@ export const Login: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 text-white py-4 mt-2 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 group"
+                className="w-full bg-primary-600 text-white py-4 mt-2 rounded-xl font-bold text-sm hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/30 flex items-center justify-center gap-2 group"
               >
                 <span>Masuk Sekarang</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -136,7 +136,7 @@ export const Login: React.FC = () => {
                   onClick={handleGuestClick}
                   className="w-full bg-white border border-slate-200 text-slate-600 py-3.5 rounded-xl font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2"
                 >
-                  <Database className="w-4 h-4 text-slate-400" />
+                  <HeartHandshake className="w-5 h-5 text-primary-500" />
                   Masuk sebagai Tamu
                 </button>
                 {showGuestMessage && (

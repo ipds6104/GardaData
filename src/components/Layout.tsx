@@ -60,7 +60,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
           <img src="/logo.png" alt="Garda Data Logo" className="w-8 h-8 object-contain" onError={(e) => {
             e.currentTarget.style.display = 'none';
           }} />
-          <span className="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-500">
+          <span className="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-500">
             GARDA DATA
           </span>
         </button>
@@ -78,17 +78,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
                 return (
                   <li key={item.id} className="relative">
                     {isActive && (
-                      <motion.div layoutId="activeNav" className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 rounded-r-full" />
+                      <motion.div layoutId="activeNav" className="absolute left-0 top-0 bottom-0 w-1 bg-primary-600 rounded-r-full" />
                     )}
                     <button
                       onClick={() => handleNav(item.id)}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left text-sm ${
                         isActive 
-                          ? 'bg-blue-50 text-blue-700 font-bold' 
+                          ? 'bg-primary-50 text-primary-700 font-bold' 
                           : 'text-slate-600 hover:bg-slate-50 font-medium'
                       }`}
                     >
-                      <item.icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                      <item.icon className={`w-5 h-5 ${isActive ? 'text-primary-600' : 'text-slate-400'}`} />
                       <span className="truncate">{item.label}</span>
                     </button>
                   </li>
@@ -153,19 +153,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-            <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors hidden sm:block">
-              <Moon className="w-5 h-5" />
-            </button>
-            <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
-            </button>
-            
             <div className="h-6 w-px bg-slate-200 mx-2 hidden sm:block" />
 
             {user && (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shrink-0 shadow-md">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-600 to-secondary-500 flex items-center justify-center text-white shrink-0 shadow-md">
                   <User className="w-5 h-5" />
                 </div>
                 <div className="hidden sm:flex flex-col">
@@ -197,9 +189,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
             </motion.div>
           </div>
           
-          <footer className="py-8 border-t border-slate-200/60 mt-auto">
-            <div className="max-w-7xl mx-auto px-8 text-center">
+          <footer className="py-16 border-t border-slate-200/60 bg-white mt-auto">
+            <div className="max-w-7xl mx-auto px-6 text-center space-y-4">
+              <div className="flex items-center justify-center gap-2 text-slate-300">
+                <div className="h-px w-8 bg-slate-200" />
+                <img src="/logo.png" alt="Logo" className="w-5 h-5 opacity-50 grayscale" onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                }} />
+                <div className="h-px w-8 bg-slate-200" />
+              </div>
               <p className="text-slate-400 text-sm font-medium">© 2026 Garda Data - Platform Terpadu Menjaga Kualitas Data.</p>
+              <p className="text-sm font-bold text-primary-600">Created by Tim Sosial BPS Kabupaten Mempawah</p>
             </div>
           </footer>
         </main>

@@ -23,14 +23,14 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon: Ico
       <div className={`p-3 rounded-xl ${bgColor}`}>
         <Icon className={`w-6 h-6 ${iconColor}`} />
       </div>
-      <h3 className="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors leading-tight">
+      <h3 className="text-lg font-bold text-slate-800 group-hover:text-primary-600 transition-colors leading-tight">
         {title}
       </h3>
     </div>
     <p className="text-slate-500 text-sm leading-relaxed mb-6 flex-grow">
       {description}
     </p>
-    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 group-hover:text-blue-600 transition-all mt-auto uppercase tracking-widest">
+    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 group-hover:text-primary-600 transition-all mt-auto uppercase tracking-widest">
       <span>Buka Aplikasi</span>
       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
     </div>
@@ -47,17 +47,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
   return (
     <div className="space-y-8">
       {/* Hero Banner (GOJAGS Style) */}
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-8 md:p-12 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center md:items-start justify-between min-h-[280px]">
+      <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-[2rem] p-8 md:p-12 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center md:items-start justify-between min-h-[280px]">
         {/* Background decorations */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-indigo-400 opacity-20 blur-[80px] rounded-full translate-y-1/2 -translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-primary-400 opacity-20 blur-[80px] rounded-full translate-y-1/2 -translate-x-1/2"></div>
         
         <div className="relative z-10 space-y-4 max-w-2xl text-center md:text-left">
-          <p className="text-blue-100 font-bold tracking-widest text-sm uppercase">SELAMAT DATANG DI GARDA DATA</p>
+          <p className="text-primary-100 font-bold tracking-widest text-sm uppercase">SELAMAT DATANG DI GARDA DATA</p>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
-            {user?.username || 'Pengguna'}, <span className="text-blue-200">{user?.role === 'admin' ? 'S.Tr.Stat' : 'BPS'}</span>
+            {user?.username || 'Pengguna'}
           </h1>
-          <p className="text-blue-100/90 text-sm md:text-base leading-relaxed max-w-xl font-medium pt-2">
+          <p className="text-primary-100/90 text-sm md:text-base leading-relaxed max-w-xl font-medium pt-2">
             Pusat administrasi dan kualitas data lapangan yang terintegrasi. Terus tingkatkan akurasi dan capai target pengumpulan data Anda dengan presisi tinggi melalui platform Garda Data!
           </p>
         </div>
@@ -95,7 +95,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
         {/* Kategori: Pendataan Lapangan */}
         <div>
           <h2 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
-            <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+            <span className="w-1.5 h-6 bg-primary-600 rounded-full"></span>
             Pendataan Lapangan
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -103,8 +103,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               title="Pengukuran Luas Bangunan"
               description="Kalkulator validasi luas atap bangunan berbasis citra satelit dan geospasial."
               icon={Ruler}
-              iconColor="text-blue-600"
-              bgColor="bg-blue-50"
+              iconColor="text-primary-600"
+              bgColor="bg-primary-50"
               onClick={() => onNavigate('building-area')}
             />
             <FeatureCard
