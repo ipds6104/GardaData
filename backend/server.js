@@ -10,8 +10,10 @@ const app = express();
 // KEAMANAN (CYBER SECURITY)
 // ==========================================
 
-// 1. Helmet: Menyembunyikan teknologi server dan mencegah serangan XSS ringan.
-app.use(helmet());
+// 1. Helmet: Menyembunyikan teknologi server. (CSP dimatikan agar peta Leaflet bisa dimuat)
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
 
 // 2. CORS: Hanya mengizinkan request dari frontend kita
 app.use(cors({
