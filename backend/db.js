@@ -25,7 +25,7 @@ async function initDB() {
         petugasName VARCHAR(255),
         timestamp BIGINT NOT NULL,
         geojson JSON NOT NULL,
-        luasTapak FLOAT NOT NULL,
+        luasAtap FLOAT NOT NULL,
         jumlahLantai INT NOT NULL,
         jenisBangunan VARCHAR(255) NOT NULL,
         perkiraanLuasLantai FLOAT NOT NULL,
@@ -36,6 +36,14 @@ async function initDB() {
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Auto-migrate column name if it exists
+    try {
+      await connection.query(`ALTER TABLE building_measurements CHANGE luasTapak luasAtap FLOAT NOT NULL`);
+      console.log('✅ Migrated column luasTapak to luasAtap');
+    } catch (e) {
+      // Column probably already migrated or doesn't exist, ignore
+    }
 
     console.log('✅ Database tables verified/created successfully.');
     connection.release();

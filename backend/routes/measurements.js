@@ -28,11 +28,11 @@ router.post('/sync', async (req, res) => {
       // Gunakan parameterized query (?) untuk mencegah SQL Injection!
       const query = `
         INSERT INTO building_measurements 
-        (id, petugasId, petugasName, timestamp, geojson, luasTapak, jumlahLantai, jenisBangunan, perkiraanLuasLantai, longitude, latitude, metodeDigitasi, syncStatus)
+        (id, petugasId, petugasName, timestamp, geojson, luasAtap, jumlahLantai, jenisBangunan, perkiraanLuasLantai, longitude, latitude, metodeDigitasi, syncStatus)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE 
         geojson = VALUES(geojson), 
-        luasTapak = VALUES(luasTapak), 
+        luasAtap = VALUES(luasAtap), 
         perkiraanLuasLantai = VALUES(perkiraanLuasLantai),
         syncStatus = 'synced'
       `;
@@ -43,7 +43,7 @@ router.post('/sync', async (req, res) => {
         record.petugasName || 'Petugas',
         record.timestamp,
         JSON.stringify(record.geojson), // Parse geojson object to string for MySQL JSON column
-        record.luasTapak || 0,
+        record.luasAtap || 0,
         record.jumlahLantai || 1,
         record.jenisBangunan || 'Rumah Tinggal',
         record.perkiraanLuasLantai || 0,

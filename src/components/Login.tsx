@@ -27,41 +27,32 @@ export const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen flex bg-white font-sans">
-      {/* Kiri: Branding & Ilustrasi (Premium Dark Theme) */}
-      <div className="hidden lg:flex w-1/2 bg-slate-900 p-12 items-center justify-center relative overflow-hidden">
-        {/* Elemen Dekoratif: Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px]"></div>
-        
-        {/* Elemen Dekoratif: Glowing Orbs */}
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary-600/20 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-500/10 blur-[150px] rounded-full translate-y-1/3 -translate-x-1/3"></div>
-        <div className="absolute top-1/2 left-1/2 w-[300px] h-[300px] bg-primary-500/10 blur-[100px] rounded-full -translate-y-1/2 -translate-x-1/2"></div>
+      {/* Kiri: Branding & Ilustrasi */}
+      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-orange-500 to-amber-400 p-12 items-center justify-center relative overflow-hidden">
+        {/* Elemen Dekoratif */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-20 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-orange-600 opacity-20 blur-[80px] rounded-full translate-y-1/3 -translate-x-1/3"></div>
         
         <div className="relative z-10 text-white max-w-xl px-4 flex flex-col h-full justify-center">
-          {/* Logo with Glassmorphism */}
+          {/* Logo */}
           <div className="mb-10 inline-block self-start">
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-[2rem] shadow-2xl relative group cursor-default">
-              <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <img src="/logo.png" alt="Garda Data Logo" className="w-20 h-20 object-contain drop-shadow-2xl relative z-10" onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }} />
-            </div>
+            <img src="/logo.png" alt="Garda Data Logo" className="w-24 h-24 object-contain drop-shadow-2xl hover:scale-105 transition-transform" onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }} />
           </div>
           
-          <h1 className="text-5xl xl:text-6xl font-black mb-6 leading-[1.1] tracking-tight">
+          <h1 className="text-5xl xl:text-6xl font-black mb-6 leading-[1.1] tracking-tight drop-shadow-md">
             Selamat Datang di <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 via-amber-300 to-primary-500">
-              Garda Data
-            </span>
+            Garda Data
           </h1>
           
-          <p className="text-slate-400 text-lg leading-relaxed mb-12 font-medium max-w-md">
+          <p className="text-white text-lg leading-relaxed mb-12 font-bold max-w-md drop-shadow-md">
             Pusat administrasi dan kualitas data lapangan terintegrasi. Menjaga akurasi dengan sistem validasi dan pengukuran presisi tinggi.
           </p>
           
-          <div className="mt-8 pt-10 border-t border-white/10 flex items-center gap-5">
-            <div className="w-12 h-1.5 bg-gradient-to-r from-primary-500 to-amber-400 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
-            <span className="font-black tracking-widest uppercase text-xs text-primary-300/80">BPS Kabupaten Mempawah</span>
+          <div className="mt-8 pt-10 border-t border-white/20 flex items-center gap-5">
+            <div className="w-12 h-1.5 bg-white rounded-full shadow-sm"></div>
+            <span className="font-black tracking-widest uppercase text-xs text-white drop-shadow-sm">BPS Kabupaten Mempawah</span>
           </div>
         </div>
       </div>
