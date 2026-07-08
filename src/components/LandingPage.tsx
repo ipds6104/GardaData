@@ -168,8 +168,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               onClick={() => onNavigate('social-phenomenon')}
             />
             <FeatureCard
-              title="Data Strategis BPS (Masih dalam pengembangan)"
-              description="Dashboard indikator makro ekonomi, sosial, dan produksi daerah."
+              title="Data Strategis BPS"
+              description="Dashboard indikator makro ekonomi, sosial, dan produksi daerah. (Masih dalam pengembangan)"
               icon={TrendingUp}
               iconColor="text-amber-600"
               bgColor="bg-amber-50"
