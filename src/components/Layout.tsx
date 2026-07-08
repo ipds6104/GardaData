@@ -12,6 +12,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing', onNavigate }) => {
   const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
 
   const menuGroups = [
     {
@@ -104,9 +105,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block h-screen sticky top-0 z-40">
-        <SidebarContent />
-      </div>
+      <AnimatePresence initial={false}>
+        {isDesktopSidebarOpen && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 'auto', opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+            className="hidden lg:block h-screen sticky top-0 z-40 overflow-hidden"
+          >
+            <SidebarContent />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Mobile Drawer */}
       <AnimatePresence>
@@ -138,7 +149,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-xl"
+              className="lg:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <button 
+              onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
+              className="hidden lg:block p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
             >
               <Menu className="w-6 h-6" />
             </button>

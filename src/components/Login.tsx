@@ -28,31 +28,30 @@ export const Login: React.FC = () => {
   return (
     <div className="min-h-screen flex bg-white font-sans">
       {/* Kiri: Branding & Ilustrasi */}
-      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-orange-500 to-amber-400 p-12 items-center justify-center relative overflow-hidden">
+      <div className="hidden lg:flex w-1/2 bg-[#fef9f1] p-12 items-center justify-center relative overflow-hidden border-r border-orange-100/50">
         {/* Elemen Dekoratif */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-20 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-orange-600 opacity-20 blur-[80px] rounded-full translate-y-1/3 -translate-x-1/3"></div>
+        <div className="absolute inset-0 bg-primary-200 blur-[120px] opacity-30 rounded-full w-[120%] h-[120%] transform -translate-y-1/4 -translate-x-1/4 pointer-events-none"></div>
         
-        <div className="relative z-10 text-white max-w-xl px-4 flex flex-col h-full justify-center">
+        <div className="relative z-10 text-slate-800 max-w-xl px-4 flex flex-col h-full justify-center">
           {/* Logo */}
           <div className="mb-10 inline-block self-start">
-            <img src="/logo.png" alt="Garda Data Logo" className="w-24 h-24 object-contain drop-shadow-2xl hover:scale-105 transition-transform" onError={(e) => {
+            <img src="/logo.png" alt="Garda Data Logo" className="w-32 h-32 object-contain drop-shadow-xl hover:scale-105 transition-transform" onError={(e) => {
               e.currentTarget.style.display = 'none';
             }} />
           </div>
           
-          <h1 className="text-5xl xl:text-6xl font-black mb-6 leading-[1.1] tracking-tight drop-shadow-md">
+          <h1 className="text-5xl xl:text-6xl font-black mb-6 leading-[1.1] tracking-tight font-serif">
             Selamat Datang di <br/>
-            Garda Data
+            <span className="text-primary-500 italic">Garda Data</span>
           </h1>
           
-          <p className="text-white text-lg leading-relaxed mb-12 font-bold max-w-md drop-shadow-md">
-            Pusat administrasi dan kualitas data lapangan terintegrasi. Menjaga akurasi dengan sistem validasi dan pengukuran presisi tinggi.
+          <p className="text-slate-600 text-lg leading-relaxed mb-12 font-medium max-w-md font-serif italic">
+            Portal Integrasi Menjaga Kualitas Data dan Akuntabilitas Proses Pendataan
           </p>
           
-          <div className="mt-8 pt-10 border-t border-white/20 flex items-center gap-5">
-            <div className="w-12 h-1.5 bg-white rounded-full shadow-sm"></div>
-            <span className="font-black tracking-widest uppercase text-xs text-white drop-shadow-sm">BPS Kabupaten Mempawah</span>
+          <div className="mt-8 pt-10 border-t border-slate-200 flex items-center gap-5">
+            <div className="w-12 h-1.5 bg-primary-400 rounded-full shadow-sm"></div>
+            <span className="font-black tracking-widest uppercase text-xs text-slate-400">BPS Kabupaten Mempawah</span>
           </div>
         </div>
       </div>
