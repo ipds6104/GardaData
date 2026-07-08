@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { ChevronLeft, Loader2, RefreshCw, Filter, TrendingUp, Users, MapPin, Search, CheckCircle2, AlertCircle, Target, Clock, Star, BarChart3 } from 'lucide-react';
+import { ChevronLeft, Loader2, RefreshCw, Filter, TrendingUp, Users, MapPin, Search, CheckCircle2, AlertCircle, Target, Clock, Star, BarChart3, Calendar, Target as TargetIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MonitoringConfig } from './AdminMonitoring';
 import { parseMonitoringSheet, MonitoringRow } from '../../services/monitoringParser';
@@ -30,6 +30,11 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   const [desaFilter, setDesaFilter] = useState<string>('ALL');
   const [slsFilter, setSlsFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Tracker Filters
+  const [trackerSearch, setTrackerSearch] = useState('');
+  const [trackerLimit, setTrackerLimit] = useState<number>(3);
+  const [trackerPage, setTrackerPage] = useState<number>(1);
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -86,12 +91,11 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   const dailyDiff = useMemo(() => {
     if (snapshots.length === 0) return { submit: 0, draft: 0 };
     const sorted = [...snapshots].sort((a, b) => new Date(b.snapshotDate).getTime() - new Date(a.snapshotDate).getTime());
-    // Latest snapshot vs previous snapshot
     if (sorted.length >= 2) {
       const latest = sorted[0];
       const prev = sorted[1];
       return {
-        submit: (latest.totalSubmit || 0) - (prev.totalSubmit || 0),
+        submit: Math.max(0, (latest.totalSubmit || 0) - (prev.totalSubmit || 0)),
         draft: (latest.totalDraft || 0) - (prev.totalDraft || 0)
       };
     } else if (sorted.length === 1) {
@@ -114,15 +118,28 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
     return diff > 0 ? diff : 0;
   }, [config.endDate]);
 
+  // Expected Time Target (for Tracker)
+  const expectedTargetPct = useMemo(() => {
+    const startDate = new Date(2026, 5, 15).getTime(); // default fallback 15 June 2026
+    const endDate = new Date(config.endDate).getTime();
+    const now = new Date().getTime();
+    const totalDuration = endDate - startDate;
+    if (totalDuration <= 0) return 100;
+    const elapsed = now - startDate;
+    const pct = (elapsed / totalDuration) * 100;
+    return Math.min(100, Math.max(0, pct));
+  }, [config.endDate]);
+
   // PPL Leaderboard & Most Active
   const pplStats = useMemo(() => {
-    const stats: Record<string, { submit: number, draft: number, target: number, pml: string }> = {};
+    const stats: Record<string, { submit: number, draft: number, target: number, pml: string, totalSls: number }> = {};
     headerFilteredData.forEach(d => {
       if (!d.namaPpl) return;
-      if (!stats[d.namaPpl]) stats[d.namaPpl] = { submit: 0, draft: 0, target: 0, pml: d.namaPml };
+      if (!stats[d.namaPpl]) stats[d.namaPpl] = { submit: 0, draft: 0, target: 0, pml: d.namaPml, totalSls: 0 };
       stats[d.namaPpl].submit += d.totalSubmit;
       stats[d.namaPpl].draft += d.draft;
       stats[d.namaPpl].target += d.target;
+      stats[d.namaPpl].totalSls += 1;
     });
     return Object.entries(stats).map(([name, vals]) => ({ name, ...vals })).sort((a, b) => b.submit - a.submit);
   }, [headerFilteredData]);
@@ -211,6 +228,22 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
     });
   }, [snapshots]);
 
+  // Tracker Logic
+  const filteredTrackerData = useMemo(() => {
+    let filtered = pplStats;
+    if (trackerSearch) {
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(trackerSearch.toLowerCase()));
+    }
+    return filtered;
+  }, [pplStats, trackerSearch]);
+
+  const paginatedTrackerData = useMemo(() => {
+    const start = (trackerPage - 1) * trackerLimit;
+    return filteredTrackerData.slice(start, start + trackerLimit);
+  }, [filteredTrackerData, trackerPage, trackerLimit]);
+
+  const totalTrackerPages = Math.ceil(filteredTrackerData.length / trackerLimit) || 1;
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center bg-slate-50/50 rounded-3xl">
@@ -279,8 +312,8 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards (3 columns instead of 4 since Tracker takes the 4th) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card 1: Total Submit */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
           <div className="absolute -right-4 -top-4 text-emerald-50">
@@ -345,36 +378,12 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
             </div>
           </div>
         </div>
-
-        {/* Card 4: PPL Paling Aktif (Submit) */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-          <div className="absolute -right-4 -top-4 text-slate-50">
-            <Users className="w-24 h-24" />
-          </div>
-          <div className="relative flex flex-col h-full justify-between">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">PPL Paling Aktif (Submit)</p>
-            {mostActivePpl ? (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
-                  {mostActivePpl.name.substring(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800 truncate w-32">{mostActivePpl.name}</h4>
-                  <p className="text-[11px] font-semibold text-emerald-500">Total: {mostActivePpl.submit} Berkas</p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-slate-400 italic">Belum ada data</p>
-            )}
-            <p className="text-[10px] font-bold text-blue-500 mt-3 uppercase">PRODUCTIVITY WINNER</p>
-          </div>
-        </div>
       </div>
 
       {/* Monitoring Seluruh SLS */}
       <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <h2 className="text-sm font-bold text-slate-800">MONITORING SELURUH SLS ({config.kegiatan.toUpperCase()})</h2>
+          <h2 className="text-sm font-bold text-slate-800 uppercase">MONITORING SELURUH SLS ({config.kegiatan})</h2>
           <p className="text-[11px] text-slate-500">Statistik berdasarkan filter PML & PPL.</p>
         </div>
         <div className="flex items-center gap-6 divide-x divide-slate-100 bg-slate-50 px-6 py-3 rounded-xl border border-slate-100">
@@ -406,20 +415,189 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
         </div>
       </div>
 
-      {/* Sisa Hari Kerja */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-        <div className="absolute -right-4 -top-4 text-slate-50">
-          <Clock className="w-24 h-24" />
-        </div>
-        <div className="relative">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Sisa Hari Kerja</p>
-          <div className="flex items-end gap-2">
-            <h3 className="text-3xl font-black text-slate-800">{sisaHariKerja}</h3>
-            <span className="text-slate-500 font-medium mb-1">Hari</span>
+      {/* BIG PPL TRACKER SECTION */}
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        {/* Tracker Header */}
+        <div className="p-6 border-b border-slate-100 flex flex-col xl:flex-row xl:items-start justify-between gap-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="bg-rose-50 text-rose-600 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-rose-100">
+                BUFFER TARGET {config.kegiatan}
+              </span>
+              <span className="bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+                DEADLINE: {new Date(config.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                <TargetIcon className="w-7 h-7 text-rose-500" />
+                Pelacak Target Harian Petugas (Akselerasi Tepat Waktu)
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">Hitung mundur sisa hari kerja hingga target penyelesaian buffer tanggal {new Date(config.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.</p>
+            </div>
           </div>
-          <p className="text-xs text-slate-400 font-medium mt-2">
-            Tenggat: {new Date(config.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric'})}
-          </p>
+          <div className="flex items-center gap-4 bg-orange-50 border border-orange-100 p-4 rounded-2xl flex-shrink-0">
+            <div className="bg-white p-3 rounded-xl shadow-sm">
+              <Calendar className="w-8 h-8 text-orange-500" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-500 tracking-wider">SISA HARI KERJA</p>
+              <h3 className="text-2xl font-black text-orange-600">{sisaHariKerja} Hari Lagi</h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Tracker Filters */}
+        <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text"
+              placeholder="Cari nama PPL..."
+              value={trackerSearch}
+              onChange={e => {setTrackerSearch(e.target.value); setTrackerPage(1);}}
+              className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full"
+            />
+          </div>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
+              <span>TAMPIL:</span>
+              <select 
+                value={trackerLimit}
+                onChange={e => {setTrackerLimit(Number(e.target.value)); setTrackerPage(1);}}
+                className="bg-transparent border-b border-slate-300 outline-none font-bold text-slate-800 pb-1"
+              >
+                <option value={3}>3 Kartu</option>
+                <option value={6}>6 Kartu</option>
+                <option value={9}>9 Kartu</option>
+                <option value={12}>12 Kartu</option>
+              </select>
+            </div>
+            <div className="bg-orange-50 border border-orange-200 text-orange-800 text-[11px] font-bold px-3 py-1.5 rounded uppercase">
+              FILTER PML AKTIF: {pmlFilter === 'ALL' ? 'SEMUA' : pmlFilter}
+            </div>
+            <div className="bg-white border border-slate-800 text-slate-800 text-[11px] font-bold px-3 py-1.5 rounded uppercase">
+              TOTAL PPL TERPILIH: {filteredTrackerData.length} / {pplStats.length} ORANG
+            </div>
+          </div>
+        </div>
+
+        {/* Tracker Cards Grid */}
+        <div className="p-6 bg-slate-50/50">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedTrackerData.map((ppl, idx) => {
+              const pplProgressPct = ppl.target > 0 ? (ppl.submit / ppl.target) * 100 : 0;
+              const sisaDokumen = Math.max(0, ppl.target - ppl.submit);
+              const minPerHari = sisaHariKerja > 0 ? Math.ceil(sisaDokumen / sisaHariKerja) : sisaDokumen;
+              
+              return (
+                <div key={idx} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col">
+                  {/* Top Name & Progress */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-800">{ppl.name}</h3>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">SUPERVISOR: {ppl.pml}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <p className="text-[9px] font-bold text-blue-400 uppercase">TARGET HARI INI</p>
+                          <p className="text-sm font-black text-blue-500">{expectedTargetPct.toFixed(1)}%</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">PROGRES TARGET</p>
+                          <p className="text-sm font-black text-orange-500">{pplProgressPct.toFixed(1)}%</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full bg-slate-100 h-2 rounded-full mb-6 flex overflow-hidden">
+                    <div className="bg-orange-500 h-full transition-all" style={{ width: `${Math.min(100, pplProgressPct)}%` }} />
+                    <div className="bg-blue-400 h-full transition-all opacity-30" style={{ width: `${Math.max(0, expectedTargetPct - pplProgressPct)}%` }} />
+                  </div>
+
+                  {/* 3x2 Grid Metrics */}
+                  <div className="grid grid-cols-3 gap-2 mb-6">
+                    <div className="border border-slate-200 rounded-lg p-2 text-center flex flex-col justify-center">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">TOTAL SLS</p>
+                      <p className="text-sm font-bold text-slate-800">{ppl.totalSls}</p>
+                    </div>
+                    <div className="border border-slate-200 rounded-lg p-2 text-center flex flex-col justify-center">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">TARGET AKHIR</p>
+                      <p className="text-sm font-bold text-slate-800">{ppl.target}</p>
+                    </div>
+                    <div className="border border-emerald-200 bg-emerald-50/30 rounded-lg p-2 text-center flex flex-col justify-center">
+                      <p className="text-[9px] font-bold text-emerald-600 uppercase mb-1">TELAH SUBMIT</p>
+                      <p className="text-sm font-bold text-emerald-600">
+                        {ppl.submit} <span className="text-[10px] font-medium">({pplProgressPct.toFixed(1)}%)</span>
+                      </p>
+                    </div>
+                    <div className="border border-emerald-200 rounded-lg p-2 text-center flex flex-col justify-center">
+                      <p className="text-[8px] font-bold text-emerald-600 uppercase mb-1">SUBMIT HARI INI (LIVE)</p>
+                      <p className="text-sm font-bold text-emerald-500">
+                        +0 <span className="text-[10px] font-medium">(0.0%)</span>
+                      </p>
+                    </div>
+                    <div className="border border-amber-200 rounded-lg p-2 text-center flex flex-col justify-center">
+                      <p className="text-[9px] font-bold text-amber-600 uppercase mb-1">JUMLAH DRAF</p>
+                      <p className="text-sm font-bold text-amber-500">
+                        {ppl.draft} <span className="text-[10px] font-medium">({ppl.target > 0 ? ((ppl.draft / ppl.target)*100).toFixed(1) : 0}%)</span>
+                      </p>
+                    </div>
+                    <div className="border border-rose-200 rounded-lg p-2 text-center flex flex-col justify-center">
+                      <p className="text-[9px] font-bold text-rose-500 uppercase mb-1">SISA DOKUMEN</p>
+                      <p className="text-sm font-bold text-rose-500">
+                        {sisaDokumen} <span className="text-[10px] font-medium">({ppl.target > 0 ? ((sisaDokumen / ppl.target)*100).toFixed(1) : 0}%)</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Target Minimal / Hari */}
+                  <div className="mt-auto bg-amber-50/50 border border-amber-100 rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-700 uppercase">TARGET SUBMIT HARI INI</p>
+                      <p className="text-[10px] text-slate-500">Minimal disubmit / hari kerja</p>
+                    </div>
+                    <div className="bg-slate-900 text-white rounded-lg px-4 py-2 text-center">
+                      <p className="text-lg font-black leading-none">{minPerHari}</p>
+                      <p className="text-[8px] font-bold text-slate-300 uppercase mt-1">DOK / HARI</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {paginatedTrackerData.length === 0 && (
+            <div className="text-center py-12 text-slate-500">
+              Tidak ada data PPL yang cocok dengan filter.
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalTrackerPages > 1 && (
+            <div className="mt-8 flex items-center justify-between bg-white px-6 py-4 rounded-2xl border border-slate-200 shadow-sm">
+              <button 
+                onClick={() => setTrackerPage(p => Math.max(1, p - 1))}
+                disabled={trackerPage === 1}
+                className="px-4 py-2 text-sm font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+              >
+                Sebelumnya
+              </button>
+              <span className="text-sm font-bold text-slate-500">
+                Halaman {trackerPage} / {totalTrackerPages}
+              </span>
+              <button 
+                onClick={() => setTrackerPage(p => Math.min(totalTrackerPages, p + 1))}
+                disabled={trackerPage === totalTrackerPages}
+                className="px-4 py-2 text-sm font-bold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+              >
+                Berikutnya
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
