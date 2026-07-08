@@ -13,6 +13,27 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
   const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  const searchIndex = [
+    { id: 'lms', title: 'Learning Management System', desc: 'Pelatihan, e-learning, materi, sakernas agustus', keywords: ['lms', 'pelatihan', 'sakernas', 'susenas', 'agustus', 'materi', 'kuis', 'jadwal'] },
+    { id: 'cerdas-form', title: 'Laporan Pendataan', desc: 'Laporan progres pendataan lapangan', keywords: ['laporan', 'pendataan', 'cerdas', 'progress', 'progres', 'lapangan'] },
+    { id: 'kbli-kbji', title: 'KBLI 2025 & KBJI 2014', desc: 'Pencarian kode klasifikasi KBLI/KBJI', keywords: ['kbli', 'kbji', 'klasifikasi', 'kode', 'industri', 'pekerjaan'] },
+    { id: 'building-area', title: 'Pengukuran Luas Bangunan', desc: 'Kalkulator area bangunan via satelit', keywords: ['bangunan', 'luas', 'atap', 'pengukuran', 'peta', 'satelit', 'geospasial'] },
+    { id: 'imputation', title: 'Imputasi Susenas-Seruti', desc: 'Panduan nilai imputasi lapangan', keywords: ['imputasi', 'susenas', 'seruti', 'nilai', 'batas'] },
+    { id: 'infrastructure', title: 'Infrastruktur Desa', desc: 'Monitoring infrastruktur pendukung desa', keywords: ['infrastruktur', 'desa', 'fasilitas', 'pasar', 'sekolah'] },
+    { id: 'social-phenomenon', title: 'Fenomena Sosial Ekonomi', desc: 'Pencatatan dinamika fenomena sosial ekonomi', keywords: ['fenomena', 'sosial', 'ekonomi', 'analisis', 'berita'] },
+    { id: 'admin-strategic-data', title: 'Data Strategis BPS', desc: 'Indikator makro ekonomi daerah', keywords: ['strategis', 'makro', 'ekonomi', 'inflasi', 'kemiskinan', 'pdrb'] },
+  ];
+
+  const searchResults = searchIndex.filter(item => {
+    if (!searchQuery) return false;
+    const query = searchQuery.toLowerCase();
+    return item.title.toLowerCase().includes(query) || 
+           item.desc.toLowerCase().includes(query) || 
+           item.keywords.some(k => k.includes(query));
+  });
 
   const menuGroups = [
     {
@@ -159,13 +180,55 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
             >
               <Menu className="w-6 h-6" />
             </button>
-            <div className="hidden md:flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-full border border-slate-200 w-80">
-              <Search className="w-4 h-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Cari fitur atau aplikasi..." 
-                className="bg-transparent border-none outline-none text-sm w-full text-slate-700"
-              />
+            <div className="hidden md:flex relative w-80">
+              <div className="flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-full border border-slate-200 w-full focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-100 transition-all">
+                <Search className="w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                  placeholder="Cari fitur atau aplikasi (mis: pelatihan sakernas)..." 
+                  className="bg-transparent border-none outline-none text-sm w-full text-slate-700 placeholder-slate-400"
+                />
+              </div>
+              
+              {/* Search Results Dropdown */}
+              <AnimatePresence>
+                {isSearchFocused && searchQuery.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute top-full mt-2 left-0 right-0 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50"
+                  >
+                    {searchResults.length > 0 ? (
+                      <ul className="max-h-64 overflow-y-auto custom-scrollbar py-2">
+                        {searchResults.map((result) => (
+                          <li key={result.id}>
+                            <button
+                              onClick={() => {
+                                handleNav(result.id);
+                                setSearchQuery('');
+                                setIsSearchFocused(false);
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-slate-50 flex flex-col transition-colors"
+                            >
+                              <span className="text-sm font-bold text-slate-800">{result.title}</span>
+                              <span className="text-xs text-slate-500 line-clamp-1">{result.desc}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="p-6 text-center text-sm text-slate-500">
+                        Pencarian <span className="font-bold text-slate-800">"{searchQuery}"</span> tidak ditemukan.
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
