@@ -31,7 +31,11 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
 
     const exportUrl = `https://docs.google.com/spreadsheets/d/${documentId}/export?format=tsv&gid=${gid}`;
     
-    const res = await fetch(exportUrl);
+    // Gunakan backend proxy untuk menghindari pemblokiran CORS oleh browser
+    const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+    const proxyUrl = `${baseUrl}/api/monitoring/proxy-sheet?url=${encodeURIComponent(exportUrl)}`;
+    
+    const res = await fetch(proxyUrl);
     if (!res.ok) throw new Error('Failed to fetch sheet');
     
     const text = await res.text();

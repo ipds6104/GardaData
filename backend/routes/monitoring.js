@@ -81,4 +81,22 @@ router.get('/snapshots/:configId', async (req, res) => {
   }
 });
 
+// GET: Proxy to fetch Google Sheet to bypass CORS
+router.get('/proxy-sheet', async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ error: 'URL is required' });
+    if (!url.startsWith('https://docs.google.com/')) {
+       return res.status(403).json({ error: 'Invalid URL' });
+    }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch from Google Sheets');
+    const text = await response.text();
+    res.send(text);
+  } catch (error) {
+    console.error('Proxy error:', error);
+    res.status(500).json({ error: 'Failed to proxy request' });
+  }
+});
+
 module.exports = router;
