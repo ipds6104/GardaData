@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Edit2, X, Plus, Database, AlertCircle, Trash2 } from 'lucide-react';
+import { Save, Edit2, X, Plus, Database, AlertCircle, Trash2, Search } from 'lucide-react';
 import { useImputationStore } from '../../store/imputationStore';
 import { batchUpsertImputationData } from '../../services/imputationService';
 import { ImputationData, ImputationType, NilaiImputation, BansosImputation, WajibImputation, WajibTransferImputation } from '../../types/imputation';
@@ -13,8 +13,24 @@ export const ImputationAdminDashboard: React.FC = () => {
   const [editForm, setEditForm] = useState<Partial<ImputationData>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{type: 'success'|'error', text: string} | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [popupItem, setPopupItem] = useState<ImputationData | null>(null);
 
-  const filteredData = data.filter(d => d.type === activeTab);
+  const generateKeywordText = (item: ImputationData) => {
+    switch(item.type) {
+      case 'NILAI_IMPUTASI': return `${(item as NilaiImputation).kategori} ${(item as NilaiImputation).keterangan}`;
+      case 'BANSOS': return `${(item as BansosImputation).jenisBantuan} ${(item as BansosImputation).pengelompokanJenisBantuan} bansos pkh bpnt`;
+      case 'WAJIB_IMPUTASI': return `Blok V wajib imputasi ${(item as WajibImputation).kategori} ${(item as WajibImputation).kuesioner} ${(item as WajibImputation).rincianPertanyaan} ${(item as WajibImputation).keterangan}`;
+      case 'WAJIB_TRANSFER': return `Blok V wajib transfer ${(item as WajibTransferImputation).penerimaan} ${(item as WajibTransferImputation).transferDiterimaUang} ${(item as WajibTransferImputation).transferDiterimaBarang}`;
+      default: return '';
+    }
+  };
+
+  const filteredData = data.filter(d => {
+    if (d.type !== activeTab) return false;
+    if (!searchQuery) return true;
+    return generateKeywordText(d).toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const startEdit = (item: ImputationData) => {
     setEditingId(item.id);
@@ -26,6 +42,16 @@ export const ImputationAdminDashboard: React.FC = () => {
       setData(data.filter(d => d.id !== editingId));
     }
     setEditingId(null);
+    setEditForm({});
+  };
+
+  const openPopup = (item: ImputationData) => {
+    setPopupItem(item);
+    setEditForm(item);
+  };
+
+  const closePopup = () => {
+    setPopupItem(null);
     setEditForm({});
   };
 
@@ -76,6 +102,7 @@ export const ImputationAdminDashboard: React.FC = () => {
 
       setMessage({ type: 'success', text: 'Data berhasil disimpan!' });
       setEditingId(null);
+      setPopupItem(null);
       
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
@@ -85,20 +112,60 @@ export const ImputationAdminDashboard: React.FC = () => {
     }
   };
 
-  const generateKeywordText = (item: ImputationData) => {
-    switch(item.type) {
-      case 'NILAI_IMPUTASI': return `${item.kategori} ${item.keterangan}`;
-      case 'BANSOS': return `${item.jenisBantuan} ${item.pengelompokanJenisBantuan} bansos pkh bpnt`;
-      case 'WAJIB_IMPUTASI': return `Blok V wajib imputasi ${item.kategori} ${item.kuesioner} ${item.rincianPertanyaan} ${item.keterangan}`;
-      case 'WAJIB_TRANSFER': return `Blok V wajib transfer ${item.penerimaan} ${item.transferDiterimaUang} ${item.transferDiterimaBarang}`;
-      default: return '';
+  const renderPopupFormFields = () => {
+    if (!popupItem) return null;
+    const type = popupItem.type;
+
+    if (type === 'NILAI_IMPUTASI') {
+      return (
+        <div className="space-y-4">
+          <div><label className="text-xs font-bold text-slate-500">Kategori</label><input className="w-full border p-2 rounded" value={(editForm as NilaiImputation).kategori || ''} onChange={e => setEditForm({...editForm, kategori: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Keterangan</label><input className="w-full border p-2 rounded" value={(editForm as NilaiImputation).keterangan || ''} onChange={e => setEditForm({...editForm, keterangan: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Nilai Pengeluaran</label><input className="w-full border p-2 rounded" value={(editForm as NilaiImputation).nilaiPengeluaran || ''} onChange={e => setEditForm({...editForm, nilaiPengeluaran: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Nilai OOP</label><input className="w-full border p-2 rounded" value={(editForm as NilaiImputation).nilaiOOP || ''} onChange={e => setEditForm({...editForm, nilaiOOP: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Nilai Pendapatan</label><input className="w-full border p-2 rounded" value={(editForm as NilaiImputation).nilaiPendapatan || ''} onChange={e => setEditForm({...editForm, nilaiPendapatan: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Sumber Pendapatan</label><input className="w-full border p-2 rounded" value={(editForm as NilaiImputation).sumberPendapatan || ''} onChange={e => setEditForm({...editForm, sumberPendapatan: e.target.value})} /></div>
+        </div>
+      );
+    } else if (type === 'BANSOS') {
+      return (
+        <div className="space-y-4">
+          <div><label className="text-xs font-bold text-slate-500">Jenis Bantuan</label><input className="w-full border p-2 rounded" value={(editForm as BansosImputation).jenisBantuan || ''} onChange={e => setEditForm({...editForm, jenisBantuan: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Pengelompokan Jenis Bantuan</label><input className="w-full border p-2 rounded" value={(editForm as BansosImputation).pengelompokanJenisBantuan || ''} onChange={e => setEditForm({...editForm, pengelompokanJenisBantuan: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Nilai</label><input className="w-full border p-2 rounded" value={(editForm as BansosImputation).nilai || ''} onChange={e => setEditForm({...editForm, nilai: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Periode Penerimaan</label><input className="w-full border p-2 rounded" value={(editForm as BansosImputation).periodePenerimaan || ''} onChange={e => setEditForm({...editForm, periodePenerimaan: e.target.value})} /></div>
+        </div>
+      );
+    } else if (type === 'WAJIB_IMPUTASI') {
+      return (
+        <div className="space-y-4">
+          <div><label className="text-xs font-bold text-slate-500">Kategori</label><input className="w-full border p-2 rounded" value={(editForm as WajibImputation).kategori || ''} onChange={e => setEditForm({...editForm, kategori: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Kuesioner</label><input className="w-full border p-2 rounded" value={(editForm as WajibImputation).kuesioner || ''} onChange={e => setEditForm({...editForm, kuesioner: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Rincian Pertanyaan</label><input className="w-full border p-2 rounded" value={(editForm as WajibImputation).rincianPertanyaan || ''} onChange={e => setEditForm({...editForm, rincianPertanyaan: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Keterangan</label><input className="w-full border p-2 rounded" value={(editForm as WajibImputation).keterangan || ''} onChange={e => setEditForm({...editForm, keterangan: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Sumber Pendanaan</label><input className="w-full border p-2 rounded" value={(editForm as WajibImputation).sumberPendanaan || ''} onChange={e => setEditForm({...editForm, sumberPendanaan: e.target.value})} /></div>
+        </div>
+      );
+    } else if (type === 'WAJIB_TRANSFER') {
+      return (
+        <div className="space-y-4">
+          <div><label className="text-xs font-bold text-slate-500">Penerimaan</label><input className="w-full border p-2 rounded" value={(editForm as WajibTransferImputation).penerimaan || ''} onChange={e => setEditForm({...editForm, penerimaan: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Transfer Diterima (Uang)</label><input className="w-full border p-2 rounded" value={(editForm as WajibTransferImputation).transferDiterimaUang || ''} onChange={e => setEditForm({...editForm, transferDiterimaUang: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Transfer Diterima (Barang/Jasa)</label><input className="w-full border p-2 rounded" value={(editForm as WajibTransferImputation).transferDiterimaBarang || ''} onChange={e => setEditForm({...editForm, transferDiterimaBarang: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Transfer Dibayar (Uang)</label><input className="w-full border p-2 rounded" value={(editForm as WajibTransferImputation).transferDibayarUang || ''} onChange={e => setEditForm({...editForm, transferDibayarUang: e.target.value})} /></div>
+          <div><label className="text-xs font-bold text-slate-500">Transfer Dibayar (Barang/Jasa)</label><input className="w-full border p-2 rounded" value={(editForm as WajibTransferImputation).transferDibayarBarang || ''} onChange={e => setEditForm({...editForm, transferDibayarBarang: e.target.value})} /></div>
+        </div>
+      );
     }
+    return null;
   };
 
+
+
   const renderNilaiTable = () => (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
       <table className="w-full text-left text-sm whitespace-nowrap">
-        <thead className="bg-slate-50 text-slate-500 uppercase tracking-widest font-black text-[10px]">
+        <thead className="bg-slate-50 text-slate-500 uppercase tracking-widest font-black text-[10px] sticky top-0 z-10 shadow-sm border-b border-slate-200">
           <tr>
             <th className="p-4">Aksi</th>
             <th className="p-4">Kategori</th>
@@ -114,8 +181,8 @@ export const ImputationAdminDashboard: React.FC = () => {
             const item = row as NilaiImputation;
             const isEditing = editingId === item.id;
             return (
-              <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="p-4">
+              <tr key={item.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer" onClick={() => !isEditing && openPopup(item)}>
+                <td className="p-4" onClick={(e) => e.stopPropagation()}>
                   {isEditing ? (
                     <div className="flex gap-2">
                       <button onClick={handleSave} disabled={isSaving} className="p-2 bg-primary-100 text-primary-600 rounded-lg hover:bg-primary-200"><Save className="w-4 h-4" /></button>
@@ -140,9 +207,9 @@ export const ImputationAdminDashboard: React.FC = () => {
   );
 
   const renderBansosTable = () => (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
       <table className="w-full text-left text-sm whitespace-nowrap">
-        <thead className="bg-slate-50 text-slate-500 uppercase tracking-widest font-black text-[10px]">
+        <thead className="bg-slate-50 text-slate-500 uppercase tracking-widest font-black text-[10px] sticky top-0 z-10 shadow-sm border-b border-slate-200">
           <tr>
             <th className="p-4">Aksi</th>
             <th className="p-4">Jenis Bantuan</th>
@@ -156,8 +223,8 @@ export const ImputationAdminDashboard: React.FC = () => {
             const item = row as BansosImputation;
             const isEditing = editingId === item.id;
             return (
-              <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="p-4">
+              <tr key={item.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer" onClick={() => !isEditing && openPopup(item)}>
+                <td className="p-4" onClick={(e) => e.stopPropagation()}>
                   {isEditing ? (
                     <div className="flex gap-2">
                       <button onClick={handleSave} disabled={isSaving} className="p-2 bg-primary-100 text-primary-600 rounded-lg hover:bg-primary-200"><Save className="w-4 h-4" /></button>
@@ -180,9 +247,9 @@ export const ImputationAdminDashboard: React.FC = () => {
   );
 
   const renderWajibImpTable = () => (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
       <table className="w-full text-left text-sm whitespace-nowrap">
-        <thead className="bg-slate-50 text-slate-500 uppercase tracking-widest font-black text-[10px]">
+        <thead className="bg-slate-50 text-slate-500 uppercase tracking-widest font-black text-[10px] sticky top-0 z-10 shadow-sm border-b border-slate-200">
           <tr>
             <th className="p-4">Aksi</th>
             <th className="p-4">Kategori</th>
@@ -197,8 +264,8 @@ export const ImputationAdminDashboard: React.FC = () => {
             const item = row as WajibImputation;
             const isEditing = editingId === item.id;
             return (
-              <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="p-4">
+              <tr key={item.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer" onClick={() => !isEditing && openPopup(item)}>
+                <td className="p-4" onClick={(e) => e.stopPropagation()}>
                   {isEditing ? (
                     <div className="flex gap-2">
                       <button onClick={handleSave} disabled={isSaving} className="p-2 bg-primary-100 text-primary-600 rounded-lg hover:bg-primary-200"><Save className="w-4 h-4" /></button>
@@ -222,9 +289,9 @@ export const ImputationAdminDashboard: React.FC = () => {
   );
 
   const renderWajibTransTable = () => (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
       <table className="w-full text-left text-sm whitespace-nowrap">
-        <thead className="bg-slate-50 text-slate-500 uppercase tracking-widest font-black text-[10px]">
+        <thead className="bg-slate-50 text-slate-500 uppercase tracking-widest font-black text-[10px] sticky top-0 z-10 shadow-sm border-b border-slate-200">
           <tr>
             <th className="p-4">Aksi</th>
             <th className="p-4">Penerimaan</th>
@@ -239,8 +306,8 @@ export const ImputationAdminDashboard: React.FC = () => {
             const item = row as WajibTransferImputation;
             const isEditing = editingId === item.id;
             return (
-              <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                <td className="p-4">
+              <tr key={item.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer" onClick={() => !isEditing && openPopup(item)}>
+                <td className="p-4" onClick={(e) => e.stopPropagation()}>
                   {isEditing ? (
                     <div className="flex gap-2">
                       <button onClick={handleSave} disabled={isSaving} className="p-2 bg-primary-100 text-primary-600 rounded-lg hover:bg-primary-200"><Save className="w-4 h-4" /></button>
@@ -302,20 +369,34 @@ export const ImputationAdminDashboard: React.FC = () => {
       </div>
 
       <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
-        <div className="bg-slate-50 p-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="bg-slate-50 p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
            <div className="flex items-center gap-3">
              <Database className="w-5 h-5 text-slate-400" />
-             <h3 className="font-bold text-slate-700 uppercase tracking-widest text-sm">
+             <h3 className="font-bold text-slate-700 uppercase tracking-widest text-sm whitespace-nowrap">
                Tabel {activeTab.replace('_', ' ')}
              </h3>
            </div>
+           
+           <div className="relative flex-1 max-w-md w-full">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="w-4 h-4 text-slate-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Pencarian cepat..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-4 py-2 w-full bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm"
+              />
+           </div>
+
            <div className="flex items-center gap-3">
-             <div className="text-xs font-bold text-slate-400 bg-white px-3 py-1 rounded-lg border border-slate-200">
+             <div className="text-xs font-bold text-slate-400 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm whitespace-nowrap">
                {filteredData.length} Baris
              </div>
              <button
                onClick={handleAddNew}
-               className="flex items-center gap-1 bg-secondary-500 hover:bg-secondary-600 text-white px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest shadow-md transition-colors"
+               className="flex items-center gap-1 bg-secondary-500 hover:bg-secondary-600 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest shadow-md transition-colors whitespace-nowrap"
              >
                <Plus className="w-4 h-4" /> Tambah
              </button>
@@ -327,6 +408,47 @@ export const ImputationAdminDashboard: React.FC = () => {
         {activeTab === 'WAJIB_IMPUTASI' && renderWajibImpTable()}
         {activeTab === 'WAJIB_TRANSFER' && renderWajibTransTable()}
       </div>
+
+      {popupItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div>
+                <h3 className="text-xl font-black text-slate-800">Edit Data Imputasi</h3>
+                <p className="text-slate-500 text-sm">Sesuaikan detail baris secara mendalam.</p>
+              </div>
+              <button onClick={closePopup} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-8 overflow-y-auto">
+              {renderPopupFormFields()}
+            </div>
+            
+            <div className="px-8 py-6 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
+              <button 
+                onClick={closePopup}
+                className="px-6 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-6 py-2.5 rounded-xl font-bold bg-primary-600 hover:bg-primary-700 text-white shadow-lg shadow-primary-200 transition-colors flex items-center gap-2"
+              >
+                {isSaving ? 'Menyimpan...' : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    Simpan Perubahan
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -17,13 +17,13 @@ router.get('/configs', async (req, res) => {
 // POST: Add new config
 router.post('/configs', async (req, res) => {
   try {
-    const { kegiatan, subKegiatan, sheetUrl, sheetName, startDate, endDate, isActive } = req.body;
+    const { kegiatan, subKegiatan, sheetUrl, sheetName, startDate, endDate, isActive, icon, color } = req.body;
     const id = crypto.randomUUID();
     
     await pool.query(
-      `INSERT INTO monitoring_configs (id, kegiatan, subKegiatan, sheetUrl, sheetName, startDate, endDate, isActive) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, kegiatan, subKegiatan || '', sheetUrl, sheetName, startDate, endDate, isActive !== false]
+      `INSERT INTO monitoring_configs (id, kegiatan, subKegiatan, sheetUrl, sheetName, startDate, endDate, isActive, icon, color) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, kegiatan, subKegiatan || '', sheetUrl, sheetName, startDate, endDate, isActive !== false, icon || 'pertanian', color || 'emerald']
     );
     
     res.status(201).json({ id, message: 'Config created successfully' });
@@ -37,13 +37,13 @@ router.post('/configs', async (req, res) => {
 router.put('/configs/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { kegiatan, subKegiatan, sheetUrl, sheetName, startDate, endDate, isActive } = req.body;
+    const { kegiatan, subKegiatan, sheetUrl, sheetName, startDate, endDate, isActive, icon, color } = req.body;
     
     await pool.query(
       `UPDATE monitoring_configs 
-       SET kegiatan=?, subKegiatan=?, sheetUrl=?, sheetName=?, startDate=?, endDate=?, isActive=? 
+       SET kegiatan=?, subKegiatan=?, sheetUrl=?, sheetName=?, startDate=?, endDate=?, isActive=?, icon=?, color=? 
        WHERE id=?`,
-      [kegiatan, subKegiatan || '', sheetUrl, sheetName, startDate, endDate, isActive !== false, id]
+      [kegiatan, subKegiatan || '', sheetUrl, sheetName, startDate, endDate, isActive !== false, icon || 'pertanian', color || 'emerald', id]
     );
     
     res.json({ message: 'Config updated successfully' });

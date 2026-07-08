@@ -55,7 +55,7 @@ export default defineConfig(({mode}) => {
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
       proxy: {
         '/api': {
-          target: 'http://localhost:5000',
+          target: 'https://gardadata.dvlpid.my.id/',
           changeOrigin: true,
           secure: false,
         }

@@ -61,90 +61,31 @@ export const AdminStrategicData: React.FC<AdminStrategicDataProps> = ({ onBack }
     setData(newData);
   };
 
-  if (!data) return null;
-
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="p-3 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 hover:text-slate-700 transition-colors shadow-sm"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Update Data Strategis</h1>
-            <p className="text-slate-500 font-medium">Pengelolaan Dashboard Pengunjung</p>
-          </div>
-        </div>
-        
-        <button 
-          onClick={handleSave}
-          className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-colors shadow-lg shadow-primary-200"
+      <header className="flex items-center gap-4">
+        <button
+          onClick={onBack}
+          className="p-3 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 hover:text-slate-700 transition-colors shadow-sm"
         >
-          <Save className="w-5 h-5" />
-          <span>Simpan Perubahan</span>
+          <ChevronLeft className="w-6 h-6" />
         </button>
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Update Data Strategis</h1>
+          <p className="text-slate-500 font-medium">Pengelolaan Dashboard Pengunjung</p>
+        </div>
       </header>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden"
+        className="bg-white rounded-3xl border border-slate-200 shadow-xl p-16 text-center"
       >
-        <div className="flex border-b border-slate-100 bg-slate-50">
-          {[
-            { id: 'ekonomi', label: 'Ekonomi & Keuangan' },
-            { id: 'sosial', label: 'Sosial & Penduduk' },
-            { id: 'naker', label: 'Ketenagakerjaan' },
-            { id: 'produksi', label: 'Produksi & Riil' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-4 font-bold text-sm transition-all ${
-                activeTab === tab.id 
-                ? 'bg-white text-primary-600 border-t-2 border-primary-600' 
-                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 border-t-2 border-transparent'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="p-6 md:p-8 overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 rounded-xl">
-                {Object.keys(data[activeTab][0] || {}).map(key => (
-                  <th key={key} className="p-4 font-bold text-slate-600 capitalize">
-                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data[activeTab].map((row: any, rowIndex: number) => (
-                <tr key={rowIndex} className="border-b border-slate-50">
-                  {Object.keys(row).map((key) => (
-                    <td key={key} className="p-2">
-                      <input
-                        type="text"
-                        value={row[key]}
-                        onChange={(e) => handleCellChange(activeTab, rowIndex, key, e.target.value)}
-                        className={`w-full p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${key === 'year' ? 'bg-slate-50 font-bold' : ''}`}
-                        readOnly={key === 'year'}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-4 text-sm text-slate-400 italic">* Anda hanya dapat memperbarui nilai data untuk 5 tahun terakhir. Format angka/teks bebas.</p>
-        </div>
+        <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+        <h2 className="text-2xl font-black text-slate-800 mb-2">Fitur Masih Dalam Pengembangan</h2>
+        <p className="text-slate-500 font-medium max-w-lg mx-auto">
+          Mohon maaf, fitur pengelolaan dan penayangan Data Strategis BPS sedang dalam tahap penyempurnaan. Silakan cek kembali di pembaruan sistem berikutnya.
+        </p>
       </motion.div>
     </div>
   );

@@ -25,7 +25,13 @@ import { db } from './lib/firebase';
 
 function AppContent() {
   const { user } = useAuth();
-  const [currentPage, setCurrentPage] = useState<string>('landing');
+  const [currentPage, setCurrentPage] = useState<string>(() => {
+    return sessionStorage.getItem('garda_current_page') || 'landing';
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem('garda_current_page', currentPage);
+  }, [currentPage]);
 
   useEffect(() => {
     if (!user) return;

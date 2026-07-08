@@ -56,9 +56,19 @@ async function initDB() {
         startDate DATE NOT NULL,
         endDate DATE NOT NULL,
         isActive BOOLEAN DEFAULT true,
+        icon VARCHAR(50) DEFAULT 'pertanian',
+        color VARCHAR(50) DEFAULT 'emerald',
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Auto-migrate to add icon and color if missing
+    try {
+      await connection.query(`ALTER TABLE monitoring_configs ADD COLUMN icon VARCHAR(50) DEFAULT 'pertanian', ADD COLUMN color VARCHAR(50) DEFAULT 'emerald'`);
+      console.log('✅ Added icon and color columns to monitoring_configs');
+    } catch (e) {
+      // Columns probably already exist, ignore
+    }
 
     // Tabel Monitoring Snapshots
     await connection.query(`
@@ -75,6 +85,24 @@ async function initDB() {
     `);
 
     console.log('✅ Database tables verified/created successfully.');
+    
+    // Tabel Monitoring Log Harian (Per PPL)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS monitoring_log_harian (
+        id VARCHAR(255) PRIMARY KEY,
+        configId VARCHAR(255) NOT NULL,
+        tanggalUpdate DATE NOT NULL,
+        pml VARCHAR(255),
+        ppl VARCHAR(255),
+        submit INT DEFAULT 0,
+        draft INT DEFAULT 0,
+        total INT DEFAULT 0,
+        statusSiklus VARCHAR(100),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_config_tanggal (configId, tanggalUpdate)
+      )
+    `);
+    
     connection.release();
   } catch (error) {
     console.error('❌ Database Initialization Failed:', error);

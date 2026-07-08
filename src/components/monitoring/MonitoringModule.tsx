@@ -11,12 +11,28 @@ interface MonitoringModuleProps {
 
 export const MonitoringModule: React.FC<MonitoringModuleProps> = ({ onBack }) => {
   const { user } = useAuth();
-  const [selectedConfig, setSelectedConfig] = useState<MonitoringConfig | null>(null);
+  const [selectedConfig, setSelectedConfig] = useState<MonitoringConfig | null>(() => {
+    const saved = sessionStorage.getItem('garda_monitoring_selected_config');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  React.useEffect(() => {
+    if (selectedConfig) {
+      sessionStorage.setItem('garda_monitoring_selected_config', JSON.stringify(selectedConfig));
+    } else {
+      sessionStorage.removeItem('garda_monitoring_selected_config');
+    }
+  }, [selectedConfig]);
   
   // By default, if the user is an admin, they might still want to see the Petugas view first,
-  // or maybe Admin view first. The user requested: "jadikan 1 tombol... tampilan yang muncul beda sesuai role"
-  // So if admin, default to Admin Mode.
-  const [isAdminMode, setIsAdminMode] = useState(user?.role === 'admin');
+  const [isAdminMode, setIsAdminMode] = useState(() => {
+    const saved = sessionStorage.getItem('garda_monitoring_is_admin_mode');
+    return saved !== null ? saved === 'true' : user?.role === 'admin';
+  });
+
+  React.useEffect(() => {
+    sessionStorage.setItem('garda_monitoring_is_admin_mode', String(isAdminMode));
+  }, [isAdminMode]);
 
   if (isAdminMode && user?.role === 'admin') {
     return (

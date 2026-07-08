@@ -547,7 +547,7 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
       }
       setMessage({ type: 'success', text: `Berhasil memproses ${count} data infrastruktur.` });
       if (selectedVillage) {
-        handleSearch(selectedVillage);
+        handleSearch(selectedVillage, selectedKecamatan);
       }
     } catch (err) {
       console.error(err);

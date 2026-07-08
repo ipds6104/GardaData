@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Plus, Save, Trash2, Download, AlertCircle, Edit, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { ChevronLeft, Plus, Save, Trash2, Download, AlertCircle, Edit, Link as LinkIcon, Loader2, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu } from 'lucide-react';
+
+export const ICON_MAP: Record<string, React.ElementType> = {
+  'ketenagakerjaan': Briefcase,
+  'sosial': Users,
+  'ekonomi': Landmark,
+  'pertanian': Wheat,
+  'produksi': Factory,
+  'pengolahan': Settings,
+  'harga': Tag,
+  'distribusi': Truck,
+  'analisis': BarChart2,
+  'pemerintahan': Landmark,
+  'pendidikan': GraduationCap,
+  'teknologi': Cpu
+};
+
+export const CARD_COLORS = [
+  'emerald', 'blue', 'amber', 'orange', 'rose', 'indigo'
+];
 
 export interface MonitoringConfig {
   id?: string;
@@ -11,6 +30,8 @@ export interface MonitoringConfig {
   startDate: string;
   endDate: string;
   isActive: boolean;
+  icon?: string;
+  color?: string;
   createdAt?: string;
 }
 
@@ -29,7 +50,9 @@ export const AdminMonitoring: React.FC<AdminMonitoringProps> = ({ onBack }) => {
     sheetName: '',
     startDate: '',
     endDate: '',
-    isActive: true
+    isActive: true,
+    icon: 'pertanian',
+    color: 'emerald'
   });
   
   const [noSubKegiatan, setNoSubKegiatan] = useState(false);
@@ -264,9 +287,46 @@ export const AdminMonitoring: React.FC<AdminMonitoringProps> = ({ onBack }) => {
                   />
                 </div>
               </div>
+              
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Warna Kartu</label>
+                  <div className="flex flex-wrap gap-3">
+                    {CARD_COLORS.map(color => (
+                      <button 
+                        key={color} 
+                        type="button"
+                        onClick={() => setCurrentConfig({...currentConfig, color})}
+                        className={`w-10 h-10 rounded-full border-4 transition-all ${currentConfig.color === color ? 'border-primary-500 scale-110 shadow-md' : 'border-transparent hover:scale-105'}`}
+                        style={{ backgroundColor: `var(--color-${color}-500, #94a3b8)` }}
+                        title={color}
+                      >
+                        <div className={`w-full h-full rounded-full bg-${color}-500`}></div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Ikon Kartu</label>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    {Object.entries(ICON_MAP).map(([iconName, Icon]) => (
+                      <button 
+                        key={iconName} 
+                        type="button" 
+                        onClick={() => setCurrentConfig({...currentConfig, icon: iconName})} 
+                        className={`p-2.5 rounded-xl border flex flex-col items-center gap-1.5 transition-colors ${currentConfig.icon === iconName ? 'bg-primary-50 border-primary-500 text-primary-600 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span className="text-[8px] font-bold uppercase truncate w-full text-center">{iconName}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
             
-            <div className="flex items-center gap-3 pt-4">
+            <div className="flex items-center gap-3 pt-6 border-t border-slate-100">
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
                   type="checkbox" 

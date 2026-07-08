@@ -1,11 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Database, Activity, Calendar } from 'lucide-react';
-import { MonitoringConfig } from './AdminMonitoring';
+import { MonitoringConfig, ICON_MAP } from './AdminMonitoring';
 
 interface MonitoringListProps {
   onNavigateToDashboard: (config: MonitoringConfig) => void;
 }
+
+const getThemeClasses = (color?: string) => {
+  const c = color || 'emerald';
+  return {
+    bg: `bg-${c}-50`,
+    border: `border-${c}-200`,
+    textTitle: `text-${c}-900`,
+    textMuted: `text-${c}-700`,
+    iconBg: 'bg-white',
+    iconText: `text-${c}-800`,
+    badgeText: `text-${c}-800`,
+    hover: `hover:shadow-${c}-100 hover:border-${c}-300`,
+    watermark: `text-${c}-900`
+  };
+};
 
 export const MonitoringList: React.FC<MonitoringListProps> = ({ onNavigateToDashboard }) => {
   const [configs, setConfigs] = useState<MonitoringConfig[]>([]);
@@ -66,29 +81,43 @@ export const MonitoringList: React.FC<MonitoringListProps> = ({ onNavigateToDash
               {kegiatan}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {items.map(item => (
-                <motion.button
-                  key={item.id}
-                  whileHover={{ y: -4, scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => onNavigateToDashboard(item)}
-                  className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 hover:shadow-xl hover:border-primary-100 transition-all text-left flex flex-col group h-full cursor-pointer"
-                >
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 bg-primary-50 rounded-xl text-primary-600">
-                      <Activity className="w-6 h-6" />
+              {items.map(item => {
+                const theme = getThemeClasses(item.color);
+                const Icon = item.icon && ICON_MAP[item.icon] ? ICON_MAP[item.icon] : Activity;
+                const startDateStr = new Date(item.startDate).toLocaleDateString('id-ID', { day: 'numeric' });
+                const endDateStr = new Date(item.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+                return (
+                  <motion.button
+                    key={item.id}
+                    whileHover={{ y: -4, scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => onNavigateToDashboard(item)}
+                    className={`${theme.bg} ${theme.border} border-2 rounded-[2rem] p-6 text-left flex flex-col group h-full cursor-pointer relative overflow-hidden transition-all shadow-sm ${theme.hover}`}
+                  >
+                    <div className="flex items-start justify-between mb-8 relative z-10">
+                      <div className={`p-4 ${theme.iconBg} rounded-2xl shadow-sm`}>
+                        <Icon className={`w-8 h-8 ${theme.iconText}`} strokeWidth={2.5} />
+                      </div>
+                      <div className={`px-3 py-1 bg-white rounded-full text-[10px] font-black tracking-widest ${theme.badgeText} shadow-sm`}>
+                        AKTIF
+                      </div>
                     </div>
-                    <h3 className="font-bold text-slate-800 text-lg group-hover:text-primary-600 transition-colors leading-tight">
-                      {item.subKegiatan || item.kegiatan}
-                    </h3>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-400 mt-auto pt-4 border-t border-slate-50">
-                    <Calendar className="w-4 h-4" />
-                    <span>{new Date(item.startDate).toLocaleDateString('id-ID')} - {new Date(item.endDate).toLocaleDateString('id-ID')}</span>
-                  </div>
-                </motion.button>
-              ))}
+                    
+                    <div className="relative z-10">
+                      <h3 className={`font-black ${theme.textTitle} text-xl leading-tight mb-3`}>
+                        {item.subKegiatan || item.kegiatan}
+                      </h3>
+                      <div className={`flex items-center gap-2 text-sm font-bold ${theme.textMuted} uppercase tracking-wider`}>
+                        <Calendar className="w-4 h-4" />
+                        <span>{startDateStr}-{endDateStr}</span>
+                      </div>
+                    </div>
+
+                    <Icon className={`absolute -right-4 -bottom-4 w-40 h-40 opacity-[0.04] ${theme.watermark} -rotate-12`} />
+                  </motion.button>
+                );
+              })}
             </div>
           </div>
         ))
