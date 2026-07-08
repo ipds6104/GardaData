@@ -15,15 +15,35 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https://*.tile.openstreetmap.org", "https://maps.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      imgSrc: [
+        "'self'", 
+        "data:", 
+        "https://*.tile.openstreetmap.org", 
+        "https://maps.googleapis.com",
+        "https://mt1.google.com",
+        "https://server.arcgisonline.com",
+        "https://cdnjs.cloudflare.com"
+      ],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      connectSrc: ["'self'", "https://api.garda-data.com"]
+      connectSrc: [
+        "'self'", 
+        "https://api.garda-data.com", 
+        "https://gardadata.dvlpid.my.id",
+        "https://docs.google.com", 
+        "https://firestore.googleapis.com", 
+        "https://*.firebaseio.com", 
+        "wss://*.firebaseio.com", 
+        "https://identitytoolkit.googleapis.com", 
+        "https://securetoken.googleapis.com"
+      ]
     }
   },
 }));
 
 // 2. CORS: Hanya mengizinkan request dari frontend kita
-const allowedOrigins = ['https://garda-data.com', 'http://localhost:5173', 'http://localhost:3000'];
+const allowedOrigins = ['https://garda-data.com', 'https://gardadata.dvlpid.my.id', 'http://gardadata.dvlpid.my.id', 'http://localhost:5173', 'http://localhost:3000'];
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
