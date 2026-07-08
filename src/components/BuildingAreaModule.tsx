@@ -238,7 +238,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
 
       <div className="flex flex-col lg:flex-row gap-6 pb-8">
         {/* Kolom Peta & Kontrol */}
-        <div className="w-full lg:flex-grow flex flex-col gap-4 shrink-0">
+        <div className="w-full lg:flex-1 flex flex-col gap-4 min-w-0">
           
           {/* Panel Kontrol di Luar Kotak Peta */}
           <div className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-xl flex flex-col md:flex-row gap-4 items-center justify-between">
