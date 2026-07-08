@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { ChevronLeft, Loader2, ArrowUpCircle, CheckCircle2, AlertCircle, Clock, Target, Star, BarChart3, TrendingUp, Users, MapPin } from 'lucide-react';
+import { ChevronLeft, Loader2, ArrowUpCircle, CheckCircle2, AlertCircle, Clock, Target, Star, BarChart3, TrendingUp, Users, MapPin, Search, Filter } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MonitoringConfig } from './AdminMonitoring';
 import { parseMonitoringSheet, MonitoringRow } from '../../services/monitoringParser';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
-  LineChart, Line, Legend 
+  LineChart, Line, Legend, AreaChart, Area
 } from 'recharts';
 
 interface MonitoringDashboardProps {
@@ -19,8 +19,10 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   const [loading, setLoading] = useState(true);
 
   // Filters
-  const [kecamatanFilter, setKecamatanFilter] = useState<string>('Semua Kecamatan');
-  const [desaFilter, setDesaFilter] = useState<string>('Semua Desa');
+  const [kecamatanFilter, setKecamatanFilter] = useState<string>('ALL');
+  const [desaFilter, setDesaFilter] = useState<string>('ALL');
+  const [slsFilter, setSlsFilter] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -39,7 +41,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
           if (active) setSnapshots(snaps);
         }
       } catch (err) {
-        console.error('Error fetching dashboard data:', err);
+        console.error("Error fetching dashboard data:", err);
       }
       if (active) setLoading(false);
     };
@@ -49,17 +51,28 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
 
   // Derived Data & KPIs
   const filteredData = useMemo(() => {
-    return data.filter(d => 
-      (kecamatanFilter === 'Semua Kecamatan' || d.kecamatan === kecamatanFilter) &&
-      (desaFilter === 'Semua Desa' || d.desa === desaFilter)
-    );
-  }, [data, kecamatanFilter, desaFilter]);
+    return data.filter(d => {
+      const matchKec = kecamatanFilter === 'ALL' || d.kecamatan === kecamatanFilter;
+      const matchDesa = desaFilter === 'ALL' || d.desa === desaFilter;
+      const matchSls = slsFilter === 'ALL' || d.sls === slsFilter;
+      const matchSearch = !searchQuery || 
+                          d.namaPpl.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          d.namaPml.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchKec && matchDesa && matchSls && matchSearch;
+    });
+  }, [data, kecamatanFilter, desaFilter, slsFilter, searchQuery]);
 
-  const uniqueKecamatan = useMemo(() => ['Semua Kecamatan', ...new Set(data.map(d => d.kecamatan).filter(Boolean))], [data]);
+  const uniqueKecamatan = useMemo(() => ['ALL', ...new Set(data.map(d => d.kecamatan).filter(Boolean))], [data]);
   const uniqueDesa = useMemo(() => {
-    if (kecamatanFilter === 'Semua Kecamatan') return ['Semua Desa', ...new Set(data.map(d => d.desa).filter(Boolean))];
-    return ['Semua Desa', ...new Set(data.filter(d => d.kecamatan === kecamatanFilter).map(d => d.desa).filter(Boolean))];
+    let filtered = data;
+    if (kecamatanFilter !== 'ALL') filtered = filtered.filter(d => d.kecamatan === kecamatanFilter);
+    return ['ALL', ...new Set(filtered.map(d => d.desa).filter(Boolean))];
   }, [data, kecamatanFilter]);
+  const uniqueSls = useMemo(() => {
+    let filtered = data;
+    if (desaFilter !== 'ALL') filtered = filtered.filter(d => d.desa === desaFilter);
+    return ['ALL', ...new Set(filtered.map(d => d.sls).filter(Boolean))];
+  }, [data, desaFilter]);
 
   const totalTarget = filteredData.reduce((acc, curr) => acc + curr.target, 0);
   const totalSubmit = filteredData.reduce((acc, curr) => acc + curr.totalSubmit, 0);
@@ -73,12 +86,12 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
     return diff > 0 ? diff : 0;
   }, [config.endDate]);
 
-  // Top PPL
+  // PPL Leaderboard
   const pplStats = useMemo(() => {
-    const stats: Record<string, { submit: number, draft: number, target: number }> = {};
+    const stats: Record<string, { submit: number, draft: number, target: number, pml: string }> = {};
     filteredData.forEach(d => {
       if (!d.namaPpl) return;
-      if (!stats[d.namaPpl]) stats[d.namaPpl] = { submit: 0, draft: 0, target: 0 };
+      if (!stats[d.namaPpl]) stats[d.namaPpl] = { submit: 0, draft: 0, target: 0, pml: d.namaPml };
       stats[d.namaPpl].submit += d.totalSubmit;
       stats[d.namaPpl].draft += d.draft;
       stats[d.namaPpl].target += d.target;
@@ -86,274 +99,326 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
     return Object.entries(stats).map(([name, vals]) => ({ name, ...vals })).sort((a, b) => b.submit - a.submit);
   }, [filteredData]);
 
-  // Line Chart Data (Hari Ini vs Kemarin vs 7 hari)
+  // Line Chart Data
   const lineChartData = useMemo(() => {
     if (snapshots.length === 0) return [];
-    
-    // Convert cumulative snapshots to daily diffs
-    const chart = [];
-    let prevSubmit = 0;
-    
-    // Sort by date
     const sorted = [...snapshots].sort((a, b) => new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime());
     
-    for (const snap of sorted) {
-      const dateStr = new Date(snap.snapshotDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-      chart.push({
-        name: dateStr,
-        Submit: Math.max(0, snap.totalSubmit - prevSubmit),
-      });
-      prevSubmit = snap.totalSubmit;
-    }
+    let prevSubmit = 0;
+    return sorted.map((snap) => {
+      const currentSubmit = snap.totalSubmit || 0;
+      const dailySubmit = Math.max(0, currentSubmit - prevSubmit);
+      prevSubmit = currentSubmit;
+      return {
+        date: snap.snapshotDate,
+        "Penambahan Harian": dailySubmit,
+        "Akumulasi": currentSubmit
+      };
+    });
+  }, [snapshots]);
+
+  // Geographical Bar Chart
+  const geoChartData = useMemo(() => {
+    const stats: Record<string, { name: string, submit: number, target: number }> = {};
+    const grouping = kecamatanFilter === 'ALL' ? 'kecamatan' : (desaFilter === 'ALL' ? 'desa' : 'sls');
     
-    // Add today's live data
-    const todayStr = 'Hari Ini';
-    chart.push({
-      name: todayStr,
-      Submit: Math.max(0, totalSubmit - prevSubmit)
+    filteredData.forEach(d => {
+      const key = d[grouping as keyof MonitoringRow] as string;
+      if (!key) return;
+      if (!stats[key]) stats[key] = { name: key, submit: 0, target: 0 };
+      stats[key].submit += d.totalSubmit;
+      stats[key].target += d.target;
     });
-
-    return chart.slice(-14); // Last 14 entries
-  }, [snapshots, totalSubmit]);
-
-  // Bar Chart Data (Kecamatan Progress)
-  const barChartData = useMemo(() => {
-    const stats: Record<string, { submit: number, target: number }> = {};
-    data.forEach(d => {
-      if (!d.kecamatan) return;
-      if (!stats[d.kecamatan]) stats[d.kecamatan] = { submit: 0, target: 0 };
-      stats[d.kecamatan].submit += d.totalSubmit;
-      stats[d.kecamatan].target += d.target;
-    });
-    return Object.entries(stats).map(([name, vals]) => ({
-      name, 
-      Submit: vals.submit,
-      Sisa: Math.max(0, vals.target - vals.submit)
-    })).sort((a, b) => (b.Submit + b.Sisa) - (a.Submit + a.Sisa));
-  }, [data]);
-
-  const top3PPL = pplStats.slice(0, 3);
+    return Object.values(stats).sort((a, b) => b.submit - a.submit);
+  }, [filteredData, kecamatanFilter, desaFilter]);
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <Loader2 className="w-10 h-10 text-primary-500 animate-spin" />
-        <p className="text-slate-500 font-bold animate-pulse">Memproses Jutaan Sel Data Google Sheet...</p>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-slate-50/50 rounded-3xl">
+        <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mb-4" />
+        <p className="text-slate-500 font-medium animate-pulse">Menarik data langsung dari Google Sheets...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 bg-white hover:bg-slate-100 rounded-full shadow-sm transition-colors">
-            <ChevronLeft className="w-6 h-6 text-slate-700" />
+          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <ChevronLeft className="w-6 h-6 text-slate-600" />
           </button>
           <div>
-            <h1 className="text-2xl font-black text-slate-800">{config.kegiatan}</h1>
-            <p className="text-sm text-slate-500 font-medium">
-              {config.subKegiatan ? `${config.subKegiatan} • ` : ''} 
-              {new Date(config.startDate).toLocaleDateString('id-ID')} s.d {new Date(config.endDate).toLocaleDateString('id-ID')}
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">{config.kegiatan}</h1>
+            <p className="text-sm text-slate-500 font-medium">{config.subKegiatan || "Monitoring Interaktif"}</p>
+          </div>
+        </div>
+        <div className="flex flex-col items-end">
+          <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-sm font-bold">Live Terhubung</span>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">Data dari: {config.sheetName || "Sheet 1"}</p>
+        </div>
+      </div>
+
+      {/* KPI Cards like Prasasti */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="absolute -right-6 -top-6 text-emerald-50">
+            <CheckCircle2 className="w-32 h-32" />
+          </div>
+          <div className="relative">
+            <p className="text-sm font-bold text-slate-500 mb-1">Total Submit</p>
+            <div className="flex items-end gap-2">
+              <h3 className="text-4xl font-black text-slate-800">{totalSubmit.toLocaleString()}</h3>
+            </div>
+            <p className="text-xs text-emerald-600 font-semibold mt-2 flex items-center gap-1">
+              <ArrowUpCircle className="w-3 h-3" /> Tersimpan di sistem
             </p>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-3">
-          <select 
-            value={kecamatanFilter}
-            onChange={(e) => {
-              setKecamatanFilter(e.target.value);
-              setDesaFilter('Semua Desa');
-            }}
-            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 shadow-sm outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            {uniqueKecamatan.map(k => <option key={k} value={k}>{k}</option>)}
-          </select>
-          <select 
-            value={desaFilter}
-            onChange={(e) => setDesaFilter(e.target.value)}
-            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 shadow-sm outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            {uniqueDesa.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
-        </div>
-      </div>
-
-      {/* KPI Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-2">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Submit</p>
-            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="absolute -right-6 -top-6 text-amber-50">
+            <AlertCircle className="w-32 h-32" />
           </div>
-          <h2 className="text-3xl font-black text-slate-800">{totalSubmit.toLocaleString('id-ID')}</h2>
-        </div>
-        
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-2">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Target</p>
-            <Target className="w-5 h-5 text-blue-500" />
-          </div>
-          <h2 className="text-3xl font-black text-slate-800">{totalTarget.toLocaleString('id-ID')}</h2>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-2">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Akumulasi %</p>
-            <TrendingUp className="w-5 h-5 text-primary-500" />
-          </div>
-          <h2 className="text-3xl font-black text-primary-600">{progressPct}%</h2>
-          <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
-            <div className="bg-primary-500 h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, Number(progressPct))}%` }}></div>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-2">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Draft</p>
-            <AlertCircle className="w-5 h-5 text-amber-500" />
-          </div>
-          <h2 className="text-3xl font-black text-amber-600">{totalDraft.toLocaleString('id-ID')}</h2>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div className="flex justify-between items-start mb-2">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sisa Waktu</p>
-            <Clock className="w-5 h-5 text-rose-500" />
-          </div>
-          <div className="flex items-end gap-1">
-            <h2 className="text-3xl font-black text-rose-600">{sisaHariKerja}</h2>
-            <span className="text-sm font-bold text-rose-400 mb-1">Hari</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Leaderboard & Apresiasi */}
-      <div className="bg-gradient-to-r from-primary-600 to-amber-500 rounded-3xl p-6 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 blur-3xl rounded-full"></div>
-        <div className="flex items-center gap-4 z-10">
-          <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shrink-0">
-            <Star className="w-8 h-8 text-yellow-300 fill-yellow-300" />
-          </div>
-          <div>
-            <h3 className="text-2xl font-black tracking-tight">Top 3 PPL Teraktif</h3>
-            <p className="text-primary-100 font-medium">Berdasarkan total akumulasi submit tertinggi.</p>
-          </div>
-        </div>
-        
-        <div className="flex gap-4 z-10 w-full md:w-auto overflow-x-auto no-scrollbar pb-2 md:pb-0">
-          {top3PPL.map((ppl, idx) => (
-            <div key={idx} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex flex-col min-w-[140px]">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-bold text-primary-200 uppercase tracking-wider">Peringkat {idx + 1}</span>
-                {idx === 0 && <span className="text-lg">🏆</span>}
-              </div>
-              <p className="font-bold text-white truncate max-w-[120px]" title={ppl.name}>{ppl.name}</p>
-              <p className="text-2xl font-black text-white mt-auto">{ppl.submit.toLocaleString('id-ID')}</p>
+          <div className="relative">
+            <p className="text-sm font-bold text-slate-500 mb-1">Total Draft</p>
+            <div className="flex items-end gap-2">
+              <h3 className="text-4xl font-black text-slate-800">{totalDraft.toLocaleString()}</h3>
             </div>
-          ))}
-        </div>
+            <p className="text-xs text-amber-600 font-semibold mt-2 flex items-center gap-1">
+              <Clock className="w-3 h-3" /> Belum di-submit
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 relative overflow-hidden bg-gradient-to-br from-indigo-50 to-white">
+          <div className="absolute -right-6 -top-6 text-indigo-100/50">
+            <Target className="w-32 h-32" />
+          </div>
+          <div className="relative">
+            <p className="text-sm font-bold text-indigo-600 mb-1">Akumulasi Progres</p>
+            <div className="flex items-end gap-2">
+              <h3 className="text-4xl font-black text-indigo-900">{progressPct}%</h3>
+            </div>
+            <div className="w-full bg-indigo-100 h-1.5 rounded-full mt-3 overflow-hidden">
+              <div className="bg-indigo-600 h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, Number(progressPct))}%` }} />
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-slate-800 p-6 rounded-3xl shadow-sm relative overflow-hidden text-white">
+          <div className="absolute -right-6 -top-6 text-slate-700">
+            <Clock className="w-32 h-32" />
+          </div>
+          <div className="relative">
+            <p className="text-sm font-bold text-slate-400 mb-1">Sisa Hari Kerja</p>
+            <div className="flex items-end gap-2">
+              <h3 className="text-4xl font-black text-white">{sisaHariKerja}</h3>
+              <span className="text-slate-400 font-medium mb-1">Hari</span>
+            </div>
+            <p className="text-xs text-slate-300 font-medium mt-2">
+              Tenggat: {new Date(config.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric'})}
+            </p>
+          </div>
+        </motion.div>
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Main Charts Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Line Chart */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary-500" />
-              Tren Penambahan Submit Harian
-            </h3>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-indigo-500" />
+                Tren Progres Harian
+              </h2>
+              <p className="text-xs text-slate-500">Berdasarkan data snapshot dari server</p>
+            </div>
           </div>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={lineChartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
-                <RechartsTooltip 
-                  contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  itemStyle={{ fontWeight: 'bold' }}
-                />
-                <Line type="monotone" dataKey="Submit" stroke="#F6A672" strokeWidth={4} dot={{ r: 6, fill: '#F6A672', strokeWidth: 0 }} activeDot={{ r: 8 }} />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="h-[300px]">
+            {lineChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={lineChartData}>
+                  <defs>
+                    <linearGradient id="colorSubmit" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <RechartsTooltip 
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Legend />
+                  <Area type="monotone" dataKey="Akumulasi" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSubmit)" />
+                  <Line type="monotone" dataKey="Penambahan Harian" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                <BarChart3 className="w-12 h-12 mb-2 opacity-20" />
+                <p className="text-sm">Belum ada data snapshot harian</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Bar Chart */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-emerald-500" />
-              Progres Geografis (Akumulasi)
-            </h3>
-          </div>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barChartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
-                <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} width={100} />
-                <RechartsTooltip 
-                  contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  itemStyle={{ fontWeight: 'bold' }}
-                />
-                <Legend iconType="circle" />
-                <Bar dataKey="Submit" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="Sisa" stackId="a" fill="#f1f5f9" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+        {/* Bintang Petugas / Leaderboard */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6">
+            <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+            Bintang Petugas
+          </h2>
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+            {pplStats.slice(0, 5).map((ppl, idx) => (
+              <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-amber-200 hover:bg-amber-50/50 transition-colors">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-200 text-slate-600' : idx === 2 ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-400'}`}>
+                  {idx + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-slate-800 truncate">{ppl.name}</p>
+                  <p className="text-xs text-slate-500 truncate">PML: {ppl.pml}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-black text-emerald-600">{ppl.submit}</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Submit</p>
+                </div>
+              </div>
+            ))}
+            {pplStats.length === 0 && (
+              <p className="text-sm text-slate-500 text-center py-10">Belum ada data progres PPL.</p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Detail Table */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-100">
-          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-500" />
-            Rekapitulasi Akumulasi Per Petugas (PPL)
-          </h3>
+      {/* Geographic & Filter Area */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-rose-500" />
+            Progres Menurut Geografis
+          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
+              <Filter className="w-4 h-4 text-slate-400" />
+              <select 
+                value={kecamatanFilter}
+                onChange={e => { setKecamatanFilter(e.target.value); setDesaFilter('ALL'); setSlsFilter('ALL'); }}
+                className="bg-transparent text-sm font-medium text-slate-700 outline-none"
+              >
+                {uniqueKecamatan.map(k => <option key={k} value={k}>{k === 'ALL' ? 'Semua Kecamatan' : k}</option>)}
+              </select>
+            </div>
+            
+            <select 
+              value={desaFilter}
+              onChange={e => { setDesaFilter(e.target.value); setSlsFilter('ALL'); }}
+              disabled={kecamatanFilter === 'ALL'}
+              className="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 outline-none disabled:opacity-50"
+            >
+              {uniqueDesa.map(d => <option key={d} value={d}>{d === 'ALL' ? 'Semua Desa' : d}</option>)}
+            </select>
+
+            <select 
+              value={slsFilter}
+              onChange={e => setSlsFilter(e.target.value)}
+              disabled={desaFilter === 'ALL'}
+              className="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 outline-none disabled:opacity-50"
+            >
+              {uniqueSls.map(s => <option key={s} value={s}>{s === 'ALL' ? 'Semua SLS/Wilayah Kerja' : s}</option>)}
+            </select>
+          </div>
         </div>
-        <div className="overflow-x-auto max-h-[500px]">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0 z-10 shadow-sm">
+
+        <div className="h-[350px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={geoChartData} margin={{ top: 10, right: 10, left: 0, bottom: 60 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} angle={-45} textAnchor="end" height={60} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+              <RechartsTooltip 
+                cursor={{ fill: '#f8fafc' }}
+                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+              />
+              <Legend verticalAlign="top" height={36} />
+              <Bar dataKey="target" name="Target" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={32} />
+              <Bar dataKey="submit" name="Submit" fill="#10b981" radius={[4, 4, 0, 0]} barSize={32} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Table PPL */}
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <Users className="w-5 h-5 text-blue-500" />
+            Akumulasi Progres Petugas
+          </h2>
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text"
+              placeholder="Cari nama PPL atau PML..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-full sm:w-64"
+            />
+          </div>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-slate-600">
+            <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500">
               <tr>
-                <th className="px-6 py-4">Peringkat</th>
                 <th className="px-6 py-4">Nama PPL</th>
-                <th className="px-6 py-4 text-right">Target</th>
-                <th className="px-6 py-4 text-right">Submit (Valid)</th>
-                <th className="px-6 py-4 text-right">Draft</th>
-                <th className="px-6 py-4 text-right">% Capaian</th>
+                <th className="px-6 py-4">Nama PML</th>
+                <th className="px-6 py-4 text-center">Target</th>
+                <th className="px-6 py-4 text-center">Submit</th>
+                <th className="px-6 py-4 text-center">Draft</th>
+                <th className="px-6 py-4 text-right">Progres</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
-              {pplStats.map((ppl, idx) => {
-                const pct = ppl.target > 0 ? ((ppl.submit / ppl.target) * 100).toFixed(1) : '0';
+            <tbody className="divide-y divide-slate-100">
+              {pplStats.filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.pml.toLowerCase().includes(searchQuery.toLowerCase())).map((ppl, idx) => {
+                const pct = ppl.target > 0 ? ((ppl.submit / ppl.target) * 100).toFixed(1) : 0;
                 return (
                   <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-400">#{idx + 1}</td>
                     <td className="px-6 py-4 font-bold text-slate-800">{ppl.name}</td>
-                    <td className="px-6 py-4 text-right font-medium">{ppl.target}</td>
-                    <td className="px-6 py-4 text-right font-black text-emerald-600">{ppl.submit}</td>
-                    <td className="px-6 py-4 text-right font-medium text-amber-500">{ppl.draft}</td>
+                    <td className="px-6 py-4 text-slate-500">{ppl.pml}</td>
+                    <td className="px-6 py-4 text-center font-medium">{ppl.target}</td>
+                    <td className="px-6 py-4 text-center font-bold text-emerald-600">{ppl.submit}</td>
+                    <td className="px-6 py-4 text-center text-amber-600">{ppl.draft}</td>
                     <td className="px-6 py-4 text-right">
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${Number(pct) >= 100 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                        {pct}%
-                      </span>
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="font-bold text-slate-700">{pct}%</span>
+                        <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, Number(pct))}%` }} />
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 );
               })}
+              {pplStats.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                    Tidak ada data yang sesuai dengan filter.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
   );
-};
+}

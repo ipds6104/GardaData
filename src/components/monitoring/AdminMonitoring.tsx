@@ -112,7 +112,7 @@ export const AdminMonitoring: React.FC<AdminMonitoringProps> = ({ onBack }) => {
   };
 
   const downloadTemplate = () => {
-    const headers = ["kode wilayah", "nama PPL", "nama PML", "nama Kecamatan", "nama Desa", "submit", "draf", "approve", "reject", "open", "target"];
+    const headers = ["kode wilayah", "nama PPL", "nama PML", "nama Kecamatan", "nama Desa", "nama SLS/Wilayah Kerja", "submit", "draf", "approve", "reject", "open", "target"];
     // Menggunakan CSV dengan pemisah titik koma (;) agar otomatis terbaca dalam kolom oleh Excel versi Indonesia
     const csvContent = headers.join(";") + "\n";
     

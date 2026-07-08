@@ -4,6 +4,7 @@ export interface MonitoringRow {
   namaPml: string;
   kecamatan: string;
   desa: string;
+  sls: string;
   submit: number;
   draft: number;
   approve: number;
@@ -43,6 +44,7 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
     const iPml = headers.findIndex(h => h.includes('nama pml'));
     const iKec = headers.findIndex(h => h.includes('kecamatan'));
     const iDesa = headers.findIndex(h => h.includes('desa'));
+    const iSls = headers.findIndex(h => h.includes('sls') || h.includes('wilayah kerja'));
     const iSub = headers.findIndex(h => h === 'submit');
     const iDraf = headers.findIndex(h => h === 'draf' || h === 'draft');
     const iApp = headers.findIndex(h => h === 'approve' || h === 'approved');
@@ -68,6 +70,7 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
         namaPml: iPml !== -1 ? cols[iPml] : '',
         kecamatan: iKec !== -1 ? cols[iKec] : '',
         desa: iDesa !== -1 ? cols[iDesa] : '',
+        sls: iSls !== -1 ? cols[iSls] : '',
         submit,
         draft: iDraf !== -1 && cols[iDraf] ? parseInt(cols[iDraf]) || 0 : 0,
         approve,
