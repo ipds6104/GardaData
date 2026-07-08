@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, MonitorPlay, Ruler, Search, Moon, Bell } from 'lucide-react';
+import { LogOut, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/auth';
 
@@ -51,6 +51,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     {
       title: 'PENDATAAN LAPANGAN',
       items: [
+        { id: 'monitoring', label: 'Monitoring Dashboard', icon: Activity },
         { id: 'building-area', label: 'Pengukuran Luas Bangunan', icon: Ruler },
         { id: 'cerdas-form', label: 'Laporan Pendataan', icon: FileEdit },
         { id: 'kbli-kbji', label: 'KBLI 2025 & KBJI 2014', icon: BookOpen },

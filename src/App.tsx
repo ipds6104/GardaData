@@ -18,6 +18,7 @@ import { VisitorDashboard } from './components/VisitorDashboard';
 import { AdminStrategicData } from './components/AdminStrategicData';
 import { LMSModule } from './components/LMSModule';
 import { Login } from './components/Login';
+import { MonitoringModule } from './components/monitoring/MonitoringModule';
 import { syncImputationFromFirebase } from './services/imputationService';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from './lib/firebase';
@@ -94,6 +95,8 @@ function AppContent() {
           return <AdminStrategicData onBack={() => setCurrentPage('landing')} />;
         }
         return <LandingPage onNavigate={setCurrentPage} />;
+      case 'monitoring':
+        return <MonitoringModule onBack={() => setCurrentPage('landing')} />;
       default:
         // Jika pengunjung, paksa tampilan Visitor Dashboard
         if (user.role === 'pengunjung') {

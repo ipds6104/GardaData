@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight } from 'lucide-react';
+import { BookOpen, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
 interface FeatureCardProps {
@@ -109,6 +109,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             Pendataan Lapangan
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <FeatureCard
+              title="Monitoring Dashboard"
+              description="Pantau akumulasi progres lapangan, pencapaian target, dan performa petugas secara real-time."
+              icon={Activity}
+              iconColor="text-emerald-600"
+              bgColor="bg-emerald-50"
+              onClick={() => onNavigate('monitoring')}
+            />
             <FeatureCard
               title="Pengukuran Luas Bangunan"
               description="Kalkulator validasi luas atap bangunan berbasis citra satelit dan geospasial."

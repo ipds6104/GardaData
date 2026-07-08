@@ -45,6 +45,35 @@ async function initDB() {
       // Column probably already migrated or doesn't exist, ignore
     }
 
+    // Tabel Monitoring Configs
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS monitoring_configs (
+        id VARCHAR(255) PRIMARY KEY,
+        kegiatan VARCHAR(255) NOT NULL,
+        subKegiatan VARCHAR(255),
+        sheetUrl TEXT NOT NULL,
+        sheetName VARCHAR(255) NOT NULL,
+        startDate DATE NOT NULL,
+        endDate DATE NOT NULL,
+        isActive BOOLEAN DEFAULT true,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Tabel Monitoring Snapshots
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS monitoring_snapshots (
+        id VARCHAR(255) PRIMARY KEY,
+        configId VARCHAR(255) NOT NULL,
+        snapshotDate DATE NOT NULL,
+        totalSubmit INT NOT NULL,
+        totalDraft INT NOT NULL,
+        totalTarget INT NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_snapshot (configId, snapshotDate)
+      )
+    `);
+
     console.log('✅ Database tables verified/created successfully.');
     connection.release();
   } catch (error) {

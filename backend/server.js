@@ -36,12 +36,20 @@ app.use(express.json({ limit: '10mb' }));
 // ROUTES
 // ==========================================
 const measurementsRouter = require('./routes/measurements');
+const monitoringRouter = require('./routes/monitoring');
 app.use('/api/measurements', measurementsRouter);
+app.use('/api/monitoring', monitoringRouter);
 
 // Root route for API verification (optional, can be removed)
 app.get('/api/status', (req, res) => {
   res.json({ status: 'Garda Data API Server Terlindungi Berjalan!' });
 });
+
+// ==========================================
+// BACKGROUND TASKS
+// ==========================================
+require('./cron'); // Jalankan cron job untuk monitoring
+
 
 // ==========================================
 // SERVE FRONTEND (REACT SPA)
