@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { ChevronLeft, Loader2, ArrowUpCircle, CheckCircle2, AlertCircle, Clock, Target, Star, BarChart3, TrendingUp, Users, MapPin, Search, Filter } from 'lucide-react';
+import { ChevronLeft, Loader2, RefreshCw, Filter, TrendingUp, Users, MapPin, Search, CheckCircle2, AlertCircle, Target, Clock, Star, BarChart3 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MonitoringConfig } from './AdminMonitoring';
 import { parseMonitoringSheet, MonitoringRow } from '../../services/monitoringParser';
@@ -17,67 +17,95 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   const [data, setData] = useState<MonitoringRow[]>([]);
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastSync, setLastSync] = useState<string>('');
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // Filters
+  // Global Filters
+  const [pmlFilter, setPmlFilter] = useState<string>('ALL');
+  const [pplFilter, setPplFilter] = useState<string>('ALL');
+  const [tanggalFilter, setTanggalFilter] = useState<string>('ALL');
+
+  // Chart Filters
   const [kecamatanFilter, setKecamatanFilter] = useState<string>('ALL');
   const [desaFilter, setDesaFilter] = useState<string>('ALL');
   const [slsFilter, setSlsFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    let active = true;
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const parsed = await parseMonitoringSheet(config.sheetUrl, config.sheetName);
-        if (!active) return;
-        setData(parsed);
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true);
+    else setIsSyncing(true);
+    
+    try {
+      const parsed = await parseMonitoringSheet(config.sheetUrl, config.sheetName);
+      setData(parsed);
 
-        // Fetch snapshots
-        const baseUrl = (import.meta as any).env.VITE_API_URL || '';
-        const res = await fetch(`${baseUrl}/api/monitoring/snapshots/${config.id}`);
-        if (res.ok) {
-          const snaps = await res.json();
-          if (active) setSnapshots(snaps);
-        }
-      } catch (err) {
-        console.error("Error fetching dashboard data:", err);
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/monitoring/snapshots/${config.id}`);
+      if (res.ok) {
+        const snaps = await res.json();
+        setSnapshots(snaps);
       }
-      if (active) setLoading(false);
-    };
+      
+      const now = new Date();
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      setLastSync(`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`);
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+    }
+    
+    if (!silent) setLoading(false);
+    else setIsSyncing(false);
+  };
+
+  useEffect(() => {
     loadData();
-    return () => { active = false; };
   }, [config]);
 
-  // Derived Data & KPIs
-  const filteredData = useMemo(() => {
+  // Options for headers
+  const uniquePml = useMemo(() => ['ALL', ...new Set(data.map(d => d.namaPml).filter(Boolean))], [data]);
+  const uniquePpl = useMemo(() => {
+    let filtered = data;
+    if (pmlFilter !== 'ALL') filtered = filtered.filter(d => d.namaPml === pmlFilter);
+    return ['ALL', ...new Set(filtered.map(d => d.namaPpl).filter(Boolean))];
+  }, [data, pmlFilter]);
+
+  const uniqueTanggal = useMemo(() => {
+    return ['ALL', ...new Set(snapshots.map(s => s.snapshotDate))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  }, [snapshots]);
+
+  // Filtered Data based on header filters
+  const headerFilteredData = useMemo(() => {
     return data.filter(d => {
-      const matchKec = kecamatanFilter === 'ALL' || d.kecamatan === kecamatanFilter;
-      const matchDesa = desaFilter === 'ALL' || d.desa === desaFilter;
-      const matchSls = slsFilter === 'ALL' || d.sls === slsFilter;
-      const matchSearch = !searchQuery || 
-                          d.namaPpl.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          d.namaPml.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchKec && matchDesa && matchSls && matchSearch;
+      const matchPml = pmlFilter === 'ALL' || d.namaPml === pmlFilter;
+      const matchPpl = pplFilter === 'ALL' || d.namaPpl === pplFilter;
+      return matchPml && matchPpl;
     });
-  }, [data, kecamatanFilter, desaFilter, slsFilter, searchQuery]);
+  }, [data, pmlFilter, pplFilter]);
 
-  const uniqueKecamatan = useMemo(() => ['ALL', ...new Set(data.map(d => d.kecamatan).filter(Boolean))], [data]);
-  const uniqueDesa = useMemo(() => {
-    let filtered = data;
-    if (kecamatanFilter !== 'ALL') filtered = filtered.filter(d => d.kecamatan === kecamatanFilter);
-    return ['ALL', ...new Set(filtered.map(d => d.desa).filter(Boolean))];
-  }, [data, kecamatanFilter]);
-  const uniqueSls = useMemo(() => {
-    let filtered = data;
-    if (desaFilter !== 'ALL') filtered = filtered.filter(d => d.desa === desaFilter);
-    return ['ALL', ...new Set(filtered.map(d => d.sls).filter(Boolean))];
-  }, [data, desaFilter]);
+  // Calculate daily additions from snapshots
+  const dailyDiff = useMemo(() => {
+    if (snapshots.length === 0) return { submit: 0, draft: 0 };
+    const sorted = [...snapshots].sort((a, b) => new Date(b.snapshotDate).getTime() - new Date(a.snapshotDate).getTime());
+    // Latest snapshot vs previous snapshot
+    if (sorted.length >= 2) {
+      const latest = sorted[0];
+      const prev = sorted[1];
+      return {
+        submit: (latest.totalSubmit || 0) - (prev.totalSubmit || 0),
+        draft: (latest.totalDraft || 0) - (prev.totalDraft || 0)
+      };
+    } else if (sorted.length === 1) {
+      return { submit: sorted[0].totalSubmit || 0, draft: sorted[0].totalDraft || 0 };
+    }
+    return { submit: 0, draft: 0 };
+  }, [snapshots]);
 
-  const totalTarget = filteredData.reduce((acc, curr) => acc + curr.target, 0);
-  const totalSubmit = filteredData.reduce((acc, curr) => acc + curr.totalSubmit, 0);
-  const totalDraft = filteredData.reduce((acc, curr) => acc + curr.draft, 0);
+  const totalTarget = headerFilteredData.reduce((acc, curr) => acc + curr.target, 0);
+  const totalSubmit = headerFilteredData.reduce((acc, curr) => acc + curr.totalSubmit, 0);
+  const totalDraft = headerFilteredData.reduce((acc, curr) => acc + curr.draft, 0);
   const progressPct = totalTarget > 0 ? ((totalSubmit / totalTarget) * 100).toFixed(1) : '0';
+  const submitPct = totalTarget > 0 ? ((dailyDiff.submit / totalTarget) * 100).toFixed(2) : '0';
+  const draftPct = totalTarget > 0 ? ((totalDraft / totalTarget) * 100).toFixed(2) : '0';
 
   const sisaHariKerja = useMemo(() => {
     const end = new Date(config.endDate).getTime();
@@ -86,10 +114,10 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
     return diff > 0 ? diff : 0;
   }, [config.endDate]);
 
-  // PPL Leaderboard
+  // PPL Leaderboard & Most Active
   const pplStats = useMemo(() => {
     const stats: Record<string, { submit: number, draft: number, target: number, pml: string }> = {};
-    filteredData.forEach(d => {
+    headerFilteredData.forEach(d => {
       if (!d.namaPpl) return;
       if (!stats[d.namaPpl]) stats[d.namaPpl] = { submit: 0, draft: 0, target: 0, pml: d.namaPml };
       stats[d.namaPpl].submit += d.totalSubmit;
@@ -97,32 +125,67 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       stats[d.namaPpl].target += d.target;
     });
     return Object.entries(stats).map(([name, vals]) => ({ name, ...vals })).sort((a, b) => b.submit - a.submit);
-  }, [filteredData]);
+  }, [headerFilteredData]);
 
-  // Line Chart Data
-  const lineChartData = useMemo(() => {
-    if (snapshots.length === 0) return [];
-    const sorted = [...snapshots].sort((a, b) => new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime());
-    
-    let prevSubmit = 0;
-    return sorted.map((snap) => {
-      const currentSubmit = snap.totalSubmit || 0;
-      const dailySubmit = Math.max(0, currentSubmit - prevSubmit);
-      prevSubmit = currentSubmit;
-      return {
-        date: snap.snapshotDate,
-        "Penambahan Harian": dailySubmit,
-        "Akumulasi": currentSubmit
-      };
+  const mostActivePpl = pplStats.length > 0 ? pplStats[0] : null;
+
+  // SLS Status Calculation
+  const slsStats = useMemo(() => {
+    const stats: Record<string, { submit: number, draft: number, target: number }> = {};
+    headerFilteredData.forEach(d => {
+      const key = `${d.kecamatan}-${d.desa}-${d.sls}`;
+      if (!stats[key]) stats[key] = { submit: 0, draft: 0, target: 0 };
+      stats[key].submit += d.totalSubmit;
+      stats[key].draft += d.draft;
+      stats[key].target += d.target;
     });
-  }, [snapshots]);
+    
+    let total = 0;
+    let selesai = 0;
+    let proses = 0;
+    let belum = 0;
 
-  // Geographical Bar Chart
+    Object.values(stats).forEach(s => {
+      total++;
+      if (s.submit > 0 && s.submit >= s.target) selesai++;
+      else if (s.submit > 0 || s.draft > 0) proses++;
+      else belum++;
+    });
+
+    return { total, selesai, proses, belum };
+  }, [headerFilteredData]);
+
+  const slsSelesaiPct = slsStats.total > 0 ? ((slsStats.selesai / slsStats.total) * 100).toFixed(1) : '0';
+  const slsProsesPct = slsStats.total > 0 ? ((slsStats.proses / slsStats.total) * 100).toFixed(1) : '0';
+  const slsBelumPct = slsStats.total > 0 ? ((slsStats.belum / slsStats.total) * 100).toFixed(1) : '0';
+
+  // Geo Filtered Data
+  const geoFilteredData = useMemo(() => {
+    return headerFilteredData.filter(d => {
+      const matchKec = kecamatanFilter === 'ALL' || d.kecamatan === kecamatanFilter;
+      const matchDesa = desaFilter === 'ALL' || d.desa === desaFilter;
+      const matchSls = slsFilter === 'ALL' || d.sls === slsFilter;
+      return matchKec && matchDesa && matchSls;
+    });
+  }, [headerFilteredData, kecamatanFilter, desaFilter, slsFilter]);
+
+  const uniqueKecamatan = useMemo(() => ['ALL', ...new Set(headerFilteredData.map(d => d.kecamatan).filter(Boolean))], [headerFilteredData]);
+  const uniqueDesa = useMemo(() => {
+    let filtered = headerFilteredData;
+    if (kecamatanFilter !== 'ALL') filtered = filtered.filter(d => d.kecamatan === kecamatanFilter);
+    return ['ALL', ...new Set(filtered.map(d => d.desa).filter(Boolean))];
+  }, [headerFilteredData, kecamatanFilter]);
+  const uniqueSls = useMemo(() => {
+    let filtered = headerFilteredData;
+    if (desaFilter !== 'ALL') filtered = filtered.filter(d => d.desa === desaFilter);
+    return ['ALL', ...new Set(filtered.map(d => d.sls).filter(Boolean))];
+  }, [headerFilteredData, desaFilter]);
+
   const geoChartData = useMemo(() => {
     const stats: Record<string, { name: string, submit: number, target: number }> = {};
     const grouping = kecamatanFilter === 'ALL' ? 'kecamatan' : (desaFilter === 'ALL' ? 'desa' : 'sls');
     
-    filteredData.forEach(d => {
+    geoFilteredData.forEach(d => {
       const key = d[grouping as keyof MonitoringRow] as string;
       if (!key) return;
       if (!stats[key]) stats[key] = { name: key, submit: 0, target: 0 };
@@ -130,7 +193,23 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       stats[key].target += d.target;
     });
     return Object.values(stats).sort((a, b) => b.submit - a.submit);
-  }, [filteredData, kecamatanFilter, desaFilter]);
+  }, [geoFilteredData, kecamatanFilter, desaFilter]);
+
+  const lineChartData = useMemo(() => {
+    if (snapshots.length === 0) return [];
+    const sorted = [...snapshots].sort((a, b) => new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime());
+    let prevSubmit = 0;
+    return sorted.map((snap) => {
+      const currentSubmit = snap.totalSubmit || 0;
+      const daily = Math.max(0, currentSubmit - prevSubmit);
+      prevSubmit = currentSubmit;
+      return {
+        date: snap.snapshotDate,
+        "Penambahan Harian": daily,
+        "Akumulasi": currentSubmit
+      };
+    });
+  }, [snapshots]);
 
   if (loading) {
     return (
@@ -143,94 +222,211 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+      {/* Header with Filters */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <ChevronLeft className="w-6 h-6 text-slate-600" />
+          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0">
+            <ChevronLeft className="w-5 h-5 text-slate-600" />
           </button>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">{config.kegiatan}</h1>
-            <p className="text-sm text-slate-500 font-medium">{config.subKegiatan || "Monitoring Interaktif"}</p>
+            <h1 className="text-xl font-bold text-slate-800">{config.kegiatan}</h1>
+            <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              {config.subKegiatan || "Monitoring Interaktif"}
+            </p>
           </div>
         </div>
-        <div className="flex flex-col items-end">
-          <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-sm font-bold">Live Terhubung</span>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
+            <Filter className="w-4 h-4 text-slate-400" />
+            <select 
+              value={pmlFilter}
+              onChange={e => { setPmlFilter(e.target.value); setPplFilter('ALL'); }}
+              className="bg-transparent text-sm text-slate-700 outline-none w-32 truncate"
+            >
+              {uniquePml.map(p => <option key={p} value={p}>{p === 'ALL' ? 'PML: Semua Tim' : p}</option>)}
+            </select>
           </div>
-          <p className="text-xs text-slate-400 mt-2">Data dari: {config.sheetName || "Sheet 1"}</p>
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
+            <select 
+              value={pplFilter}
+              onChange={e => setPplFilter(e.target.value)}
+              className="bg-transparent text-sm text-slate-700 outline-none w-32 truncate"
+            >
+              {uniquePpl.map(p => <option key={p} value={p}>{p === 'ALL' ? 'PPL: Semua Petugas' : p}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
+            <Clock className="w-4 h-4 text-slate-400" />
+            <select 
+              value={tanggalFilter}
+              onChange={e => setTanggalFilter(e.target.value)}
+              className="bg-transparent text-sm text-slate-700 outline-none w-32 truncate"
+            >
+              {uniqueTanggal.map(t => <option key={t} value={t}>{t === 'ALL' ? 'Tanggal: Semua' : t}</option>)}
+            </select>
+          </div>
+
+          <button 
+            onClick={() => loadData(true)}
+            disabled={isSyncing}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-70"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            Sync
+          </button>
         </div>
       </div>
 
-      {/* KPI Cards like Prasasti */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 relative overflow-hidden">
-          <div className="absolute -right-6 -top-6 text-emerald-50">
-            <CheckCircle2 className="w-32 h-32" />
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total Submit */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 text-emerald-50">
+            <CheckCircle2 className="w-24 h-24" />
           </div>
           <div className="relative">
-            <p className="text-sm font-bold text-slate-500 mb-1">Total Submit</p>
-            <div className="flex items-end gap-2">
-              <h3 className="text-4xl font-black text-slate-800">{totalSubmit.toLocaleString()}</h3>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Total Submit (Hari Ini / Filter)</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-3xl font-black text-emerald-500">+{dailyDiff.submit > 0 ? dailyDiff.submit : totalSubmit}</h3>
+                <span className="text-xs font-medium text-slate-500">berkas dari {pplStats.length} PPL</span>
+              </div>
+              <div className="bg-emerald-50 px-2 py-1 rounded text-emerald-600 text-[11px] font-bold">
+                {submitPct}%
+              </div>
             </div>
-            <p className="text-xs text-emerald-600 font-semibold mt-2 flex items-center gap-1">
-              <ArrowUpCircle className="w-3 h-3" /> Tersimpan di sistem
-            </p>
+            <div className="flex items-center gap-1 mt-4 text-[10px] font-bold text-slate-400">
+              <span className="text-emerald-500">●</span> KONTRIBUSI BERSIH HARIAN
+            </div>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 relative overflow-hidden">
-          <div className="absolute -right-6 -top-6 text-amber-50">
-            <AlertCircle className="w-32 h-32" />
+        {/* Card 2: Total Draft */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 text-amber-50">
+            <AlertCircle className="w-24 h-24" />
           </div>
           <div className="relative">
-            <p className="text-sm font-bold text-slate-500 mb-1">Total Draft</p>
-            <div className="flex items-end gap-2">
-              <h3 className="text-4xl font-black text-slate-800">{totalDraft.toLocaleString()}</h3>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Total Draft (Saat Ini)</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-3xl font-black text-amber-500">{totalDraft}</h3>
+                <span className="text-xs font-medium text-amber-500">{dailyDiff.draft > 0 ? `+${dailyDiff.draft}` : dailyDiff.draft} hari ini</span>
+              </div>
+              <div className="bg-amber-50 px-2 py-1 rounded text-amber-600 text-[11px] font-bold">
+                {draftPct}%
+              </div>
             </div>
-            <p className="text-xs text-amber-600 font-semibold mt-2 flex items-center gap-1">
-              <Clock className="w-3 h-3" /> Belum di-submit
-            </p>
+            <div className="flex items-center gap-1 mt-4 text-[10px] font-bold text-slate-600">
+              <span className="text-amber-500">●</span> Diperbarui: {lastSync}
+            </div>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 relative overflow-hidden bg-gradient-to-br from-indigo-50 to-white">
-          <div className="absolute -right-6 -top-6 text-indigo-100/50">
-            <Target className="w-32 h-32" />
+        {/* Card 3: Akumulasi Progres */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 text-blue-50">
+            <Target className="w-24 h-24" />
           </div>
-          <div className="relative">
-            <p className="text-sm font-bold text-indigo-600 mb-1">Akumulasi Progres</p>
-            <div className="flex items-end gap-2">
-              <h3 className="text-4xl font-black text-indigo-900">{progressPct}%</h3>
+          <div className="relative flex flex-col h-full justify-between">
+            <div>
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Akumulasi Progres Target</p>
+              <div className="flex items-center justify-between">
+                <h3 className="text-3xl font-black text-slate-800">{totalTarget.toLocaleString()}</h3>
+                <div className="bg-blue-50 px-2 py-1 rounded text-blue-600 text-[11px] font-bold">
+                  {progressPct}% Selesai
+                </div>
+              </div>
             </div>
-            <div className="w-full bg-indigo-100 h-1.5 rounded-full mt-3 overflow-hidden">
-              <div className="bg-indigo-600 h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, Number(progressPct))}%` }} />
+            <div className="w-full bg-slate-100 h-2 rounded-full mt-4 overflow-hidden">
+              <div className="bg-blue-600 h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, Number(progressPct))}%` }} />
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-slate-800 p-6 rounded-3xl shadow-sm relative overflow-hidden text-white">
-          <div className="absolute -right-6 -top-6 text-slate-700">
-            <Clock className="w-32 h-32" />
+        {/* Card 4: PPL Paling Aktif (Submit) */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 text-slate-50">
+            <Users className="w-24 h-24" />
           </div>
-          <div className="relative">
-            <p className="text-sm font-bold text-slate-400 mb-1">Sisa Hari Kerja</p>
-            <div className="flex items-end gap-2">
-              <h3 className="text-4xl font-black text-white">{sisaHariKerja}</h3>
-              <span className="text-slate-400 font-medium mb-1">Hari</span>
+          <div className="relative flex flex-col h-full justify-between">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">PPL Paling Aktif (Submit)</p>
+            {mostActivePpl ? (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
+                  {mostActivePpl.name.substring(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800 truncate w-32">{mostActivePpl.name}</h4>
+                  <p className="text-[11px] font-semibold text-emerald-500">Total: {mostActivePpl.submit} Berkas</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 italic">Belum ada data</p>
+            )}
+            <p className="text-[10px] font-bold text-blue-500 mt-3 uppercase">PRODUCTIVITY WINNER</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Monitoring Seluruh SLS */}
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div>
+          <h2 className="text-sm font-bold text-slate-800">MONITORING SELURUH SLS ({config.kegiatan.toUpperCase()})</h2>
+          <p className="text-[11px] text-slate-500">Statistik berdasarkan filter PML & PPL.</p>
+        </div>
+        <div className="flex items-center gap-6 divide-x divide-slate-100 bg-slate-50 px-6 py-3 rounded-xl border border-slate-100">
+          <div className="text-center px-4">
+            <p className="text-[10px] font-bold text-slate-400 mb-1">TOTAL</p>
+            <h3 className="text-xl font-black text-slate-700">{slsStats.total}</h3>
+          </div>
+          <div className="text-center px-4">
+            <p className="text-[10px] font-bold text-slate-400 mb-1">SELESAI</p>
+            <div className="flex items-baseline justify-center gap-1">
+              <h3 className="text-xl font-black text-emerald-600">{slsStats.selesai}</h3>
+              <span className="text-[10px] font-bold text-emerald-500">{slsSelesaiPct}%</span>
             </div>
-            <p className="text-xs text-slate-300 font-medium mt-2">
-              Tenggat: {new Date(config.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric'})}
-            </p>
           </div>
-        </motion.div>
+          <div className="text-center px-4">
+            <p className="text-[10px] font-bold text-slate-400 mb-1">PROSES</p>
+            <div className="flex items-baseline justify-center gap-1">
+              <h3 className="text-xl font-black text-blue-600">{slsStats.proses}</h3>
+              <span className="text-[10px] font-bold text-blue-500">{slsProsesPct}%</span>
+            </div>
+          </div>
+          <div className="text-center px-4">
+            <p className="text-[10px] font-bold text-slate-400 mb-1">BELUM</p>
+            <div className="flex items-baseline justify-center gap-1">
+              <h3 className="text-xl font-black text-rose-600">{slsStats.belum}</h3>
+              <span className="text-[10px] font-bold text-rose-500">{slsBelumPct}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sisa Hari Kerja */}
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+        <div className="absolute -right-4 -top-4 text-slate-50">
+          <Clock className="w-24 h-24" />
+        </div>
+        <div className="relative">
+          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Sisa Hari Kerja</p>
+          <div className="flex items-end gap-2">
+            <h3 className="text-3xl font-black text-slate-800">{sisaHariKerja}</h3>
+            <span className="text-slate-500 font-medium mb-1">Hari</span>
+          </div>
+          <p className="text-xs text-slate-400 font-medium mt-2">
+            Tenggat: {new Date(config.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric'})}
+          </p>
+        </div>
       </div>
 
       {/* Main Charts Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Line Chart */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -243,7 +439,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
           <div className="h-[300px]">
             {lineChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={lineChartData}>
+                <AreaChart data={lineChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorSubmit" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
@@ -251,12 +447,10 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                  <RechartsTooltip 
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Legend />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                  <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }} />
                   <Area type="monotone" dataKey="Akumulasi" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSubmit)" />
                   <Line type="monotone" dataKey="Penambahan Harian" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
                 </AreaChart>
@@ -270,25 +464,24 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
           </div>
         </div>
 
-        {/* Bintang Petugas / Leaderboard */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col">
+        {/* Leaderboard */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6">
             <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
             Bintang Petugas
           </h2>
-          <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+          <div className="flex-1 overflow-y-auto pr-2 space-y-3">
             {pplStats.slice(0, 5).map((ppl, idx) => (
-              <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-amber-200 hover:bg-amber-50/50 transition-colors">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-200 text-slate-600' : idx === 2 ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-400'}`}>
+              <div key={idx} className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-amber-200 transition-colors">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-200 text-slate-600' : idx === 2 ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-400'}`}>
                   {idx + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-slate-800 truncate">{ppl.name}</p>
-                  <p className="text-xs text-slate-500 truncate">PML: {ppl.pml}</p>
+                  <p className="font-bold text-slate-800 truncate text-sm">{ppl.name}</p>
+                  <p className="text-[10px] text-slate-500 truncate">PML: {ppl.pml}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-black text-emerald-600">{ppl.submit}</p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">Submit</p>
+                  <p className="font-black text-emerald-600 text-sm">{ppl.submit}</p>
                 </div>
               </div>
             ))}
@@ -300,29 +493,26 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       </div>
 
       {/* Geographic & Filter Area */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <MapPin className="w-5 h-5 text-rose-500" />
             Progres Menurut Geografis
           </h2>
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
-              <Filter className="w-4 h-4 text-slate-400" />
-              <select 
-                value={kecamatanFilter}
-                onChange={e => { setKecamatanFilter(e.target.value); setDesaFilter('ALL'); setSlsFilter('ALL'); }}
-                className="bg-transparent text-sm font-medium text-slate-700 outline-none"
-              >
-                {uniqueKecamatan.map(k => <option key={k} value={k}>{k === 'ALL' ? 'Semua Kecamatan' : k}</option>)}
-              </select>
-            </div>
+            <select 
+              value={kecamatanFilter}
+              onChange={e => { setKecamatanFilter(e.target.value); setDesaFilter('ALL'); setSlsFilter('ALL'); }}
+              className="bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 outline-none"
+            >
+              {uniqueKecamatan.map(k => <option key={k} value={k}>{k === 'ALL' ? 'Semua Kecamatan' : k}</option>)}
+            </select>
             
             <select 
               value={desaFilter}
               onChange={e => { setDesaFilter(e.target.value); setSlsFilter('ALL'); }}
               disabled={kecamatanFilter === 'ALL'}
-              className="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 outline-none disabled:opacity-50"
+              className="bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 outline-none disabled:opacity-50"
             >
               {uniqueDesa.map(d => <option key={d} value={d}>{d === 'ALL' ? 'Semua Desa' : d}</option>)}
             </select>
@@ -331,7 +521,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
               value={slsFilter}
               onChange={e => setSlsFilter(e.target.value)}
               disabled={desaFilter === 'ALL'}
-              className="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 outline-none disabled:opacity-50"
+              className="bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 outline-none disabled:opacity-50"
             >
               {uniqueSls.map(s => <option key={s} value={s}>{s === 'ALL' ? 'Semua SLS/Wilayah Kerja' : s}</option>)}
             </select>
@@ -340,25 +530,22 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
 
         <div className="h-[350px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={geoChartData} margin={{ top: 10, right: 10, left: 0, bottom: 60 }}>
+            <BarChart data={geoChartData} margin={{ top: 10, right: 10, left: -20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} angle={-45} textAnchor="end" height={60} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-              <RechartsTooltip 
-                cursor={{ fill: '#f8fafc' }}
-                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-              />
-              <Legend verticalAlign="top" height={36} />
-              <Bar dataKey="target" name="Target" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={32} />
-              <Bar dataKey="submit" name="Submit" fill="#10b981" radius={[4, 4, 0, 0]} barSize={32} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} angle={-45} textAnchor="end" height={60} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+              <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }} />
+              <Bar dataKey="target" name="Target" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={24} />
+              <Bar dataKey="submit" name="Submit" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Table PPL */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <Users className="w-5 h-5 text-blue-500" />
             Akumulasi Progres Petugas
@@ -367,41 +554,41 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input 
               type="text"
-              placeholder="Cari nama PPL atau PML..."
+              placeholder="Cari nama PPL / PML..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-full sm:w-64"
+              className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full sm:w-64"
             />
           </div>
         </div>
         
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500">
+            <thead className="bg-slate-50 text-[11px] uppercase font-bold text-slate-400 tracking-wider">
               <tr>
-                <th className="px-6 py-4">Nama PPL</th>
-                <th className="px-6 py-4">Nama PML</th>
-                <th className="px-6 py-4 text-center">Target</th>
-                <th className="px-6 py-4 text-center">Submit</th>
-                <th className="px-6 py-4 text-center">Draft</th>
-                <th className="px-6 py-4 text-right">Progres</th>
+                <th className="px-5 py-3">Nama PPL</th>
+                <th className="px-5 py-3">Nama PML</th>
+                <th className="px-5 py-3 text-center">Target</th>
+                <th className="px-5 py-3 text-center">Submit</th>
+                <th className="px-5 py-3 text-center">Draft</th>
+                <th className="px-5 py-3 text-right">Progres</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {pplStats.filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.pml.toLowerCase().includes(searchQuery.toLowerCase())).map((ppl, idx) => {
                 const pct = ppl.target > 0 ? ((ppl.submit / ppl.target) * 100).toFixed(1) : 0;
                 return (
-                  <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-800">{ppl.name}</td>
-                    <td className="px-6 py-4 text-slate-500">{ppl.pml}</td>
-                    <td className="px-6 py-4 text-center font-medium">{ppl.target}</td>
-                    <td className="px-6 py-4 text-center font-bold text-emerald-600">{ppl.submit}</td>
-                    <td className="px-6 py-4 text-center text-amber-600">{ppl.draft}</td>
-                    <td className="px-6 py-4 text-right">
+                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-5 py-3 font-bold text-slate-700">{ppl.name}</td>
+                    <td className="px-5 py-3 text-slate-500 text-xs">{ppl.pml}</td>
+                    <td className="px-5 py-3 text-center font-medium">{ppl.target}</td>
+                    <td className="px-5 py-3 text-center font-black text-emerald-600">{ppl.submit}</td>
+                    <td className="px-5 py-3 text-center text-amber-600 font-bold">{ppl.draft}</td>
+                    <td className="px-5 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <span className="font-bold text-slate-700">{pct}%</span>
+                        <span className="font-bold text-slate-700 text-xs">{pct}%</span>
                         <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, Number(pct))}%` }} />
+                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, Number(pct))}%` }} />
                         </div>
                       </div>
                     </td>
@@ -410,8 +597,8 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
               })}
               {pplStats.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                    Tidak ada data yang sesuai dengan filter.
+                  <td colSpan={6} className="px-5 py-10 text-center text-slate-500">
+                    Tidak ada data yang sesuai.
                   </td>
                 </tr>
               )}
