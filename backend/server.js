@@ -10,14 +10,28 @@ const app = express();
 // KEAMANAN (CYBER SECURITY)
 // ==========================================
 
-// 1. Helmet: Menyembunyikan teknologi server. (CSP dimatikan agar peta Leaflet bisa dimuat)
+// 1. Helmet: Menyembunyikan teknologi server dan konfigurasi CSP
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https://*.tile.openstreetmap.org", "https://maps.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      connectSrc: ["'self'", "https://api.garda-data.com"]
+    }
+  },
 }));
 
 // 2. CORS: Hanya mengizinkan request dari frontend kita
+const allowedOrigins = ['https://garda-data.com', 'http://localhost:5173', 'http://localhost:3000'];
 app.use(cors({
-  origin: '*', // Di produksi, ganti ini menjadi URL frontend Anda (misal: https://garda-data.com)
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
 
@@ -29,8 +43,8 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
-// Parse JSON payload (maksimal 10MB untuk mengamankan dari payload raksasa)
-app.use(express.json({ limit: '10mb' }));
+// Parse JSON payload (maksimal 2MB untuk mengamankan dari payload raksasa)
+app.use(express.json({ limit: '2mb' }));
 
 // ==========================================
 // ROUTES

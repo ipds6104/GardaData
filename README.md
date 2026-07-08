@@ -47,16 +47,17 @@ Pencatatan temuan lapangan yang belum tergambar dalam angka statistik kaku, misa
 
 ---
 
-## 🛠 Teknologi yang Digunakan
+## 🛠 Teknologi & Arsitektur Performa
 
-Garda Data dikembangkan menggunakan *stack* teknologi yang modern, cepat, dan ringan:
+Garda Data dikembangkan menggunakan *stack* teknologi yang modern, cepat, dan ringan dengan standar produksi tingkat lanjut:
 
-* **Framework Frontend:** React 18 (menggunakan Vite sebagai *build tool*).
-* **Styling & UI:** Tailwind CSS (dengan utility class kustom untuk palet warna interaktif).
-* **Ikonografi & Animasi:** Lucide React (ikon) dan Framer Motion (transisi mulus, efek *hover*, dan navigasi *accordion*).
-* **Database & BaaS:** Firebase Cloud Firestore (untuk penyimpanan data *real-time*).
-* **Autentikasi:** Custom Auth Hook tersimulasi/Firebase Auth (bergantung konfigurasi di `lib/auth.ts`).
-* **Peta Geospasial:** Leaflet & React-Leaflet untuk visualisasi spasial infrastruktur.
+* **Framework Frontend:** React 18 (menggunakan Vite sebagai *build tool*). Dilengkapi dengan **Code Splitting (React.lazy & Suspense)** untuk memastikan waktu muat *(load time)* aplikasi awal yang instan.
+* **Performa & Pencarian (Client-side):** Menggunakan `Fuse.js` dengan sistem **Pagination Cerdas** yang membatasi render DOM maksimal 50 hasil pencarian di awal agar gawai petugas *low-end* tidak *hang*.
+* **Keamanan Backend (Node.js):** Dilindungi dengan ketat menggunakan `Helmet` (Konfigurasi CSP _whitelist_ yang mengamankan XSS namun tetap mengizinkan koneksi peta Leaflet), `CORS` tersentralisasi (hanya mengizinkan *origin* produksi), dan pembatasan Payload JSON (maks. 2MB).
+* **Persiapan Optimasi Gambar:** Dilengkapi dengan utilitas mandiri `compressImage` (berbasis HTML5 Canvas) untuk persiapan kompresi gambar resolusi tinggi langsung di perangkat pengguna (klien).
+* **Styling & UI:** Tailwind CSS (dengan utility class kustom) dipadukan dengan Lucide React (ikon) dan Framer Motion (transisi mulus).
+* **Database & BaaS:** Firebase Cloud Firestore dengan dukungan penuh kapabilitas *Offline Persistence* (IndexedDB) untuk *blank spot*.
+* **Peta Geospasial:** Leaflet & React-Leaflet untuk navigasi infrastruktur.
 
 ---
 

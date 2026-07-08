@@ -29,6 +29,7 @@ export const ClassificationModule: React.FC<ClassificationModuleProps> = ({ onBa
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [visibleCount, setVisibleCount] = useState(50);
 
   const [manualForm, setManualForm] = useState({
     mjj_occtle: '',
@@ -110,6 +111,7 @@ export const ClassificationModule: React.FC<ClassificationModuleProps> = ({ onBa
       }
       
       setResults(uniqueResults);
+      setVisibleCount(50);
     } catch (err) {
       handleFirestoreError(err, OperationType.GET, 'classifications', { currentUser: { uid: user?.username } });
     } finally {
@@ -285,56 +287,69 @@ export const ClassificationModule: React.FC<ClassificationModuleProps> = ({ onBa
               {loading ? (
                 <div className="py-20 text-center"><Loader2 className="w-12 h-12 animate-spin mx-auto text-primary-600" /></div>
               ) : results.length > 0 ? (
-                results.map((item, idx) => (
-                  <motion.div 
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    key={item.id} 
-                    className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-slate-200/40 transition-all group overflow-hidden"
-                  >
-                    <div className="grid md:grid-cols-12 gap-8 items-center">
-                      <div className="md:col-span-12 lg:col-span-5 space-y-4">
-                        <div className="flex gap-2">
-                          <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter">Reference #{idx + 1}</span>
+                <>
+                  {results.slice(0, visibleCount).map((item, idx) => (
+                    <motion.div 
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: (idx % 50) * 0.05 }}
+                      key={item.id} 
+                      className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-slate-200/40 transition-all group overflow-hidden"
+                    >
+                      <div className="grid md:grid-cols-12 gap-8 items-center">
+                        <div className="md:col-span-12 lg:col-span-5 space-y-4">
+                          <div className="flex gap-2">
+                            <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter">Reference #{idx + 1}</span>
+                          </div>
+                          <div className="space-y-4">
+                            <div className="flex gap-4">
+                              <Briefcase className="w-5 h-5 text-slate-300 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Kegiatan Pekerjaan</span>
+                                <p className="text-slate-900 font-bold leading-tight uppercase tracking-tighter">{item.mjj_occtle}</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-4">
+                              <Boxes className="w-5 h-5 text-slate-300 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Komoditas yang Dihasilkan</span>
+                                <p className="text-slate-500 text-sm font-medium">{item.mjj_occmtd}</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-4">
+                              <Factory className="w-5 h-5 text-slate-300 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Bidang Usaha/Perusahaan/Kantor</span>
+                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{item.mjj_bidang}</p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div className="space-y-4">
-                          <div className="flex gap-4">
-                            <Briefcase className="w-5 h-5 text-slate-300 shrink-0 mt-0.5" />
-                            <div>
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Kegiatan Pekerjaan</span>
-                              <p className="text-slate-900 font-bold leading-tight uppercase tracking-tighter">{item.mjj_occtle}</p>
-                            </div>
+                        <div className="md:col-span-12 lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="bg-primary-50/50 p-6 rounded-2xl border border-primary-100">
+                            <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest block mb-2">Kode KBJI</span>
+                            <p className="text-primary-700 font-black text-lg leading-tight">{item.mjj_kbji_label}</p>
                           </div>
-                          <div className="flex gap-4">
-                            <Boxes className="w-5 h-5 text-slate-300 shrink-0 mt-0.5" />
-                            <div>
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Komoditas yang Dihasilkan</span>
-                              <p className="text-slate-500 text-sm font-medium">{item.mjj_occmtd}</p>
-                            </div>
-                          </div>
-                          <div className="flex gap-4">
-                            <Factory className="w-5 h-5 text-slate-300 shrink-0 mt-0.5" />
-                            <div>
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Bidang Usaha/Perusahaan/Kantor</span>
-                              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{item.mjj_bidang}</p>
-                            </div>
+                          <div className="bg-secondary-50/50 p-6 rounded-2xl border border-secondary-100">
+                            <span className="text-[10px] font-black text-secondary-400 uppercase tracking-widest block mb-2">Kode KBLI</span>
+                            <p className="text-secondary-700 font-black text-lg leading-tight">{item.mjj_kbli_label}</p>
                           </div>
                         </div>
                       </div>
-                      <div className="md:col-span-12 lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-primary-50/50 p-6 rounded-2xl border border-primary-100">
-                          <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest block mb-2">Kode KBJI</span>
-                          <p className="text-primary-700 font-black text-lg leading-tight">{item.mjj_kbji_label}</p>
-                        </div>
-                        <div className="bg-secondary-50/50 p-6 rounded-2xl border border-secondary-100">
-                          <span className="text-[10px] font-black text-secondary-400 uppercase tracking-widest block mb-2">Kode KBLI</span>
-                          <p className="text-secondary-700 font-black text-lg leading-tight">{item.mjj_kbli_label}</p>
-                        </div>
-                      </div>
+                    </motion.div>
+                  ))}
+                  
+                  {visibleCount < results.length && (
+                    <div className="text-center pt-8">
+                      <button 
+                        onClick={() => setVisibleCount(prev => prev + 50)}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-8 py-4 rounded-xl font-bold uppercase tracking-widest transition-colors"
+                      >
+                        Muat Lebih Banyak ({results.length - visibleCount} tersisa)
+                      </button>
                     </div>
-                  </motion.div>
-                ))
+                  )}
+                </>
               ) : (
                 <div className="py-20 text-center text-slate-400 font-medium bg-white rounded-[2.5rem] border border-dashed border-slate-200">
                   <Search className="w-16 h-16 mx-auto mb-6 opacity-10" />

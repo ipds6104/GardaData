@@ -3,22 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
+import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './lib/auth';
 import { Layout } from './components/Layout';
 import { LandingPage } from './components/LandingPage';
-import { ClassificationModule } from './components/ClassificationModule';
-import { InfrastructureModule } from './components/InfrastructureModule';
-import { BuildingAreaModule } from './components/BuildingAreaModule';
-import { AdminBuildingDashboard } from './components/AdminBuildingDashboard';
-import { ImputationModule } from './components/imputation/ImputationModule';
-import { SocialPhenomenonModule } from './components/SocialPhenomenonModule';
-import { CerdasModule } from './components/CerdasModule';
-import { VisitorDashboard } from './components/VisitorDashboard';
-import { AdminStrategicData } from './components/AdminStrategicData';
-import { LMSModule } from './components/LMSModule';
+const ClassificationModule = lazy(() => import('./components/ClassificationModule').then(m => ({ default: m.ClassificationModule })));
+const InfrastructureModule = lazy(() => import('./components/InfrastructureModule').then(m => ({ default: m.InfrastructureModule })));
+const BuildingAreaModule = lazy(() => import('./components/BuildingAreaModule').then(m => ({ default: m.BuildingAreaModule })));
+const AdminBuildingDashboard = lazy(() => import('./components/AdminBuildingDashboard').then(m => ({ default: m.AdminBuildingDashboard })));
+const ImputationModule = lazy(() => import('./components/imputation/ImputationModule').then(m => ({ default: m.ImputationModule })));
+const SocialPhenomenonModule = lazy(() => import('./components/SocialPhenomenonModule').then(m => ({ default: m.SocialPhenomenonModule })));
+const CerdasModule = lazy(() => import('./components/CerdasModule').then(m => ({ default: m.CerdasModule })));
+const VisitorDashboard = lazy(() => import('./components/VisitorDashboard').then(m => ({ default: m.VisitorDashboard })));
+const AdminStrategicData = lazy(() => import('./components/AdminStrategicData').then(m => ({ default: m.AdminStrategicData })));
+const LMSModule = lazy(() => import('./components/LMSModule').then(m => ({ default: m.LMSModule })));
+const MonitoringModule = lazy(() => import('./components/monitoring/MonitoringModule').then(m => ({ default: m.MonitoringModule })));
 import { Login } from './components/Login';
-import { MonitoringModule } from './components/monitoring/MonitoringModule';
 import { syncImputationFromFirebase } from './services/imputationService';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from './lib/firebase';
@@ -114,7 +115,9 @@ function AppContent() {
 
   return (
     <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
-      {renderContent()}
+      <Suspense fallback={<div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="w-10 h-10 animate-spin text-primary-600" /></div>}>
+        {renderContent()}
+      </Suspense>
     </Layout>
   );
 }
