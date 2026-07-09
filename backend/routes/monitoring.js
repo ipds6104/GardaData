@@ -81,6 +81,21 @@ router.get('/snapshots/:configId', async (req, res) => {
   }
 });
 
+// GET: Daily Logs for a config
+router.get('/logs/:configId', async (req, res) => {
+  try {
+    const { configId } = req.params;
+    const [rows] = await pool.query(
+      'SELECT * FROM monitoring_log_harian WHERE configId=? ORDER BY tanggalUpdate DESC',
+      [configId]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching logs:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
 // GET: Proxy to fetch Google Sheet to bypass CORS
 router.get('/proxy-sheet', async (req, res) => {
   try {

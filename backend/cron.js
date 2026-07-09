@@ -56,6 +56,9 @@ async function runDailySnapshot() {
         const idxReject = header.findIndex(h => h === 'reject' || h === 'rejected');
         const idxTarget = header.findIndex(h => h === 'target');
         
+        const idxPpl = header.findIndex(h => h.includes('nama ppl'));
+        const idxPml = header.findIndex(h => h.includes('nama pml'));
+        
         let totalSubmit = 0;
         let totalDraft = 0;
         let totalTarget = 0;
@@ -71,15 +74,28 @@ async function runDailySnapshot() {
           const reject = idxReject !== -1 && cols[idxReject] ? (parseInt(cols[idxReject], 10) || 0) : 0;
           const target = idxTarget !== -1 && cols[idxTarget] ? (parseInt(cols[idxTarget], 10) || 0) : 0;
           
-          totalSubmit += (submit + approve + reject);
+          const rowSubmit = submit + approve + reject;
+          totalSubmit += rowSubmit;
           totalDraft += draft;
           totalTarget += target;
+
+          const pplName = idxPpl !== -1 && cols[idxPpl] ? cols[idxPpl] : 'Unknown PPL';
+          const pmlName = idxPml !== -1 && cols[idxPml] ? cols[idxPml] : 'Unknown PML';
+
+          // Save per PPL log
+          await pool.query(
+            `INSERT INTO monitoring_log_harian (id, configId, tanggalUpdate, pml, ppl, submit, draft, total, statusSiklus) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE submit = VALUES(submit), draft = VALUES(draft), total = VALUES(total)`,
+            [crypto.randomUUID(), config.id, today, pmlName, pplName, rowSubmit, draft, rowSubmit + draft, 'Aktif']
+          );
         }
         
-        // Save to database using INSERT IGNORE to prevent duplicates for the same day
+        // Save to database using INSERT ... ON DUPLICATE KEY UPDATE
         await pool.query(
-          `INSERT IGNORE INTO monitoring_snapshots (id, configId, snapshotDate, totalSubmit, totalDraft, totalTarget) 
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO monitoring_snapshots (id, configId, snapshotDate, totalSubmit, totalDraft, totalTarget) 
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE totalSubmit = VALUES(totalSubmit), totalDraft = VALUES(totalDraft), totalTarget = VALUES(totalTarget)`,
           [crypto.randomUUID(), config.id, today, totalSubmit, totalDraft, totalTarget]
         );
         

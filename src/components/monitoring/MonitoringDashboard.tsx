@@ -87,6 +87,7 @@ interface MonitoringDashboardProps {
 export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config, onBack }) => {
   const [data, setData] = useState<MonitoringRow[]>([]);
   const [snapshots, setSnapshots] = useState<any[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<string>('');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -131,6 +132,11 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       if (res.ok) {
         const snaps = await res.json();
         setSnapshots(snaps);
+      }
+      const logRes = await fetch(`${baseUrl}/api/monitoring/logs/${config.id}`);
+      if (logRes.ok) {
+        const logsData = await logRes.json();
+        setLogs(logsData);
       }
       const now = new Date();
       const pad = (n: number) => n.toString().padStart(2, '0');
@@ -851,21 +857,35 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
         )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden opacity-50">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Clock className="w-5 h-5 text-slate-500" />Log Submit Harian (Data Simulasi)</h2>
-          <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">Membutuhkan Sheet Log Harian</span>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Clock className="w-5 h-5 text-emerald-500" />Log Submit Harian (Otomatis)</h2>
+          <div className="flex gap-2">
+            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">Sinkronisasi Database Aktif</span>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-400">
-            <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-400">
+        <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+          <table className="w-full text-left text-sm text-slate-600">
+            <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 sticky top-0 shadow-sm">
               <tr>
                 <th className="px-5 py-3">Tanggal Update</th><th className="px-5 py-3">Supervisor (PML)</th><th className="px-5 py-3">Petugas (PPL)</th>
                 <th className="px-5 py-3">SUBMIT ↓</th><th className="px-5 py-3">DRAFT</th><th className="px-5 py-3">TOTAL</th><th className="px-5 py-3">Status Siklus</th>
               </tr>
             </thead>
-            <tbody>
-              <tr><td colSpan={7} className="px-5 py-10 text-center italic">Karena backend saat ini hanya menyimpan 1 URL Snapshot Sheet (tanpa Log Harian), data ini belum bisa ditarik secara spesifik per PPL.</td></tr>
+            <tbody className="divide-y divide-slate-100">
+              {logs.length > 0 ? logs.map((log, idx) => (
+                <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-5 py-3 font-medium">{new Date(log.tanggalUpdate).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}</td>
+                  <td className="px-5 py-3 text-slate-500">{log.pml}</td>
+                  <td className="px-5 py-3 font-bold text-slate-700">{log.ppl}</td>
+                  <td className="px-5 py-3 font-black text-emerald-600">{log.submit}</td>
+                  <td className="px-5 py-3 font-bold text-amber-500">{log.draft}</td>
+                  <td className="px-5 py-3 font-bold">{log.total}</td>
+                  <td className="px-5 py-3"><span className="bg-emerald-50 text-emerald-600 px-2 py-1 rounded text-xs font-bold">{log.statusSiklus}</span></td>
+                </tr>
+              )) : (
+                <tr><td colSpan={7} className="px-5 py-10 text-center text-slate-500 italic">Belum ada log terekam untuk kegiatan ini. Log akan di-generate otomatis setiap hari pukul 23:59.</td></tr>
+              )}
             </tbody>
           </table>
         </div>

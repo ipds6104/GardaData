@@ -99,9 +99,17 @@ async function initDB() {
         total INT DEFAULT 0,
         statusSiklus VARCHAR(100),
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_log (configId, tanggalUpdate, ppl),
         INDEX idx_config_tanggal (configId, tanggalUpdate)
       )
     `);
+
+    // Ensure UNIQUE KEY exists if table was already created without it
+    try {
+      await connection.query(`ALTER TABLE monitoring_log_harian ADD UNIQUE KEY unique_log (configId, tanggalUpdate, ppl)`);
+    } catch (e) {
+      // Key probably already exists or table has duplicates
+    }
     
     connection.release();
   } catch (error) {
