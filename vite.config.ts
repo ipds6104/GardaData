@@ -17,7 +17,10 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-          maximumFileSizeToCacheInBytes: 5000000
+          maximumFileSizeToCacheInBytes: 5000000,
+          cleanupOutdatedCaches: true,
+          skipWaiting: true,
+          clientsClaim: true
         },
         manifest: {
           name: 'Garda Data',

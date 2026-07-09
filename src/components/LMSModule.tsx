@@ -358,8 +358,8 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       key={t.id} 
-                      onClick={() => openDetail(t.id)}
-                      className={`relative group p-5 md:p-6 rounded-[2rem] border-2 cursor-pointer transition-all shadow-sm flex flex-col h-full overflow-hidden ${t.isActive ? colorClass : 'bg-slate-50 border-slate-200 text-slate-500 opacity-80'}`}
+                      onClick={() => { if(t.isActive || isAdmin) openDetail(t.id); }}
+                      className={`relative group p-5 md:p-6 rounded-[2rem] border-2 ${t.isActive || isAdmin ? 'cursor-pointer' : 'cursor-not-allowed'} transition-all shadow-sm flex flex-col h-full overflow-hidden ${t.isActive ? colorClass : 'bg-slate-50 border-slate-200 text-slate-500 opacity-80'}`}
                     >
                       {/* Decorative Background Icon */}
                       <IconComponent className="absolute -right-6 -bottom-6 w-32 h-32 opacity-5 pointer-events-none" />
