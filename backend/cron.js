@@ -36,6 +36,21 @@ async function runDailySnapshot() {
     
     for (const config of configs) {
       try {
+        // Validate date period
+        const todayDate = new Date();
+        const startDate = new Date(config.startDate);
+        const endDate = new Date(config.endDate);
+        
+        // Reset time for accurate day comparison
+        todayDate.setHours(0,0,0,0);
+        startDate.setHours(0,0,0,0);
+        endDate.setHours(0,0,0,0);
+        
+        if (todayDate < startDate || todayDate > endDate) {
+          console.log(`Skipping config ${config.id} - outside active period`);
+          continue;
+        }
+
         const exportUrl = getExportUrl(config.sheetUrl);
         if (!exportUrl) continue;
         
