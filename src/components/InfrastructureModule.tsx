@@ -570,9 +570,14 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
             const docIdStr = `${slugify(desa)}-${tahun}`;
             const ref = doc(db, 'village_stats', docIdStr);
 
-            const male = Number(item['Banyak Penduduk Laki-Laki'] || 0);
-            const female = Number(item['Banyak Penduduk Perempuan'] || 0);
-            const total = male + female;
+            const male = Number(item['Banyak Penduduk Laki-Laki'] || item.male || 0);
+            const female = Number(item['Banyak Penduduk Perempuan'] || item.female || 0);
+            
+            // Jika ada kolom Jumlah Penduduk / Total Jiwa, gunakan itu. Jika tidak, jumlahkan L+P.
+            let total = Number(item['Jumlah Penduduk'] || item['Total Jiwa'] || item.total || 0);
+            if (total === 0 && (male > 0 || female > 0)) {
+              total = male + female;
+            }
 
             batch.set(ref, {
               village: String(desa).toUpperCase(),
@@ -580,8 +585,8 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
               male: String(male),
               female: String(female),
               total: String(total),
-              kk: String(item['Jumlah KK'] || 0),
-              agriFamily: String(item['Jumlah Keluarga Pertanian'] || 0),
+              kk: String(item['Jumlah KK'] || item.kk || 0),
+              agriFamily: String(item['Jumlah Keluarga Pertanian'] || item.agriFamily || 0),
               updatedAt: serverTimestamp(),
               updatedBy: user?.username || 'system'
             }, { merge: true });
@@ -854,7 +859,7 @@ export const InfrastructureModule: React.FC<InfrastructureModuleProps> = ({ onBa
                     {displayStats ? (
                       <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-1">
-                          <span className="text-primary-300 text-xs font-black uppercase">Total Jiwa</span>
+                          <span className="text-primary-300 text-xs font-black uppercase">Jumlah Penduduk</span>
                           <p className="text-3xl font-black">{displayStats.total}</p>
                         </div>
                         <div className="space-y-1">

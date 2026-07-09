@@ -528,7 +528,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedTrackerData.map((ppl, idx) => {
               const pplProgressPct = ppl.target > 0 ? (ppl.submit / ppl.target) * 100 : 0;
-              const sisaDokumen = Math.max(0, ppl.target - ppl.draft - ppl.submit);
+              const sisaDokumen = Math.max(0, ppl.target - ppl.submit);
               const minPerHari = sisaHariKerja > 0 ? Math.ceil(sisaDokumen / sisaHariKerja) : sisaDokumen;
               return (
                 <div key={idx} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col">
