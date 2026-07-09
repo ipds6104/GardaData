@@ -114,6 +114,12 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   const [tableLimit, setTableLimit] = useState<number>(15);
   const [tablePage, setTablePage] = useState<number>(1);
 
+  // SLS Table State
+  const [slsTableSearch, setSlsTableSearch] = useState('');
+  const [slsTableSort, setSlsTableSort] = useState<{key: string, dir: 'asc'|'desc'}>({ key: 'kecamatan', dir: 'asc' });
+  const [slsTableLimit, setSlsTableLimit] = useState<number>(15);
+  const [slsTablePage, setSlsTablePage] = useState<number>(1);
+
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
     else setIsSyncing(true);
@@ -340,6 +346,33 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
 
   const handleSort = (key: string) => {
     setTableSort(prev => ({ key, dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc' }));
+  };
+
+  // SLS Table Logic
+  const slsTableData = useMemo(() => {
+    return geoFilteredData.filter(d => 
+      !slsTableSearch || 
+      d.namaPpl.toLowerCase().includes(slsTableSearch.toLowerCase()) || 
+      d.namaPml.toLowerCase().includes(slsTableSearch.toLowerCase()) ||
+      d.sls.toLowerCase().includes(slsTableSearch.toLowerCase()) ||
+      d.desa.toLowerCase().includes(slsTableSearch.toLowerCase())
+    ).sort((a: any, b: any) => {
+      let valA = a[slsTableSort.key];
+      let valB = b[slsTableSort.key];
+      if (slsTableSort.key === 'progres') {
+        valA = a.target > 0 ? (a.submit / a.target) * 100 : 0;
+        valB = b.target > 0 ? (b.submit / b.target) * 100 : 0;
+      }
+      if (typeof valA === 'string' && typeof valB === 'string') return slsTableSort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      return slsTableSort.dir === 'asc' ? Number(valA) - Number(valB) : Number(valB) - Number(valA);
+    });
+  }, [geoFilteredData, slsTableSearch, slsTableSort]);
+
+  const paginatedSlsTableData = useMemo(() => slsTableData.slice((slsTablePage - 1) * slsTableLimit, slsTablePage * slsTableLimit), [slsTableData, slsTablePage, slsTableLimit]);
+  const totalSlsTablePages = Math.ceil(slsTableData.length / slsTableLimit) || 1;
+
+  const handleSlsSort = (key: string) => {
+    setSlsTableSort(prev => ({ key, dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc' }));
   };
 
   if (loading) return (
@@ -743,6 +776,77 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
             <button onClick={() => setTablePage(p => Math.max(1, p - 1))} disabled={tablePage === 1} className="px-4 py-1.5 text-sm font-bold text-slate-500 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-30">Sebelumnya</button>
             <span className="text-sm font-mono text-slate-500">Halaman {tablePage} / {totalTablePages}</span>
             <button onClick={() => setTablePage(p => Math.min(totalTablePages, p + 1))} disabled={tablePage === totalTablePages} className="px-4 py-1.5 text-sm font-bold text-slate-600 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-30">Berikutnya</button>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><MapPin className="w-5 h-5 text-emerald-500" />Tabel Progres Menurut SLS</h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <select value={slsTableLimit} onChange={e => {setSlsTableLimit(Number(e.target.value)); setSlsTablePage(1);}} className="bg-slate-50 border border-slate-200 text-sm font-medium rounded-lg px-2 py-1 outline-none">
+              <option value={10}>10 Baris</option><option value={15}>15 Baris</option><option value={30}>30 Baris</option><option value={100}>100 Baris</option>
+            </select>
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input type="text" placeholder="Cari wilayah/PPL/PML..." value={slsTableSearch} onChange={e => {setSlsTableSearch(e.target.value); setSlsTablePage(1);}} className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500 w-full sm:w-64" />
+            </div>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-slate-600">
+            <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+              <tr>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSlsSort('kecamatan')}>Kecamatan {slsTableSort.key==='kecamatan' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSlsSort('desa')}>Desa {slsTableSort.key==='desa' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSlsSort('sls')}>Nama SLS {slsTableSort.key==='sls' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSlsSort('namaPpl')}>Nama PPL {slsTableSort.key==='namaPpl' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSlsSort('namaPml')}>Nama PML {slsTableSort.key==='namaPml' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSlsSort('submit')}>Submit {slsTableSort.key==='submit' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSlsSort('approve')}>Approved PML {slsTableSort.key==='approve' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSlsSort('reject')}>Rejected PML {slsTableSort.key==='reject' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSlsSort('draft')}>Draf {slsTableSort.key==='draft' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSlsSort('open')}>Open {slsTableSort.key==='open' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSlsSort('target')}>Target {slsTableSort.key==='target' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-right" onClick={() => handleSlsSort('progres')}>Progres {slsTableSort.key==='progres' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {paginatedSlsTableData.map((row, idx) => {
+                const progresPct = row.target > 0 ? (row.submit / row.target) * 100 : 0;
+                return (
+                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-5 py-3 font-bold text-slate-700">{row.kecamatan}</td>
+                    <td className="px-5 py-3 text-slate-700">{row.desa}</td>
+                    <td className="px-5 py-3 text-slate-700 text-xs">{row.sls}</td>
+                    <td className="px-5 py-3 text-slate-600 text-xs font-bold">{row.namaPpl}</td>
+                    <td className="px-5 py-3 text-slate-500 text-xs">{row.namaPml}</td>
+                    <td className="px-5 py-3 text-center font-black text-emerald-600">{row.submit}</td>
+                    <td className="px-5 py-3 text-center text-blue-600 font-bold">{row.approve}</td>
+                    <td className="px-5 py-3 text-center text-rose-600 font-bold">{row.reject}</td>
+                    <td className="px-5 py-3 text-center text-amber-500 font-bold">{row.draft}</td>
+                    <td className="px-5 py-3 text-center text-slate-600 font-bold">{row.open}</td>
+                    <td className="px-5 py-3 text-center font-bold">{row.target}</td>
+                    <td className="px-5 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="font-bold text-slate-700 text-xs">{progresPct.toFixed(1)}%</span>
+                        <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, progresPct)}%` }} />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {paginatedSlsTableData.length === 0 && <tr><td colSpan={12} className="px-5 py-10 text-center text-slate-500">Tidak ada data.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+        {totalSlsTablePages > 1 && (
+          <div className="flex items-center justify-between bg-slate-50 px-6 py-4 border-t border-slate-100">
+            <button onClick={() => setSlsTablePage(p => Math.max(1, p - 1))} disabled={slsTablePage === 1} className="px-4 py-1.5 text-sm font-bold text-slate-500 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-30">Sebelumnya</button>
+            <span className="text-sm font-mono text-slate-500">Halaman {slsTablePage} / {totalSlsTablePages}</span>
+            <button onClick={() => setSlsTablePage(p => Math.min(totalSlsTablePages, p + 1))} disabled={slsTablePage === totalSlsTablePages} className="px-4 py-1.5 text-sm font-bold text-slate-600 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-30">Berikutnya</button>
           </div>
         )}
       </div>
