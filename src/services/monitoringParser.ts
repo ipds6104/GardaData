@@ -64,25 +64,25 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
       const cols = lines[i].split('\t').map(c => c.trim());
       if (cols.length < 3) continue;
 
-      const submit = iSub !== -1 && cols[iSub] ? parseInt(cols[iSub]) || 0 : 0;
-      const approve = iApp !== -1 && cols[iApp] ? parseInt(cols[iApp]) || 0 : 0;
-      const reject = iRej !== -1 && cols[iRej] ? parseInt(cols[iRej]) || 0 : 0;
+      const submit = cols[iSub] ? parseInt(cols[iSub]) || 0 : 0;
+      const approve = cols[iApp] ? parseInt(cols[iApp]) || 0 : 0;
+      const reject = cols[iRej] ? parseInt(cols[iRej]) || 0 : 0;
       
       const totalSubmit = submit + approve + reject;
 
       result.push({
-        kodeWilayah: iWilayah !== -1 ? cols[iWilayah] : '',
-        namaPpl: iPpl !== -1 ? cols[iPpl] : '',
-        namaPml: iPml !== -1 ? cols[iPml] : '',
-        kecamatan: iKec !== -1 ? cols[iKec] : '',
-        desa: iDesa !== -1 ? cols[iDesa] : '',
-        sls: iSls !== -1 ? cols[iSls] : '',
+        kodeWilayah: cols[iWilayah] || '',
+        namaPpl: cols[iPpl] || '',
+        namaPml: cols[iPml] || '',
+        kecamatan: cols[iKec] || '',
+        desa: cols[iDesa] || '',
+        sls: cols[iSls] || '',
         submit,
-        draft: iDraf !== -1 && cols[iDraf] ? parseInt(cols[iDraf]) || 0 : 0,
+        draft: cols[iDraf] ? parseInt(cols[iDraf]) || 0 : 0,
         approve,
         reject,
-        open: iOpn !== -1 && cols[iOpn] ? parseInt(cols[iOpn]) || 0 : 0,
-        target: iTgt !== -1 && cols[iTgt] ? parseInt(cols[iTgt]) || 0 : 0,
+        open: cols[iOpn] ? parseInt(cols[iOpn]) || 0 : 0,
+        target: cols[iTgt] ? parseInt(cols[iTgt]) || 0 : 0,
         totalSubmit
       });
     }
