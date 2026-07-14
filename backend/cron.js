@@ -82,19 +82,19 @@ async function runDailySnapshot() {
           const cols = lines[i].split('\t').map(c => c.trim());
           if (cols.length < 3) continue; // Empty row
           
-          const submit = idxSubmit !== -1 && cols[idxSubmit] ? (parseInt(cols[idxSubmit], 10) || 0) : 0;
-          const draft = idxDraft !== -1 && cols[idxDraft] ? (parseInt(cols[idxDraft], 10) || 0) : 0;
-          const approve = idxApprove !== -1 && cols[idxApprove] ? (parseInt(cols[idxApprove], 10) || 0) : 0;
-          const reject = idxReject !== -1 && cols[idxReject] ? (parseInt(cols[idxReject], 10) || 0) : 0;
-          const target = idxTarget !== -1 && cols[idxTarget] ? (parseInt(cols[idxTarget], 10) || 0) : 0;
+          const submit = cols[idxSubmit] ? (parseInt(cols[idxSubmit], 10) || 0) : 0;
+          const draft = cols[idxDraft] ? (parseInt(cols[idxDraft], 10) || 0) : 0;
+          const approve = cols[idxApprove] ? (parseInt(cols[idxApprove], 10) || 0) : 0;
+          const reject = cols[idxReject] ? (parseInt(cols[idxReject], 10) || 0) : 0;
+          const target = cols[idxTarget] ? (parseInt(cols[idxTarget], 10) || 0) : 0;
           
-          const rowSubmit = submit + approve + reject;
+          const rowSubmit = submit;
           totalSubmit += rowSubmit;
           totalDraft += draft;
           totalTarget += target;
 
-          const pplName = idxPpl !== -1 && cols[idxPpl] ? cols[idxPpl] : 'Unknown PPL';
-          const pmlName = idxPml !== -1 && cols[idxPml] ? cols[idxPml] : 'Unknown PML';
+          const pplName = cols[idxPpl] ? cols[idxPpl] : 'Unknown PPL';
+          const pmlName = cols[idxPml] ? cols[idxPml] : 'Unknown PML';
 
           // Save per PPL log
           await pool.query(

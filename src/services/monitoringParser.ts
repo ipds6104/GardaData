@@ -68,7 +68,7 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
       const approve = cols[iApp] ? parseInt(cols[iApp]) || 0 : 0;
       const reject = cols[iRej] ? parseInt(cols[iRej]) || 0 : 0;
       
-      const totalSubmit = submit + approve + reject;
+      const totalSubmit = submit;
 
       result.push({
         kodeWilayah: cols[iWilayah] || '',
