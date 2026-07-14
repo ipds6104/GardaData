@@ -42,19 +42,21 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
     const lines = text.split('\n');
     if (lines.length < 2) return [];
 
-    const headers = lines[0].toLowerCase().split('\t').map(h => h.trim());
-    const iWilayah = headers.findIndex(h => h.includes('kode wilayah'));
-    const iPpl = headers.findIndex(h => h.includes('nama ppl'));
-    const iPml = headers.findIndex(h => h.includes('nama pml'));
-    const iKec = headers.findIndex(h => h.includes('kecamatan'));
-    const iDesa = headers.findIndex(h => h.includes('desa'));
-    const iSls = headers.findIndex(h => h.includes('sls') || h.includes('wilayah kerja'));
-    const iSub = headers.findIndex(h => h === 'submit');
-    const iDraf = headers.findIndex(h => h === 'draf' || h === 'draft');
-    const iApp = headers.findIndex(h => h === 'approve' || h === 'approved');
-    const iRej = headers.findIndex(h => h === 'reject' || h === 'rejected');
-    const iOpn = headers.findIndex(h => h === 'open');
-    const iTgt = headers.findIndex(h => h === 'target');
+    // Sesuaikan indeks kolom dengan format baku Google Sheet dari user:
+    // 0: kode wilayah, 1: nama PPL, 2: nama PML, 3: nama Kecamatan, 4: nama Desa,
+    // 5: nama SLS/Wilayah Kerja, 6: submit, 7: draf, 8: approve, 9: reject, 10: open, 11: target
+    const iWilayah = 0;
+    const iPpl = 1;
+    const iPml = 2;
+    const iKec = 3;
+    const iDesa = 4;
+    const iSls = 5;
+    const iSub = 6;
+    const iDraf = 7;
+    const iApp = 8;
+    const iRej = 9;
+    const iOpn = 10;
+    const iTgt = 11;
 
     const result: MonitoringRow[] = [];
     

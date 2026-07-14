@@ -64,15 +64,14 @@ async function runDailySnapshot() {
         const lines = text.split('\n');
         if (lines.length < 2) continue; // No data
         
-        const header = lines[0].toLowerCase().split('\t').map(h => h.trim());
-        const idxSubmit = header.findIndex(h => h.includes('submit'));
-        const idxDraft = header.findIndex(h => h === 'draf' || h === 'draft');
-        const idxApprove = header.findIndex(h => h === 'approve' || h === 'approved');
-        const idxReject = header.findIndex(h => h === 'reject' || h === 'rejected');
-        const idxTarget = header.findIndex(h => h === 'target');
-        
-        const idxPpl = header.findIndex(h => h.includes('nama ppl'));
-        const idxPml = header.findIndex(h => h.includes('nama pml'));
+        // Gunakan indeks kolom yang baku berdasarkan urutan Google Sheet
+        const idxPpl = 1;
+        const idxPml = 2;
+        const idxSubmit = 6;
+        const idxDraft = 7;
+        const idxApprove = 8;
+        const idxReject = 9;
+        const idxTarget = 11;
         
         let totalSubmit = 0;
         let totalDraft = 0;
