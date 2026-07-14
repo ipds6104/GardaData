@@ -11,6 +11,8 @@ interface LMSButton {
   url: string;
   category: string;
   isActive: boolean;
+  startDate?: string;
+  endDate?: string;
 }
 
 interface LMSTraining {
@@ -65,9 +67,10 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [trainings, setTrainings] = useState<LMSTraining[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // View state: 'list' or 'detail'
-  const [view, setView] = useState<'list' | 'detail'>('list');
+  // View state: 'list' or 'detail' or 'iframe'
+  const [view, setView] = useState<'list' | 'detail' | 'iframe'>('list');
   const [selectedTrainingId, setSelectedTrainingId] = useState<string | null>(null);
+  const [iframeUrl, setIframeUrl] = useState<string>('');
 
   // Form states
   const [showForm, setShowForm] = useState(false);
@@ -77,8 +80,8 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   // Button form states
   const [showButtonForm, setShowButtonForm] = useState(false);
-  const [buttonFormData, setButtonFormData] = useState<{ id?: string, title: string, url: string, category: string, isActive: boolean }>({
-    title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true
+  const [buttonFormData, setButtonFormData] = useState<{ id?: string, title: string, url: string, category: string, isActive: boolean, startDate?: string, endDate?: string }>({
+    title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true, startDate: '', endDate: ''
   });
   
   // Custom Category Input mode
@@ -252,6 +255,16 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     setView('list');
   };
 
+  const openIframe = (url: string) => {
+    setIframeUrl(url);
+    setView('iframe');
+  };
+
+  const closeIframe = () => {
+    setIframeUrl('');
+    setView('detail');
+  };
+
   const visibleTrainings = trainings; // Admin sees all, Petugas sees all but inactive are labeled
   const activeTraining = trainings.find(t => t.id === selectedTrainingId);
 
@@ -386,7 +399,7 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             )}
           </div>
         </div>
-      ) : activeTraining ? (
+      ) : view === 'detail' && activeTraining ? (
         // ======================= VIEW: DETAIL =======================
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 md:space-y-8">
           {/* Header Pelatihan */}
@@ -452,25 +465,55 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
                   {btns.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                      {btns.map(btn => (
-                        <div key={btn.id} className={`group relative bg-white border-2 rounded-2xl transition-all ${btn.isActive ? `border-white hover:shadow-xl hover:-translate-y-1 ${theme.linkHover}` : 'border-slate-200 opacity-60'} flex overflow-hidden shadow-sm`}>
-                          <a href={btn.url} target="_blank" rel="noreferrer" className={`flex-grow p-4 flex items-center gap-4 ${btn.isActive ? '' : 'pointer-events-none'}`}>
-                            <div className={`p-3 rounded-xl ${btn.isActive ? `${theme.linkIconBg} ${theme.iconColor} ${theme.linkIconHover} group-hover:text-white transition-all` : 'bg-slate-100 text-slate-400'}`}>
-                              <ExternalLink className="w-5 h-5" />
-                            </div>
-                            <span className="font-bold text-slate-700 leading-tight pr-2 text-sm md:text-base">{btn.title}</span>
-                          </a>
+                      {btns.map(btn => {
+                        const now = new Date();
+                        const sDate = btn.startDate ? new Date(btn.startDate) : null;
+                        const eDate = btn.endDate ? new Date(btn.endDate) : null;
+                        const isNotOpen = sDate && now < sDate;
+                        const isClosed = eDate && now > eDate;
+                        const isLocked = !isAdmin && (isNotOpen || isClosed || !btn.isActive);
+                        
+                        let lockLabel = '';
+                        if (isNotOpen) lockLabel = 'Belum Dibuka';
+                        else if (isClosed) lockLabel = 'Sudah Ditutup';
+                        else if (!btn.isActive) lockLabel = 'Nonaktif';
+
+                        const isIframe = btn.url.trim().startsWith('<iframe');
+
+                        return (
+                        <div key={btn.id} className={`group relative bg-white border-2 rounded-2xl transition-all flex flex-col overflow-hidden shadow-sm ${!isLocked ? `border-white hover:shadow-xl hover:-translate-y-1 ${theme.linkHover}` : 'border-slate-200 opacity-70'}`}>
+                          {isIframe ? (
+                            <button onClick={() => !isLocked && openIframe(btn.url)} disabled={isLocked} className="flex-grow p-4 flex items-center gap-4 text-left w-full h-full">
+                              <div className={`p-3 shrink-0 rounded-xl ${!isLocked ? `${theme.linkIconBg} ${theme.iconColor} ${theme.linkIconHover} group-hover:text-white transition-all` : 'bg-slate-100 text-slate-400'}`}>
+                                <ExternalLink className="w-5 h-5" />
+                              </div>
+                              <div className="flex flex-col flex-grow">
+                                <span className="font-bold text-slate-700 leading-tight pr-2 text-sm md:text-base">{btn.title}</span>
+                                {lockLabel && <span className="text-xs font-bold text-rose-500 mt-1 uppercase flex items-center gap-1"><Lock className="w-3 h-3"/> {lockLabel}</span>}
+                              </div>
+                            </button>
+                          ) : (
+                            <a href={isLocked ? '#' : btn.url} target={isLocked ? '_self' : '_blank'} rel="noreferrer" className={`flex-grow p-4 flex items-center gap-4 ${isLocked ? 'pointer-events-none' : ''}`}>
+                              <div className={`p-3 shrink-0 rounded-xl ${!isLocked ? `${theme.linkIconBg} ${theme.iconColor} ${theme.linkIconHover} group-hover:text-white transition-all` : 'bg-slate-100 text-slate-400'}`}>
+                                <ExternalLink className="w-5 h-5" />
+                              </div>
+                              <div className="flex flex-col flex-grow">
+                                <span className="font-bold text-slate-700 leading-tight pr-2 text-sm md:text-base">{btn.title}</span>
+                                {lockLabel && <span className="text-xs font-bold text-rose-500 mt-1 uppercase flex items-center gap-1"><Lock className="w-3 h-3"/> {lockLabel}</span>}
+                              </div>
+                            </a>
+                          )}
                           {isAdmin && (
-                            <div className="flex flex-col border-l border-slate-100 bg-slate-50 shrink-0">
-                              <button onClick={() => toggleButtonStatus(activeTraining.id, btn.id)} className={`p-3 flex-1 transition-colors border-b border-slate-100 ${btn.isActive ? 'text-emerald-600 hover:bg-emerald-100' : 'text-slate-400 hover:bg-slate-200'}`} title={btn.isActive ? "Matikan Tautan" : "Aktifkan Tautan"}>
-                                {btn.isActive ? <Unlock className="w-4 h-4"/> : <Lock className="w-4 h-4"/>}
+                            <div className="flex border-t border-slate-100 bg-slate-50 shrink-0">
+                              <button onClick={() => toggleButtonStatus(activeTraining.id, btn.id)} className={`p-2 flex-1 transition-colors border-r border-slate-100 ${btn.isActive ? 'text-emerald-600 hover:bg-emerald-100' : 'text-slate-400 hover:bg-slate-200'}`} title={btn.isActive ? "Matikan Tautan" : "Aktifkan Tautan"}>
+                                {btn.isActive ? <Unlock className="w-4 h-4 mx-auto"/> : <Lock className="w-4 h-4 mx-auto"/>}
                               </button>
-                              <button onClick={() => { setButtonFormData(btn); setIsCustomCategory(!DEFAULT_CATEGORIES.includes(btn.category)); setShowButtonForm(true); }} className="p-3 flex-1 text-indigo-600 hover:bg-indigo-100 transition-colors border-b border-slate-100" title="Edit"><Edit2 className="w-4 h-4"/></button>
-                              <button onClick={() => handleDeleteButton(activeTraining.id, btn.id)} className="p-3 flex-1 text-rose-600 hover:bg-rose-100 transition-colors" title="Hapus"><Trash2 className="w-4 h-4"/></button>
+                              <button onClick={() => { setButtonFormData(btn); setIsCustomCategory(!DEFAULT_CATEGORIES.includes(btn.category)); setShowButtonForm(true); }} className="p-2 flex-1 text-indigo-600 hover:bg-indigo-100 transition-colors border-r border-slate-100" title="Edit"><Edit2 className="w-4 h-4 mx-auto"/></button>
+                              <button onClick={() => handleDeleteButton(activeTraining.id, btn.id)} className="p-2 flex-1 text-rose-600 hover:bg-rose-100 transition-colors" title="Hapus"><Trash2 className="w-4 h-4 mx-auto"/></button>
                             </div>
                           )}
                         </div>
-                      ))}
+                      )})}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-sm text-slate-400 font-bold border-2 border-dashed border-slate-200 rounded-2xl bg-white/50">Belum ada tautan yang ditambahkan di elemen ini</div>
@@ -479,6 +522,17 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               );
             })}
           </div>
+        </motion.div>
+      ) : view === 'iframe' ? (
+        // ======================= VIEW: IFRAME =======================
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col h-[85vh] bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-xl">
+           <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 bg-slate-50 shrink-0">
+             <button onClick={closeIframe} className="flex items-center gap-2 px-5 py-2.5 text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl font-bold transition-colors">
+               <ChevronLeft className="w-5 h-5"/> Kembali ke Pelatihan
+             </button>
+             <h3 className="font-bold text-slate-700 hidden sm:block">Pratinjau Sematan</h3>
+           </div>
+           <div className="flex-1 w-full h-full overflow-hidden iframe-container bg-slate-50/50" dangerouslySetInnerHTML={{ __html: iframeUrl.replace(/width="[^"]*"/, 'width="100%"').replace(/height="[^"]*"/, 'height="100%"') }} />
         </motion.div>
       ) : null}
 
@@ -539,8 +593,18 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   <input type="text" value={buttonFormData.title} onChange={e => setButtonFormData({...buttonFormData, title: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800" placeholder="Contoh: Kuis Pre-Test" required />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">URL Tautan</label>
-                  <input type="url" value={buttonFormData.url} onChange={e => setButtonFormData({...buttonFormData, url: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-blue-600" placeholder="https://..." required />
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">URL Tautan / Embed HTML</label>
+                  <input type="text" value={buttonFormData.url} onChange={e => setButtonFormData({...buttonFormData, url: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-blue-600" placeholder="https://... atau <iframe src=...>" required />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Waktu Buka (Opsional)</label>
+                    <input type="datetime-local" value={buttonFormData.startDate || ''} onChange={e => setButtonFormData({...buttonFormData, startDate: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Waktu Tutup (Opsional)</label>
+                    <input type="datetime-local" value={buttonFormData.endDate || ''} onChange={e => setButtonFormData({...buttonFormData, endDate: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700" />
+                  </div>
                 </div>
                 <div>
                   <div className="flex justify-between items-end mb-2">
