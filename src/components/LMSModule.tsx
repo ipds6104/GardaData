@@ -525,14 +525,14 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </motion.div>
       ) : view === 'iframe' ? (
         // ======================= VIEW: IFRAME =======================
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col h-[85vh] bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-xl">
+         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col h-[85vh] bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-xl">
            <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 bg-slate-50 shrink-0">
              <button onClick={closeIframe} className="flex items-center gap-2 px-5 py-2.5 text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl font-bold transition-colors">
                <ChevronLeft className="w-5 h-5"/> Kembali ke Pelatihan
              </button>
              <h3 className="font-bold text-slate-700 hidden sm:block">Pratinjau Sematan</h3>
            </div>
-           <div className="flex-1 w-full h-full overflow-hidden iframe-container bg-slate-50/50" dangerouslySetInnerHTML={{ __html: iframeUrl.replace(/width="[^"]*"/, 'width="100%"').replace(/height="[^"]*"/, 'height="100%"') }} />
+           <div className="flex-1 w-full h-full overflow-y-auto iframe-container bg-slate-50/50" style={{ WebkitOverflowScrolling: 'touch' }} dangerouslySetInnerHTML={{ __html: iframeUrl.replace(/width="[^"]*"/, 'width="100%"') }} />
         </motion.div>
       ) : null}
 
