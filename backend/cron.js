@@ -20,7 +20,7 @@ function getExportUrl(url, sheetName = '') {
     
     // Fallback: If sheetName is provided, we can't reliably get GID without Google API, 
     // so we trust the URL's GID or default to 0. 
-    return `https://docs.google.com/spreadsheets/d/${documentId}/export?format=tsv&gid=${gid}`;
+    return `https://docs.google.com/spreadsheets/d/${documentId}/export?format=tsv&gid=${gid}&t=${Date.now()}`;
   } catch (e) {
     console.error('Invalid URL:', url);
     return null;

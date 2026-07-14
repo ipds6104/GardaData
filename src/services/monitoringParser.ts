@@ -29,7 +29,7 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
       gid = urlObj.hash.split('gid=')[1].split('&')[0];
     }
 
-    const exportUrl = `https://docs.google.com/spreadsheets/d/${documentId}/export?format=tsv&gid=${gid}`;
+    const exportUrl = `https://docs.google.com/spreadsheets/d/${documentId}/export?format=tsv&gid=${gid}&t=${Date.now()}`;
     
     // Gunakan backend proxy untuk menghindari pemblokiran CORS oleh browser
     const baseUrl = (import.meta as any).env.VITE_API_URL || '';
