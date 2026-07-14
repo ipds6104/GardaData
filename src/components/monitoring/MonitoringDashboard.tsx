@@ -228,7 +228,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       stats[key].approve += d.approve;
       stats[key].reject += d.reject;
     });
-    return Object.entries(stats).map(([k, v]) => ({ name: k.split('|')[0], key: k, ...v })).sort((a, b) => b.submit - a.submit);
+    return Object.entries(stats).map(([k, v]) => ({ name: k.split('|')[0], key: k, ...v })).sort((a, b) => b.totalSubmit - a.totalSubmit);
   }, [headerFilteredData]);
 
   const mostActivePpl = pplStatsRaw.length > 0 ? pplStatsRaw[0] : null;
@@ -252,27 +252,29 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
     geoFilteredData.forEach(d => {
       const key = d[grouping as keyof MonitoringRow] as string;
       if (!key || (wilayahSearch && !key.toLowerCase().includes(wilayahSearch.toLowerCase()))) return;
-      if (!stats[key]) stats[key] = { name: key, submit: 0, target: 0 };
+      if (!stats[key]) stats[key] = { name: key, submit: 0, totalSubmit: 0, target: 0 };
       stats[key].submit += d.submit;
+      stats[key].totalSubmit += d.totalSubmit;
       stats[key].target += d.target;
     });
-    return Object.values(stats).sort((a, b) => b.submit - a.submit);
+    return Object.values(stats).sort((a, b) => b.totalSubmit - a.totalSubmit);
   }, [geoFilteredData, kecamatanFilter, desaFilter, wilayahSearch]);
 
   const slsStats = useMemo(() => {
-    const stats: Record<string, { submit: number, draft: number, target: number }> = {};
+    const stats: Record<string, { submit: number, totalSubmit: number, draft: number, target: number }> = {};
     headerFilteredData.forEach(d => {
       const key = `${d.kecamatan}-${d.desa}-${d.sls}`;
-      if (!stats[key]) stats[key] = { submit: 0, draft: 0, target: 0 };
+      if (!stats[key]) stats[key] = { submit: 0, totalSubmit: 0, draft: 0, target: 0 };
       stats[key].submit += d.submit;
+      stats[key].totalSubmit += d.totalSubmit;
       stats[key].draft += d.draft;
       stats[key].target += d.target;
     });
     let total = 0, selesai = 0, proses = 0, belum = 0;
     Object.values(stats).forEach(s => {
       total++;
-      if (s.submit > 0 && s.submit >= s.target) selesai++;
-      else if (s.submit > 0 || s.draft > 0) proses++;
+      if (s.totalSubmit > 0 && s.totalSubmit >= s.target) selesai++;
+      else if (s.totalSubmit > 0 || s.draft > 0) proses++;
       else belum++;
     });
     return { total, selesai, proses, belum };
@@ -312,27 +314,29 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
         supervisor: p.pml,
         target: p.target,
         submit: p.submit,
+        totalSubmit: p.totalSubmit,
         draft: p.draft,
         approve: p.approve,
         reject: p.reject,
         submitLive: 0, // Mock
-        rataRata: (p.submit / hariBerjalan).toFixed(2),
-        pct: p.target > 0 ? (p.submit / p.target) * 100 : 0
+        rataRata: (p.totalSubmit / hariBerjalan).toFixed(2),
+        pct: p.target > 0 ? (p.totalSubmit / p.target) * 100 : 0
       }));
     } else {
       const pmlMap: Record<string, any> = {};
       pplStatsRaw.forEach(p => {
-        if (!pmlMap[p.pml]) pmlMap[p.pml] = { id: p.pml, name: p.pml, supervisor: '-', target: 0, submit: 0, draft: 0, approve: 0, reject: 0, submitLive: 0 };
+        if (!pmlMap[p.pml]) pmlMap[p.pml] = { id: p.pml, name: p.pml, supervisor: '-', target: 0, submit: 0, totalSubmit: 0, draft: 0, approve: 0, reject: 0, submitLive: 0 };
         pmlMap[p.pml].target += p.target;
         pmlMap[p.pml].submit += p.submit;
+        pmlMap[p.pml].totalSubmit += p.totalSubmit;
         pmlMap[p.pml].draft += p.draft;
         pmlMap[p.pml].approve += p.approve;
         pmlMap[p.pml].reject += p.reject;
       });
       return Object.values(pmlMap).map(p => ({
         ...p,
-        rataRata: (p.submit / hariBerjalan).toFixed(2),
-        pct: p.target > 0 ? (p.submit / p.target) * 100 : 0
+        rataRata: (p.totalSubmit / hariBerjalan).toFixed(2),
+        pct: p.target > 0 ? (p.totalSubmit / p.target) * 100 : 0
       }));
     }
   }, [pplStatsRaw, tableMode, hariBerjalan]);
@@ -366,8 +370,8 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       let valA = a[slsTableSort.key];
       let valB = b[slsTableSort.key];
       if (slsTableSort.key === 'progres') {
-        valA = a.target > 0 ? (a.submit / a.target) * 100 : 0;
-        valB = b.target > 0 ? (b.submit / b.target) * 100 : 0;
+        valA = a.target > 0 ? (a.totalSubmit / a.target) * 100 : 0;
+        valB = b.target > 0 ? (b.totalSubmit / b.target) * 100 : 0;
       }
       if (typeof valA === 'string' && typeof valB === 'string') return slsTableSort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
       return slsTableSort.dir === 'asc' ? Number(valA) - Number(valB) : Number(valB) - Number(valA);
@@ -566,8 +570,8 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
         <div className="p-6 bg-slate-50/50">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedTrackerData.map((ppl, idx) => {
-              const pplProgressPct = ppl.target > 0 ? (ppl.submit / ppl.target) * 100 : 0;
-              const sisaDokumen = Math.max(0, ppl.target - ppl.submit);
+              const pplProgressPct = ppl.target > 0 ? (ppl.totalSubmit / ppl.target) * 100 : 0;
+              const sisaDokumen = Math.max(0, ppl.target - ppl.totalSubmit);
               const minPerHari = sisaHariKerja > 0 ? Math.ceil(sisaDokumen / sisaHariKerja) : sisaDokumen;
               return (
                 <div key={idx} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col">
@@ -594,7 +598,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                     </div>
                     <div className="border border-emerald-200 bg-emerald-50/30 rounded-lg p-2 text-center flex flex-col justify-center">
                       <p className="text-[9px] font-bold text-emerald-600 uppercase mb-1">TELAH SUBMIT</p>
-                      <p className="text-sm font-bold text-emerald-600">{ppl.submit} <span className="text-[10px] font-medium">({pplProgressPct.toFixed(1)}%)</span></p>
+                      <p className="text-sm font-bold text-emerald-600">{ppl.totalSubmit} <span className="text-[10px] font-medium">({pplProgressPct.toFixed(1)}%)</span></p>
                     </div>
                     <div className="border border-emerald-200 rounded-lg p-2 text-center flex flex-col justify-center">
                       <p className="text-[8px] font-bold text-emerald-600 uppercase mb-1">SUBMIT HARI INI (LIVE)</p>
@@ -666,7 +670,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                   <p className="font-bold text-slate-800 truncate text-sm">{ppl.name}</p>
                   <p className="text-[10px] text-slate-500 truncate">PML: {ppl.pml}</p>
                 </div>
-                <div className="text-right"><p className="font-black text-emerald-600 text-sm">{ppl.submit}</p></div>
+                <div className="text-right"><p className="font-black text-emerald-600 text-sm">{ppl.totalSubmit}</p></div>
               </div>
             ))}
             {pplStatsRaw.length === 0 && <p className="text-sm text-slate-500 text-center py-10">Belum ada data.</p>}
@@ -714,7 +718,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
               <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
               <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b' }} />
               <Bar dataKey="target" name="Target" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} />
-              <Bar dataKey="submit" name="Submit" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
+              <Bar dataKey="totalSubmit" name="Submit" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
             </BarChart>
           </ResponsiveContainer>
         </div>
