@@ -219,7 +219,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       if (!d.namaPpl) return;
       // Gunakan nama PPL dan PML sebagai unique key untuk mencegah merge data nama yang sama
       const key = `${d.namaPpl}|${d.namaPml}`;
-      if (!stats[key]) stats[key] = { submit: 0, totalSubmit: 0, draft: 0, target: 0, pml: d.namaPml, totalSls: 0, approve: 0, reject: 0 };
+      if (!stats[key]) stats[key] = { submit: 0, totalSubmit: 0, draft: 0, target: 0, pml: d.namaPml, totalSls: 0, approve: 0, reject: 0, open: 0 };
       stats[key].submit += d.submit; // Hanya kolom submit
       stats[key].totalSubmit += d.totalSubmit;
       stats[key].draft += d.draft;
@@ -227,6 +227,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       stats[key].totalSls += 1;
       stats[key].approve += d.approve;
       stats[key].reject += d.reject;
+      stats[key].open += d.open;
     });
     return Object.entries(stats).map(([k, v]) => ({ name: k.split('|')[0], key: k, ...v })).sort((a, b) => b.totalSubmit - a.totalSubmit);
   }, [headerFilteredData]);
@@ -573,8 +574,8 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
         <div className="p-6 bg-slate-50/50">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedTrackerData.map((ppl, idx) => {
-              const pplProgressPct = ppl.target > 0 ? (ppl.totalSubmit / ppl.target) * 100 : 0;
-              const sisaDokumen = Math.max(0, ppl.target - ppl.totalSubmit);
+              const sisaDokumen = ppl.open;
+              const pplProgressPct = ppl.target > 0 ? (ppl.submit / ppl.target) * 100 : 0;
               const minPerHari = sisaHariKerja > 0 ? Math.ceil(sisaDokumen / sisaHariKerja) : sisaDokumen;
               return (
                 <div key={idx} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col">
@@ -601,7 +602,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                     </div>
                     <div className="border border-emerald-200 bg-emerald-50/30 rounded-lg p-2 text-center flex flex-col justify-center">
                       <p className="text-[9px] font-bold text-emerald-600 uppercase mb-1">TELAH SUBMIT</p>
-                      <p className="text-sm font-bold text-emerald-600">{ppl.totalSubmit} <span className="text-[10px] font-medium">({pplProgressPct.toFixed(1)}%)</span></p>
+                      <p className="text-sm font-bold text-emerald-600">{ppl.submit} <span className="text-[10px] font-medium">({pplProgressPct.toFixed(1)}%)</span></p>
                     </div>
                     <div className="border border-emerald-200 rounded-lg p-2 text-center flex flex-col justify-center">
                       <p className="text-[8px] font-bold text-emerald-600 uppercase mb-1">SUBMIT HARI INI (LIVE)</p>
