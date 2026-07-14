@@ -525,8 +525,8 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </motion.div>
       ) : view === 'iframe' ? (
         // ======================= VIEW: IFRAME =======================
-         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col h-[85vh] bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-xl">
-           <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 bg-slate-50 shrink-0">
+         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed inset-0 z-[100] flex flex-col bg-white overflow-hidden">
+           <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 bg-slate-50 shrink-0 shadow-sm">
              <button onClick={closeIframe} className="flex items-center gap-2 px-5 py-2.5 text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl font-bold transition-colors">
                <ChevronLeft className="w-5 h-5"/> Kembali ke Pelatihan
              </button>
