@@ -489,7 +489,10 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
             <div>
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Akumulasi Progres Target</p>
               <div className="flex items-center justify-between">
-                <h3 className="text-3xl font-black text-slate-800">{totalTarget.toLocaleString()}</h3>
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-3xl font-black text-slate-800">{totalSubmitAll.toLocaleString()}</h3>
+                  <span className="text-xs font-medium text-slate-500">/ {totalTarget.toLocaleString()} Target</span>
+                </div>
                 <div className="bg-blue-50 px-2 py-1 rounded text-blue-600 text-[11px] font-bold">{progressPct}% Selesai</div>
               </div>
             </div>
