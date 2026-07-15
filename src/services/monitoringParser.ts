@@ -14,6 +14,54 @@ export interface MonitoringRow {
   totalSubmit: number; // calculated as submit + approve + reject
 }
 
+// Fungsi sederhana untuk parsing CSV (menangani koma di dalam tanda kutip)
+function parseCSV(text: string): string[][] {
+  const result: string[][] = [];
+  let currentRow: string[] = [];
+  let currentCell = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (i + 1 < text.length && text[i + 1] === '"') {
+          currentCell += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        currentCell += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ',') {
+        currentRow.push(currentCell.trim());
+        currentCell = '';
+      } else if (char === '\n' || char === '\r') {
+        currentRow.push(currentCell.trim());
+        result.push(currentRow);
+        currentRow = [];
+        currentCell = '';
+        if (char === '\r' && i + 1 < text.length && text[i + 1] === '\n') {
+          i++;
+        }
+      } else {
+        currentCell += char;
+      }
+    }
+  }
+  
+  if (currentCell !== '' || currentRow.length > 0) {
+    currentRow.push(currentCell.trim());
+    result.push(currentRow);
+  }
+  
+  return result;
+}
+
 export async function parseMonitoringSheet(sheetUrl: string, sheetName: string = ''): Promise<MonitoringRow[]> {
   try {
     const urlObj = new URL(sheetUrl);
@@ -29,7 +77,12 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
       gid = urlObj.hash.split('gid=')[1].split('&')[0];
     }
 
-    const exportUrl = `https://docs.google.com/spreadsheets/d/${documentId}/export?format=tsv&gid=${gid}&t=${Date.now()}`;
+    let exportUrl = '';
+    if (sheetName && sheetName.trim() !== '') {
+      exportUrl = `https://docs.google.com/spreadsheets/d/${documentId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName.trim())}`;
+    } else {
+      exportUrl = `https://docs.google.com/spreadsheets/d/${documentId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+    }
     
     // Gunakan backend proxy untuk menghindari pemblokiran CORS oleh browser
     const baseUrl = (import.meta as any).env.VITE_API_URL || '';
@@ -39,8 +92,8 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
     if (!res.ok) throw new Error('Failed to fetch sheet');
     
     const text = await res.text();
-    const lines = text.split('\n');
-    if (lines.length < 2) return [];
+    const parsedCsv = parseCSV(text);
+    if (parsedCsv.length < 2) return [];
 
     // Sesuaikan indeks kolom dengan format baku Google Sheet dari user:
     // 0: kode wilayah, 1: nama PPL, 2: nama PML, 3: nama Kecamatan, 4: nama Desa,
@@ -60,8 +113,8 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
 
     const result: MonitoringRow[] = [];
     
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split('\t').map(c => c.trim());
+    for (let i = 1; i < parsedCsv.length; i++) {
+      const cols = parsedCsv[i];
       if (cols.length < 3) continue;
 
       const submit = cols[iSub] ? parseInt(cols[iSub]) || 0 : 0;

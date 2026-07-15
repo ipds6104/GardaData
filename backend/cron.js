@@ -2,7 +2,6 @@ const cron = require('node-cron');
 const pool = require('./db');
 const crypto = require('crypto');
 
-// Helper to convert google sheet URL to TSV export URL
 function getExportUrl(url, sheetName = '') {
   try {
     const urlObj = new URL(url);
@@ -18,13 +17,61 @@ function getExportUrl(url, sheetName = '') {
       gid = urlObj.hash.split('gid=')[1].split('&')[0];
     }
     
-    // Fallback: If sheetName is provided, we can't reliably get GID without Google API, 
-    // so we trust the URL's GID or default to 0. 
-    return `https://docs.google.com/spreadsheets/d/${documentId}/export?format=tsv&gid=${gid}&t=${Date.now()}`;
+    if (sheetName && sheetName.trim() !== '') {
+      return `https://docs.google.com/spreadsheets/d/${documentId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName.trim())}`;
+    }
+    return `https://docs.google.com/spreadsheets/d/${documentId}/gviz/tq?tqx=out:csv&gid=${gid}`;
   } catch (e) {
     console.error('Invalid URL:', url);
     return null;
   }
+}
+
+function parseCSV(text) {
+  const result = [];
+  let currentRow = [];
+  let currentCell = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (i + 1 < text.length && text[i + 1] === '"') {
+          currentCell += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        currentCell += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ',') {
+        currentRow.push(currentCell.trim());
+        currentCell = '';
+      } else if (char === '\n' || char === '\r') {
+        currentRow.push(currentCell.trim());
+        result.push(currentRow);
+        currentRow = [];
+        currentCell = '';
+        if (char === '\r' && i + 1 < text.length && text[i + 1] === '\n') {
+          i++;
+        }
+      } else {
+        currentCell += char;
+      }
+    }
+  }
+  
+  if (currentCell !== '' || currentRow.length > 0) {
+    currentRow.push(currentCell.trim());
+    result.push(currentRow);
+  }
+  
+  return result;
 }
 
 // Function to run the snapshot
@@ -51,18 +98,20 @@ async function runDailySnapshot() {
           continue;
         }
 
-        const exportUrl = getExportUrl(config.sheetUrl);
+        const exportUrl = getExportUrl(config.sheetUrl, config.sheetName);
         if (!exportUrl) continue;
         
-        const response = await fetch(exportUrl);
+        // bypass CDN cache
+        const fetchUrl = `${exportUrl}&cb=${Date.now()}`;
+        const response = await fetch(fetchUrl);
         if (!response.ok) {
           console.error(`Failed to fetch sheet for config ${config.id}`);
           continue;
         }
         
         const text = await response.text();
-        const lines = text.split('\n');
-        if (lines.length < 2) continue; // No data
+        const parsedCsv = parseCSV(text);
+        if (parsedCsv.length < 2) continue; // No data
         
         // Gunakan indeks kolom yang baku berdasarkan urutan Google Sheet
         const idxPpl = 1;
@@ -78,8 +127,8 @@ async function runDailySnapshot() {
         let totalTarget = 0;
         
         // Skip header
-        for (let i = 1; i < lines.length; i++) {
-          const cols = lines[i].split('\t').map(c => c.trim());
+        for (let i = 1; i < parsedCsv.length; i++) {
+          const cols = parsedCsv[i];
           if (cols.length < 3) continue; // Empty row
           
           const submit = cols[idxSubmit] ? (parseInt(cols[idxSubmit], 10) || 0) : 0;
