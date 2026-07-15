@@ -33,9 +33,9 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
     
     // Gunakan backend proxy untuk menghindari pemblokiran CORS oleh browser
     const baseUrl = (import.meta as any).env.VITE_API_URL || '';
-    const proxyUrl = `${baseUrl}/api/monitoring/proxy-sheet?url=${encodeURIComponent(exportUrl)}`;
+    const proxyUrl = `${baseUrl}/api/monitoring/proxy-sheet?url=${encodeURIComponent(exportUrl)}&cb=${Date.now()}`;
     
-    const res = await fetch(proxyUrl);
+    const res = await fetch(proxyUrl, { cache: 'no-store' });
     if (!res.ok) throw new Error('Failed to fetch sheet');
     
     const text = await res.text();

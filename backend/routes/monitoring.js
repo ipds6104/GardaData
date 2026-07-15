@@ -107,6 +107,9 @@ router.get('/proxy-sheet', async (req, res) => {
     const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to fetch from Google Sheets');
     const text = await response.text();
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.send(text);
   } catch (error) {
     console.error('Proxy error:', error);
