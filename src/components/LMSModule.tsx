@@ -163,7 +163,9 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           title: buttonFormData.title,
           url: buttonFormData.url,
           category: buttonFormData.category,
-          isActive: buttonFormData.isActive
+          isActive: buttonFormData.isActive,
+          startDate: buttonFormData.startDate,
+          endDate: buttonFormData.endDate
         });
       }
 
@@ -435,8 +437,8 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           {/* Grup Elemen Pelatihan */}
           <div className="space-y-6 md:space-y-8">
             {currentCategories.map((category, idx) => {
-              const visibleButtons = isAdmin ? (activeTraining.buttons || []) : (activeTraining.buttons || []).filter(b => b.isActive);
-              const btns = visibleButtons.filter(b => b.category === category);
+              const visibleButtons = isAdmin ? (activeTraining.buttons || []) : (activeTraining.buttons || []).filter(b => b && b.isActive);
+              const btns = visibleButtons.filter(b => b && b.category === category);
               
               if (btns.length === 0 && !isAdmin) return null;
               
@@ -478,7 +480,7 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         else if (isClosed) lockLabel = 'Sudah Ditutup';
                         else if (!btn.isActive) lockLabel = 'Nonaktif';
 
-                        const isIframe = btn.url.trim().startsWith('<iframe');
+                        const isIframe = (btn.url || '').trim().startsWith('<iframe');
 
                         return (
                         <div key={btn.id} className={`group relative bg-white border-2 rounded-2xl transition-all flex flex-col overflow-hidden shadow-sm ${!isLocked ? `border-white hover:shadow-xl hover:-translate-y-1 ${theme.linkHover}` : 'border-slate-200 opacity-70'}`}>
@@ -526,13 +528,32 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       ) : view === 'iframe' ? (
         // ======================= VIEW: IFRAME =======================
          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed inset-0 z-[100] flex flex-col bg-white overflow-hidden">
-           <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 bg-slate-50 shrink-0 shadow-sm">
+           <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 bg-slate-50 shrink-0 shadow-sm gap-4">
              <button onClick={closeIframe} className="flex items-center gap-2 px-5 py-2.5 text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl font-bold transition-colors">
-               <ChevronLeft className="w-5 h-5"/> Kembali ke Pelatihan
+               <ChevronLeft className="w-5 h-5"/> <span className="hidden sm:inline">Kembali</span>
              </button>
-             <h3 className="font-bold text-slate-700 hidden sm:block">Pratinjau Sematan</h3>
+             <div className="flex items-center gap-3">
+               <span className="font-bold text-slate-700 hidden md:block mr-2">Tampilan Sematan</span>
+               {(() => {
+                 const match = iframeUrl.match(/src="([^"]+)"/);
+                 const srcUrl = match ? match[1] : '';
+                 if (srcUrl) {
+                   return (
+                     <a href={srcUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold transition-colors shadow-sm text-sm">
+                       Buka di Tab Baru <ExternalLink className="w-4 h-4"/>
+                     </a>
+                   );
+                 }
+                 return null;
+               })()}
+             </div>
            </div>
-           <div className="flex-1 w-full h-full overflow-y-auto iframe-container bg-slate-50/50" style={{ WebkitOverflowScrolling: 'touch' }} dangerouslySetInnerHTML={{ __html: iframeUrl.replace(/width="[^"]*"/, 'width="100%"') }} />
+           {/* Info banner for potential blocked iframes */}
+           <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs md:text-sm text-amber-800 flex items-center justify-center gap-2 shrink-0">
+             <HelpCircle className="w-4 h-4 shrink-0" />
+             <p>Jika layar di bawah ini kosong/error, browser Anda memblokir tampilannya. Silakan klik tombol <strong>"Buka di Tab Baru"</strong> di atas.</p>
+           </div>
+           <div className="flex-1 w-full h-full overflow-y-auto iframe-container bg-slate-50/50" style={{ WebkitOverflowScrolling: 'touch' }} dangerouslySetInnerHTML={{ __html: (iframeUrl || '').replace(/width="[^"]*"/, 'width="100%"') }} />
         </motion.div>
       ) : null}
 
