@@ -52,11 +52,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       title: 'PENDATAAN LAPANGAN',
       items: [
         { id: 'monitoring', label: 'Monitoring Dashboard', icon: Activity },
-        { id: 'building-area', label: 'Pengukuran Luas Bangunan', icon: Ruler },
         { id: 'cerdas-form', label: 'Laporan Pendataan', icon: FileEdit },
         { id: 'kbli-kbji', label: 'KBLI 2025 & KBJI 2014', icon: BookOpen },
         { id: 'imputation', label: 'Imputasi Susenas-Seruti', icon: FileEdit },
-        { id: 'infrastructure', label: 'Infrastruktur Desa', icon: Map }
+        { id: 'infrastructure', label: 'Infrastruktur Desa', icon: Map },
+        { id: 'building-area', label: 'Pengukuran Luas Bangunan', icon: Ruler }
       ]
     },
     {
