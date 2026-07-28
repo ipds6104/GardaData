@@ -214,7 +214,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
 
   // PPL Leaderboard
   const pplStatsRaw = useMemo(() => {
-    const stats: Record<string, { submit: number, totalSubmit: number, draft: number, target: number, pml: string, totalSls: number, approve: number, reject: number }> = {};
+    const stats: Record<string, { submit: number, totalSubmit: number, draft: number, target: number, pml: string, totalSls: number, approve: number, reject: number, open: number }> = {};
     headerFilteredData.forEach(d => {
       if (!d.namaPpl) return;
       // Gunakan nama PPL dan PML sebagai unique key untuk mencegah merge data nama yang sama
@@ -248,7 +248,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   const uniqueSls = useMemo(() => ['ALL', ...new Set(headerFilteredData.filter(d => desaFilter==='ALL' || d.desa===desaFilter).map(d => d.sls).filter(Boolean))], [headerFilteredData, desaFilter]);
 
   const geoChartData = useMemo(() => {
-    const stats: Record<string, { name: string, submit: number, target: number }> = {};
+    const stats: Record<string, { name: string, submit: number, totalSubmit: number, target: number }> = {};
     const grouping = kecamatanFilter === 'ALL' ? 'kecamatan' : (desaFilter === 'ALL' ? 'desa' : 'sls');
     geoFilteredData.forEach(d => {
       const key = d[grouping as keyof MonitoringRow] as string;

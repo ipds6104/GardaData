@@ -84,7 +84,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
         geojson: typeof record.geojson === 'string' ? JSON.parse(record.geojson) : record.geojson
       }));
 
-      const baseUrl = import.meta.env.VITE_API_URL || '';
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
       const response = await fetch(`${baseUrl}/api/measurements/sync`, {
         method: 'POST',
         headers,

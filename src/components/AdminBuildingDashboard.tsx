@@ -26,7 +26,7 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
           headers['Authorization'] = `Bearer ${token}`;
         }
         
-        const baseUrl = import.meta.env.VITE_API_URL || '';
+        const baseUrl = (import.meta as any).env.VITE_API_URL || '';
         const response = await fetch(`${baseUrl}/api/measurements`, { headers });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         
