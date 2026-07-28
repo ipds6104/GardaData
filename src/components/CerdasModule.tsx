@@ -20,19 +20,24 @@ export const CerdasModule: React.FC<CerdasModuleProps> = ({ onBack }) => {
   const [newTitle, setNewTitle] = useState('');
   const [newUrl, setNewUrl] = useState('');
 
-  useEffect(() => {
-    const saved = localStorage.getItem('garda_report_links');
-    if (saved) {
-      setLinks(JSON.parse(saved));
+  const fetchLinks = async () => {
+    try {
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/cerdas/links?t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+      if (res.ok) {
+        const data = await res.json();
+        setLinks(data);
+      }
+    } catch (err) {
+      console.error('Gagal mengambil tautan pelaporan', err);
     }
-  }, []);
-
-  const saveLinks = (newLinks: ReportLink[]) => {
-    setLinks(newLinks);
-    localStorage.setItem('garda_report_links', JSON.stringify(newLinks));
   };
 
-  const handleAddLink = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchLinks();
+  }, []);
+
+  const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newUrl.trim()) return;
     
@@ -41,29 +46,63 @@ export const CerdasModule: React.FC<CerdasModuleProps> = ({ onBack }) => {
       formattedUrl = 'https://' + formattedUrl;
     }
 
-    const newLink: ReportLink = {
-      id: `link_${Date.now()}`,
-      title: newTitle,
-      url: formattedUrl,
-      isOpen: true,
-    };
-
-    saveLinks([...links, newLink]);
-    setNewTitle('');
-    setNewUrl('');
+    try {
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/cerdas/links`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newTitle,
+          url: formattedUrl,
+          isOpen: true
+        })
+      });
+      
+      if (res.ok) {
+        setNewTitle('');
+        setNewUrl('');
+        fetchLinks();
+      }
+    } catch (err) {
+      console.error('Gagal menambah tautan', err);
+    }
   };
 
-  const handleToggleAccess = (id: string) => {
-    const updated = links.map(link => 
-      link.id === id ? { ...link, isOpen: !link.isOpen } : link
-    );
-    saveLinks(updated);
+  const handleToggleAccess = async (id: string) => {
+    const link = links.find(l => l.id === id);
+    if (!link) return;
+
+    try {
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/cerdas/links/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: link.title,
+          url: link.url,
+          isOpen: !link.isOpen
+        })
+      });
+      if (res.ok) {
+        fetchLinks();
+      }
+    } catch (err) {
+      console.error('Gagal mengubah status akses', err);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Yakin ingin menghapus tautan ini?')) {
-      const updated = links.filter(link => link.id !== id);
-      saveLinks(updated);
+  const handleDelete = async (id: string) => {
+    if (!confirm('Yakin ingin menghapus tautan ini?')) return;
+    try {
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/cerdas/links/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        fetchLinks();
+      }
+    } catch (err) {
+      console.error('Gagal menghapus tautan', err);
     }
   };
 

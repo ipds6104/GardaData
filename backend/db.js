@@ -99,6 +99,17 @@ async function initDB() {
       )
     `);
 
+    // Tabel Cerdas Report Links
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS cerdas_report_links (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        url TEXT NOT NULL,
+        isOpen BOOLEAN DEFAULT true,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     console.log('✅ Database tables verified/created successfully.');
     
     // Tabel Monitoring Log Harian (Per PPL)
