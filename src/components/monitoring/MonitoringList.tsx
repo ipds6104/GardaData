@@ -84,8 +84,34 @@ export const MonitoringList: React.FC<MonitoringListProps> = ({ onNavigateToDash
               {items.map(item => {
                 const theme = getThemeClasses(item.color);
                 const Icon = item.icon && ICON_MAP[item.icon] ? ICON_MAP[item.icon] : Activity;
-                const startDateStr = new Date(item.startDate).toLocaleDateString('id-ID', { day: 'numeric' });
-                const endDateStr = new Date(item.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                const formatPeriod = (startStr: string, endStr: string) => {
+                  try {
+                    const start = new Date(startStr);
+                    const end = new Date(endStr);
+                    
+                    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                    
+                    const startDay = start.getDate();
+                    const startMonth = months[start.getMonth()];
+                    const startYear = start.getFullYear();
+                    
+                    const endDay = end.getDate();
+                    const endMonth = months[end.getMonth()];
+                    const endYear = end.getFullYear();
+
+                    if (startYear !== endYear) {
+                      return `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
+                    } else if (startMonth !== endMonth) {
+                      return `${startDay} ${startMonth} - ${endDay} ${endMonth} ${startYear}`;
+                    } else if (startDay !== endDay) {
+                      return `${startDay}-${endDay} ${startMonth} ${startYear}`;
+                    } else {
+                      return `${startDay} ${startMonth} ${startYear}`;
+                    }
+                  } catch (e) {
+                    return `${startStr} - ${endStr}`;
+                  }
+                };
 
                 return (
                   <motion.button
@@ -110,7 +136,7 @@ export const MonitoringList: React.FC<MonitoringListProps> = ({ onNavigateToDash
                       </h3>
                       <div className={`flex items-center gap-2 text-sm font-bold ${theme.textMuted} uppercase tracking-wider`}>
                         <Calendar className="w-4 h-4" />
-                        <span>{startDateStr}-{endDateStr}</span>
+                        <span>{formatPeriod(item.startDate, item.endDate)}</span>
                       </div>
                     </div>
 
