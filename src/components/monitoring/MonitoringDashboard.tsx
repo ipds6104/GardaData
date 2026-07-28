@@ -174,7 +174,24 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
     else setIsSyncing(false);
   };
 
-  useEffect(() => { loadData(); }, [config]);
+  useEffect(() => {
+    // Reset filters when switching activity
+    setPmlFilter('ALL');
+    setPplFilter('ALL');
+    setTanggalFilter('ALL');
+    setWilayahSearch('');
+    setKecamatanFilter('ALL');
+    setDesaFilter('ALL');
+    setSlsFilter('ALL');
+    setTrackerSearch('');
+    setTableSearch('');
+    setSlsTableSearch('');
+    setTrackerPage(1);
+    setTablePage(1);
+    setSlsTablePage(1);
+    
+    loadData(); 
+  }, [config]);
 
   const sisaHariKerja = useMemo(() => {
     const end = new Date(config.endDate).getTime();

@@ -12,8 +12,20 @@ interface MonitoringModuleProps {
 export const MonitoringModule: React.FC<MonitoringModuleProps> = ({ onBack }) => {
   const { user } = useAuth();
   const [selectedConfig, setSelectedConfig] = useState<MonitoringConfig | null>(() => {
-    const saved = sessionStorage.getItem('garda_monitoring_selected_config');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = sessionStorage.getItem('garda_monitoring_selected_config');
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      // Validate that the stored config has all required fields to prevent stale data conflicts
+      if (!parsed?.id || !parsed?.sheetUrl || !parsed?.startDate || !parsed?.endDate) {
+        sessionStorage.removeItem('garda_monitoring_selected_config');
+        return null;
+      }
+      return parsed;
+    } catch {
+      sessionStorage.removeItem('garda_monitoring_selected_config');
+      return null;
+    }
   });
 
   React.useEffect(() => {
