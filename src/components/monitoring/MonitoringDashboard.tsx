@@ -439,7 +439,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+      <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-4 sticky top-0 z-30">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0">
             <ChevronLeft className="w-5 h-5 text-slate-600" />
@@ -540,8 +540,20 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                 <div className="bg-blue-50 px-2 py-1 rounded text-blue-600 text-[11px] font-bold">{progressPct}% Selesai</div>
               </div>
             </div>
-            <div className="w-full bg-slate-100 h-2 rounded-full mt-4 overflow-hidden">
+            <div className="w-full bg-slate-100 h-2 rounded-full mt-4 overflow-hidden relative">
+              {/* Marker for daily expected target */}
+              <div className="absolute top-0 h-full w-0.5 bg-red-400 z-10" style={{ left: `${Math.min(100, expectedTargetPct)}%` }} title={`Target Hari Ini: ${expectedTargetPct.toFixed(1)}%`} />
               <div className="bg-blue-600 h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, Number(progressPct))}%` }} />
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold">
+                <span className="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
+                <span className="text-slate-500">Target Hari Ini:</span>
+                <span className="text-red-500">{Math.round(totalTarget * expectedTargetPct / 100).toLocaleString()} dokumen ({expectedTargetPct.toFixed(1)}%)</span>
+              </div>
+              <span className={`text-[10px] font-bold ${Number(progressPct) >= expectedTargetPct ? 'text-emerald-500' : 'text-red-500'}`}>
+                {Number(progressPct) >= expectedTargetPct ? '✓ Di atas target' : '⚠ Di bawah target'}
+              </span>
             </div>
           </div>
         </div>
