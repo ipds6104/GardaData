@@ -18,55 +18,16 @@ function getExportUrl(url, sheetName = '') {
     }
     
     if (sheetName && sheetName.trim() !== '') {
-      return `https://docs.google.com/spreadsheets/d/${documentId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName.trim())}`;
+      return `https://docs.google.com/spreadsheets/d/${documentId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName.trim())}`;
     }
-    return `https://docs.google.com/spreadsheets/d/${documentId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+    return `https://docs.google.com/spreadsheets/d/${documentId}/gviz/tq?tqx=out:json&gid=${gid}`;
   } catch (e) {
     console.error('Invalid URL:', url);
     return null;
   }
 }
 
-function parseCSV(text) {
-  const lines = text.split(/\r?\n/);
-  const result = [];
-  
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    const row = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (inQuotes) {
-        if (char === '"') {
-          if (i + 1 < line.length && line[i + 1] === '"') {
-            current += '"';
-            i++;
-          } else {
-            inQuotes = false;
-          }
-        } else {
-          current += char;
-        }
-      } else {
-        if (char === '"') {
-          inQuotes = true;
-        } else if (char === ',') {
-          row.push(current.trim());
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-    }
-    row.push(current.trim());
-    result.push(row);
-  }
-  
-  return result;
-}
+// (parseCSV removed in favor of JSON parsing)
 
 // Function to run the snapshot
 async function runDailySnapshot() {
@@ -104,47 +65,64 @@ async function runDailySnapshot() {
         }
         
         const text = await response.text();
-        const parsedCsv = parseCSV(text);
-        if (parsedCsv.length < 2) continue; // No data
+        const jsonStr = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
+        let json;
+        try {
+          json = JSON.parse(jsonStr);
+        } catch(e) {
+          console.error(`Failed to parse JSON for config ${config.id}`);
+          continue;
+        }
         
-        // Gunakan indeks kolom yang baku berdasarkan urutan Google Sheet
-        const idxPpl = 1;
-        const idxPml = 2;
-        const idxSubmit = 6;
-        const idxDraft = 7;
-        const idxApprove = 8;
-        const idxReject = 9;
-        const idxTarget = 11;
+        const rows = json.table.rows;
+        if (!rows || rows.length < 1) continue; // No data
         
         let totalSubmit = 0;
         let totalDraft = 0;
         let totalTarget = 0;
         
-        // Skip header
-        for (let i = 1; i < parsedCsv.length; i++) {
-          const cols = parsedCsv[i];
-          if (cols.length < 3) continue; // Empty row
+        let lastPpl = 'Unknown PPL';
+        let lastPml = 'Unknown PML';
+
+        // Iterate all rows
+        for (let i = 0; i < rows.length; i++) {
+          const rowData = rows[i];
+          if (!rowData.c) continue; // skip invalid row
           
-          const submit = cols[idxSubmit] ? (parseInt(cols[idxSubmit], 10) || 0) : 0;
-          const draft = cols[idxDraft] ? (parseInt(cols[idxDraft], 10) || 0) : 0;
-          const approve = cols[idxApprove] ? (parseInt(cols[idxApprove], 10) || 0) : 0;
-          const reject = cols[idxReject] ? (parseInt(cols[idxReject], 10) || 0) : 0;
-          const target = cols[idxTarget] ? (parseInt(cols[idxTarget], 10) || 0) : 0;
+          const getVal = (idx) => rowData.c[idx] ? (rowData.c[idx].v || '') : '';
+          const getNum = (idx) => rowData.c[idx] ? (parseInt(rowData.c[idx].v, 10) || 0) : 0;
           
-          const rowSubmit = submit;
-          totalSubmit += rowSubmit;
+          const pplVal = String(getVal(1)).trim();
+          const pmlVal = String(getVal(2)).trim();
+          
+          if (pmlVal && pmlVal !== lastPml) {
+            lastPml = pmlVal;
+            lastPpl = ''; // Reset PPL name when PML changes
+          }
+          if (pplVal) lastPpl = pplVal;
+          
+          const effPpl = lastPpl || lastPml;
+          
+          const submit = getNum(6);
+          const draft = getNum(7);
+          const approve = getNum(8);
+          const reject = getNum(9);
+          const target = getNum(11);
+          
+          totalSubmit += submit;
           totalDraft += draft;
           totalTarget += target;
 
-          const pplName = cols[idxPpl] ? cols[idxPpl] : 'Unknown PPL';
-          const pmlName = cols[idxPml] ? cols[idxPml] : 'Unknown PML';
+          // We insert into log only if we have a valid PML or PPL.
+          // In real data, row 0 might be header, so let's skip if the name matches the header literally or is empty.
+          if (lastPml === 'nama PML' || !lastPml) continue;
 
           // Save per PPL log
           await pool.query(
             `INSERT INTO monitoring_log_harian (id, configId, tanggalUpdate, pml, ppl, submit, draft, total, statusSiklus) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE submit = VALUES(submit), draft = VALUES(draft), total = VALUES(total)`,
-            [crypto.randomUUID(), config.id, today, pmlName, pplName, rowSubmit, draft, rowSubmit + draft, 'Aktif']
+            [crypto.randomUUID(), config.id, today, lastPml, effPpl, submit, draft, submit + draft, 'Aktif']
           );
         }
         

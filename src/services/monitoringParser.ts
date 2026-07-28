@@ -106,10 +106,27 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
     const iTgt = 11;
 
     const result: MonitoringRow[] = [];
+    let lastPpl = '';
+    let lastPml = '';
+    let lastKec = '';
+    let lastDesa = '';
     
     for (let i = 1; i < parsedCsv.length; i++) {
       const cols = parsedCsv[i];
       if (cols.length < 3) continue;
+
+      const ppl = (cols[iPpl] || '').trim();
+      const pml = (cols[iPml] || '').trim();
+      const kec = (cols[iKec] || '').trim();
+      const desa = (cols[iDesa] || '').trim();
+
+      if (pml && pml !== lastPml) {
+        lastPml = pml;
+        lastPpl = ''; // Reset PPL name when PML changes
+      }
+      if (ppl) lastPpl = ppl;
+      if (kec) lastKec = kec;
+      if (desa) lastDesa = desa;
 
       const submit = cols[iSub] ? parseInt(cols[iSub]) || 0 : 0;
       const approve = cols[iApp] ? parseInt(cols[iApp]) || 0 : 0;
@@ -119,10 +136,10 @@ export async function parseMonitoringSheet(sheetUrl: string, sheetName: string =
 
       result.push({
         kodeWilayah: cols[iWilayah] || '',
-        namaPpl: cols[iPpl] || '',
-        namaPml: cols[iPml] || '',
-        kecamatan: cols[iKec] || '',
-        desa: cols[iDesa] || '',
+        namaPpl: lastPpl || lastPml,
+        namaPml: lastPml,
+        kecamatan: lastKec,
+        desa: lastDesa,
         sls: cols[iSls] || '',
         submit,
         draft: cols[iDraf] ? parseInt(cols[iDraf]) || 0 : 0,

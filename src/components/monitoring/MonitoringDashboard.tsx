@@ -7,6 +7,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
   LineChart, Line, Legend, AreaChart, Area
 } from 'recharts';
+import { toPng } from 'html-to-image';
+import { Download } from 'lucide-react';
 
 interface SearchableSelectProps {
   value: string;
@@ -91,6 +93,30 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<string>('');
   const [isSyncing, setIsSyncing] = useState(false);
+  const fullTableRef = React.useRef<HTMLDivElement>(null);
+  const [isDownloadingPNG, setIsDownloadingPNG] = useState(false);
+
+  const handleDownloadPNG = async () => {
+    if (!fullTableRef.current) return;
+    setIsDownloadingPNG(true);
+    try {
+      await new Promise(r => setTimeout(r, 100));
+      // Temporarily make sure it's fully rendered by setting a white background
+      const dataUrl = await toPng(fullTableRef.current, { 
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+        pixelRatio: 2
+      });
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `Progres_Petugas_${new Date().toISOString().split('T')[0]}.png`;
+      link.click();
+    } catch (err) {
+      console.error('Failed to generate PNG:', err);
+    } finally {
+      setIsDownloadingPNG(false);
+    }
+  };
 
   // Global Filters
   const [pmlFilter, setPmlFilter] = useState<string>('ALL');
@@ -743,6 +769,10 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input type="text" placeholder="Cari nama..." value={tableSearch} onChange={e => {setTableSearch(e.target.value); setTablePage(1);}} className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full sm:w-48" />
             </div>
+            <button onClick={handleDownloadPNG} disabled={isDownloadingPNG} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-sm font-bold transition-colors disabled:opacity-50">
+              {isDownloadingPNG ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {isDownloadingPNG ? 'Mengekspor...' : 'Unduh PNG'}
+            </button>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -753,6 +783,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('supervisor')}>Supervisor {tableSort.key==='supervisor' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSort('target')}>Target {tableSort.key==='target' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSort('submit')}>Submit {tableSort.key==='submit' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSort('draft')}>Draf {tableSort.key==='draft' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSort('approve')}>Approved PML {tableSort.key==='approve' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSort('reject')}>Rejected PML {tableSort.key==='reject' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSort('submitLive')}>Submit Hari Ini {tableSort.key==='submitLive' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
@@ -767,6 +798,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                   <td className="px-5 py-3 text-slate-500 text-xs">{row.supervisor}</td>
                   <td className="px-5 py-3 text-center font-medium">{row.target}</td>
                   <td className="px-5 py-3 text-center font-black text-emerald-600">{row.submit}</td>
+                  <td className="px-5 py-3 text-center text-amber-500 font-bold">{row.draft}</td>
                   <td className="px-5 py-3 text-center text-blue-600 font-bold">{row.approve}</td>
                   <td className="px-5 py-3 text-center text-rose-600 font-bold">{row.reject}</td>
                   <td className="px-5 py-3 text-center text-slate-600 font-bold">0</td>
@@ -781,7 +813,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                   </td>
                 </tr>
               ))}
-              {paginatedTableData.length === 0 && <tr><td colSpan={9} className="px-5 py-10 text-center text-slate-500">Tidak ada data.</td></tr>}
+              {paginatedTableData.length === 0 && <tr><td colSpan={10} className="px-5 py-10 text-center text-slate-500">Tidak ada data.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -894,6 +926,46 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
               )) : (
                 <tr><td colSpan={7} className="px-5 py-10 text-center text-slate-500 italic">Belum ada log terekam untuk kegiatan ini. Log akan di-generate otomatis setiap hari pukul 23:59.</td></tr>
               )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Hidden container for full table export */}
+      <div style={{ position: 'fixed', top: '-9999px', left: '-9999px', zIndex: -9999, pointerEvents: 'none' }}>
+        <div ref={fullTableRef} className="bg-white p-6 rounded-2xl w-[1200px]" style={{ fontFamily: "'Inter', sans-serif" }}>
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Users className="w-6 h-6 text-blue-500" />Akumulasi Progres Petugas ({tableMode})</h2>
+            <p className="text-slate-500 text-sm mt-1">Total {sortedTableData.length} Data | Diekspor pada: {new Date().toLocaleString('id-ID')}</p>
+          </div>
+          <table className="w-full text-left text-sm text-slate-600 border border-slate-200 rounded-lg overflow-hidden">
+            <thead className="bg-slate-100 text-[11px] uppercase font-bold text-slate-600 tracking-wider">
+              <tr>
+                <th className="px-5 py-3 border-b border-slate-200">Nama</th>
+                <th className="px-5 py-3 border-b border-slate-200">Supervisor</th>
+                <th className="px-5 py-3 border-b border-slate-200 text-center">Target</th>
+                <th className="px-5 py-3 border-b border-slate-200 text-center">Submit</th>
+                <th className="px-5 py-3 border-b border-slate-200 text-center">Draf</th>
+                <th className="px-5 py-3 border-b border-slate-200 text-center">Approved PML</th>
+                <th className="px-5 py-3 border-b border-slate-200 text-center">Rejected PML</th>
+                <th className="px-5 py-3 border-b border-slate-200 text-center">Rata-Rata</th>
+                <th className="px-5 py-3 border-b border-slate-200 text-right">Progres</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {sortedTableData.map((row, idx) => (
+                <tr key={idx}>
+                  <td className="px-5 py-3 font-bold text-slate-700">{row.name}</td>
+                  <td className="px-5 py-3 text-slate-500 text-xs">{row.supervisor}</td>
+                  <td className="px-5 py-3 text-center font-medium">{row.target}</td>
+                  <td className="px-5 py-3 text-center font-black text-emerald-600">{row.submit}</td>
+                  <td className="px-5 py-3 text-center text-amber-500 font-bold">{row.draft}</td>
+                  <td className="px-5 py-3 text-center text-blue-600 font-bold">{row.approve}</td>
+                  <td className="px-5 py-3 text-center text-rose-600 font-bold">{row.reject}</td>
+                  <td className="px-5 py-3 text-center text-slate-600 font-bold">{row.rataRata}</td>
+                  <td className="px-5 py-3 text-right font-bold text-slate-700">{row.pct.toFixed(1)}%</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
