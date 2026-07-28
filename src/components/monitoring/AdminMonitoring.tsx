@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Plus, Save, Trash2, Download, AlertCircle, Edit, Link as LinkIcon, Loader2, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu } from 'lucide-react';
+import { ChevronLeft, Plus, Save, Trash2, Download, AlertCircle, Edit, Link as LinkIcon, Loader2, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, RefreshCw, CheckCircle } from 'lucide-react';
 
 export const ICON_MAP: Record<string, React.ElementType> = {
   'ketenagakerjaan': Briefcase,
@@ -56,6 +56,28 @@ export const AdminMonitoring: React.FC<AdminMonitoringProps> = ({ onBack }) => {
   });
   
   const [noSubKegiatan, setNoSubKegiatan] = useState(false);
+  const [isTriggeringSnapshot, setIsTriggeringSnapshot] = useState(false);
+  const [triggerResult, setTriggerResult] = useState<'success' | 'error' | null>(null);
+
+  const handleTriggerSnapshot = async () => {
+    if (!window.confirm('Yakin ingin merekam data snapshot sekarang? Proses ini akan membaca semua Google Sheet dari kegiatan aktif dan menyimpannya ke database.')) return;
+    setIsTriggeringSnapshot(true);
+    setTriggerResult(null);
+    try {
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/monitoring/trigger-snapshot`, { method: 'POST' });
+      if (res.ok) {
+        setTriggerResult('success');
+      } else {
+        setTriggerResult('error');
+      }
+    } catch (err) {
+      console.error('Trigger error:', err);
+      setTriggerResult('error');
+    }
+    setIsTriggeringSnapshot(false);
+    setTimeout(() => setTriggerResult(null), 5000);
+  };
 
   const fetchConfigs = async () => {
     setLoading(true);
@@ -160,8 +182,28 @@ export const AdminMonitoring: React.FC<AdminMonitoringProps> = ({ onBack }) => {
           </button>
           <h1 className="text-2xl font-black text-slate-800">Manajemen Monitoring (Admin)</h1>
         </div>
-        {!isEditing && (
-          <div className="flex gap-4">
+      {!isEditing && (
+          <div className="flex gap-3">
+            {/* Trigger Snapshot Button */}
+            <button
+              onClick={handleTriggerSnapshot}
+              disabled={isTriggeringSnapshot}
+              className={`flex items-center gap-2 px-4 py-2 font-bold rounded-xl transition-colors ${
+                triggerResult === 'success' ? 'bg-emerald-500 text-white' :
+                triggerResult === 'error' ? 'bg-red-100 text-red-700' :
+                'bg-orange-100 text-orange-700 hover:bg-orange-200'
+              }`}
+            >
+              {isTriggeringSnapshot ? (
+                <><Loader2 className="w-4 h-4 animate-spin" />Merekam...</>
+              ) : triggerResult === 'success' ? (
+                <><CheckCircle className="w-4 h-4" />Berhasil Direkam!</>
+              ) : triggerResult === 'error' ? (
+                <><AlertCircle className="w-4 h-4" />Gagal, Coba Lagi</>
+              ) : (
+                <><RefreshCw className="w-4 h-4" />Rekam Data Sekarang</>
+              )}
+            </button>
             <button
               onClick={downloadTemplate}
               className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 font-bold rounded-xl hover:bg-emerald-200 transition-colors"

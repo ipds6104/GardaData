@@ -117,4 +117,17 @@ router.get('/proxy-sheet', async (req, res) => {
   }
 });
 
+// POST: Manually trigger daily snapshot (admin only)
+router.post('/trigger-snapshot', async (req, res) => {
+  try {
+    const { runDailySnapshot } = require('../cron');
+    // Run in background, respond immediately
+    res.json({ message: 'Snapshot trigger started. Data akan direkam dalam beberapa detik.' });
+    await runDailySnapshot();
+    console.log('[MANUAL TRIGGER] Daily snapshot completed successfully.');
+  } catch (error) {
+    console.error('[MANUAL TRIGGER] Error:', error);
+  }
+});
+
 module.exports = router;
