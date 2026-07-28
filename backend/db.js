@@ -84,6 +84,21 @@ async function initDB() {
       )
     `);
 
+    // Tabel LMS Trainings
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS lms_trainings (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        startDate DATE,
+        endDate DATE,
+        period VARCHAR(100),
+        icon VARCHAR(50) DEFAULT 'pendidikan',
+        isActive BOOLEAN DEFAULT true,
+        buttons JSON,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     console.log('✅ Database tables verified/created successfully.');
     
     // Tabel Monitoring Log Harian (Per PPL)

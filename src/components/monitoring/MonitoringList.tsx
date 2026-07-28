@@ -30,7 +30,7 @@ export const MonitoringList: React.FC<MonitoringListProps> = ({ onNavigateToDash
     const fetchConfigs = async () => {
       try {
         const baseUrl = (import.meta as any).env.VITE_API_URL || '';
-        const res = await fetch(`${baseUrl}/api/monitoring/configs`);
+        const res = await fetch(`${baseUrl}/api/monitoring/configs?t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
         if (res.ok) {
           const data: MonitoringConfig[] = await res.json();
           setConfigs(data.filter(d => Boolean(d.isActive)));

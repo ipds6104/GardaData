@@ -71,8 +71,10 @@ app.use(express.json({ limit: '2mb' }));
 // ==========================================
 const measurementsRouter = require('./routes/measurements');
 const monitoringRouter = require('./routes/monitoring');
+const lmsRouter = require('./routes/lms');
 app.use('/api/measurements', measurementsRouter);
 app.use('/api/monitoring', monitoringRouter);
+app.use('/api/lms', lmsRouter);
 
 // Root route for API verification (optional, can be removed)
 app.get('/api/status', (req, res) => {

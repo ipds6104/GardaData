@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink } from 'lucide-react';
-import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { useAuth } from '../lib/auth';
+import { collection, query, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 interface LMSButton {
   id: string;
@@ -87,16 +87,22 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   // Custom Category Input mode
   const [isCustomCategory, setIsCustomCategory] = useState(false);
 
-  useEffect(() => {
-    fetchTrainings();
-  }, []);
-
   const fetchTrainings = async () => {
     setLoading(true);
     try {
-      const snap = await getDocs(query(collection(db, 'lms_trainings'), orderBy('createdAt', 'desc')));
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as LMSTraining[];
-      setTrainings(data);
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/lms/configs?t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+      if (res.ok) {
+        const data = await res.json();
+        const formatted = data.map((d: any) => ({
+          ...d,
+          startDate: d.startDate ? d.startDate.split('T')[0] : '',
+          endDate: d.endDate ? d.endDate.split('T')[0] : '',
+          isActive: Boolean(d.isActive),
+          buttons: typeof d.buttons === 'string' ? JSON.parse(d.buttons) : (d.buttons || [])
+        })) as LMSTraining[];
+        setTrainings(formatted);
+      }
     } catch (err) {
       console.error('Gagal mengambil data pelatihan', err);
     } finally {
@@ -104,31 +110,71 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }
   };
 
+  const handleMigrateFromFirebase = async () => {
+    if (!confirm('Tarik semua data LMS lama dari Firebase ke MySQL sekarang?')) return;
+    setLoading(true);
+    try {
+      const snap = await getDocs(query(collection(db, 'lms_trainings'), orderBy('createdAt', 'asc')));
+      const oldData = snap.docs.map(d => d.data());
+      
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      for (const t of oldData) {
+        const payload = {
+          name: t.name,
+          startDate: t.startDate || null,
+          endDate: t.endDate || null,
+          icon: t.icon || 'pendidikan',
+          isActive: t.isActive !== false,
+          buttons: t.buttons || []
+        };
+        await fetch(`${baseUrl}/api/lms/configs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+      alert(`Berhasil mengembalikan ${oldData.length} data pelatihan beserta seluruh link-nya!`);
+      fetchTrainings();
+    } catch (err) {
+      console.error('Migration error:', err);
+      alert('Gagal melakukan migrasi.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrainings();
+  }, []);
+
   const handleSaveTraining = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (formData.id) {
-        await updateDoc(doc(db, 'lms_trainings', formData.id), {
-          name: formData.name,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          icon: formData.icon,
-          isActive: formData.isActive
-        });
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const method = formData.id ? 'PUT' : 'POST';
+      const url = formData.id ? `${baseUrl}/api/lms/configs/${formData.id}` : `${baseUrl}/api/lms/configs`;
+      
+      const payload = {
+        name: formData.name,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        icon: formData.icon,
+        isActive: formData.isActive
+      };
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        setShowForm(false);
+        setFormData({ name: '', startDate: '', endDate: '', icon: 'pendidikan', isActive: true });
+        fetchTrainings();
       } else {
-        await addDoc(collection(db, 'lms_trainings'), {
-          name: formData.name,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          icon: formData.icon,
-          isActive: formData.isActive,
-          buttons: [],
-          createdAt: serverTimestamp()
-        });
+        throw new Error('Server error');
       }
-      setShowForm(false);
-      setFormData({ name: '', startDate: '', endDate: '', icon: 'pendidikan', isActive: true });
-      fetchTrainings();
     } catch (err) {
       console.error(err);
       alert('Gagal menyimpan pelatihan');
@@ -138,9 +184,12 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const handleDeleteTraining = async (id: string) => {
     if (!confirm('Hapus pelatihan ini secara permanen?')) return;
     try {
-      await deleteDoc(doc(db, 'lms_trainings', id));
-      if (selectedTrainingId === id) setView('list');
-      fetchTrainings();
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/lms/configs/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        if (selectedTrainingId === id) setView('list');
+        fetchTrainings();
+      }
     } catch (err) {
       console.error(err);
     }
@@ -169,11 +218,20 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         });
       }
 
-      await updateDoc(doc(db, 'lms_trainings', selectedTrainingId), { buttons: newButtons });
-      setShowButtonForm(false);
-      setButtonFormData({ title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true });
-      setIsCustomCategory(false);
-      fetchTrainings();
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const payload = { ...training, buttons: newButtons };
+      const res = await fetch(`${baseUrl}/api/lms/configs/${selectedTrainingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        setShowButtonForm(false);
+        setButtonFormData({ title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true });
+        setIsCustomCategory(false);
+        fetchTrainings();
+      }
     } catch (err) {
       console.error(err);
       alert('Gagal menyimpan tautan');
@@ -187,8 +245,14 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     try {
       const newButtons = training.buttons.filter(b => b.id !== buttonId);
-      await updateDoc(doc(db, 'lms_trainings', trainingId), { buttons: newButtons });
-      fetchTrainings();
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const payload = { ...training, buttons: newButtons };
+      const res = await fetch(`${baseUrl}/api/lms/configs/${trainingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) fetchTrainings();
     } catch (err) {
       console.error(err);
     }
@@ -196,8 +260,14 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   const toggleTrainingStatus = async (t: LMSTraining) => {
     try {
-      await updateDoc(doc(db, 'lms_trainings', t.id), { isActive: !t.isActive });
-      fetchTrainings();
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const payload = { ...t, isActive: !t.isActive };
+      const res = await fetch(`${baseUrl}/api/lms/configs/${t.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) fetchTrainings();
     } catch (err) {}
   };
 
@@ -206,8 +276,14 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     if (!training) return;
     try {
       const newButtons = training.buttons.map(b => b.id === buttonId ? { ...b, isActive: !b.isActive } : b);
-      await updateDoc(doc(db, 'lms_trainings', trainingId), { buttons: newButtons });
-      fetchTrainings();
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const payload = { ...training, buttons: newButtons };
+      const res = await fetch(`${baseUrl}/api/lms/configs/${trainingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) fetchTrainings();
     } catch (err) {}
   };
 
@@ -296,9 +372,16 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             <p className="text-sm md:text-base text-slate-500 font-medium mt-2">Pusat materi, kuis, jadwal, dan instrumen pelatihan terpadu.</p>
           </div>
           {isAdmin && (
-            <button onClick={() => { setFormData({ name: '', startDate: '', endDate: '', icon: 'pendidikan', isActive: true }); setShowForm(true); }} className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors shrink-0">
-              <Plus className="w-5 h-5" /> Buat Pelatihan Baru
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              {trainings.length === 0 && (
+                <button onClick={handleMigrateFromFirebase} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors shrink-0">
+                  <ShieldCheck className="w-5 h-5" /> Migrasi Firebase
+                </button>
+              )}
+              <button onClick={() => { setFormData({ name: '', startDate: '', endDate: '', icon: 'pendidikan', isActive: true }); setShowForm(true); }} className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors shrink-0">
+                <Plus className="w-5 h-5" /> Buat Pelatihan Baru
+              </button>
+            </div>
           )}
         </div>
       )}

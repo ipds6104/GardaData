@@ -61,7 +61,7 @@ export const AdminMonitoring: React.FC<AdminMonitoringProps> = ({ onBack }) => {
     setLoading(true);
     try {
       const baseUrl = (import.meta as any).env.VITE_API_URL || '';
-      const res = await fetch(`${baseUrl}/api/monitoring/configs`);
+      const res = await fetch(`${baseUrl}/api/monitoring/configs?t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
       if (res.ok) {
         const data = await res.json();
         // format dates for input type="date"
@@ -134,22 +134,18 @@ export const AdminMonitoring: React.FC<AdminMonitoringProps> = ({ onBack }) => {
     }
   };
 
-  const downloadTemplate = () => {
-    const headers = ["kode wilayah", "nama PPL", "nama PML", "nama Kecamatan", "nama Desa", "nama SLS/Wilayah Kerja", "submit", "draf", "approve", "reject", "open", "target"];
-    // Menggunakan CSV dengan pemisah titik koma (;) agar otomatis terbaca dalam kolom oleh Excel versi Indonesia
-    const csvContent = headers.join(";") + "\n";
-    
-    // Menambahkan BOM (Byte Order Mark) agar Excel membaca file sebagai UTF-8 dengan benar
-    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
-    
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "template_monitoring.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadTemplate = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      const headers = [["kode wilayah", "nama PPL", "nama PML", "nama Kecamatan", "nama Desa", "nama SLS/Wilayah Kerja", "submit", "draf", "approve", "reject", "open", "target"]];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(headers);
+      XLSX.utils.book_append_sheet(wb, ws, "Template");
+      XLSX.writeFile(wb, "template_monitoring.xlsx");
+    } catch (err) {
+      console.error('Error downloading template:', err);
+      alert('Gagal mengunduh template. Pastikan library xlsx termuat.');
+    }
   };
 
   return (
