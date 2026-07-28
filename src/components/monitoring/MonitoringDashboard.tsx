@@ -184,11 +184,11 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   }, [config.endDate]);
 
   const hariBerjalan = useMemo(() => {
-    const start = new Date(2026, 5, 15).getTime();
+    const start = new Date(config.startDate).getTime();
     const now = new Date().getTime();
     const diff = Math.ceil((now - start) / (1000 * 60 * 60 * 24));
     return diff > 0 ? diff : 1;
-  }, []);
+  }, [config.startDate]);
 
   const uniquePml = useMemo(() => ['ALL', ...new Set(data.map(d => d.namaPml).filter(Boolean))], [data]);
   const uniquePpl = useMemo(() => {
@@ -230,13 +230,13 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   const draftPct = totalTarget > 0 ? ((totalDraft / totalTarget) * 100).toFixed(2) : '0';
 
   const expectedTargetPct = useMemo(() => {
-    const startDate = new Date(2026, 5, 15).getTime(); 
+    const startDate = new Date(config.startDate).getTime(); 
     const endDate = new Date(config.endDate).getTime();
     const now = new Date().getTime();
     const totalDuration = endDate - startDate;
     if (totalDuration <= 0) return 100;
     return Math.min(100, Math.max(0, ((now - startDate) / totalDuration) * 100));
-  }, [config.endDate]);
+  }, [config.startDate, config.endDate]);
 
   // PPL Leaderboard
   const pplStatsRaw = useMemo(() => {
