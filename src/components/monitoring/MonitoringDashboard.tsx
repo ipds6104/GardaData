@@ -147,6 +147,12 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   const [slsTableLimit, setSlsTableLimit] = useState<number>(15);
   const [slsTablePage, setSlsTablePage] = useState<number>(1);
 
+  // PPL Daily Delta Table State
+  const [pplDeltaSearch, setPplDeltaSearch] = useState('');
+  const [pplDeltaSort, setPplDeltaSort] = useState<{key: string, dir: 'asc'|'desc'}>({ key: 'addSubmit', dir: 'desc' });
+  const [pplDeltaLimit, setPplDeltaLimit] = useState<number>(15);
+  const [pplDeltaPage, setPplDeltaPage] = useState<number>(1);
+
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
     else setIsSyncing(true);
@@ -186,9 +192,11 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
     setTrackerSearch('');
     setTableSearch('');
     setSlsTableSearch('');
+    setPplDeltaSearch('');
     setTrackerPage(1);
     setTablePage(1);
     setSlsTablePage(1);
+    setPplDeltaPage(1);
     
     loadData(); 
   }, [config]);
@@ -329,20 +337,130 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   const slsBelumPct = slsStats.total > 0 ? ((slsStats.belum / slsStats.total) * 100).toFixed(1) : '0';
 
   const lineChartData = useMemo(() => {
-    if (snapshots.length === 0) return [];
-    const sorted = [...snapshots].sort((a, b) => new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime());
+    if (logs.length === 0) return [];
+    
+    // Group logs by date, applying PPL and PML filters
+    const sumByDate: Record<string, number> = {};
+    logs.forEach(log => {
+      if (pmlFilter !== 'ALL' && log.pml !== pmlFilter) return;
+      if (pplFilter !== 'ALL' && log.ppl !== pplFilter) return;
+
+      const d = new Date(log.tanggalUpdate);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      
+      if (!sumByDate[dateStr]) sumByDate[dateStr] = 0;
+      sumByDate[dateStr] += log.submit;
+    });
+
+    const sortedDates = Object.keys(sumByDate).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
     let prevSubmit = 0;
-    return sorted.map((snap) => {
-      const currentSubmit = snap.totalSubmit || 0;
+    
+    return sortedDates.map(date => {
+      const currentSubmit = sumByDate[date];
       const daily = Math.max(0, currentSubmit - prevSubmit);
       prevSubmit = currentSubmit;
       return {
-        date: snap.snapshotDate,
+        date: date,
         "Penambahan Harian": daily,
         "Akumulasi": currentSubmit
       };
     });
-  }, [snapshots]);
+  }, [logs, pmlFilter, pplFilter]);
+
+  // PPL Daily Delta Computation based on Logs
+  const pplDailyDeltaData = useMemo(() => {
+    if (logs.length === 0) return [];
+    
+    // Group logs by PPL+PML
+    const logsByPpl: Record<string, any[]> = {};
+    logs.forEach(log => {
+      const pplKey = `${log.ppl}|${log.pml}`;
+      if (!logsByPpl[pplKey]) logsByPpl[pplKey] = [];
+      logsByPpl[pplKey].push(log);
+    });
+
+    // Sort logs inside each PPL group by date ASC
+    Object.values(logsByPpl).forEach(arr => {
+      arr.sort((a, b) => new Date(a.tanggalUpdate).getTime() - new Date(b.tanggalUpdate).getTime());
+    });
+
+    // Find all unique dates in logs
+    const allDates = [...new Set(logs.map(l => {
+        const d = new Date(l.tanggalUpdate);
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+    if (allDates.length === 0) return [];
+
+    let targetDateStr = allDates[0]; // default to newest
+    if (tanggalFilter !== 'ALL') {
+       const tfDate = new Date(tanggalFilter);
+       const tfStr = `${tfDate.getFullYear()}-${String(tfDate.getMonth()+1).padStart(2, '0')}-${String(tfDate.getDate()).padStart(2, '0')}`;
+       if (allDates.includes(tfStr)) {
+         targetDateStr = tfStr;
+       }
+    }
+
+    const results: any[] = [];
+    Object.keys(logsByPpl).forEach(pplKey => {
+       const arr = logsByPpl[pplKey];
+       // Find the log matching targetDateStr
+       const targetIdx = arr.findIndex(l => {
+          const d = new Date(l.tanggalUpdate);
+          const str = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          return str === targetDateStr;
+       });
+
+       if (targetIdx !== -1) {
+          const targetLog = arr[targetIdx];
+          const prevLog = targetIdx > 0 ? arr[targetIdx - 1] : null;
+
+          const addSubmit = prevLog ? Math.max(0, targetLog.submit - prevLog.submit) : targetLog.submit;
+          const addDraft = prevLog ? (targetLog.draft - prevLog.draft) : targetLog.draft;
+          const addApprove = prevLog ? Math.max(0, (targetLog.approve || 0) - (prevLog.approve || 0)) : (targetLog.approve || 0);
+
+          // Apply Global Filters
+          if (pmlFilter !== 'ALL' && targetLog.pml !== pmlFilter) return;
+          if (pplFilter !== 'ALL' && targetLog.ppl !== pplFilter) return;
+
+          results.push({
+             id: pplKey,
+             ppl: targetLog.ppl,
+             pml: targetLog.pml,
+             submit: targetLog.submit,
+             draft: targetLog.draft,
+             approve: targetLog.approve || 0,
+             addSubmit,
+             addDraft,
+             addApprove,
+             date: targetDateStr
+          });
+       }
+    });
+
+    return results;
+  }, [logs, tanggalFilter, pmlFilter, pplFilter]);
+
+  const sortedPplDeltaData = useMemo(() => {
+    const filtered = pplDailyDeltaData.filter(d => 
+      !pplDeltaSearch || 
+      d.ppl.toLowerCase().includes(pplDeltaSearch.toLowerCase()) || 
+      d.pml.toLowerCase().includes(pplDeltaSearch.toLowerCase())
+    );
+    return filtered.sort((a, b) => {
+      let valA = a[pplDeltaSort.key];
+      let valB = b[pplDeltaSort.key];
+      if (typeof valA === 'string' && typeof valB === 'string') return pplDeltaSort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      return pplDeltaSort.dir === 'asc' ? Number(valA) - Number(valB) : Number(valB) - Number(valA);
+    });
+  }, [pplDailyDeltaData, pplDeltaSearch, pplDeltaSort]);
+
+  const paginatedPplDeltaData = useMemo(() => sortedPplDeltaData.slice((pplDeltaPage - 1) * pplDeltaLimit, pplDeltaPage * pplDeltaLimit), [sortedPplDeltaData, pplDeltaPage, pplDeltaLimit]);
+  const totalPplDeltaPages = Math.ceil(sortedPplDeltaData.length / pplDeltaLimit) || 1;
+
+  const handlePplDeltaSort = (key: string) => {
+    setPplDeltaSort(prev => ({ key, dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc' }));
+  };
 
   // Tracker Pagination
   const filteredTrackerData = useMemo(() => pplStatsRaw.filter(p => !trackerSearch || p.name.toLowerCase().includes(trackerSearch.toLowerCase())), [pplStatsRaw, trackerSearch]);
@@ -439,23 +557,30 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-4 sticky top-0 z-30">
-        <div className="flex items-center gap-4">
+      <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-3 sticky top-0 z-30">
+        {/* Row 1: Back button + Title + Subtitle */}
+        <div className="flex items-center gap-3">
           <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0">
             <ChevronLeft className="w-5 h-5 text-slate-600" />
           </button>
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">{config.kegiatan}</h1>
-            <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              {config.subKegiatan || "Monitoring Interaktif"}
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl font-bold text-slate-800 leading-tight">{config.kegiatan}</h1>
+            <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+              <span className="truncate">{config.subKegiatan || "Monitoring Interaktif"}</span>
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 transition-colors">
-            <Filter className="w-4 h-4 text-slate-400" />
+        {/* Row 2 (mobile) / Right section (desktop): Filters + Sync */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 xl:pb-0 xl:flex-wrap xl:gap-3">
+          {/* Filter icon prefix – visible on mobile only */}
+          <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 bg-slate-100 rounded-lg xl:hidden">
+            <Filter className="w-4 h-4 text-slate-500" />
+          </div>
+
+          <div className="flex-shrink-0 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 transition-colors">
+            <Filter className="w-4 h-4 text-slate-400 hidden xl:block" />
             <SearchableSelect 
               value={pmlFilter}
               onChange={val => { setPmlFilter(val); setPplFilter('ALL'); }}
@@ -465,7 +590,8 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
               prefix="PML: "
             />
           </div>
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 transition-colors">
+
+          <div className="flex-shrink-0 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 transition-colors xl:flex hidden">
             <SearchableSelect 
               value={pplFilter}
               onChange={setPplFilter}
@@ -475,7 +601,8 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
               prefix="PPL: "
             />
           </div>
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5">
+
+          <div className="flex-shrink-0 items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 xl:flex hidden">
             <Clock className="w-4 h-4 text-slate-400" />
             <SearchableSelect 
               value={tanggalFilter}
@@ -486,9 +613,15 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
               prefix="Tgl: "
             />
           </div>
-          <button onClick={() => loadData(true)} disabled={isSyncing} className="flex items-center gap-2 h-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-70">
+
+          {/* Sync button: icon-only on mobile, icon+text on desktop */}
+          <button
+            onClick={() => loadData(true)}
+            disabled={isSyncing}
+            className="flex-shrink-0 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-70 px-3 py-2 xl:px-4 xl:py-3"
+          >
             <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            Sync
+            <span className="hidden xl:inline">Sync</span>
           </button>
         </div>
       </div>
@@ -737,6 +870,132 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
         </div>
       </div>
 
+      {/* Tabel Penambahan Submit & Draft Harian Menurut PPL & PML */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <Users className="w-5 h-5 text-indigo-500" />
+              Penambahan Harian Menurut Petugas
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Menampilkan {paginatedPplDeltaData.length} dari {pplDailyDeltaData.length} petugas pada tanggal {pplDailyDeltaData.length > 0 ? new Date(pplDailyDeltaData[0].date).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="relative w-full md:w-64">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input 
+                type="text" 
+                placeholder="Cari nama PPL atau PML..." 
+                value={pplDeltaSearch} 
+                onChange={e => {setPplDeltaSearch(e.target.value); setPplDeltaPage(1);}} 
+                className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 w-full transition-colors" 
+              />
+            </div>
+          </div>
+        </div>
+
+        {pplDailyDeltaData.length === 0 ? (
+          <div className="py-16 text-center text-slate-400 text-sm">
+            Belum ada data penambahan harian petugas untuk tanggal tersebut.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 text-left">
+                  <th className="px-5 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-slate-100" onClick={() => handlePplDeltaSort('ppl')}>
+                    Nama PPL {pplDeltaSort.key === 'ppl' && (pplDeltaSort.dir === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-5 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-slate-100" onClick={() => handlePplDeltaSort('pml')}>
+                    Supervisor (PML) {pplDeltaSort.key === 'pml' && (pplDeltaSort.dir === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-5 py-3 text-[11px] font-bold text-emerald-600 uppercase tracking-wider whitespace-nowrap text-center cursor-pointer hover:bg-slate-100" onClick={() => handlePplDeltaSort('addSubmit')}>
+                    + Submit Harian {pplDeltaSort.key === 'addSubmit' && (pplDeltaSort.dir === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-5 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap text-center cursor-pointer hover:bg-slate-100" onClick={() => handlePplDeltaSort('submit')}>
+                    Total Submit {pplDeltaSort.key === 'submit' && (pplDeltaSort.dir === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-5 py-3 text-[11px] font-bold text-amber-600 uppercase tracking-wider whitespace-nowrap text-center cursor-pointer hover:bg-slate-100" onClick={() => handlePplDeltaSort('addDraft')}>
+                    ± Draft Harian {pplDeltaSort.key === 'addDraft' && (pplDeltaSort.dir === 'asc' ? '↑' : '↓')}
+                  </th>
+                  <th className="px-5 py-3 text-[11px] font-bold text-blue-600 uppercase tracking-wider whitespace-nowrap text-center cursor-pointer hover:bg-slate-100" onClick={() => handlePplDeltaSort('addApprove')}>
+                    + Approve Harian {pplDeltaSort.key === 'addApprove' && (pplDeltaSort.dir === 'asc' ? '↑' : '↓')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {paginatedPplDeltaData.map((row, idx) => (
+                  <tr key={row.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="px-5 py-3 font-semibold text-slate-800">{row.ppl}</td>
+                    <td className="px-5 py-3 text-slate-500">{row.pml}</td>
+                    <td className="px-5 py-3 text-center">
+                      <span className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${
+                        row.addSubmit > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-50 text-slate-400'
+                      }`}>
+                        {row.addSubmit > 0 ? '+' : ''}{row.addSubmit}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-center font-bold text-slate-700">{row.submit}</td>
+                    <td className="px-5 py-3 text-center">
+                      <span className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${
+                        row.addDraft > 0 ? 'bg-amber-100 text-amber-700' : row.addDraft < 0 ? 'bg-rose-100 text-rose-600' : 'bg-slate-50 text-slate-400'
+                      }`}>
+                        {row.addDraft > 0 ? '+' : ''}{row.addDraft}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      <span className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${
+                        row.addApprove > 0 ? 'bg-blue-100 text-blue-700' : 'bg-slate-50 text-slate-400'
+                      }`}>
+                        {row.addApprove > 0 ? '+' : ''}{row.addApprove}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-slate-100 border-t-2 border-slate-200">
+                  <td colSpan={2} className="px-5 py-3 text-xs font-bold text-slate-600 uppercase text-right">Total Keseluruhan</td>
+                  <td className="px-5 py-3 text-center font-black text-emerald-700">
+                    +{sortedPplDeltaData.reduce((acc, row) => acc + row.addSubmit, 0)}
+                  </td>
+                  <td className="px-5 py-3 text-center font-black text-slate-700">
+                    {sortedPplDeltaData.reduce((acc, row) => acc + row.submit, 0)}
+                  </td>
+                  <td className="px-5 py-3 text-center font-black text-amber-600">
+                    {(() => { const t = sortedPplDeltaData.reduce((acc, row) => acc + row.addDraft, 0); return t > 0 ? `+${t}` : t; })()}
+                  </td>
+                  <td className="px-5 py-3 text-center font-black text-blue-600">
+                    +{sortedPplDeltaData.reduce((acc, row) => acc + row.addApprove, 0)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+        {totalPplDeltaPages > 1 && (
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <button 
+              onClick={() => setPplDeltaPage(p => Math.max(1, p - 1))} 
+              disabled={pplDeltaPage === 1} 
+              className="px-4 py-1.5 text-sm font-bold text-slate-600 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+            >
+              Sebelumnya
+            </button>
+            <span className="text-sm font-mono text-slate-500">Hal {pplDeltaPage} / {totalPplDeltaPages}</span>
+            <button 
+              onClick={() => setPplDeltaPage(p => Math.min(totalPplDeltaPages, p + 1))} 
+              disabled={pplDeltaPage === totalPplDeltaPages} 
+              className="px-4 py-1.5 text-sm font-bold text-slate-600 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+            >
+              Berikutnya
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><MapPin className="w-5 h-5 text-rose-500" />Progres Menurut Geografis</h2>
@@ -938,7 +1197,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
             <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 sticky top-0 shadow-sm">
               <tr>
                 <th className="px-5 py-3">Tanggal Update</th><th className="px-5 py-3">Supervisor (PML)</th><th className="px-5 py-3">Petugas (PPL)</th>
-                <th className="px-5 py-3">SUBMIT ↓</th><th className="px-5 py-3">DRAFT</th><th className="px-5 py-3">TOTAL</th><th className="px-5 py-3">Status Siklus</th>
+                <th className="px-5 py-3">SUBMIT ↓</th><th className="px-5 py-3">DRAFT</th><th className="px-5 py-3">APPROVE PML</th><th className="px-5 py-3">TOTAL</th><th className="px-5 py-3">Status Siklus</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -949,11 +1208,12 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                   <td className="px-5 py-3 font-bold text-slate-700">{log.ppl}</td>
                   <td className="px-5 py-3 font-black text-emerald-600">{log.submit}</td>
                   <td className="px-5 py-3 font-bold text-amber-500">{log.draft}</td>
+                  <td className="px-5 py-3 font-bold text-blue-600">{log.approve || 0}</td>
                   <td className="px-5 py-3 font-bold">{log.total}</td>
                   <td className="px-5 py-3"><span className="bg-emerald-50 text-emerald-600 px-2 py-1 rounded text-xs font-bold">{log.statusSiklus}</span></td>
                 </tr>
               )) : (
-                <tr><td colSpan={7} className="px-5 py-10 text-center text-slate-500 italic">Belum ada log terekam untuk kegiatan ini. Log akan di-generate otomatis setiap hari pukul 23:59.</td></tr>
+                <tr><td colSpan={8} className="px-5 py-10 text-center text-slate-500 italic">Belum ada log terekam untuk kegiatan ini. Log akan di-generate otomatis setiap hari pukul 23:59.</td></tr>
               )}
             </tbody>
           </table>

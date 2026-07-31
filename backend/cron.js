@@ -119,10 +119,10 @@ async function runDailySnapshot() {
 
           // Save per PPL log
           await pool.query(
-            `INSERT INTO monitoring_log_harian (id, configId, tanggalUpdate, pml, ppl, submit, draft, total, statusSiklus) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE submit = VALUES(submit), draft = VALUES(draft), total = VALUES(total)`,
-            [crypto.randomUUID(), config.id, today, lastPml, effPpl, submit, draft, submit + draft, 'Aktif']
+            `INSERT INTO monitoring_log_harian (id, configId, tanggalUpdate, pml, ppl, submit, draft, approve, total, statusSiklus) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE submit = VALUES(submit), draft = VALUES(draft), approve = VALUES(approve), total = VALUES(total)`,
+            [crypto.randomUUID(), config.id, today, lastPml, effPpl, submit, draft, approve, submit + draft, 'Aktif']
           );
         }
         

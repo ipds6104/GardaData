@@ -122,6 +122,7 @@ async function initDB() {
         ppl VARCHAR(255),
         submit INT DEFAULT 0,
         draft INT DEFAULT 0,
+        approve INT DEFAULT 0,
         total INT DEFAULT 0,
         statusSiklus VARCHAR(100),
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -135,6 +136,13 @@ async function initDB() {
       await connection.query(`ALTER TABLE monitoring_log_harian ADD UNIQUE KEY unique_log (configId, tanggalUpdate, ppl)`);
     } catch (e) {
       // Key probably already exists or table has duplicates
+    }
+
+    // Ensure approve column exists
+    try {
+      await connection.query(`ALTER TABLE monitoring_log_harian ADD COLUMN approve INT DEFAULT 0`);
+    } catch (e) {
+      // Column probably already exists
     }
     
     connection.release();
