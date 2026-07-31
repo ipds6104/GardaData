@@ -17,9 +17,10 @@ interface SearchableSelectProps {
   placeholder: string;
   searchPlaceholder: string;
   prefix?: string;
+  formatLabel?: (val: string) => string;
 }
 
-const SearchableSelect: React.FC<SearchableSelectProps> = ({ value, onChange, options, placeholder, searchPlaceholder, prefix = '' }) => {
+const SearchableSelect: React.FC<SearchableSelectProps> = ({ value, onChange, options, placeholder, searchPlaceholder, prefix = '', formatLabel }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const dropdownRef = React.useRef<HTMLDivElement>(null);
@@ -34,8 +35,9 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({ value, onChange, op
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
-  const displayValue = value === 'ALL' ? placeholder : `${prefix}${value}`;
+  const getLabel = (opt: string) => formatLabel ? formatLabel(opt) : opt;
+  const filtered = options.filter(o => getLabel(o).toLowerCase().includes(search.toLowerCase()));
+  const displayValue = value === 'ALL' ? placeholder : `${prefix}${getLabel(value)}`;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -68,7 +70,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({ value, onChange, op
                 onClick={() => { onChange(opt); setIsOpen(false); setSearch(''); }}
                 className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${value === opt ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-slate-600 hover:bg-slate-100'}`}
               >
-                {opt === 'ALL' ? placeholder : `${prefix}${opt}`}
+                {opt === 'ALL' ? placeholder : `${prefix}${getLabel(opt)}`}
               </button>
             ))}
             {filtered.length === 0 && (
@@ -573,7 +575,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
         </div>
 
         {/* Row 2 (mobile) / Right section (desktop): Filters + Sync */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 xl:pb-0 xl:flex-wrap xl:gap-3">
+        <div className="flex items-center gap-2 flex-wrap xl:gap-3 w-full xl:w-auto">
           {/* Filter icon prefix – visible on mobile only */}
           <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 bg-slate-100 rounded-lg xl:hidden">
             <Filter className="w-4 h-4 text-slate-500" />
@@ -591,7 +593,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
             />
           </div>
 
-          <div className="flex-shrink-0 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 transition-colors xl:flex hidden">
+          <div className="flex-shrink-0 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 transition-colors">
             <SearchableSelect 
               value={pplFilter}
               onChange={setPplFilter}
@@ -602,8 +604,8 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
             />
           </div>
 
-          <div className="flex-shrink-0 items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 xl:flex hidden">
-            <Clock className="w-4 h-4 text-slate-400" />
+          <div className="flex-shrink-0 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5">
+            <Clock className="w-4 h-4 text-slate-400 hidden xl:block" />
             <SearchableSelect 
               value={tanggalFilter}
               onChange={setTanggalFilter}
@@ -611,6 +613,13 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
               placeholder="Semua Tanggal"
               searchPlaceholder="Cari Tanggal..."
               prefix="Tgl: "
+              formatLabel={(val) => {
+                if (val === 'ALL') return 'Semua Tanggal';
+                const d = new Date(val);
+                const isLatest = uniqueTanggal[1] === val; // index 1 is the latest date because index 0 is 'ALL'
+                const dateStr = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                return isLatest ? `${dateStr} (Live)` : dateStr;
+              }}
             />
           </div>
 
@@ -850,24 +859,36 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
-          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6"><Trophy className="w-5 h-5 text-amber-500 fill-amber-500" />Apresiasi Bintang Petugas SE2026</h2>
-          <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-            {pplStatsRaw.slice(0, 5).map((ppl, idx) => (
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6"><Trophy className="w-5 h-5 text-amber-500 fill-amber-500" />Apresiasi Bintang Petugas SE2026</h2>
+        <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+          {pplStatsRaw.slice(0, 5).map((ppl, idx) => {
+            const progress = ppl.target ? (ppl.totalSubmit / ppl.target) * 100 : 0;
+            const starCount = Math.round(progress / 20);
+            return (
               <div key={idx} className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-amber-200 transition-colors">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-200 text-slate-600' : idx === 2 ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-400'}`}>
-                  {idx === 0 ? <Star className="w-4 h-4 fill-amber-500" /> : idx + 1}
+                <div className="flex items-center gap-1">
+                  {[...Array(starCount)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-500" />
+                  ))}
+                  {[...Array(5 - starCount)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 text-gray-300" />
+                  ))}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-slate-800 truncate text-sm">{ppl.name}</p>
                   <p className="text-[10px] text-slate-500 truncate">PML: {ppl.pml}</p>
                 </div>
-                <div className="text-right"><p className="font-black text-emerald-600 text-sm">{ppl.totalSubmit}</p></div>
+                <div className="text-right">
+                  <p className="font-black text-emerald-600 text-sm">{ppl.totalSubmit}</p>
+                  <p className="text-xs text-slate-500">{Math.round(progress)}%</p>
+                </div>
               </div>
-            ))}
-            {pplStatsRaw.length === 0 && <p className="text-sm text-slate-500 text-center py-10">Belum ada data.</p>}
-          </div>
+            );
+          })}
+          {pplStatsRaw.length === 0 && <p className="text-sm text-slate-500 text-center py-10">Belum ada data.</p>}
         </div>
+      </div>
       </div>
 
       {/* Tabel Penambahan Submit & Draft Harian Menurut PPL & PML */}
