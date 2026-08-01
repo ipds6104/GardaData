@@ -8,7 +8,7 @@ const archiver = require('archiver');
 // GET: All monitoring configs (Active & Not Archived)
 router.get('/configs', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM monitoring_configs WHERE isArchived = 0 ORDER BY createdAt DESC');
+    const [rows] = await pool.query('SELECT * FROM monitoring_configs WHERE isArchived = 0 OR isArchived IS NULL ORDER BY createdAt DESC');
     res.json(rows);
   } catch (error) {
     console.error('Error fetching configs:', error);
