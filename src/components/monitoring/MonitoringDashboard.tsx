@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { ChevronLeft, Loader2, RefreshCw, Filter, TrendingUp, Users, MapPin, Search, CheckCircle2, AlertCircle, Target, Clock, Star, BarChart3, Calendar, Target as TargetIcon, Trophy, ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MonitoringConfig } from './AdminMonitoring';
-import { parseMonitoringSheet, MonitoringRow } from '../../services/monitoringParser';
+import { MonitoringRow } from '../../services/monitoringParser';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
   LineChart, Line, Legend, AreaChart, Area
@@ -159,9 +159,13 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
     if (!silent) setLoading(true);
     else setIsSyncing(true);
     try {
-      const parsed = await parseMonitoringSheet(config.sheetUrl, config.sheetName);
-      setData(parsed);
       const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const liveRes = await fetch(`${baseUrl}/api/monitoring/live-data/${config.id}`);
+      if (liveRes.ok) {
+        const liveData = await liveRes.json();
+        setData(liveData);
+      }
+      
       const res = await fetch(`${baseUrl}/api/monitoring/snapshots/${config.id}`);
       if (res.ok) {
         const snaps = await res.json();
@@ -180,6 +184,25 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
     }
     if (!silent) setLoading(false);
     else setIsSyncing(false);
+  };
+
+  const handleSync = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    try {
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/monitoring/sync-live/${config.id}`, { method: 'POST' });
+      if (res.ok) {
+        await loadData(true);
+      } else {
+        alert("Gagal melakukan sinkronisasi data dari Google Sheets.");
+      }
+    } catch (error) {
+      console.error("Sync error:", error);
+      alert("Terjadi kesalahan saat sinkronisasi.");
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   useEffect(() => {
@@ -373,6 +396,8 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   const pplDailyDeltaData = useMemo(() => {
     if (logs.length === 0) return [];
     
+    if (logs.length === 0 && tanggalFilter !== 'ALL') return [];
+    
     // Group logs by PPL+PML
     const logsByPpl: Record<string, any[]> = {};
     logs.forEach(log => {
@@ -386,62 +411,100 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       arr.sort((a, b) => new Date(a.tanggalUpdate).getTime() - new Date(b.tanggalUpdate).getTime());
     });
 
-    // Find all unique dates in logs
-    const allDates = [...new Set(logs.map(l => {
-        const d = new Date(l.tanggalUpdate);
-        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    const results: any[] = [];
 
-    if (allDates.length === 0) return [];
+    if (tanggalFilter === 'ALL') {
+      pplStatsRaw.forEach(liveData => {
+         // Apply Global Filters
+         if (pmlFilter !== 'ALL' && liveData.pml !== pmlFilter) return;
+         if (pplFilter !== 'ALL' && liveData.name !== pplFilter) return;
 
-    let targetDateStr = allDates[0]; // default to newest
-    if (tanggalFilter !== 'ALL') {
-       const tfDate = new Date(tanggalFilter);
-       const tfStr = `${tfDate.getFullYear()}-${String(tfDate.getMonth()+1).padStart(2, '0')}-${String(tfDate.getDate()).padStart(2, '0')}`;
-       if (allDates.includes(tfStr)) {
-         targetDateStr = tfStr;
-       }
+         const arr = logsByPpl[liveData.key];
+         if (arr && arr.length > 0) {
+            const latestLog = arr[arr.length - 1];
+            const addSubmit = Math.max(0, liveData.submit - latestLog.submit);
+            const addDraft = liveData.draft - latestLog.draft;
+            const addApprove = Math.max(0, liveData.approve - (latestLog.approve || 0));
+            results.push({
+               id: liveData.key,
+               ppl: liveData.name,
+               pml: liveData.pml,
+               submit: liveData.submit,
+               draft: liveData.draft,
+               approve: liveData.approve || 0,
+               addSubmit,
+               addDraft,
+               addApprove,
+               date: 'Live'
+            });
+         } else {
+            results.push({
+               id: liveData.key,
+               ppl: liveData.name,
+               pml: liveData.pml,
+               submit: liveData.submit,
+               draft: liveData.draft,
+               approve: liveData.approve || 0,
+               addSubmit: liveData.submit,
+               addDraft: liveData.draft,
+               addApprove: liveData.approve || 0,
+               date: 'Live'
+            });
+         }
+      });
+    } else {
+      // Find all unique dates in logs
+      const allDates = [...new Set(logs.map(l => {
+          const d = new Date(l.tanggalUpdate);
+          return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+      if (allDates.length === 0) return [];
+
+      let targetDateStr = allDates[0]; // default to newest
+      const tfDate = new Date(tanggalFilter);
+      const tfStr = `${tfDate.getFullYear()}-${String(tfDate.getMonth()+1).padStart(2, '0')}-${String(tfDate.getDate()).padStart(2, '0')}`;
+      if (allDates.includes(tfStr)) {
+        targetDateStr = tfStr;
+      }
+      
+      Object.keys(logsByPpl).forEach(pplKey => {
+         const arr = logsByPpl[pplKey];
+         const targetIdx = arr.findIndex(l => {
+            const d = new Date(l.tanggalUpdate);
+            const str = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            return str === targetDateStr;
+         });
+
+         if (targetIdx !== -1) {
+            const targetLog = arr[targetIdx];
+            const prevLog = targetIdx > 0 ? arr[targetIdx - 1] : null;
+
+            const addSubmit = prevLog ? Math.max(0, targetLog.submit - prevLog.submit) : targetLog.submit;
+            const addDraft = prevLog ? (targetLog.draft - prevLog.draft) : targetLog.draft;
+            const addApprove = prevLog ? Math.max(0, (targetLog.approve || 0) - (prevLog.approve || 0)) : (targetLog.approve || 0);
+
+            if (pmlFilter !== 'ALL' && targetLog.pml !== pmlFilter) return;
+            if (pplFilter !== 'ALL' && targetLog.ppl !== pplFilter) return;
+
+            results.push({
+               id: pplKey,
+               ppl: targetLog.ppl,
+               pml: targetLog.pml,
+               submit: targetLog.submit,
+               draft: targetLog.draft,
+               approve: targetLog.approve || 0,
+               addSubmit,
+               addDraft,
+               addApprove,
+               date: targetDateStr
+            });
+         }
+      });
     }
 
-    const results: any[] = [];
-    Object.keys(logsByPpl).forEach(pplKey => {
-       const arr = logsByPpl[pplKey];
-       // Find the log matching targetDateStr
-       const targetIdx = arr.findIndex(l => {
-          const d = new Date(l.tanggalUpdate);
-          const str = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-          return str === targetDateStr;
-       });
-
-       if (targetIdx !== -1) {
-          const targetLog = arr[targetIdx];
-          const prevLog = targetIdx > 0 ? arr[targetIdx - 1] : null;
-
-          const addSubmit = prevLog ? Math.max(0, targetLog.submit - prevLog.submit) : targetLog.submit;
-          const addDraft = prevLog ? (targetLog.draft - prevLog.draft) : targetLog.draft;
-          const addApprove = prevLog ? Math.max(0, (targetLog.approve || 0) - (prevLog.approve || 0)) : (targetLog.approve || 0);
-
-          // Apply Global Filters
-          if (pmlFilter !== 'ALL' && targetLog.pml !== pmlFilter) return;
-          if (pplFilter !== 'ALL' && targetLog.ppl !== pplFilter) return;
-
-          results.push({
-             id: pplKey,
-             ppl: targetLog.ppl,
-             pml: targetLog.pml,
-             submit: targetLog.submit,
-             draft: targetLog.draft,
-             approve: targetLog.approve || 0,
-             addSubmit,
-             addDraft,
-             addApprove,
-             date: targetDateStr
-          });
-       }
-    });
-
     return results;
-  }, [logs, tanggalFilter, pmlFilter, pplFilter]);
+  }, [logs, tanggalFilter, pmlFilter, pplFilter, pplStatsRaw]);
 
   const sortedPplDeltaData = useMemo(() => {
     const filtered = pplDailyDeltaData.filter(d => 
@@ -472,30 +535,38 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   // Bottom Table Logic
   const tableData = useMemo(() => {
     if (tableMode === 'PPL') {
-      return pplStatsRaw.map(p => ({
-        id: p.key,
-        name: p.name,
-        supervisor: p.pml,
-        target: p.target,
-        submit: p.submit,
-        totalSubmit: p.totalSubmit,
-        draft: p.draft,
-        approve: p.approve,
-        reject: p.reject,
-        submitLive: 0, // Mock
-        rataRata: (p.totalSubmit / hariBerjalan).toFixed(2),
-        pct: p.target > 0 ? (p.totalSubmit / p.target) * 100 : 0
-      }));
+      return pplStatsRaw.map(p => {
+        const dailyDelta = pplDailyDeltaData.find(d => d.ppl === p.name && d.pml === p.pml);
+        return {
+          id: p.key,
+          name: p.name,
+          supervisor: p.pml,
+          target: p.target,
+          submit: p.submit,
+          totalSubmit: p.totalSubmit,
+          draft: p.draft,
+          approve: p.approve,
+          reject: p.reject,
+          open: p.open,
+          submitLive: dailyDelta ? dailyDelta.addSubmit : 0,
+          rataRata: (p.totalSubmit / hariBerjalan).toFixed(2),
+          pct: p.target > 0 ? (p.totalSubmit / p.target) * 100 : 0
+        };
+      });
     } else {
       const pmlMap: Record<string, any> = {};
       pplStatsRaw.forEach(p => {
-        if (!pmlMap[p.pml]) pmlMap[p.pml] = { id: p.pml, name: p.pml, supervisor: '-', target: 0, submit: 0, totalSubmit: 0, draft: 0, approve: 0, reject: 0, submitLive: 0 };
+        if (!pmlMap[p.pml]) pmlMap[p.pml] = { id: p.pml, name: p.pml, supervisor: '-', target: 0, submit: 0, totalSubmit: 0, draft: 0, approve: 0, reject: 0, open: 0, submitLive: 0 };
         pmlMap[p.pml].target += p.target;
         pmlMap[p.pml].submit += p.submit;
         pmlMap[p.pml].totalSubmit += p.totalSubmit;
         pmlMap[p.pml].draft += p.draft;
         pmlMap[p.pml].approve += p.approve;
         pmlMap[p.pml].reject += p.reject;
+        pmlMap[p.pml].open += p.open;
+        
+        const dailyDelta = pplDailyDeltaData.find(d => d.ppl === p.name && d.pml === p.pml);
+        if (dailyDelta) pmlMap[p.pml].submitLive += dailyDelta.addSubmit;
       });
       return Object.values(pmlMap).map(p => ({
         ...p,
@@ -503,7 +574,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
         pct: p.target > 0 ? (p.totalSubmit / p.target) * 100 : 0
       }));
     }
-  }, [pplStatsRaw, tableMode, hariBerjalan]);
+  }, [pplStatsRaw, tableMode, hariBerjalan, pplDailyDeltaData]);
 
   const sortedTableData = useMemo(() => {
     const filtered = tableData.filter(t => !tableSearch || t.name.toLowerCase().includes(tableSearch.toLowerCase()) || t.supervisor.toLowerCase().includes(tableSearch.toLowerCase()));
@@ -623,15 +694,28 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
             />
           </div>
 
-          {/* Sync button: icon-only on mobile, icon+text on desktop */}
-          <button
-            onClick={() => loadData(true)}
-            disabled={isSyncing}
-            className="flex-shrink-0 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-70 px-3 py-2 xl:px-4 xl:py-3"
-          >
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span className="hidden xl:inline">Sync</span>
-          </button>
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex flex-col items-end">
+              <span className="text-xs font-medium text-slate-500">Terakhir disinkronkan</span>
+              <span className="text-sm font-bold text-slate-700">{lastSync}</span>
+            </div>
+            
+            <button 
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="flex items-center justify-center p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50 group"
+              title="Tarik data terbaru dari Google Sheet"
+            >
+              <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+            </button>
+
+            <button 
+              onClick={onBack}
+              className="flex items-center justify-center p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1095,6 +1179,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSort('draft')}>Draf {tableSort.key==='draft' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSort('approve')}>Approved PML {tableSort.key==='approve' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSort('reject')}>Rejected PML {tableSort.key==='reject' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSort('open')}>Open {tableSort.key==='open' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSort('submitLive')}>Submit Hari Ini {tableSort.key==='submitLive' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSort('rataRata')}>Rata-Rata {tableSort.key==='rataRata' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-right" onClick={() => handleSort('pct')}>Progres {tableSort.key==='pct' && (tableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
@@ -1110,7 +1195,8 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                   <td className="px-5 py-3 text-center text-amber-500 font-bold">{row.draft}</td>
                   <td className="px-5 py-3 text-center text-blue-600 font-bold">{row.approve}</td>
                   <td className="px-5 py-3 text-center text-rose-600 font-bold">{row.reject}</td>
-                  <td className="px-5 py-3 text-center text-slate-600 font-bold">0</td>
+                  <td className="px-5 py-3 text-center text-purple-600 font-bold">{row.open}</td>
+                  <td className="px-5 py-3 text-center text-slate-600 font-bold">{row.submitLive}</td>
                   <td className="px-5 py-3 text-center text-slate-600 font-bold">{row.rataRata}</td>
                   <td className="px-5 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">

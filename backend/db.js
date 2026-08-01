@@ -56,11 +56,20 @@ async function initDB() {
         startDate DATE NOT NULL,
         endDate DATE NOT NULL,
         isActive BOOLEAN DEFAULT true,
+        isArchived BOOLEAN DEFAULT false,
         icon VARCHAR(50) DEFAULT 'pertanian',
         color VARCHAR(50) DEFAULT 'emerald',
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Auto-migrate to add isArchived if missing
+    try {
+      await connection.query(`ALTER TABLE monitoring_configs ADD COLUMN isArchived BOOLEAN DEFAULT false`);
+      console.log('✅ Added isArchived column to monitoring_configs');
+    } catch (e) {
+      // Column probably already exists, ignore
+    }
 
     // Auto-migrate to add icon and color if missing
     try {
@@ -144,6 +153,29 @@ async function initDB() {
     } catch (e) {
       // Column probably already exists
     }
+
+    // Tabel Monitoring Data Live
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS monitoring_data_live (
+        id VARCHAR(255) PRIMARY KEY,
+        configId VARCHAR(255) NOT NULL,
+        kodeWilayah VARCHAR(50),
+        namaPpl VARCHAR(255),
+        namaPml VARCHAR(255),
+        kecamatan VARCHAR(255),
+        desa VARCHAR(255),
+        sls VARCHAR(255),
+        submit INT DEFAULT 0,
+        draft INT DEFAULT 0,
+        approve INT DEFAULT 0,
+        reject INT DEFAULT 0,
+        open INT DEFAULT 0,
+        target INT DEFAULT 0,
+        lastSynced TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_live_row (configId, kodeWilayah, namaPpl, namaPml, kecamatan, desa, sls),
+        INDEX idx_live_config (configId)
+      )
+    `);
     
     connection.release();
   } catch (error) {

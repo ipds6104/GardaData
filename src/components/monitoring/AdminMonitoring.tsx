@@ -146,7 +146,7 @@ export const AdminMonitoring: React.FC<AdminMonitoringProps> = ({ onBack }) => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Yakin ingin menghapus monitoring ini? Riwayat snapshot juga akan dihapus.')) return;
+    if (!window.confirm('Yakin ingin mengarsipkan monitoring ini? Tampilan akan dihapus tapi data riwayat dapat diunduh (Arsip).')) return;
     try {
       const baseUrl = (import.meta as any).env.VITE_API_URL || '';
       const res = await fetch(`${baseUrl}/api/monitoring/configs/${id}`, { method: 'DELETE' });
@@ -154,6 +154,11 @@ export const AdminMonitoring: React.FC<AdminMonitoringProps> = ({ onBack }) => {
     } catch (err) {
       console.error('Error deleting:', err);
     }
+  };
+
+  const handleDownloadArchive = (id: string) => {
+    const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+    window.location.href = `${baseUrl}/api/monitoring/export-archive/${id}`;
   };
 
   const downloadTemplate = async () => {
@@ -433,6 +438,13 @@ export const AdminMonitoring: React.FC<AdminMonitoringProps> = ({ onBack }) => {
                         {new Date(config.startDate).toLocaleDateString('id-ID')} - {new Date(config.endDate).toLocaleDateString('id-ID')}
                       </td>
                       <td className="px-6 py-4 text-right space-x-2">
+                        <button 
+                          onClick={() => handleDownloadArchive(config.id!)}
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                          title="Download Arsip (Excel)"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
                         <button 
                           onClick={() => {
                             setCurrentConfig(config);
