@@ -151,5 +151,6 @@ cron.schedule('59 23 * * *', () => {
 
 // We can export it in case we want to trigger it manually via an admin endpoint
 module.exports = {
-  runDailySnapshot
+  runDailySnapshot,
+  getExportUrl
 };

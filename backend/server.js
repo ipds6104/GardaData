@@ -6,6 +6,9 @@ require('dotenv').config();
 
 const app = express();
 
+// Konfigurasi trust proxy untuk express-rate-limit di belakang reverse proxy Coolify
+app.set('trust proxy', 1);
+
 // ==========================================
 // KEAMANAN (CYBER SECURITY)
 // ==========================================
