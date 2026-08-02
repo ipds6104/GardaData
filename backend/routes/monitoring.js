@@ -281,13 +281,13 @@ router.get('/export-archive/:id', async (req, res) => {
     sheet3.addRows(snapshots.map(r => ({ ...r, snapshotDate: new Date(r.snapshotDate).toISOString().split('T')[0] })));
 
     res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', \`attachment; filename="\${config.kegiatan}_Archive.zip"\`);
+    res.setHeader('Content-Disposition', 'attachment; filename="' + config.kegiatan + '_Archive.zip"');
 
     const archive = archiver('zip', { zlib: { level: 9 } });
     archive.pipe(res);
 
     const buffer = await workbook.xlsx.writeBuffer();
-    archive.append(buffer, { name: \`\${config.kegiatan}_Data.xlsx\` });
+    archive.append(buffer, { name: config.kegiatan + '_Data.xlsx' });
     
     await archive.finalize();
 
