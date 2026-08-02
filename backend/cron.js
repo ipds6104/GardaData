@@ -81,8 +81,8 @@ async function runDailySnapshot() {
         let totalDraft = 0;
         let totalTarget = 0;
         
-        let lastPpl = 'Unknown PPL';
-        let lastPml = 'Unknown PML';
+        let lastPpl = '';
+        let lastPml = '';
 
         // Iterate all rows
         for (let i = 0; i < rows.length; i++) {
@@ -94,12 +94,18 @@ async function runDailySnapshot() {
           
           const pplVal = String(getVal(1)).trim();
           const pmlVal = String(getVal(2)).trim();
+          const slsVal  = String(getVal(5)).trim();
           
-          if (pmlVal && pmlVal !== lastPml) {
+          // Track PML/PPL name carried forward
+          if (pmlVal && pmlVal !== 'nama PML' && pmlVal !== lastPml) {
             lastPml = pmlVal;
             lastPpl = ''; // Reset PPL name when PML changes
           }
-          if (pplVal) lastPpl = pplVal;
+          if (pplVal && pplVal !== 'nama PPL') lastPpl = pplVal;
+          
+          // ⚠️ Only process rows with a valid SLS (not header/summary rows)
+          // This mirrors the filter in sync-live route
+          if (!lastPml || lastPml === 'nama PML' || !slsVal || slsVal === 'Wilayah Tugas / SLS') continue;
           
           const effPpl = lastPpl || lastPml;
           
@@ -109,15 +115,12 @@ async function runDailySnapshot() {
           const reject = getNum(9);
           const target = getNum(11);
           
+          // Accumulate only from valid SLS rows
           totalSubmit += submit;
           totalDraft += draft;
           totalTarget += target;
 
-          // We insert into log only if we have a valid PML or PPL.
-          // In real data, row 0 might be header, so let's skip if the name matches the header literally or is empty.
-          if (lastPml === 'nama PML' || !lastPml) continue;
-
-          // Save per PPL log
+          // Save per PPL daily log
           await pool.query(
             `INSERT INTO monitoring_log_harian (id, configId, tanggalUpdate, pml, ppl, submit, draft, approve, total, statusSiklus) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
