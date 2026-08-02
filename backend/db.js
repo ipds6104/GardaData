@@ -185,6 +185,17 @@ async function initDB() {
     } catch (e) {
       // Column already exists, ignore
     }
+
+    // Cleanup: hapus baris sampah/invalid (header/kosong) yang terlanjur masuk
+    try {
+      await connection.query(`
+        DELETE FROM monitoring_data_live 
+        WHERE sls = '' OR sls = 'Wilayah Tugas / SLS' OR namaPml = 'nama PML' OR namaPml IS NULL OR namaPml = ''
+      `);
+      console.log('✅ Cleaned up invalid rows from monitoring_data_live');
+    } catch (e) {
+      // Ignore
+    }
     
     connection.release();
   } catch (error) {

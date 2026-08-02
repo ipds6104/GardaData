@@ -136,7 +136,7 @@ router.get('/live-data/:configId', async (req, res) => {
   try {
     const { configId } = req.params;
     const [rows] = await pool.query(
-      'SELECT * FROM monitoring_data_live WHERE configId=?',
+      "SELECT * FROM monitoring_data_live WHERE configId=? AND sls != '' AND sls != 'Wilayah Tugas / SLS' AND namaPml != 'nama PML'",
       [configId]
     );
     res.json(rows);
@@ -171,6 +171,9 @@ router.post('/sync-live/:configId', async (req, res) => {
     let lastPml = '';
     let lastKec = '';
     let lastDesa = '';
+
+    // Hapus data live lama untuk configId ini agar tidak ada baris sampah/duplikat dari sync sebelumnya
+    await pool.query('DELETE FROM monitoring_data_live WHERE configId=?', [configId]);
 
     for (let i = 0; i < rows.length; i++) {
       const rowData = rows[i];
