@@ -30,6 +30,7 @@ app.use(helmet({
         "https://cdnjs.cloudflare.com"
       ],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://apis.google.com", "https://accounts.google.com"],
+      scriptSrcElem: ["'self'", "'unsafe-inline'", "https://apis.google.com", "https://accounts.google.com", "https://*.googleapis.com"],
       connectSrc: [
         "'self'", 
         "https://api.garda-data.com", 

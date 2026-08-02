@@ -631,31 +631,32 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-3 sticky top-0 z-30">
-        {/* Row 1: Back button + Title + Subtitle */}
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0">
+      <div className="bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl shadow-sm border border-slate-200 sticky top-0 z-30">
+        {/* Baris 1: Judul & status */}
+        <div className="flex items-center gap-3 mb-3">
+          <button onClick={onBack} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0">
             <ChevronLeft className="w-5 h-5 text-slate-600" />
           </button>
-          <div className="min-w-0">
-            <h1 className="text-base sm:text-xl font-bold text-slate-800 leading-tight">{config.kegiatan}</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base font-bold text-slate-800 leading-tight truncate">{config.kegiatan}</h1>
             <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
-              <span className="truncate">{config.subKegiatan || "Monitoring Interaktif"}</span>
+              <span className="truncate">{config.subKegiatan || 'Monitoring Interaktif'}</span>
             </p>
           </div>
         </div>
 
-        {/* Row 2 (mobile) / Right section (desktop): Filters + Sync */}
-        <div className="flex items-center gap-2 flex-wrap xl:gap-3 w-full xl:w-auto">
-          {/* Filter icon prefix – visible on mobile only */}
-          <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 bg-slate-100 rounded-lg xl:hidden">
-            <Filter className="w-4 h-4 text-slate-500" />
+        {/* Baris 2: Filter + Aksi */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+          {/* Label Filter */}
+          <div className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-slate-400 mr-1">
+            <Filter className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Filter</span>
           </div>
 
-          <div className="flex-shrink-0 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 transition-colors">
-            <Filter className="w-4 h-4 text-slate-400 hidden xl:block" />
-            <SearchableSelect 
+          {/* Filter PML */}
+          <div className="flex-shrink-0 flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 min-w-[120px]">
+            <SearchableSelect
               value={pmlFilter}
               onChange={val => { setPmlFilter(val); setPplFilter('ALL'); }}
               options={uniquePml}
@@ -665,8 +666,9 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
             />
           </div>
 
-          <div className="flex-shrink-0 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 transition-colors">
-            <SearchableSelect 
+          {/* Filter PPL */}
+          <div className="flex-shrink-0 flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 min-w-[120px]">
+            <SearchableSelect
               value={pplFilter}
               onChange={setPplFilter}
               options={uniquePpl}
@@ -676,9 +678,9 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
             />
           </div>
 
-          <div className="flex-shrink-0 flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5">
-            <Clock className="w-4 h-4 text-slate-400 hidden xl:block" />
-            <SearchableSelect 
+          {/* Filter Tanggal */}
+          <div className="flex-shrink-0 flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 min-w-[130px]">
+            <SearchableSelect
               value={tanggalFilter}
               onChange={setTanggalFilter}
               options={uniqueTanggal}
@@ -688,33 +690,33 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
               formatLabel={(val) => {
                 if (val === 'ALL') return 'Semua Tanggal';
                 const d = new Date(val);
-                const isLatest = uniqueTanggal[1] === val; // index 1 is the latest date because index 0 is 'ALL'
-                const dateStr = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-                return isLatest ? `${dateStr} (Live)` : dateStr;
+                const isLatest = uniqueTanggal[1] === val;
+                const dateStr = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                return isLatest ? `${dateStr} ✦` : dateStr;
               }}
             />
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col items-end">
-              <span className="text-xs font-medium text-slate-500">Terakhir disinkronkan</span>
-              <span className="text-sm font-bold text-slate-700">{lastSync}</span>
-            </div>
-            
-            <button 
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Info sync + tombol */}
+          <div className="flex-shrink-0 flex items-center gap-2">
+            <span className="hidden md:block text-xs text-slate-400 font-medium whitespace-nowrap">{lastSync}</span>
+            <button
               onClick={handleSync}
               disabled={isSyncing}
               className="flex items-center justify-center p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50 group"
-              title="Tarik data terbaru dari Google Sheet"
+              title="Tarik data terbaru"
             >
-              <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
             </button>
-
-            <button 
+            <button
               onClick={onBack}
               className="flex items-center justify-center p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
+              title="Kembali"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
           </div>
         </div>
