@@ -206,14 +206,15 @@ router.post('/sync-live/:configId', async (req, res) => {
       const reject = getNum(9);
       const open = getNum(10);
       const target = getNum(11);
+      const totalSubmit = submit; // sesuai definisi: submit saja (tanpa approve/reject duplikasi)
 
       await pool.query(
-        `INSERT INTO monitoring_data_live (id, configId, kodeWilayah, namaPpl, namaPml, kecamatan, desa, sls, submit, draft, approve, reject, open, target) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO monitoring_data_live (id, configId, kodeWilayah, namaPpl, namaPml, kecamatan, desa, sls, submit, draft, approve, reject, open, target, totalSubmit) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE 
          submit = VALUES(submit), draft = VALUES(draft), approve = VALUES(approve), reject = VALUES(reject), 
-         open = VALUES(open), target = VALUES(target)`,
-        [crypto.randomUUID(), configId, kodeWilayah, effPpl, lastPml, lastKec, lastDesa, sls, submit, draft, approve, reject, open, target]
+         open = VALUES(open), target = VALUES(target), totalSubmit = VALUES(totalSubmit)`,
+        [crypto.randomUUID(), configId, kodeWilayah, effPpl, lastPml, lastKec, lastDesa, sls, submit, draft, approve, reject, open, target, totalSubmit]
       );
     }
     

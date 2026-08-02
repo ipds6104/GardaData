@@ -296,14 +296,15 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       // Gunakan nama PPL dan PML sebagai unique key untuk mencegah merge data nama yang sama
       const key = `${d.namaPpl}|${d.namaPml}`;
       if (!stats[key]) stats[key] = { submit: 0, totalSubmit: 0, draft: 0, target: 0, pml: d.namaPml, totalSls: 0, approve: 0, reject: 0, open: 0 };
-      stats[key].submit += d.submit; // Hanya kolom submit
-      stats[key].totalSubmit += d.totalSubmit;
-      stats[key].draft += d.draft;
-      stats[key].target += d.target;
+      stats[key].submit += (d.submit ?? 0);
+      // Live data dari DB tidak punya totalSubmit, fallback ke submit
+      stats[key].totalSubmit += (d.totalSubmit ?? d.submit ?? 0);
+      stats[key].draft += (d.draft ?? 0);
+      stats[key].target += (d.target ?? 0);
       stats[key].totalSls += 1;
-      stats[key].approve += d.approve;
-      stats[key].reject += d.reject;
-      stats[key].open += d.open;
+      stats[key].approve += (d.approve ?? 0);
+      stats[key].reject += (d.reject ?? 0);
+      stats[key].open += (d.open ?? 0);
     });
     return Object.entries(stats).map(([k, v]) => ({ name: k.split('|')[0], key: k, ...v })).sort((a, b) => b.totalSubmit - a.totalSubmit);
   }, [headerFilteredData]);
@@ -948,7 +949,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
         <div className="flex-1 overflow-y-auto pr-2 space-y-3">
           {pplStatsRaw.slice(0, 5).map((ppl, idx) => {
             const progress = ppl.target ? (ppl.totalSubmit / ppl.target) * 100 : 0;
-            const starCount = Math.min(5, Math.max(0, Math.round(progress / 20)));
+            const starCount = Math.min(5, Math.max(0, Math.round((isFinite(progress) ? progress : 0) / 20) || 0));
             return (
               <div key={idx} className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-amber-200 transition-colors">
                 <div className="flex items-center gap-1">

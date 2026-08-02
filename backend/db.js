@@ -171,11 +171,20 @@ async function initDB() {
         reject INT DEFAULT 0,
         open INT DEFAULT 0,
         target INT DEFAULT 0,
+        totalSubmit INT DEFAULT 0,
         lastSynced TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY unique_live_row (configId, kodeWilayah, namaPpl, namaPml, kecamatan, desa, sls),
         INDEX idx_live_config (configId)
       )
     `);
+
+    // Auto-migrate: tambahkan kolom totalSubmit jika belum ada
+    try {
+      await connection.query(`ALTER TABLE monitoring_data_live ADD COLUMN totalSubmit INT DEFAULT 0`);
+      console.log('✅ Added totalSubmit column to monitoring_data_live');
+    } catch (e) {
+      // Column already exists, ignore
+    }
     
     connection.release();
   } catch (error) {
