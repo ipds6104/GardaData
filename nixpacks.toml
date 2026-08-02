@@ -1,0 +1,8 @@
+[phases.install]
+cmds = ["npm ci --legacy-peer-deps", "cd backend && npm install"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "cd backend && node server.js"
