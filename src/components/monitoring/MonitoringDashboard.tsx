@@ -948,7 +948,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
         <div className="flex-1 overflow-y-auto pr-2 space-y-3">
           {pplStatsRaw.slice(0, 5).map((ppl, idx) => {
             const progress = ppl.target ? (ppl.totalSubmit / ppl.target) * 100 : 0;
-            const starCount = Math.round(progress / 20);
+            const starCount = Math.min(5, Math.max(0, Math.round(progress / 20)));
             return (
               <div key={idx} className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-amber-200 transition-colors">
                 <div className="flex items-center gap-1">
