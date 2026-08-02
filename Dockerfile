@@ -1,21 +1,34 @@
-# Stage 1: Build the React Application
-FROM node:20-alpine AS build
+# ============================================================
+# Stage 1: Build the React Frontend
+# ============================================================
+FROM node:22-alpine AS build
 WORKDIR /app
 
-# Install dependencies (utilizing Docker layer caching)
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm ci --legacy-peer-deps
 
-# Copy all source files and compile the production build
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve the compiled files using Nginx
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
+# ============================================================
+# Stage 2: Production - Node.js Backend + Serve Frontend
+# ============================================================
+FROM node:22-alpine
+WORKDIR /app
 
-# Copy the custom Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy backend source code
+COPY backend/ ./backend/
 
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Copy the compiled React frontend from the build stage
+COPY --from=build /app/dist ./dist
+
+# Install backend production dependencies
+WORKDIR /app/backend
+RUN npm install
+
+# Go back to root working dir
+WORKDIR /app
+
+EXPOSE 5000
+
+CMD ["node", "backend/server.js"]
