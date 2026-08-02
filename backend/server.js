@@ -95,14 +95,16 @@ require('./cron'); // Jalankan cron job untuk monitoring
 const path = require('path');
 
 // Menyajikan file statis dari hasil build React (Vite)
-app.use(express.static(path.join(__dirname, '../dist')));
+const currentDir = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+const distPath = path.join(currentDir, currentDir.endsWith('backend') ? '../dist' : 'dist');
+app.use(express.static(distPath));
 
 // Tangkap semua route selain /api dan arahkan ke index.html (agar React Router berfungsi)
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'API route not found' });
   }
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // Error handling middleware
