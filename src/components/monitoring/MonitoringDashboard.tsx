@@ -457,7 +457,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       const allDates = [...new Set(logs.map(l => {
           const d = new Date(l.tanggalUpdate);
           return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      }))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+      }))].sort((a, b) => new Date(b as string).getTime() - new Date(a as string).getTime());
 
       if (allDates.length === 0) return [];
 
