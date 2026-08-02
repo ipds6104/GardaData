@@ -29,6 +29,6 @@ RUN npm install
 # Go back to root working dir
 WORKDIR /app
 
-EXPOSE 5000
+EXPOSE 3000
 
 CMD ["node", "backend/server.js"]
