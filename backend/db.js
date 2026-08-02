@@ -178,6 +178,15 @@ async function initDB() {
       )
     `);
 
+    // Tabel Imputation Data
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS imputation_data (
+        id VARCHAR(255) PRIMARY KEY,
+        data JSON NOT NULL,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+
     // Auto-migrate: tambahkan kolom totalSubmit jika belum ada
     try {
       await connection.query(`ALTER TABLE monitoring_data_live ADD COLUMN totalSubmit INT DEFAULT 0`);
