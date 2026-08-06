@@ -105,7 +105,12 @@ async function runDailySnapshot() {
           
           // ⚠️ Only process rows with a valid SLS (not header/summary rows)
           // This mirrors the filter in sync-live route
-          if (!lastPml || lastPml === 'nama PML' || !slsVal || slsVal === 'Wilayah Tugas / SLS') continue;
+          const isSlsInvalid = !slsVal || 
+                               slsVal === 'Wilayah Tugas / SLS' || 
+                               slsVal.toLowerCase().includes('total') || 
+                               slsVal.toLowerCase().includes('jumlah') ||
+                               slsVal.toLowerCase() === 'wilayah tugas';
+          if (!lastPml || lastPml === 'nama PML' || isSlsInvalid) continue;
           
           const effPpl = lastPpl || lastPml;
           

@@ -199,7 +199,12 @@ router.post('/sync-live/:configId', async (req, res) => {
       if (desa && desa !== 'Desa') lastDesa = desa;
 
       const sls = String(getVal(5)).trim();
-      if (!lastPml || lastPml === 'nama PML' || !sls || sls === 'Wilayah Tugas / SLS') continue;
+      const isSlsInvalid = !sls || 
+                           sls === 'Wilayah Tugas / SLS' || 
+                           sls.toLowerCase().includes('total') || 
+                           sls.toLowerCase().includes('jumlah') ||
+                           sls.toLowerCase() === 'wilayah tugas';
+      if (!lastPml || lastPml === 'nama PML' || isSlsInvalid) continue;
 
       const effPpl = lastPpl || lastPml;
 
