@@ -136,12 +136,39 @@ router.get('/live-data/:configId', async (req, res) => {
   try {
     const { configId } = req.params;
     const [rows] = await pool.query(
-      "SELECT * FROM monitoring_data_live WHERE configId=? AND sls != '' AND sls != 'Wilayah Tugas / SLS' AND namaPml != 'nama PML'",
+      `SELECT l.*, IFNULL(s.isSelesai, 0) as isSelesai 
+       FROM monitoring_data_live l
+       LEFT JOIN monitoring_sls_status s 
+       ON l.configId = s.configId 
+          AND l.kecamatan = s.kecamatan 
+          AND l.desa = s.desa 
+          AND l.sls = s.sls
+       WHERE l.configId=? AND l.sls != '' AND l.sls != 'Wilayah Tugas / SLS' AND l.namaPml != 'nama PML'`,
       [configId]
     );
     res.json(rows);
   } catch (error) {
     console.error('Error fetching live data:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// POST: Update SLS status (Admin Selesai)
+router.post('/sls-status/:configId', async (req, res) => {
+  try {
+    const { configId } = req.params;
+    const { kecamatan, desa, sls, isSelesai } = req.body;
+    
+    await pool.query(
+      `INSERT INTO monitoring_sls_status (id, configId, kecamatan, desa, sls, isSelesai)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE isSelesai = VALUES(isSelesai)`,
+      [crypto.randomUUID(), configId, kecamatan, desa, sls, isSelesai ? 1 : 0]
+    );
+    
+    res.json({ message: 'Status updated successfully' });
+  } catch (error) {
+    console.error('Error updating SLS status:', error);
     res.status(500).json({ error: 'Database error' });
   }
 });

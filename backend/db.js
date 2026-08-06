@@ -187,6 +187,22 @@ async function initDB() {
       )
     `);
 
+    // Tabel Monitoring SLS Status (Persetujuan Admin)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS monitoring_sls_status (
+        id VARCHAR(255) PRIMARY KEY,
+        configId VARCHAR(255) NOT NULL,
+        kecamatan VARCHAR(255) NOT NULL,
+        desa VARCHAR(255) NOT NULL,
+        sls VARCHAR(255) NOT NULL,
+        isSelesai BOOLEAN DEFAULT false,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_status (configId, kecamatan, desa, sls),
+        INDEX idx_status_config (configId)
+      )
+    `);
+
+
     // Auto-migrate: tambahkan kolom totalSubmit jika belum ada
     try {
       await connection.query(`ALTER TABLE monitoring_data_live ADD COLUMN totalSubmit INT DEFAULT 0`);

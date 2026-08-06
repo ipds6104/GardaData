@@ -12,6 +12,7 @@ export interface MonitoringRow {
   open: number;
   target: number;
   totalSubmit: number; // calculated as submit + approve + reject
+  isSelesai?: boolean | number;
 }
 
 // Fungsi sederhana untuk parsing CSV (menangani koma di dalam tanda kutip)

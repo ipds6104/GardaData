@@ -7,6 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
   LineChart, Line, Legend, AreaChart, Area
 } from 'recharts';
+import { useAuth } from '../../lib/auth';
 import { toPng } from 'html-to-image';
 import { Download } from 'lucide-react';
 
@@ -89,6 +90,7 @@ interface MonitoringDashboardProps {
 }
 
 export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config, onBack }) => {
+  const { user } = useAuth();
   const [data, setData] = useState<MonitoringRow[]>([]);
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
@@ -202,6 +204,36 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       alert("Terjadi kesalahan saat sinkronisasi.");
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleToggleSelesai = async (row: MonitoringRow) => {
+    if (!user || user.role !== 'admin') return;
+    try {
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const newStatus = !row.isSelesai;
+      const res = await fetch(`${baseUrl}/api/monitoring/sls-status/${config.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kecamatan: row.kecamatan,
+          desa: row.desa,
+          sls: row.sls,
+          isSelesai: newStatus
+        })
+      });
+      if (res.ok) {
+        setData(prev => prev.map(d => 
+          (d.kecamatan === row.kecamatan && d.desa === row.desa && d.sls === row.sls)
+            ? { ...d, isSelesai: newStatus ? 1 : 0 }
+            : d
+        ));
+      } else {
+        alert('Gagal memperbarui status selesai.');
+      }
+    } catch (err) {
+      console.error('Failed to update status', err);
+      alert('Terjadi kesalahan koneksi.');
     }
   };
 
@@ -1266,11 +1298,13 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSlsSort('open')}>Open {slsTableSort.key==='open' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-center" onClick={() => handleSlsSort('target')}>Target {slsTableSort.key==='target' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
                 <th className="px-5 py-3 cursor-pointer hover:bg-slate-100 text-right" onClick={() => handleSlsSort('progres')}>Progres {slsTableSort.key==='progres' && (slsTableSort.dir==='asc'?<ChevronUp className="inline w-3 h-3"/>:<ChevronDown className="inline w-3 h-3"/>)}</th>
+                <th className="px-5 py-3 text-center uppercase tracking-wider hover:bg-slate-100">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {paginatedSlsTableData.map((row, idx) => {
                 const progresPct = row.target > 0 ? (row.submit / row.target) * 100 : 0;
+                const approvePct = row.target > 0 ? (row.approve / row.target) * 100 : 0;
                 return (
                   <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-5 py-3 font-bold text-slate-700">{row.kecamatan}</td>
@@ -1279,7 +1313,14 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                     <td className="px-5 py-3 text-slate-600 text-xs font-bold">{row.namaPpl}</td>
                     <td className="px-5 py-3 text-slate-500 text-xs">{row.namaPml}</td>
                     <td className="px-5 py-3 text-center font-black text-emerald-600">{row.submit}</td>
-                    <td className="px-5 py-3 text-center text-blue-600 font-bold">{row.approve}</td>
+                    <td className="px-5 py-3 text-center">
+                      <span className={approvePct >= 100 ? 'text-emerald-600 font-black' : 'text-blue-600 font-bold'}>
+                        {row.approve}
+                      </span>
+                      <span className={`text-[11px] ml-1.5 font-semibold ${approvePct >= 100 ? 'text-emerald-600 font-extrabold' : 'text-slate-400'}`}>
+                        ({approvePct.toFixed(1)}%)
+                      </span>
+                    </td>
                     <td className="px-5 py-3 text-center text-rose-600 font-bold">{row.reject}</td>
                     <td className="px-5 py-3 text-center text-amber-500 font-bold">{row.draft}</td>
                     <td className="px-5 py-3 text-center text-slate-600 font-bold">{row.open}</td>
@@ -1292,10 +1333,32 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                         </div>
                       </div>
                     </td>
+                    <td className="px-5 py-3 text-center">
+                      {user?.role === 'admin' ? (
+                        <button
+                          onClick={() => handleToggleSelesai(row)}
+                          className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                            row.isSelesai ? 'bg-emerald-100 text-emerald-700 hover:bg-rose-50 hover:text-rose-600 hover:shadow-none' : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-500 hover:text-emerald-600'
+                          }`}
+                          title={row.isSelesai ? "Batalkan status selesai" : "Tandai selesai"}
+                        >
+                          <CheckCircle2 className={`w-4 h-4 ${row.isSelesai ? 'text-emerald-600' : 'text-slate-400'}`} />
+                          {row.isSelesai ? 'Selesai' : 'Tandai'}
+                        </button>
+                      ) : (
+                        row.isSelesai ? (
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md text-xs font-bold border border-emerald-100">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Selesai
+                          </span>
+                        ) : (
+                          <span className="text-slate-300">-</span>
+                        )
+                      )}
+                    </td>
                   </tr>
                 );
               })}
-              {paginatedSlsTableData.length === 0 && <tr><td colSpan={12} className="px-5 py-10 text-center text-slate-500">Tidak ada data.</td></tr>}
+              {paginatedSlsTableData.length === 0 && <tr><td colSpan={13} className="px-5 py-10 text-center text-slate-500">Tidak ada data.</td></tr>}
             </tbody>
           </table>
         </div>
