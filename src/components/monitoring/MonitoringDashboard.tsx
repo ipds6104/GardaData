@@ -132,6 +132,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   const [kecamatanFilter, setKecamatanFilter] = useState<string>('ALL');
   const [desaFilter, setDesaFilter] = useState<string>('ALL');
   const [slsFilter, setSlsFilter] = useState<string>('ALL');
+  const [statusSelesaiFilter, setStatusSelesaiFilter] = useState<string>('ALL');
 
   // Tracker Filters
   const [trackerSearch, setTrackerSearch] = useState('');
@@ -634,13 +635,24 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
 
   // SLS Table Logic
   const slsTableData = useMemo(() => {
-    return geoFilteredData.filter(d => 
-      !slsTableSearch || 
-      d.namaPpl.toLowerCase().includes(slsTableSearch.toLowerCase()) || 
-      d.namaPml.toLowerCase().includes(slsTableSearch.toLowerCase()) ||
-      d.sls.toLowerCase().includes(slsTableSearch.toLowerCase()) ||
-      d.desa.toLowerCase().includes(slsTableSearch.toLowerCase())
-    ).sort((a: any, b: any) => {
+    return geoFilteredData.filter(row => {
+      if (slsTableSearch) {
+        const q = slsTableSearch.toLowerCase();
+        if (!row.sls.toLowerCase().includes(q) && 
+            !row.namaPpl.toLowerCase().includes(q) && 
+            !row.namaPml.toLowerCase().includes(q) && 
+            !row.kecamatan.toLowerCase().includes(q) && 
+            !row.desa.toLowerCase().includes(q)) {
+          return false;
+        }
+      }
+      if (statusSelesaiFilter !== 'ALL') {
+        const isSelesai = !!row.isSelesai;
+        if (statusSelesaiFilter === 'SELESAI' && !isSelesai) return false;
+        if (statusSelesaiFilter === 'BELUM' && isSelesai) return false;
+      }
+      return true;
+    }).sort((a: any, b: any) => {
       let valA = a[slsTableSort.key];
       let valB = b[slsTableSort.key];
       if (slsTableSort.key === 'progres') {
@@ -1271,9 +1283,19 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><MapPin className="w-5 h-5 text-emerald-500" />Tabel Progres Menurut SLS</h2>
+          <div className="flex flex-col">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><MapPin className="w-5 h-5 text-emerald-500" />Tabel Progres Menurut SLS</h2>
+            <p className="text-xs font-semibold text-slate-500 mt-1">
+              Status Selesai: <span className="text-emerald-600 font-bold">{data.filter(d => d.isSelesai).length}</span> dari <span className="font-bold">{data.length}</span> SLS
+            </p>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
-            <select value={slsTableLimit} onChange={e => {setSlsTableLimit(Number(e.target.value)); setSlsTablePage(1);}} className="bg-slate-50 border border-slate-200 text-sm font-medium rounded-lg px-2 py-1 outline-none">
+            <select value={statusSelesaiFilter} onChange={e => {setStatusSelesaiFilter(e.target.value); setSlsTablePage(1);}} className="bg-slate-50 border border-slate-200 text-sm font-medium rounded-lg px-3 py-2 outline-none focus:border-emerald-500">
+              <option value="ALL">Semua Status</option>
+              <option value="SELESAI">Selesai ✅</option>
+              <option value="BELUM">Belum Selesai</option>
+            </select>
+            <select value={slsTableLimit} onChange={e => {setSlsTableLimit(Number(e.target.value)); setSlsTablePage(1);}} className="bg-slate-50 border border-slate-200 text-sm font-medium rounded-lg px-2 py-2 outline-none">
               <option value={10}>10 Baris</option><option value={15}>15 Baris</option><option value={30}>30 Baris</option><option value={100}>100 Baris</option>
             </select>
             <div className="relative">

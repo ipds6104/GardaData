@@ -84,6 +84,9 @@ async function runDailySnapshot() {
         let lastPpl = '';
         let lastPml = '';
 
+        // Accumulator for PPL daily logs
+        const pplLogs = {}; // { 'pplName': { pml, submit, draft, approve } }
+
         // Iterate all rows
         for (let i = 0; i < rows.length; i++) {
           const rowData = rows[i];
@@ -117,7 +120,6 @@ async function runDailySnapshot() {
           const submit = getNum(6);
           const draft = getNum(7);
           const approve = getNum(8);
-          const reject = getNum(9);
           const target = getNum(11);
           
           // Accumulate only from valid SLS rows
@@ -125,12 +127,23 @@ async function runDailySnapshot() {
           totalDraft += draft;
           totalTarget += target;
 
-          // Save per PPL daily log
+          // Accumulate per PPL
+          if (!pplLogs[effPpl]) {
+            pplLogs[effPpl] = { pml: lastPml, submit: 0, draft: 0, approve: 0 };
+          }
+          pplLogs[effPpl].submit += submit;
+          pplLogs[effPpl].draft += draft;
+          pplLogs[effPpl].approve += approve;
+        }
+
+        // Save per PPL daily log
+        for (const [ppl, data] of Object.entries(pplLogs)) {
+          const total = data.submit + data.draft;
           await pool.query(
             `INSERT INTO monitoring_log_harian (id, configId, tanggalUpdate, pml, ppl, submit, draft, approve, total, statusSiklus) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE submit = VALUES(submit), draft = VALUES(draft), approve = VALUES(approve), total = VALUES(total)`,
-            [crypto.randomUUID(), config.id, today, lastPml, effPpl, submit, draft, approve, submit + draft, 'Aktif']
+            [crypto.randomUUID(), config.id, today, data.pml, ppl, data.submit, data.draft, data.approve, total, 'Aktif']
           );
         }
         
