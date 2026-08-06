@@ -662,7 +662,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       if (typeof valA === 'string' && typeof valB === 'string') return slsTableSort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
       return slsTableSort.dir === 'asc' ? Number(valA) - Number(valB) : Number(valB) - Number(valA);
     });
-  }, [geoFilteredData, slsTableSearch, slsTableSort]);
+  }, [geoFilteredData, slsTableSearch, slsTableSort, statusSelesaiFilter]);
 
   const paginatedSlsTableData = useMemo(() => slsTableData.slice((slsTablePage - 1) * slsTableLimit, slsTablePage * slsTableLimit), [slsTableData, slsTablePage, slsTableLimit]);
   const totalSlsTablePages = Math.ceil(slsTableData.length / slsTableLimit) || 1;
