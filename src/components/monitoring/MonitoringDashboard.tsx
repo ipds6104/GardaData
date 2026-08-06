@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { ChevronLeft, Loader2, RefreshCw, Filter, TrendingUp, Users, MapPin, Search, CheckCircle2, AlertCircle, Target, Clock, Star, BarChart3, Calendar, Target as TargetIcon, Trophy, ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronLeft, Loader2, RefreshCw, Filter, TrendingUp, Users, MapPin, Search, CheckCircle2, AlertCircle, Target, Clock, Star, BarChart3, Calendar, Target as TargetIcon, Trophy, ArrowUpDown, ChevronDown, ChevronUp, Maximize2, Minimize2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MonitoringConfig } from './AdminMonitoring';
 import { MonitoringRow } from '../../services/monitoringParser';
@@ -91,6 +91,7 @@ interface MonitoringDashboardProps {
 
 export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config, onBack }) => {
   const { user } = useAuth();
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [data, setData] = useState<MonitoringRow[]>([]);
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
@@ -679,7 +680,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   );
 
   return (
-    <div className="space-y-6">
+    <div className={isFullscreen ? 'fixed inset-0 z-50 bg-slate-100 overflow-y-auto p-4 space-y-6' : 'space-y-6'}>
       {/* Header */}
       <div className="bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl shadow-sm border border-slate-200 sticky top-0 z-30">
         {/* Baris 1: Judul & status */}
@@ -760,6 +761,13 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
               title="Tarik data terbaru"
             >
               <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+            </button>
+            <button
+              onClick={() => setIsFullscreen(f => !f)}
+              className="flex items-center justify-center p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-blue-100 hover:text-blue-600 transition-colors"
+              title={isFullscreen ? 'Keluar dari Layar Penuh' : 'Layar Penuh'}
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
             <button
               onClick={onBack}
