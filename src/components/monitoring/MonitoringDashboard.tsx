@@ -681,32 +681,35 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
 
   return (
     <div className={isFullscreen ? 'fixed inset-0 z-50 bg-slate-100 overflow-y-auto p-4 space-y-6' : 'space-y-6'}>
-      {/* Header */}
-      <div className="bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl shadow-sm border border-slate-200 sticky top-0 z-30">
-        {/* Baris 1: Judul & status */}
-        <div className="flex items-center gap-3 mb-3">
-          <button onClick={onBack} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0">
-            <ChevronLeft className="w-5 h-5 text-slate-600" />
-          </button>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-base font-bold text-slate-800 leading-tight truncate">{config.kegiatan}</h1>
-            <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
-              <span className="truncate">{config.subKegiatan || 'Monitoring Interaktif'}</span>
-            </p>
+      {/* Header - Single Row Compact */}
+      <div className={`bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-200 sticky top-0 z-30 ${isFullscreen ? '' : '-mx-4 sm:-mx-8'}`}>
+        <div className="flex items-center gap-3 px-4 sm:px-6 py-3 overflow-x-auto">
+          
+          {/* Judul */}
+          <div className="flex items-center gap-2 flex-shrink-0 min-w-0 mr-2">
+            <button onClick={onBack} className="p-1 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0">
+              <ChevronLeft className="w-4 h-4 text-slate-500" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-sm font-bold text-slate-800 leading-tight truncate max-w-[200px] lg:max-w-xs">{config.kegiatan}</h1>
+              <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+                <span className="truncate">{config.subKegiatan || 'Monitoring Interaktif'}</span>
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Baris 2: Filter + Aksi */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+          {/* Divider */}
+          <div className="h-8 w-px bg-slate-200 flex-shrink-0" />
+
           {/* Label Filter */}
-          <div className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-slate-400 mr-1">
-            <Filter className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Filter</span>
+          <div className="flex-shrink-0 flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <Filter className="w-3 h-3" />
+            <span className="hidden sm:inline">Filter:</span>
           </div>
 
           {/* Filter PML */}
-          <div className="flex-shrink-0 flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 min-w-[120px]">
+          <div className="flex-shrink-0">
             <SearchableSelect
               value={pmlFilter}
               onChange={val => { setPmlFilter(val); setPplFilter('ALL'); }}
@@ -718,7 +721,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
           </div>
 
           {/* Filter PPL */}
-          <div className="flex-shrink-0 flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 min-w-[120px]">
+          <div className="flex-shrink-0">
             <SearchableSelect
               value={pplFilter}
               onChange={setPplFilter}
@@ -730,7 +733,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
           </div>
 
           {/* Filter Tanggal */}
-          <div className="flex-shrink-0 flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 min-w-[130px]">
+          <div className="flex-shrink-0">
             <SearchableSelect
               value={tanggalFilter}
               onChange={setTanggalFilter}
@@ -749,34 +752,29 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
           </div>
 
           {/* Spacer */}
-          <div className="flex-1" />
+          <div className="flex-1 min-w-2" />
 
-          {/* Info sync + tombol */}
-          <div className="flex-shrink-0 flex items-center gap-2">
-            <span className="hidden md:block text-xs text-slate-400 font-medium whitespace-nowrap">{lastSync}</span>
+          {/* Aksi */}
+          <div className="flex-shrink-0 flex items-center gap-1.5">
+            <span className="hidden lg:block text-[11px] text-slate-400 font-medium whitespace-nowrap">{lastSync}</span>
             <button
               onClick={handleSync}
               disabled={isSyncing}
-              className="flex items-center justify-center p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50 group"
-              title="Tarik data terbaru"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
+              title="Sinkronisasi data terbaru"
             >
-              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Sinkron...' : 'Sync'}
             </button>
             <button
               onClick={() => setIsFullscreen(f => !f)}
-              className="flex items-center justify-center p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-blue-100 hover:text-blue-600 transition-colors"
+              className="flex items-center justify-center p-1.5 bg-slate-100 text-slate-500 rounded-lg hover:bg-blue-100 hover:text-blue-600 transition-colors"
               title={isFullscreen ? 'Keluar dari Layar Penuh' : 'Layar Penuh'}
             >
-              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </button>
-            <button
-              onClick={onBack}
-              className="flex items-center justify-center p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
-              title="Kembali"
-            >
-              <ChevronLeft className="w-4 h-4" />
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
             </button>
           </div>
+
         </div>
       </div>
 
