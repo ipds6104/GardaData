@@ -538,6 +538,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
     if (tableMode === 'PPL') {
       return pplStatsRaw.map(p => {
         const dailyDelta = pplDailyDeltaData.find(d => d.ppl === p.name && d.pml === p.pml);
+        const approvePct = p.target > 0 ? (p.approve / p.target) * 100 : 0;
         return {
           id: p.key,
           name: p.name,
@@ -547,6 +548,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
           totalSubmit: p.totalSubmit,
           draft: p.draft,
           approve: p.approve,
+          approvePct: approvePct,
           reject: p.reject,
           open: p.open,
           submitLive: dailyDelta ? dailyDelta.addSubmit : 0,
@@ -569,11 +571,15 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
         const dailyDelta = pplDailyDeltaData.find(d => d.ppl === p.name && d.pml === p.pml);
         if (dailyDelta) pmlMap[p.pml].submitLive += dailyDelta.addSubmit;
       });
-      return Object.values(pmlMap).map(p => ({
-        ...p,
-        rataRata: (p.totalSubmit / hariBerjalan).toFixed(2),
-        pct: p.target > 0 ? (p.totalSubmit / p.target) * 100 : 0
-      }));
+      return Object.values(pmlMap).map(p => {
+        const approvePct = p.target > 0 ? (p.approve / p.target) * 100 : 0;
+        return {
+          ...p,
+          approvePct: approvePct,
+          rataRata: (p.totalSubmit / hariBerjalan).toFixed(2),
+          pct: approvePct
+        };
+      });
     }
   }, [pplStatsRaw, tableMode, hariBerjalan, pplDailyDeltaData]);
 
@@ -1196,16 +1202,23 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                   <td className="px-5 py-3 text-center font-medium">{row.target}</td>
                   <td className="px-5 py-3 text-center font-black text-emerald-600">{row.submit}</td>
                   <td className="px-5 py-3 text-center text-amber-500 font-bold">{row.draft}</td>
-                  <td className="px-5 py-3 text-center text-blue-600 font-bold">{row.approve}</td>
+                  <td className="px-5 py-3 text-center">
+                    <span className={row.approvePct >= 100 ? 'text-emerald-600 font-black' : 'text-blue-600 font-bold'}>
+                      {row.approve}
+                    </span>
+                    <span className={`text-[11px] ml-1.5 font-semibold ${row.approvePct >= 100 ? 'text-emerald-600 font-extrabold' : 'text-slate-400'}`}>
+                      ({row.approvePct.toFixed(1)}%)
+                    </span>
+                  </td>
                   <td className="px-5 py-3 text-center text-rose-600 font-bold">{row.reject}</td>
                   <td className="px-5 py-3 text-center text-purple-600 font-bold">{row.open}</td>
                   <td className="px-5 py-3 text-center text-slate-600 font-bold">{row.submitLive}</td>
                   <td className="px-5 py-3 text-center text-slate-600 font-bold">{row.rataRata}</td>
                   <td className="px-5 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <span className="font-bold text-slate-700 text-xs">{row.pct.toFixed(1)}%</span>
+                      <span className={`font-bold text-xs ${row.pct >= 100 ? 'text-emerald-600' : 'text-slate-700'}`}>{row.pct.toFixed(1)}%</span>
                       <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, row.pct)}%` }} />
+                        <div className={`h-full rounded-full ${row.pct >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, row.pct)}%` }} />
                       </div>
                     </div>
                   </td>
@@ -1359,7 +1372,11 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                   <td className="px-5 py-3 text-center font-medium">{row.target}</td>
                   <td className="px-5 py-3 text-center font-black text-emerald-600">{row.submit}</td>
                   <td className="px-5 py-3 text-center text-amber-500 font-bold">{row.draft}</td>
-                  <td className="px-5 py-3 text-center text-blue-600 font-bold">{row.approve}</td>
+                  <td className="px-5 py-3 text-center font-bold">
+                    <span className={row.approvePct >= 100 ? 'text-emerald-600 font-extrabold' : 'text-blue-600'}>
+                      {row.approve} ({row.approvePct.toFixed(1)}%)
+                    </span>
+                  </td>
                   <td className="px-5 py-3 text-center text-rose-600 font-bold">{row.reject}</td>
                   <td className="px-5 py-3 text-center text-slate-600 font-bold">{row.rataRata}</td>
                   <td className="px-5 py-3 text-right font-bold text-slate-700">{row.pct.toFixed(1)}%</td>

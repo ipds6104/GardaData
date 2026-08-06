@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { LogOut, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LogOut, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database, WifiOff, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/auth';
 
@@ -15,6 +15,54 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  const [isServerDisconnected, setIsServerDisconnected] = useState(false);
+  const [isCheckingServer, setIsCheckingServer] = useState(false);
+
+  const checkServerConnection = async () => {
+    setIsCheckingServer(true);
+    if (!navigator.onLine) {
+      setIsServerDisconnected(true);
+      setIsCheckingServer(false);
+      return;
+    }
+
+    try {
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(`${baseUrl}/api/status`, {
+        method: 'GET',
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        setIsServerDisconnected(true);
+      } else {
+        setIsServerDisconnected(false);
+      }
+    } catch (err) {
+      setIsServerDisconnected(true);
+    } finally {
+      setIsCheckingServer(false);
+    }
+  };
+
+  useEffect(() => {
+    checkServerConnection();
+
+    const handleOnline = () => checkServerConnection();
+    const handleOffline = () => setIsServerDisconnected(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const searchIndex = [
     { id: 'lms', title: 'Learning Management System', desc: 'Pelatihan, e-learning, materi, sakernas agustus', keywords: ['lms', 'pelatihan', 'sakernas', 'susenas', 'agustus', 'materi', 'kuis', 'jadwal'] },
@@ -166,6 +214,40 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       </AnimatePresence>
 
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* Offline / Server Disconnection Banner */}
+        <AnimatePresence>
+          {isServerDisconnected && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white px-4 py-2.5 shadow-md flex items-center justify-between shrink-0 z-50 text-xs sm:text-sm"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-1.5 bg-white/20 rounded-lg shrink-0">
+                  <WifiOff className="w-4 h-4 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold block sm:inline">Web sedang tidak tersambung ke server</span>
+                  <span className="hidden md:inline text-xs text-rose-100 ml-2">
+                    (Beberapa fitur real-time atau sinkronisasi backend mungkin tidak dapat diakses)
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={checkServerConnection}
+                  disabled={isCheckingServer}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-white text-rose-700 hover:bg-rose-50 font-bold rounded-lg text-xs transition-colors shadow-sm disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isCheckingServer ? 'animate-spin' : ''}`} />
+                  {isCheckingServer ? 'Mengecek...' : 'Coba Lagi'}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Top Navbar */}
         <nav className="h-20 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30">
           <div className="flex items-center gap-4">
