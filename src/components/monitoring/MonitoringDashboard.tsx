@@ -682,7 +682,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   return (
     <div className={isFullscreen ? 'fixed inset-0 z-50 bg-slate-100 overflow-y-auto p-4 space-y-6' : 'space-y-6'}>
       {/* Header - Single Row Compact */}
-      <div className={`bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-200 sticky top-0 z-30 ${isFullscreen ? '' : '-mx-4 sm:-mx-8'}`}>
+      <div className={`bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-200 sticky top-0 z-30 ${isFullscreen ? '' : '-mx-4 sm:-mx-6 lg:-mx-8'} rounded-none border-x-0 border-t-0`}>
         <div className="flex items-center gap-3 px-4 sm:px-6 py-3 overflow-x-auto">
           
           {/* Judul */}

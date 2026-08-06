@@ -341,7 +341,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto bg-slate-50/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8">
+          <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
             <motion.div
               key={currentPage}
               initial={{ opacity: 0, y: 10 }}
@@ -353,7 +353,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
           </div>
           
           <footer className="py-16 border-t border-slate-200/60 bg-white mt-auto">
-            <div className="max-w-7xl mx-auto px-6 text-center space-y-4">
+            <div className="w-full px-6 text-center space-y-4">
               <div className="flex items-center justify-center gap-2 text-slate-300">
                 <div className="h-px w-8 bg-slate-200" />
                 <img src="/logo.png" alt="Logo" className="w-5 h-5 opacity-50 grayscale" onError={(e) => {
