@@ -1436,45 +1436,60 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
 
       {/* Hidden container for full table export */}
       <div style={{ position: 'fixed', top: '-9999px', left: '-9999px', zIndex: -9999, pointerEvents: 'none' }}>
-        <div ref={fullTableRef} className="bg-white p-6 rounded-2xl w-[1200px]" style={{ fontFamily: "'Inter', sans-serif" }}>
-          <div className="mb-4">
-            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Users className="w-6 h-6 text-blue-500" />Akumulasi Progres Petugas ({tableMode})</h2>
-            <p className="text-slate-500 text-sm mt-1">Total {sortedTableData.length} Data | Diekspor pada: {new Date().toLocaleString('id-ID')}</p>
+        <div ref={fullTableRef} className="bg-white p-8 w-[1400px]" style={{ fontFamily: "'Inter', sans-serif" }}>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Users className="w-6 h-6 text-blue-500" />Laporan Akumulasi Progres Petugas ({tableMode})</h2>
+            <p className="text-slate-500 text-sm mt-2">Total {sortedTableData.length} Data | Kegiatan: {config.kegiatan} | Diekspor pada: {new Date().toLocaleString('id-ID')}</p>
+            <div className="text-xs text-slate-400 mt-1">Periode: {new Date(config.startDate).toLocaleDateString('id-ID')} - {new Date(config.endDate).toLocaleDateString('id-ID')}</div>
           </div>
-          <table className="w-full text-left text-sm text-slate-600 border border-slate-200 rounded-lg overflow-hidden">
-            <thead className="bg-slate-100 text-[11px] uppercase font-bold text-slate-600 tracking-wider">
+          <table className="w-full text-left text-xs text-slate-700 border-collapse border border-slate-300">
+            <thead className="bg-slate-200 text-[10px] uppercase font-bold text-slate-700 tracking-wider">
               <tr>
-                <th className="px-5 py-3 border-b border-slate-200">Nama</th>
-                <th className="px-5 py-3 border-b border-slate-200">Supervisor</th>
-                <th className="px-5 py-3 border-b border-slate-200 text-center">Target</th>
-                <th className="px-5 py-3 border-b border-slate-200 text-center">Submit</th>
-                <th className="px-5 py-3 border-b border-slate-200 text-center">Draf</th>
-                <th className="px-5 py-3 border-b border-slate-200 text-center">Approved PML</th>
-                <th className="px-5 py-3 border-b border-slate-200 text-center">Rejected PML</th>
-                <th className="px-5 py-3 border-b border-slate-200 text-center">Rata-Rata</th>
-                <th className="px-5 py-3 border-b border-slate-200 text-right">Progres</th>
+                <th className="px-4 py-3 border border-slate-300 whitespace-nowrap">Nama</th>
+                <th className="px-4 py-3 border border-slate-300 whitespace-nowrap">Supervisor</th>
+                <th className="px-4 py-3 border border-slate-300 text-center whitespace-nowrap">Target</th>
+                <th className="px-4 py-3 border border-slate-300 text-center whitespace-nowrap">Submit</th>
+                <th className="px-4 py-3 border border-slate-300 text-center whitespace-nowrap">Draf</th>
+                <th className="px-4 py-3 border border-slate-300 text-center whitespace-nowrap">Approved PML</th>
+                <th className="px-4 py-3 border border-slate-300 text-center whitespace-nowrap">Rejected PML</th>
+                <th className="px-4 py-3 border border-slate-300 text-center whitespace-nowrap">Open</th>
+                <th className="px-4 py-3 border border-slate-300 text-center whitespace-nowrap">Submit Hari Ini</th>
+                <th className="px-4 py-3 border border-slate-300 text-center whitespace-nowrap">Progres (%)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="bg-white">
               {sortedTableData.map((row, idx) => (
-                <tr key={idx}>
-                  <td className="px-5 py-3 font-bold text-slate-700">{row.name}</td>
-                  <td className="px-5 py-3 text-slate-500 text-xs">{row.supervisor}</td>
-                  <td className="px-5 py-3 text-center font-medium">{row.target}</td>
-                  <td className="px-5 py-3 text-center font-black text-emerald-600">{row.submit}</td>
-                  <td className="px-5 py-3 text-center text-amber-500 font-bold">{row.draft}</td>
-                  <td className="px-5 py-3 text-center font-bold">
-                    <span className={row.approvePct >= 100 ? 'text-emerald-600 font-extrabold' : 'text-blue-600'}>
+                <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  <td className="px-4 py-2 border border-slate-300 font-semibold text-slate-800">{row.name}</td>
+                  <td className="px-4 py-2 border border-slate-300 text-slate-600">{row.supervisor}</td>
+                  <td className="px-4 py-2 border border-slate-300 text-center font-medium">{row.target}</td>
+                  <td className="px-4 py-2 border border-slate-300 text-center font-bold text-emerald-700">{row.submit}</td>
+                  <td className="px-4 py-2 border border-slate-300 text-center font-bold text-amber-600">{row.draft}</td>
+                  <td className="px-4 py-2 border border-slate-300 text-center font-bold">
+                    <span className={row.approvePct >= 100 ? 'text-emerald-700' : 'text-blue-700'}>
                       {row.approve} ({row.approvePct.toFixed(1)}%)
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-center text-rose-600 font-bold">{row.reject}</td>
-                  <td className="px-5 py-3 text-center text-slate-600 font-bold">{row.rataRata}</td>
-                  <td className="px-5 py-3 text-right font-bold text-slate-700">{row.pct.toFixed(1)}%</td>
+                  <td className="px-4 py-2 border border-slate-300 text-center font-bold text-rose-700">{row.reject}</td>
+                  <td className="px-4 py-2 border border-slate-300 text-center font-bold text-slate-700">{row.open}</td>
+                  <td className="px-4 py-2 border border-slate-300 text-center font-bold text-indigo-700">{row.submitLive}</td>
+                  <td className="px-4 py-2 border border-slate-300 text-center font-bold text-slate-800">{row.pct.toFixed(1)}%</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <div className="mt-6 text-xs text-slate-500 space-y-1">
+            <p><strong>Keterangan Kolom:</strong></p>
+            <ul className="list-disc list-inside space-y-0.5 text-slate-600">
+              <li><strong>Submit:</strong> Jumlah dokumen yang telah disubmit</li>
+              <li><strong>Draf:</strong> Jumlah dokumen dalam status draft</li>
+              <li><strong>Approved PML:</strong> Jumlah dokumen yang telah disetujui oleh Pengawas Mitra Lapangan</li>
+              <li><strong>Rejected PML:</strong> Jumlah dokumen yang ditolak oleh Pengawas Mitra Lapangan</li>
+              <li><strong>Open:</strong> Jumlah dokumen dalam status terbuka/belum diproses</li>
+              <li><strong>Submit Hari Ini:</strong> Jumlah dokumen yang disubmit pada hari ini</li>
+              <li><strong>Progres:</strong> Persentase pencapaian terhadap target yang ditetapkan</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
