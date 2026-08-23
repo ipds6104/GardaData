@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database, WifiOff, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/auth';
+import { ThemeSelector } from './ThemeSelector';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -315,8 +316,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="h-6 w-px bg-slate-200 mx-2 hidden sm:block" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Theme / Preset Selector Button */}
+            <ThemeSelector />
+
+            <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
 
             {user && (
               <div className="flex items-center gap-3">

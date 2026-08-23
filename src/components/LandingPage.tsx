@@ -47,31 +47,52 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
   return (
     <div className="space-y-8">
       {/* Hero Banner */}
-      <div className="bg-[#fef9f1] rounded-[2.5rem] p-8 md:p-16 relative overflow-hidden flex flex-col md:flex-row items-center justify-between min-h-[400px] shadow-sm border border-orange-100/50">
+      <div className="bg-gradient-to-br from-primary-50/90 via-white to-secondary-50/70 rounded-[2.5rem] p-8 md:p-14 lg:p-16 relative overflow-hidden flex flex-col md:flex-row items-center justify-between min-h-[420px] shadow-xl shadow-primary-500/5 border border-primary-100/80 transition-colors duration-500">
         
-        {/* Left Column (Text & Buttons) */}
+        {/* Ambient Decorative Lighting */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary-200/40 blur-[100px] rounded-full pointer-events-none -mr-20 -mt-20"></div>
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-secondary-200/30 blur-[90px] rounded-full pointer-events-none -ml-20 -mb-20"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(var(--color-primary-300)_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none"></div>
+
+        {/* Left Column (Text & Quote) */}
         <div className="relative z-10 flex flex-col items-start text-left space-y-6 w-full md:w-1/2 max-w-xl mx-auto md:mx-0">
-          <h1 className="text-slate-800 text-3xl md:text-4xl lg:text-5xl leading-tight font-serif font-semibold">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 backdrop-blur-sm text-primary-700 text-xs font-black uppercase tracking-wider border border-primary-200 shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-primary-500 animate-pulse"></span>
+            BPS Kabupaten Mempawah
+          </div>
+
+          <h1 className="text-slate-800 text-[26px] sm:text-3xl md:text-4xl lg:text-5xl leading-[1.25] font-serif font-bold tracking-tight break-words hyphens-auto">
             Portal Integrasi Menjaga Kualitas Data & <br className="hidden md:block" />
-            <span className="text-primary-500 font-serif italic">Akuntabilitas Proses Pendataan</span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600 italic block mt-1 md:mt-0 md:inline">
+              Akuntabilitas Proses Pendataan
+            </span>
           </h1>
+
           
-          <p className="text-slate-500 text-sm md:text-base leading-relaxed max-w-md italic font-serif">
-            "Kesempurnaan tidak datang dengan sendirinya. Kesempurnaan harus diupayakan." <br/>
-            <span className="font-bold not-italic block mt-2 text-slate-700">- Prof. Dr. Ing. B.J. Habibie</span>
-          </p>
+          <div className="p-4 rounded-2xl bg-white/70 backdrop-blur-sm border border-primary-100/80 max-w-md shadow-xs space-y-1">
+            <p className="text-slate-600 text-xs md:text-sm leading-relaxed italic font-serif">
+              "Kesempurnaan tidak datang dengan sendirinya. Kesempurnaan harus diupayakan."
+            </p>
+            <span className="font-bold not-italic block text-xs text-slate-800 tracking-tight">
+              — Prof. Dr. Ing. B.J. Habibie
+            </span>
+          </div>
         </div>
 
-        {/* Right Column (Logo Image) */}
-        <div className="relative z-10 w-full md:w-1/2 flex justify-center md:justify-end mt-12 md:mt-0">
-          <div className="relative">
-            {/* Soft backdrop glow behind the logo */}
-            <div className="absolute inset-0 bg-primary-200 blur-3xl opacity-40 rounded-full w-full h-full transform scale-150"></div>
+        {/* Right Column (Logo with Adaptive Halo Backdrop) */}
+        <div className="relative z-10 w-full md:w-1/2 flex justify-center md:justify-end mt-10 md:mt-0">
+          <div className="relative flex items-center justify-center p-6">
+            {/* Radiant Theme Halo */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary-400/30 via-secondary-300/30 to-accent-400/20 blur-3xl rounded-full transform scale-125 animate-pulse pointer-events-none"></div>
+            <div className="absolute w-64 h-64 bg-primary-300/25 rounded-full blur-2xl pointer-events-none"></div>
             
+            {/* Decorative Glass Badge behind Logo */}
+            <div className="absolute inset-3 bg-white/30 backdrop-blur-md rounded-[2.5rem] border border-white/60 shadow-lg shadow-primary-500/10 pointer-events-none"></div>
+
             <img 
               src="/logo.png" 
               alt="Garda Data Logo" 
-              className="relative z-10 w-auto h-56 md:h-80 object-contain hover:scale-105 transition-transform duration-500 drop-shadow-2xl" 
+              className="relative z-10 w-auto h-56 md:h-72 lg:h-80 object-contain hover:scale-105 transition-transform duration-500 drop-shadow-2xl" 
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }} 

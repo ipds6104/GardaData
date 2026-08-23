@@ -97,11 +97,15 @@ function AppContent() {
   );
 }
 
+import { ThemeProvider } from './lib/theme';
+
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

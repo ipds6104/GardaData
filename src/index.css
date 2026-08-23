@@ -1,38 +1,246 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Nunito:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Outfit", sans-serif;
+  --font-sans: var(--font-family-sans, "Inter", ui-sans-serif, system-ui, sans-serif);
+  --font-display: var(--font-family-display, "Outfit", sans-serif);
   --font-serif: "Playfair Display", serif;
 
-  /* Primary (F6A672) */
-  --color-primary-50: #fef6f1;
-  --color-primary-100: #fdecdb;
-  --color-primary-200: #fad5b2;
-  --color-primary-300: #f7b781;
-  --color-primary-400: #f6a672; /* User requested primary */
-  --color-primary-500: #f17e3a;
-  --color-primary-600: #e36325;
-  --color-primary-700: #bd4a1f;
+  /* Primary */
+  --color-primary-50: var(--p-50, #fef6f1);
+  --color-primary-100: var(--p-100, #fdecdb);
+  --color-primary-200: var(--p-200, #fad5b2);
+  --color-primary-300: var(--p-300, #f7b781);
+  --color-primary-400: var(--p-400, #f6a672);
+  --color-primary-500: var(--p-500, #f17e3a);
+  --color-primary-600: var(--p-600, #e36325);
+  --color-primary-700: var(--p-700, #bd4a1f);
 
-  /* Secondary (E29578) */
-  --color-secondary-50: #fcf4f2;
-  --color-secondary-100: #f8e8e3;
-  --color-secondary-200: #f1d3c9;
-  --color-secondary-300: #e8b6a6;
-  --color-secondary-400: #e29578; /* User requested secondary (cokelat) */
-  --color-secondary-500: #d6714f;
-  --color-secondary-600: #c15635;
-  --color-secondary-700: #a14429;
+  /* Secondary */
+  --color-secondary-50: var(--s-50, #fcf4f2);
+  --color-secondary-100: var(--s-100, #f8e8e3);
+  --color-secondary-200: var(--s-200, #f1d3c9);
+  --color-secondary-300: var(--s-300, #e8b6a6);
+  --color-secondary-400: var(--s-400, #e29578);
+  --color-secondary-500: var(--s-500, #d6714f);
+  --color-secondary-600: var(--s-600, #c15635);
+  --color-secondary-700: var(--s-700, #a14429);
 
-  /* Accent (Original light yellow) */
-  --color-accent-50: #fffdf9;
-  --color-accent-100: #fffbf0;
-  --color-accent-200: #fdf5d7;
-  --color-accent-400: #f7e9ab;
-  --color-accent-500: #f5e496;
-  --color-accent-600: #c4b678;
+  /* Accent */
+  --color-accent-50: var(--a-50, #fffdf9);
+  --color-accent-100: var(--a-100, #fffbf0);
+  --color-accent-200: var(--a-200, #fdf5d7);
+  --color-accent-400: var(--a-400, #f7e9ab);
+  --color-accent-500: var(--a-500, #f5e496);
+  --color-accent-600: var(--a-600, #c4b678);
+}
+
+/* =========================================
+   THEME PRESETS DEFINITIONS
+   ========================================= */
+
+/* 1. ORIGINAL (Default) */
+:root, [data-theme="original"] {
+  --font-family-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-family-display: "Outfit", sans-serif;
+
+  --p-50: #fef6f1;
+  --p-100: #fdecdb;
+  --p-200: #fad5b2;
+  --p-300: #f7b781;
+  --p-400: #f6a672;
+  --p-500: #f17e3a;
+  --p-600: #e36325;
+  --p-700: #bd4a1f;
+
+  --s-50: #fcf4f2;
+  --s-100: #f8e8e3;
+  --s-200: #f1d3c9;
+  --s-300: #e8b6a6;
+  --s-400: #e29578;
+  --s-500: #d6714f;
+  --s-600: #c15635;
+  --s-700: #a14429;
+
+  --a-50: #fffdf9;
+  --a-100: #fffbf0;
+  --a-200: #fdf5d7;
+  --a-400: #f7e9ab;
+  --a-500: #f5e496;
+  --a-600: #c4b678;
+
+  --body-bg: #f8fafc;
+}
+
+/* 2. GREENTEA (Fresh Mint & Sage & Soft Teal) */
+[data-theme="greentea"] {
+  --font-family-sans: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-family-display: "Outfit", sans-serif;
+
+  --p-50: #f0fdf4;
+  --p-100: #dcfce7;
+  --p-200: #bbf7d0;
+  --p-300: #86efac;
+  --p-400: #4ade80;
+  --p-500: #22c55e;
+  --p-600: #16a34a;
+  --p-700: #15803d;
+
+  --s-50: #f0fdfa;
+  --s-100: #ccfbf1;
+  --s-200: #99f6e4;
+  --s-300: #5eead4;
+  --s-400: #2dd4bf;
+  --s-500: #14b8a6;
+  --s-600: #0d9488;
+  --s-700: #0f766e;
+
+  --a-50: #f7fee7;
+  --a-100: #ecfccb;
+  --a-200: #d9f99d;
+  --a-400: #bef264;
+  --a-500: #a3e635;
+  --a-600: #65a30d;
+
+  --body-bg: #f4f8f6;
+}
+
+/* 3. AUNTUM (Warm Autumn Terracotta & Caramel Amber) */
+[data-theme="auntum"] {
+  --font-family-sans: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-family-display: "Outfit", sans-serif;
+
+  --p-50: #fff7ed;
+  --p-100: #ffedd5;
+  --p-200: #fed7aa;
+  --p-300: #fdba74;
+  --p-400: #fb923c;
+  --p-500: #ea580c;
+  --p-600: #c2410c;
+  --p-700: #9a3412;
+
+  --s-50: #fefce8;
+  --s-100: #fef9c3;
+  --s-200: #fef08a;
+  --s-300: #fde047;
+  --s-400: #facc15;
+  --s-500: #d97706;
+  --s-600: #b45309;
+  --s-700: #78350f;
+
+  --a-50: #fffbeb;
+  --a-100: #fef3c7;
+  --a-200: #fde68a;
+  --a-400: #fcd34d;
+  --a-500: #fbbf24;
+  --a-600: #d97706;
+
+  --body-bg: #fff9f2;
+}
+
+/* 4. NOTEBOOK (Soft Pastel Playful Rose-Peach, Lavender & Mint) */
+[data-theme="notebook"] {
+  --font-family-sans: "Nunito", "Inter", sans-serif;
+  --font-family-display: "Nunito", "Outfit", sans-serif;
+
+  --p-50: #fff1f2;
+  --p-100: #ffe4e6;
+  --p-200: #fecdd3;
+  --p-300: #fda4af;
+  --p-400: #fb7185;
+  --p-500: #f43f5e;
+  --p-600: #e11d48;
+  --p-700: #be123c;
+
+  --s-50: #eff6ff;
+  --s-100: #dbeafe;
+  --s-200: #bfdbfe;
+  --s-300: #93c5fd;
+  --s-400: #60a5fa;
+  --s-500: #3b82f6;
+  --s-600: #2563eb;
+  --s-700: #1d4ed8;
+
+  --a-50: #fdf4ff;
+  --a-100: #fae8ff;
+  --a-200: #f5d0fe;
+  --a-400: #e879f9;
+  --a-500: #d946ef;
+  --a-600: #a21caf;
+
+  --body-bg: #faf8f5;
+}
+
+/* 5. PERSIK (Electric Violet, Lilac & Coral Peach) */
+[data-theme="persik"] {
+  --font-family-sans: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-family-display: "Outfit", sans-serif;
+
+  --p-50: #f5f3ff;
+  --p-100: #ede9fe;
+  --p-200: #ddd6fe;
+  --p-300: #c4b5fd;
+  --p-400: #a78bfa;
+  --p-500: #8b5cf6;
+  --p-600: #7c3aed;
+  --p-700: #6d28d9;
+
+  --s-50: #fff1f2;
+  --s-100: #ffe4e6;
+  --s-200: #fecdd3;
+  --s-300: #fda4af;
+  --s-400: #fb7185;
+  --s-500: #f43f5e;
+  --s-600: #e11d48;
+  --s-700: #be123c;
+
+  --a-50: #faf5ff;
+  --a-100: #f3e8ff;
+  --a-200: #e9d5ff;
+  --a-400: #c084fc;
+  --a-500: #a855f7;
+  --a-600: #7e22ce;
+
+  --body-bg: #faf7ff;
+}
+
+/* 6. SKY (Healthcare Blue / Professional Crisp Blue) */
+[data-theme="sky"] {
+  --font-family-sans: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-family-display: "Outfit", sans-serif;
+
+  --p-50: #eff6ff;
+  --p-100: #dbeafe;
+  --p-200: #bfdbfe;
+  --p-300: #93c5fd;
+  --p-400: #60a5fa;
+  --p-500: #3b82f6;
+  --p-600: #2563eb;
+  --p-700: #1d4ed8;
+
+  --s-50: #f0f9ff;
+  --s-100: #e0f2fe;
+  --s-200: #bae6fd;
+  --s-300: #7dd3fc;
+  --s-400: #38bdf8;
+  --s-500: #0ea5e9;
+  --s-600: #0284c7;
+  --s-700: #0369a1;
+
+  --a-50: #f8fafc;
+  --a-100: #f1f5f9;
+  --a-200: #e2e8f0;
+  --a-400: #94a3b8;
+  --a-500: #64748b;
+  --a-600: #475569;
+
+  --body-bg: #f8f9fa;
+}
+
+body {
+  background-color: var(--body-bg, #f8fafc);
+  font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 @layer base {
@@ -83,6 +291,5 @@
 
 .leaflet-draw-actions li a:hover {
   background-color: #f1f5f9 !important;
-  color: #ff5e00 !important;
+  color: var(--color-primary-600, #ff5e00) !important;
 }
-
