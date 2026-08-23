@@ -8,8 +8,6 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/auth';
 import { MEMPAWAH_REGIONS, KECAMATAN_LIST } from '../data/regions';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 
 interface SocialPhenomenonModuleProps {
   onBack: () => void;
@@ -132,64 +130,36 @@ export const SocialPhenomenonModule: React.FC<SocialPhenomenonModuleProps> = ({ 
     setFilterDesa('Semua');
   }, [filterKecamatan]);
 
-  // Fetch from Server API (Migrasi ke Firebase Firestore)
+  // Fetch from MySQL API
   const fetchRecords = async () => {
     setIsLoadingList(true);
     try {
-      // Ambil data langsung dari Firestore agar sinkron antara Admin & Petugas
-      const phenomenaRef = collection(db, 'social_phenomena');
-      const q = query(phenomenaRef, orderBy('tanggal', 'desc'));
-      const querySnapshot = await getDocs(q);
-      
-      let allData: PhenomenonRecord[] = [];
-      querySnapshot.forEach((doc) => {
-        allData.push({ id: doc.id, ...doc.data() } as PhenomenonRecord);
-      });
+      const res = await fetch('/api/social');
+      const json = await res.json();
+      let allData: PhenomenonRecord[] = json.data || [];
 
-      // Filter data di sisi client
+      // Filter di sisi klien
       let filtered = allData;
       if (filterKecamatan !== 'Semua') filtered = filtered.filter(r => r.kecamatan === filterKecamatan);
       if (filterDesa !== 'Semua') filtered = filtered.filter(r => r.desa === filterDesa);
       if (filterKategori !== 'Semua') filtered = filtered.filter(r => r.kategori === filterKategori);
-      if (filterMonth) filtered = filtered.filter(r => r.tanggal.startsWith(filterMonth));
+      if (filterMonth) filtered = filtered.filter(r => r.tanggal?.startsWith(filterMonth));
       if (searchTerm) {
         const st = searchTerm.toLowerCase();
-        filtered = filtered.filter(r => 
-          r.judul.toLowerCase().includes(st) || 
-          r.deskripsi.toLowerCase().includes(st) || 
-          r.sls.toLowerCase().includes(st) ||
-          r.petugas_name.toLowerCase().includes(st)
+        filtered = filtered.filter(r =>
+          r.judul?.toLowerCase().includes(st) ||
+          r.deskripsi?.toLowerCase().includes(st) ||
+          r.sls?.toLowerCase().includes(st) ||
+          r.petugas_name?.toLowerCase().includes(st)
         );
       }
 
       setTotalRecords(filtered.length);
       setRecords(filtered.slice((page - 1) * limit, page * limit));
     } catch (error) {
-      console.error('Failed to fetch from Firebase, falling back to LocalStorage', error);
-      // Fallback to local storage mock data for offline support
-      const saved = localStorage.getItem('local_social_phenomena');
-      if (saved) {
-        try {
-          const allLocal: PhenomenonRecord[] = JSON.parse(saved);
-          let filtered = allLocal;
-          if (filterKecamatan !== 'Semua') filtered = filtered.filter(r => r.kecamatan === filterKecamatan);
-          if (filterDesa !== 'Semua') filtered = filtered.filter(r => r.desa === filterDesa);
-          if (filterKategori !== 'Semua') filtered = filtered.filter(r => r.kategori === filterKategori);
-          if (filterMonth) filtered = filtered.filter(r => r.tanggal.startsWith(filterMonth));
-          if (searchTerm) {
-            const st = searchTerm.toLowerCase();
-            filtered = filtered.filter(r => 
-              r.judul.toLowerCase().includes(st) || 
-              r.deskripsi.toLowerCase().includes(st) || 
-              r.sls.toLowerCase().includes(st)
-            );
-          }
-          setTotalRecords(filtered.length);
-          setRecords(filtered.slice((page - 1) * limit, page * limit));
-        } catch (e) {
-          console.error(e);
-        }
-      }
+      console.error('Gagal mengambil data fenomena sosial:', error);
+      setTotalRecords(0);
+      setRecords([]);
     } finally {
       setIsLoadingList(false);
     }
@@ -225,13 +195,18 @@ export const SocialPhenomenonModule: React.FC<SocialPhenomenonModuleProps> = ({ 
     };
 
     try {
-      // Simpan langsung ke Firestore Firebase
-      await addDoc(collection(db, 'social_phenomena'), {
-        ...payload,
-        created_at: new Date().toISOString()
+      // Simpan ke MySQL via API
+      const res = await fetch('/api/social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...payload,
+          created_at: new Date().toISOString()
+        })
       });
+      if (!res.ok) throw new Error('Gagal menyimpan');
 
-      setMessage({ type: 'success', text: 'Laporan fenomena sosial ekonomi berhasil disimpan secara tersentralisasi ke Cloud Firebase.' });
+      setMessage({ type: 'success', text: 'Laporan fenomena sosial ekonomi berhasil disimpan ke database.' });
       
       // Reset form
       setFormData(prev => ({
@@ -298,10 +273,13 @@ export const SocialPhenomenonModule: React.FC<SocialPhenomenonModuleProps> = ({ 
     };
 
     try {
-      const docRef = doc(db, 'social_phenomena', editingRecord.id);
-      await updateDoc(docRef, recordToSave);
-      
-      setMessage({ type: 'success', text: 'Laporan berhasil diperbarui di Cloud Firebase.' });
+      const res = await fetch(`/api/social/${editingRecord.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(recordToSave)
+      });
+      if (!res.ok) throw new Error('Gagal memperbarui');
+      setMessage({ type: 'success', text: 'Laporan berhasil diperbarui.' });
       setEditingRecord(null);
       fetchRecords();
     } catch (error: any) {
@@ -317,21 +295,10 @@ export const SocialPhenomenonModule: React.FC<SocialPhenomenonModuleProps> = ({ 
     if (!window.confirm('Apakah Anda yakin ingin menghapus permanen laporan fenomena ini?')) return;
 
     try {
-      await deleteDoc(doc(db, 'social_phenomena', id));
-      
-      // Remove from local storage list too if exists
-      const saved = localStorage.getItem('local_social_phenomena') || '[]';
-      const localList = JSON.parse(saved).filter((r: any) => r.id !== id);
-      localStorage.setItem('local_social_phenomena', JSON.stringify(localList));
-
+      await fetch(`/api/social/${id}`, { method: 'DELETE' });
       fetchRecords();
     } catch (err) {
       console.error(err);
-      // Fallback local delete
-      const saved = localStorage.getItem('local_social_phenomena') || '[]';
-      const localList = JSON.parse(saved).filter((r: any) => r.id !== id);
-      localStorage.setItem('local_social_phenomena', JSON.stringify(localList));
-      fetchRecords();
     }
   };
 

@@ -78,11 +78,17 @@ const monitoringRouter = require('./routes/monitoring');
 const lmsRouter = require('./routes/lms');
 const cerdasRouter = require('./routes/cerdas');
 const imputationRouter = require('./routes/imputation');
+const infrastructureRouter = require('./routes/infrastructure');
+const socialRouter = require('./routes/social');
+const classificationRouter = require('./routes/classification');
 app.use('/api/measurements', measurementsRouter);
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api/lms', lmsRouter);
 app.use('/api/cerdas', cerdasRouter);
 app.use('/api/imputations', imputationRouter);
+app.use('/api/infrastructure', infrastructureRouter);
+app.use('/api/social', socialRouter);
+app.use('/api/classification', classificationRouter);
 
 // Root route for API verification (optional, can be removed)
 app.get('/api/status', (req, res) => {

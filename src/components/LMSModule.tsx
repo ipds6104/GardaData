@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink } from 'lucide-react';
+import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink, GripVertical } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface LMSButton {
   id: string;
@@ -60,6 +63,53 @@ const CARD_COLORS = [
   'bg-rose-50 border-rose-200 text-rose-800 hover:shadow-rose-200',
   'bg-indigo-50 border-indigo-200 text-indigo-800 hover:shadow-indigo-200'
 ];
+
+// Component Sortable Item untuk Dnd-Kit
+const SortableLinkItem = ({ btn, isAdmin, theme, isLocked, lockLabel, isIframe, openIframe, toggleButtonStatus, setButtonFormData, setIsCustomCategory, setShowButtonForm, handleDeleteButton, activeTrainingId, DEFAULT_CATEGORIES }: any) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: btn.id, disabled: !isAdmin });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className={`group relative bg-white border-2 rounded-2xl transition-all flex flex-col overflow-hidden shadow-sm ${!isLocked ? `border-white hover:shadow-xl hover:-translate-y-1 ${theme.linkHover}` : 'border-slate-200 opacity-70'}`}>
+      {isIframe ? (
+        <button onClick={() => !isLocked && openIframe(btn.url)} disabled={isLocked} className="flex-grow p-4 flex items-center gap-4 text-left w-full h-full">
+          <div className={`p-3 shrink-0 rounded-xl ${!isLocked ? `${theme.linkIconBg} ${theme.iconColor} ${theme.linkIconHover} group-hover:text-white transition-all` : 'bg-slate-100 text-slate-400'}`}>
+            <ExternalLink className="w-5 h-5" />
+          </div>
+          <div className="flex flex-col flex-grow">
+            <span className="font-bold text-slate-700 leading-tight pr-2 text-sm md:text-base">{btn.title}</span>
+            {lockLabel && <span className="text-xs font-bold text-rose-500 mt-1 uppercase flex items-center gap-1"><Lock className="w-3 h-3"/> {lockLabel}</span>}
+          </div>
+        </button>
+      ) : (
+        <a href={isLocked ? '#' : btn.url} target={isLocked ? '_self' : '_blank'} rel="noreferrer" className={`flex-grow p-4 flex items-center gap-4 ${isLocked ? 'pointer-events-none' : ''}`}>
+          <div className={`p-3 shrink-0 rounded-xl ${!isLocked ? `${theme.linkIconBg} ${theme.iconColor} ${theme.linkIconHover} group-hover:text-white transition-all` : 'bg-slate-100 text-slate-400'}`}>
+            <ExternalLink className="w-5 h-5" />
+          </div>
+          <div className="flex flex-col flex-grow">
+            <span className="font-bold text-slate-700 leading-tight pr-2 text-sm md:text-base">{btn.title}</span>
+            {lockLabel && <span className="text-xs font-bold text-rose-500 mt-1 uppercase flex items-center gap-1"><Lock className="w-3 h-3"/> {lockLabel}</span>}
+          </div>
+        </a>
+      )}
+      {isAdmin && (
+        <div className="flex border-t border-slate-100 bg-slate-50 shrink-0">
+          <div {...attributes} {...listeners} className="p-2 flex-1 text-slate-400 hover:bg-slate-200 transition-colors border-r border-slate-100 cursor-grab flex items-center justify-center touch-none" title="Geser (Drag)">
+            <GripVertical className="w-4 h-4" />
+          </div>
+          <button onClick={() => toggleButtonStatus(activeTrainingId, btn.id)} className={`p-2 flex-1 transition-colors border-r border-slate-100 ${btn.isActive ? 'text-emerald-600 hover:bg-emerald-100' : 'text-slate-400 hover:bg-slate-200'}`} title={btn.isActive ? "Matikan Tautan" : "Aktifkan Tautan"}>
+            {btn.isActive ? <Unlock className="w-4 h-4 mx-auto"/> : <Lock className="w-4 h-4 mx-auto"/>}
+          </button>
+          <button onClick={() => { setButtonFormData(btn); setIsCustomCategory(!DEFAULT_CATEGORIES.includes(btn.category)); setShowButtonForm(true); }} className="p-2 flex-1 text-indigo-600 hover:bg-indigo-100 transition-colors border-r border-slate-100" title="Edit"><Edit2 className="w-4 h-4 mx-auto"/></button>
+          <button onClick={() => handleDeleteButton(activeTrainingId, btn.id)} className="p-2 flex-1 text-rose-600 hover:bg-rose-100 transition-colors" title="Hapus"><Trash2 className="w-4 h-4 mx-auto"/></button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const { user } = useAuth();
@@ -285,6 +335,51 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       });
       if (res.ok) fetchTrainings();
     } catch (err) {}
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent, trainingId: string, category: string) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const training = trainings.find(t => t.id === trainingId);
+    if (!training) return;
+
+    const newButtons = [...training.buttons];
+    const oldIndex = newButtons.findIndex(b => b.id === active.id);
+    const newIndex = newButtons.findIndex(b => b.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reorderedButtons = arrayMove(newButtons, oldIndex, newIndex);
+      // Optimistic update
+      setTrainings(trainings.map(t => t.id === trainingId ? { ...t, buttons: reorderedButtons } : t));
+
+      try {
+        const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+        const payload = { ...training, buttons: reorderedButtons };
+        const res = await fetch(`${baseUrl}/api/lms/configs/${trainingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+           fetchTrainings(); // Revert on failure
+        }
+      } catch (err) {
+        console.error(err);
+        fetchTrainings();
+      }
+    }
   };
 
   const getPeriodString = (t: LMSTraining) => {
@@ -549,57 +644,47 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   </div>
 
                   {btns.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                      {btns.map(btn => {
-                        const now = new Date();
-                        const sDate = btn.startDate ? new Date(btn.startDate) : null;
-                        const eDate = btn.endDate ? new Date(btn.endDate) : null;
-                        const isNotOpen = sDate && now < sDate;
-                        const isClosed = eDate && now > eDate;
-                        const isLocked = !isAdmin && (isNotOpen || isClosed || !btn.isActive);
-                        
-                        let lockLabel = '';
-                        if (isNotOpen) lockLabel = 'Belum Dibuka';
-                        else if (isClosed) lockLabel = 'Sudah Ditutup';
-                        else if (!btn.isActive) lockLabel = 'Nonaktif';
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, activeTraining.id, category)}>
+                      <SortableContext items={btns.map(b => b.id)} strategy={rectSortingStrategy}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                          {btns.map(btn => {
+                            const now = new Date();
+                            const sDate = btn.startDate ? new Date(btn.startDate) : null;
+                            const eDate = btn.endDate ? new Date(btn.endDate) : null;
+                            const isNotOpen = sDate && now < sDate;
+                            const isClosed = eDate && now > eDate;
+                            const isLocked = !isAdmin && (isNotOpen || isClosed || !btn.isActive);
+                            
+                            let lockLabel = '';
+                            if (isNotOpen) lockLabel = 'Belum Dibuka';
+                            else if (isClosed) lockLabel = 'Sudah Ditutup';
+                            else if (!btn.isActive) lockLabel = 'Nonaktif';
 
-                        const isIframe = (btn.url || '').trim().startsWith('<iframe');
+                            const isIframe = (btn.url || '').trim().startsWith('<iframe');
 
-                        return (
-                        <div key={btn.id} className={`group relative bg-white border-2 rounded-2xl transition-all flex flex-col overflow-hidden shadow-sm ${!isLocked ? `border-white hover:shadow-xl hover:-translate-y-1 ${theme.linkHover}` : 'border-slate-200 opacity-70'}`}>
-                          {isIframe ? (
-                            <button onClick={() => !isLocked && openIframe(btn.url)} disabled={isLocked} className="flex-grow p-4 flex items-center gap-4 text-left w-full h-full">
-                              <div className={`p-3 shrink-0 rounded-xl ${!isLocked ? `${theme.linkIconBg} ${theme.iconColor} ${theme.linkIconHover} group-hover:text-white transition-all` : 'bg-slate-100 text-slate-400'}`}>
-                                <ExternalLink className="w-5 h-5" />
-                              </div>
-                              <div className="flex flex-col flex-grow">
-                                <span className="font-bold text-slate-700 leading-tight pr-2 text-sm md:text-base">{btn.title}</span>
-                                {lockLabel && <span className="text-xs font-bold text-rose-500 mt-1 uppercase flex items-center gap-1"><Lock className="w-3 h-3"/> {lockLabel}</span>}
-                              </div>
-                            </button>
-                          ) : (
-                            <a href={isLocked ? '#' : btn.url} target={isLocked ? '_self' : '_blank'} rel="noreferrer" className={`flex-grow p-4 flex items-center gap-4 ${isLocked ? 'pointer-events-none' : ''}`}>
-                              <div className={`p-3 shrink-0 rounded-xl ${!isLocked ? `${theme.linkIconBg} ${theme.iconColor} ${theme.linkIconHover} group-hover:text-white transition-all` : 'bg-slate-100 text-slate-400'}`}>
-                                <ExternalLink className="w-5 h-5" />
-                              </div>
-                              <div className="flex flex-col flex-grow">
-                                <span className="font-bold text-slate-700 leading-tight pr-2 text-sm md:text-base">{btn.title}</span>
-                                {lockLabel && <span className="text-xs font-bold text-rose-500 mt-1 uppercase flex items-center gap-1"><Lock className="w-3 h-3"/> {lockLabel}</span>}
-                              </div>
-                            </a>
-                          )}
-                          {isAdmin && (
-                            <div className="flex border-t border-slate-100 bg-slate-50 shrink-0">
-                              <button onClick={() => toggleButtonStatus(activeTraining.id, btn.id)} className={`p-2 flex-1 transition-colors border-r border-slate-100 ${btn.isActive ? 'text-emerald-600 hover:bg-emerald-100' : 'text-slate-400 hover:bg-slate-200'}`} title={btn.isActive ? "Matikan Tautan" : "Aktifkan Tautan"}>
-                                {btn.isActive ? <Unlock className="w-4 h-4 mx-auto"/> : <Lock className="w-4 h-4 mx-auto"/>}
-                              </button>
-                              <button onClick={() => { setButtonFormData(btn); setIsCustomCategory(!DEFAULT_CATEGORIES.includes(btn.category)); setShowButtonForm(true); }} className="p-2 flex-1 text-indigo-600 hover:bg-indigo-100 transition-colors border-r border-slate-100" title="Edit"><Edit2 className="w-4 h-4 mx-auto"/></button>
-                              <button onClick={() => handleDeleteButton(activeTraining.id, btn.id)} className="p-2 flex-1 text-rose-600 hover:bg-rose-100 transition-colors" title="Hapus"><Trash2 className="w-4 h-4 mx-auto"/></button>
-                            </div>
-                          )}
+                            return (
+                              <SortableLinkItem 
+                                key={btn.id} 
+                                btn={btn} 
+                                isAdmin={isAdmin} 
+                                theme={theme} 
+                                isLocked={isLocked} 
+                                lockLabel={lockLabel} 
+                                isIframe={isIframe} 
+                                openIframe={openIframe} 
+                                toggleButtonStatus={toggleButtonStatus} 
+                                setButtonFormData={setButtonFormData} 
+                                setIsCustomCategory={setIsCustomCategory} 
+                                setShowButtonForm={setShowButtonForm} 
+                                handleDeleteButton={handleDeleteButton} 
+                                activeTrainingId={activeTraining.id}
+                                DEFAULT_CATEGORIES={DEFAULT_CATEGORIES} 
+                              />
+                            );
+                          })}
                         </div>
-                      )})}
-                    </div>
+                      </SortableContext>
+                    </DndContext>
                   ) : (
                     <div className="text-center py-8 text-sm text-slate-400 font-bold border-2 border-dashed border-slate-200 rounded-2xl bg-white/50">Belum ada tautan yang ditambahkan di elemen ini</div>
                   )}

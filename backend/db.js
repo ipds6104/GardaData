@@ -202,6 +202,91 @@ async function initDB() {
       )
     `);
 
+    // Tabel Users (untuk auth lokal)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role ENUM('admin','petugas','pengunjung') DEFAULT 'petugas',
+        name VARCHAR(255),
+        kecamatan VARCHAR(255),
+        desa VARCHAR(255),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Auto-migrate: tambahkan kolom kecamatan/desa ke users jika belum ada
+    try {
+      await connection.query(`ALTER TABLE users ADD COLUMN kecamatan VARCHAR(255)`);
+    } catch(e) { /* already exists */ }
+    try {
+      await connection.query(`ALTER TABLE users ADD COLUMN desa VARCHAR(255)`);
+    } catch(e) { /* already exists */ }
+
+    // Tabel Infrastruktur Desa
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS infrastructure_items (
+        id VARCHAR(255) PRIMARY KEY,
+        category VARCHAR(255) NOT NULL,
+        item TEXT NOT NULL,
+        village VARCHAR(255) NOT NULL,
+        source VARCHAR(255),
+        year VARCHAR(10),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_infra_village (village),
+        INDEX idx_infra_category (category)
+      )
+    `);
+
+    // Tabel Statistik Kependudukan Desa
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS village_stats (
+        id VARCHAR(255) PRIMARY KEY,
+        village VARCHAR(255) NOT NULL,
+        year VARCHAR(10),
+        male VARCHAR(50),
+        female VARCHAR(50),
+        total VARCHAR(50),
+        kk VARCHAR(50),
+        agriFamily VARCHAR(50),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_stats_village (village)
+      )
+    `);
+
+    // Tabel Fenomena Sosial Ekonomi
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS social_phenomenon (
+        id VARCHAR(255) PRIMARY KEY,
+        judul VARCHAR(500) NOT NULL,
+        desa VARCHAR(255),
+        kecamatan VARCHAR(255),
+        isi TEXT,
+        petugasId VARCHAR(255),
+        petugasName VARCHAR(255),
+        timestamp BIGINT,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_social_desa (desa)
+      )
+    `);
+
+    // Tabel Data Klasifikasi KBLI/KBJI (mapping pekerjaan)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS classifications (
+        id VARCHAR(255) PRIMARY KEY,
+        mjj_occtle TEXT NOT NULL,
+        mjj_occmtd TEXT,
+        mjj_bidang TEXT,
+        mjj_kbji_label TEXT,
+        mjj_kbli_label TEXT,
+        updatedBy VARCHAR(255),
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    console.log('✅ Tabel klasifikasi siap.');
+
 
     // Auto-migrate: tambahkan kolom totalSubmit jika belum ada
     try {

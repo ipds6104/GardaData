@@ -21,8 +21,6 @@ const LMSModule = lazy(() => import('./components/LMSModule').then(m => ({ defau
 const MonitoringModule = lazy(() => import('./components/monitoring/MonitoringModule').then(m => ({ default: m.MonitoringModule })));
 import { Login } from './components/Login';
 import { syncImputationFromFirebase } from './services/imputationService';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from './lib/firebase';
 
 function AppContent() {
   const { user } = useAuth();
@@ -42,30 +40,10 @@ function AppContent() {
       try {
         if (navigator.onLine) {
           await syncImputationFromFirebase();
-          console.log('✔ Imputation data preloaded and cached successfully');
+          console.log('\u2714 Imputation data preloaded and cached successfully');
         }
       } catch (err) {
         console.warn('Failed to preload imputation data:', err);
-      }
-
-      try {
-        const classRef = collection(db, 'classifications');
-        const qClass = query(classRef, orderBy('createdAt', 'desc'));
-        await getDocs(qClass);
-        console.log('✔ KBLI/KBJI classifications preloaded and cached in Firestore offline cache');
-      } catch (err) {
-        console.warn('Failed to preload classifications:', err);
-      }
-
-      try {
-        const statsRef = collection(db, 'village_stats');
-        await getDocs(query(statsRef, orderBy('village', 'asc')));
-
-        const infraRef = collection(db, 'infrastructure_items');
-        await getDocs(infraRef);
-        console.log('✔ Village statistics and infrastructure directory preloaded and cached in Firestore offline cache');
-      } catch (err) {
-        console.warn('Failed to preload infrastructure / village stats:', err);
       }
     };
 
@@ -98,10 +76,7 @@ function AppContent() {
       case 'lms':
         return <LMSModule onBack={() => setCurrentPage('landing')} />;
       case 'admin-strategic-data':
-        if (user?.role === 'admin') {
-          return <AdminStrategicData onBack={() => setCurrentPage('landing')} />;
-        }
-        return <LandingPage onNavigate={setCurrentPage} />;
+        return <AdminStrategicData onBack={() => setCurrentPage('landing')} />;
       case 'monitoring':
         return <MonitoringModule onBack={() => setCurrentPage('landing')} />;
       default:

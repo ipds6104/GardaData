@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Download, Upload, Loader2, AlertCircle, CheckCircle2, ChevronLeft, Info, FileSpreadsheet, Briefcase, Boxes, Factory } from 'lucide-react';
-import { collection, query, getDocs, orderBy, limit, serverTimestamp, writeBatch, doc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { useAuth } from '../lib/auth';
-import { OperationType, handleFirestoreError } from '../lib/errorUtils';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
 
@@ -52,19 +49,19 @@ export const ClassificationModule: React.FC<ClassificationModuleProps> = ({ onBa
     setMessage(null);
 
     try {
-      const docIdStr = `${manualForm.mjj_occtle}-${manualForm.mjj_kbji_label}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const newDocRef = doc(collection(db, 'classifications'), docIdStr);
-      
-      await setDoc(newDocRef, {
-        mjj_occtle: manualForm.mjj_occtle.toUpperCase(),
-        mjj_occmtd: manualForm.mjj_occmtd.toUpperCase(),
-        mjj_bidang: manualForm.mjj_bidang.toUpperCase(),
-        mjj_kbji_label: manualForm.mjj_kbji_label.toUpperCase(),
-        mjj_kbli_label: manualForm.mjj_kbli_label.toUpperCase(),
-        updatedAt: serverTimestamp(),
-        updatedBy: user.username
-      }, { merge: true });
-
+      const res = await fetch('/api/classification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mjj_occtle: manualForm.mjj_occtle.toUpperCase(),
+          mjj_occmtd: manualForm.mjj_occmtd.toUpperCase(),
+          mjj_bidang: manualForm.mjj_bidang.toUpperCase(),
+          mjj_kbji_label: manualForm.mjj_kbji_label.toUpperCase(),
+          mjj_kbli_label: manualForm.mjj_kbli_label.toUpperCase(),
+          updatedBy: user.username
+        })
+      });
+      if (!res.ok) throw new Error('Gagal menyimpan');
       setMessage({ type: 'success', text: 'Data KBLI/KBJI berhasil ditambahkan secara manual.' });
       setManualForm({ mjj_occtle: '', mjj_occmtd: '', mjj_bidang: '', mjj_kbji_label: '', mjj_kbli_label: '' });
       handleSearch();
@@ -79,41 +76,25 @@ export const ClassificationModule: React.FC<ClassificationModuleProps> = ({ onBa
     if (e) e.preventDefault();
     setLoading(true);
     try {
-      const classRef = collection(db, 'classifications');
-      const q = query(classRef, orderBy('createdAt', 'desc'), limit(1000));
-      const snapshot = await getDocs(q);
-      const all = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as ClassificationEntry[];
-      
-      const tokens = searchQuery.toLowerCase().split(' ').filter(Boolean);
+      const q = searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : '';
+      const res = await fetch(`/api/classification${q}`);
+      const all = await res.json() as ClassificationEntry[];
 
-      const filtered = all.filter(entry => {
-        const combinedText = [
-          entry.mjj_occtle,
-          entry.mjj_occmtd,
-          entry.mjj_bidang,
-          entry.mjj_kbji_label,
-          entry.mjj_kbli_label
-        ].filter(Boolean).join(' ').toLowerCase();
-        
-        return tokens.length === 0 || tokens.every(t => combinedText.includes(t));
-      });
-      
-      // Deduplikasi hasil pencarian untuk membersihkan data lama yang ganda di UI
-      const uniqueResults = [];
+      // Deduplikasi hasil pencarian
+      const uniqueResults: ClassificationEntry[] = [];
       const seenKeys = new Set();
-      
-      for (const item of filtered) {
+      for (const item of all) {
         const key = `${item.mjj_occtle}|${item.mjj_kbji_label}|${item.mjj_kbli_label}`.toLowerCase();
         if (!seenKeys.has(key)) {
           seenKeys.add(key);
           uniqueResults.push(item);
         }
       }
-      
+
       setResults(uniqueResults);
       setVisibleCount(50);
     } catch (err) {
-      handleFirestoreError(err, OperationType.GET, 'classifications', { currentUser: { uid: user?.username } });
+      console.error('Gagal mencari data klasifikasi:', err);
     } finally {
       setLoading(false);
     }
@@ -175,48 +156,22 @@ export const ClassificationModule: React.FC<ClassificationModuleProps> = ({ onBa
           return;
         }
 
-        // 2. Database Write Phase
-        const batchSize = 100;
-        let count = 0;
-        
+        // 2. Upload via API
         try {
-          for (let i = 0; i < data.length; i += batchSize) {
-            const batch = writeBatch(db);
-            const chunk = data.slice(i, i + batchSize);
-            
-            chunk.forEach((item) => {
-              if (item.mjj_occtle && item.mjj_kbji_label) {
-                const docIdStr = `${item.mjj_occtle}-${item.mjj_kbji_label}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
-                const newDocRef = doc(collection(db, 'classifications'), docIdStr);
-                batch.set(newDocRef, {
-                  mjj_occtle: String(item.mjj_occtle),
-                  mjj_occmtd: String(item.mjj_occmtd || ''),
-                  mjj_bidang: String(item.mjj_bidang || ''),
-                  mjj_kbji_label: String(item.mjj_kbji_label),
-                  mjj_kbli_label: String(item.mjj_kbli_label || ''),
-                  updatedAt: serverTimestamp(),
-                  updatedBy: user.username
-                }, { merge: true });
-                count++;
-              }
-            });
-            await batch.commit();
-          }
-        } catch (dbErr: any) {
-          console.error('Firestore Upload Error:', dbErr);
-          const isPermissionError = dbErr?.message?.toLowerCase().includes('permission') || dbErr?.code === 'permission-denied';
-          setMessage({ 
-            type: 'error', 
-            text: isPermissionError 
-              ? 'Gagal menyimpan ke database: Izin ditolak. Pastikan aturan keamanan Firestore sudah dikonfigurasi dengan benar.' 
-              : `Gagal menyimpan ke database: ${dbErr.message || 'Terjadi masalah teknis.'}`
+          const res = await fetch('/api/classification/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data, updatedBy: user.username })
           });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error);
+          setMessage({ type: 'success', text: `Berhasil mengupload ${json.count} data ke database.` });
+          handleSearch();
+        } catch (dbErr: any) {
+          setMessage({ type: 'error', text: `Gagal menyimpan ke database: ${dbErr.message}` });
           setUploading(false);
           return;
         }
-
-        setMessage({ type: 'success', text: `Berhasil mengupload ${count} data ke database.` });
-        handleSearch();
       } catch (err) {
         setMessage({ type: 'error', text: 'Terjadi kesalahan sistem yang tidak terduga.' });
       } finally {

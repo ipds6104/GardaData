@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Save, ChevronLeft, BarChart3 } from 'lucide-react';
+import { useAuth } from '../lib/auth';
 
 interface AdminStrategicDataProps {
   onBack: () => void;
@@ -38,6 +39,8 @@ const defaultData = {
 };
 
 export const AdminStrategicData: React.FC<AdminStrategicDataProps> = ({ onBack }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [data, setData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('ekonomi');
 
@@ -71,8 +74,12 @@ export const AdminStrategicData: React.FC<AdminStrategicDataProps> = ({ onBack }
           <ChevronLeft className="w-6 h-6" />
         </button>
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Update Data Strategis</h1>
-          <p className="text-slate-500 font-medium">Pengelolaan Dashboard Pengunjung</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+            {isAdmin ? 'Update Data Strategis' : 'Data Strategis BPS'}
+          </h1>
+          <p className="text-slate-500 font-medium">
+            {isAdmin ? 'Pengelolaan Dashboard Pengunjung' : 'Indikator Makro Ekonomi dan Sosial'}
+          </p>
         </div>
       </header>
 
@@ -84,7 +91,7 @@ export const AdminStrategicData: React.FC<AdminStrategicDataProps> = ({ onBack }
         <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
         <h2 className="text-2xl font-black text-slate-800 mb-2">Fitur Masih Dalam Pengembangan</h2>
         <p className="text-slate-500 font-medium max-w-lg mx-auto">
-          Mohon maaf, fitur pengelolaan dan penayangan Data Strategis BPS sedang dalam tahap penyempurnaan. Silakan cek kembali di pembaruan sistem berikutnya.
+          Mohon maaf, fitur {isAdmin ? 'pengelolaan dan ' : ''}penayangan Data Strategis BPS sedang dalam tahap penyempurnaan. Silakan cek kembali di pembaruan sistem berikutnya.
         </p>
       </motion.div>
     </div>

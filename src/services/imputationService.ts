@@ -1,6 +1,4 @@
 import { openDB, DBSchema } from 'idb';
-import { db } from '../lib/firebase';
-import { collection, getDocs, writeBatch, doc } from 'firebase/firestore';
 import { ImputationData } from '../types/imputation';
 import { DEFAULT_IMPUTATION_DATA } from '../data/imputationSeed';
 
