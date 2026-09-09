@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity } from 'lucide-react';
+import { BookOpen, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity, MapPin, ScanLine, Award } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
 interface FeatureCardProps {
@@ -9,29 +9,37 @@ interface FeatureCardProps {
   icon: React.ElementType;
   iconColor: string;
   bgColor: string;
+  badge?: string;
   onClick: () => void;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon: Icon, iconColor, bgColor, onClick }) => (
+const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon: Icon, iconColor, bgColor, badge, onClick }) => (
   <motion.button
     whileHover={{ y: -4, scale: 1.01 }}
     whileTap={{ scale: 0.98 }}
     onClick={onClick}
     className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all text-left flex flex-col h-full cursor-pointer group"
   >
-    <div className="flex items-center gap-4 mb-4">
-      <div className={`p-3 rounded-xl ${bgColor}`}>
-        <Icon className={`w-6 h-6 ${iconColor}`} />
+    <div className="flex items-start justify-between gap-2 mb-4">
+      <div className="flex items-center gap-3">
+        <div className={`p-3 rounded-xl ${bgColor}`}>
+          <Icon className={`w-6 h-6 ${iconColor}`} />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 group-hover:text-primary-600 transition-colors leading-tight">
+          {title}
+        </h3>
       </div>
-      <h3 className="text-lg font-bold text-slate-800 group-hover:text-primary-600 transition-colors leading-tight">
-        {title}
-      </h3>
+      {badge && (
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shrink-0 whitespace-nowrap">
+          {badge}
+        </span>
+      )}
     </div>
     <p className="text-slate-500 text-sm leading-relaxed mb-6 flex-grow">
       {description}
     </p>
     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 group-hover:text-primary-600 transition-all mt-auto uppercase tracking-widest">
-      <span>Buka Aplikasi</span>
+      <span>{badge ? 'Fitur Pengembangan' : 'Buka Aplikasi'}</span>
       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
     </div>
   </motion.button>
@@ -105,6 +113,49 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
       {/* Categories Grid */}
       <div className="space-y-10 pt-4">
         
+        {/* Kategori: Persiapan Kegiatan (Khusus Admin) */}
+        {user?.role === 'admin' && (
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-1.5 h-6 bg-rose-500 rounded-full"></span>
+              <h2 className="text-lg font-black text-slate-800">
+                Persiapan Kegiatan
+              </h2>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 uppercase tracking-wide border border-rose-200">
+                Khusus Admin
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <FeatureCard
+                title="Peta Batas SLS Live"
+                description="Visualisasi batas SLS 2024, Desa, dan Kecamatan secara live via Google Maps & detail wilayah."
+                icon={MapPin}
+                iconColor="text-rose-600"
+                bgColor="bg-rose-50"
+                onClick={() => onNavigate('admin-sls')}
+              />
+              <FeatureCard
+                title="Identifikasi SLS"
+                description="Modul identifikasi, verifikasi, dan pemantauan kondisi batas SLS di lapangan."
+                icon={ScanLine}
+                iconColor="text-amber-600"
+                bgColor="bg-amber-50"
+                badge="Dalam Pengembangan"
+                onClick={() => onNavigate('identifikasi-sls')}
+              />
+              <FeatureCard
+                title="Penilaian Kinerja Mitra Statistik"
+                description="Sistem evaluasi performa dan pembobotan mutu kerja mitra statistik BPS."
+                icon={Award}
+                iconColor="text-indigo-600"
+                bgColor="bg-indigo-50"
+                badge="Dalam Pengembangan"
+                onClick={() => onNavigate('penilaian-mitra')}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Kategori: Pelatihan */}
         <div>
           <h2 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">

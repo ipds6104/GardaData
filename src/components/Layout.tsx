@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database, WifiOff, RefreshCw } from 'lucide-react';
+import { LogOut, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database, WifiOff, RefreshCw, MapPin, ScanLine, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/auth';
 import { ThemeSelector } from './ThemeSelector';
@@ -74,6 +74,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     { id: 'infrastructure', title: 'Infrastruktur Desa', desc: 'Monitoring infrastruktur pendukung desa', keywords: ['infrastruktur', 'desa', 'fasilitas', 'pasar', 'sekolah'] },
     { id: 'social-phenomenon', title: 'Fenomena Sosial Ekonomi', desc: 'Pencatatan dinamika fenomena sosial ekonomi', keywords: ['fenomena', 'sosial', 'ekonomi', 'analisis', 'berita'] },
     { id: 'admin-strategic-data', title: 'Data Strategis BPS', desc: 'Indikator makro ekonomi daerah', keywords: ['strategis', 'makro', 'ekonomi', 'inflasi', 'kemiskinan', 'pdrb'] },
+    ...(user?.role === 'admin' ? [
+      { id: 'admin-sls', title: 'Peta Batas SLS Live', desc: 'Peta live batas SLS 2024, Desa, dan Kecamatan Kabupaten Mempawah', keywords: ['sls', 'batas', 'wilayah', 'peta', 'google maps', 'mempawah', 'desa', 'kecamatan', 'geospasial', 'persiapan'] },
+      { id: 'identifikasi-sls', title: 'Identifikasi SLS', desc: 'Identifikasi dan verifikasi SLS di lapangan (Dalam pengembangan)', keywords: ['identifikasi', 'sls', 'verifikasi', 'persiapan'] },
+      { id: 'penilaian-mitra', title: 'Penilaian Kinerja Mitra Statistik', desc: 'Penilaian performa dan evaluasi kinerja mitra statistik (Dalam pengembangan)', keywords: ['penilaian', 'kinerja', 'mitra', 'statistik', 'persiapan'] }
+    ] : []),
   ];
 
   const searchResults = searchIndex.filter(item => {
@@ -91,6 +96,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         { id: 'landing', label: 'Beranda', icon: Home }
       ]
     },
+    ...(user?.role === 'admin' ? [{
+      title: 'PERSIAPAN KEGIATAN',
+      items: [
+        { id: 'admin-sls', label: 'Peta Batas SLS Live', icon: MapPin },
+        { id: 'identifikasi-sls', label: 'Identifikasi SLS', icon: ScanLine, isDev: true },
+        { id: 'penilaian-mitra', label: 'Penilaian Kinerja Mitra', icon: Award, isDev: true }
+      ]
+    }] : []),
     {
       title: 'PELATIHAN',
       items: [
@@ -160,8 +173,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
                           : 'text-slate-600 hover:bg-slate-50 font-medium'
                       }`}
                     >
-                      <item.icon className={`w-5 h-5 ${isActive ? 'text-primary-600' : 'text-slate-400'}`} />
-                      <span className="truncate">{item.label}</span>
+                      <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-primary-600' : 'text-slate-400'}`} />
+                      <span className="truncate flex-grow">{item.label}</span>
+                      {(item as any).isDev && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                          Dev
+                        </span>
+                      )}
                     </button>
                   </li>
                 );

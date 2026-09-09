@@ -287,6 +287,85 @@ async function initDB() {
 
     console.log('✅ Tabel klasifikasi siap.');
 
+    // Tabel Batas SLS
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS sls_boundaries (
+        idsls VARCHAR(50) PRIMARY KEY,
+        nmsls VARCHAR(255) NOT NULL,
+        kdsls VARCHAR(50),
+        nmkec VARCHAR(100),
+        kdkec VARCHAR(50),
+        nmdesa VARCHAR(100),
+        kddesa VARCHAR(50),
+        nmkab VARCHAR(100),
+        kdkab VARCHAR(50),
+        nmprov VARCHAR(100),
+        kdprov VARCHAR(50),
+        luas VARCHAR(100),
+        muatan VARCHAR(100),
+        kk VARCHAR(100),
+        subsls VARCHAR(100),
+        idsubsls VARCHAR(100),
+        sumber VARCHAR(100),
+        periode VARCHAR(100),
+        bbox JSON,
+        geometry JSON NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_sls_kec (nmkec),
+        INDEX idx_sls_desa (nmdesa)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // Auto-seed data SLS ke MySQL jika tabel masih kosong
+    try {
+      const [rows] = await connection.query('SELECT COUNT(*) as count FROM sls_boundaries');
+      if (rows[0].count === 0) {
+        const fs = require('fs');
+        const path = require('path');
+        const geojsonPath = path.join(__dirname, '../public/data/batas_sls_6104.geojson');
+        if (fs.existsSync(geojsonPath)) {
+          console.log('🔄 Memulai auto-seeding 1.327 SLS ke tabel MySQL sls_boundaries...');
+          const raw = JSON.parse(fs.readFileSync(geojsonPath, 'utf8'));
+          if (raw.features && raw.features.length > 0) {
+            for (const feat of raw.features) {
+              const p = feat.properties || {};
+              await connection.execute(`
+                INSERT IGNORE INTO sls_boundaries 
+                (idsls, nmsls, kdsls, nmkec, kdkec, nmdesa, kddesa, nmkab, kdkab, nmprov, kdprov, luas, muatan, kk, subsls, idsubsls, sumber, periode, bbox, geometry)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `, [
+                p.idsls || feat.id || '',
+                p.nmsls || '',
+                p.kdsls || '',
+                p.nmkec || '',
+                p.kdkec || '',
+                p.nmdesa || '',
+                p.kddesa || '',
+                p.nmkab || '',
+                p.kdkab || '',
+                p.nmprov || '',
+                p.kdprov || '',
+                String(p.luas || ''),
+                String(p.muatan || ''),
+                String(p.kk || ''),
+                String(p.subsls || ''),
+                String(p.idsubsls || ''),
+                p.sumber || '',
+                p.periode || '',
+                JSON.stringify(feat.bbox || null),
+                JSON.stringify(feat.geometry)
+              ]);
+            }
+            console.log(`✅ Berhasil auto-seed ${raw.features.length} SLS ke database MySQL!`);
+          }
+        }
+      } else {
+        console.log(`✅ Data Batas SLS di MySQL sudah terisi (${rows[0].count} records).`);
+      }
+    } catch (seedErr) {
+      console.warn('⚠️ Gagal auto-seeding SLS ke MySQL (lewati jika file belum siap):', seedErr.message);
+    }
+
 
     // Auto-migrate: tambahkan kolom totalSubmit jika belum ada
     try {

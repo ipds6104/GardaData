@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, Suspense, lazy } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ScanLine, Award } from 'lucide-react';
 import { AuthProvider, useAuth } from './lib/auth';
 import { Layout } from './components/Layout';
 import { LandingPage } from './components/LandingPage';
@@ -19,6 +19,7 @@ const VisitorDashboard = lazy(() => import('./components/VisitorDashboard').then
 const AdminStrategicData = lazy(() => import('./components/AdminStrategicData').then(m => ({ default: m.AdminStrategicData })));
 const LMSModule = lazy(() => import('./components/LMSModule').then(m => ({ default: m.LMSModule })));
 const MonitoringModule = lazy(() => import('./components/monitoring/MonitoringModule').then(m => ({ default: m.MonitoringModule })));
+const AdminSLSDashboard = lazy(() => import('./components/sls/AdminSLSDashboard').then(m => ({ default: m.AdminSLSDashboard })));
 import { Login } from './components/Login';
 import { syncImputationFromFirebase } from './services/imputationService';
 
@@ -79,6 +80,68 @@ function AppContent() {
         return <AdminStrategicData onBack={() => setCurrentPage('landing')} />;
       case 'monitoring':
         return <MonitoringModule onBack={() => setCurrentPage('landing')} />;
+      case 'admin-sls':
+        if (user?.role !== 'admin') {
+          return (
+            <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6">
+              <h2 className="text-xl font-black text-slate-800 tracking-tight">Akses Ditolak</h2>
+              <p className="text-sm text-slate-500 mt-2">Halaman Peta Batas SLS hanya dapat diakses oleh Administrator.</p>
+              <button 
+                onClick={() => setCurrentPage('landing')} 
+                className="mt-4 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+              >
+                Kembali ke Beranda
+              </button>
+            </div>
+          );
+        }
+        return <AdminSLSDashboard onBack={() => setCurrentPage('landing')} />;
+      case 'identifikasi-sls':
+        return (
+          <div className="max-w-2xl mx-auto my-12 bg-white p-8 rounded-3xl border border-slate-100 shadow-xl text-center">
+            <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200">
+              <ScanLine className="w-8 h-8" />
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 uppercase tracking-wide mb-3">
+              Fitur Masih Pengembangan
+            </span>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">
+              Identifikasi SLS
+            </h2>
+            <p className="text-slate-500 text-sm leading-relaxed max-w-md mx-auto mb-6">
+              Fitur identifikasi, verifikasi, dan pemantauan kondisi batas SLS di lapangan sedang dalam proses pengembangan oleh tim BPS Kabupaten Mempawah.
+            </p>
+            <button
+              onClick={() => setCurrentPage('landing')}
+              className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-xs transition-all shadow-md"
+            >
+              Kembali ke Beranda
+            </button>
+          </div>
+        );
+      case 'penilaian-mitra':
+        return (
+          <div className="max-w-2xl mx-auto my-12 bg-white p-8 rounded-3xl border border-slate-100 shadow-xl text-center">
+            <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-200">
+              <Award className="w-8 h-8" />
+            </div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-indigo-100 text-indigo-800 uppercase tracking-wide mb-3">
+              Fitur Masih Pengembangan
+            </span>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">
+              Penilaian Kinerja Mitra Statistik
+            </h2>
+            <p className="text-slate-500 text-sm leading-relaxed max-w-md mx-auto mb-6">
+              Sistem evaluasi kinerja dan pembobotan mutu kerja mitra statistik BPS sedang dalam proses pengembangan sistem terintegrasi.
+            </p>
+            <button
+              onClick={() => setCurrentPage('landing')}
+              className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-xs transition-all shadow-md"
+            >
+              Kembali ke Beranda
+            </button>
+          </div>
+        );
       default:
         // Jika pengunjung, paksa tampilan Visitor Dashboard
         if (user.role === 'pengunjung') {

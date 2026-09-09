@@ -10,3 +10,7 @@ coverage/
 ~\$*
 dev-dist/
 Dataawal/
+
+# Data Batas SLS dan Shapefile Rahasia
+Batas SLS/
+Batas SLS/**
