@@ -77,7 +77,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     ...(user?.role === 'admin' ? [
       { id: 'admin-sls', title: 'Peta Batas SLS Live', desc: 'Peta live batas SLS 2024, Desa, dan Kecamatan Kabupaten Mempawah', keywords: ['sls', 'batas', 'wilayah', 'peta', 'google maps', 'mempawah', 'desa', 'kecamatan', 'geospasial', 'persiapan'] },
       { id: 'identifikasi-sls', title: 'Identifikasi SLS', desc: 'Identifikasi dan verifikasi SLS di lapangan (Dalam pengembangan)', keywords: ['identifikasi', 'sls', 'verifikasi', 'persiapan'] },
-      { id: 'penilaian-mitra', title: 'Penilaian Kinerja Mitra Statistik', desc: 'Penilaian performa dan evaluasi kinerja mitra statistik (Dalam pengembangan)', keywords: ['penilaian', 'kinerja', 'mitra', 'statistik', 'persiapan'] }
+      { id: 'penilaian-mitra', title: 'Penilaian Kinerja Mitra Statistik', desc: 'Sistem penilaian dan evaluasi mutu kinerja mitra lapangan (PML & PPL)', keywords: ['penilaian', 'kinerja', 'mitra', 'statistik', 'persiapan', 'se2026', 'ppl', 'pml'] }
     ] : []),
   ];
 
@@ -101,7 +101,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       items: [
         { id: 'admin-sls', label: 'Peta Batas SLS Live', icon: MapPin },
         { id: 'identifikasi-sls', label: 'Identifikasi SLS', icon: ScanLine, isDev: true },
-        { id: 'penilaian-mitra', label: 'Penilaian Kinerja Mitra', icon: Award, isDev: true }
+        { id: 'penilaian-mitra', label: 'Penilaian Kinerja Mitra', icon: Award }
       ]
     }] : []),
     {
@@ -141,13 +141,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     <div className="h-full flex flex-col bg-white border-r border-slate-200 w-64 md:w-72 shrink-0">
       {/* Sidebar Header (Logo) - Only visible on Desktop or inside Drawer */}
       <div className="h-20 flex items-center px-6 border-b border-transparent shrink-0">
-        <button onClick={() => handleNav('landing')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <img src="/logo.png" alt="Garda Data Logo" className="w-8 h-8 object-contain" onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }} />
-          <span className="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-500">
-            GARDA DATA
-          </span>
+        <button 
+          onClick={() => handleNav('landing')} 
+          className="flex items-center hover:opacity-85 transition-opacity focus:outline-none"
+          title="Beranda Garda Data"
+        >
+          <img 
+            src="/logo.png" 
+            alt="Garda Data Logo" 
+            className="h-14 sm:h-16 w-auto object-contain max-h-16 drop-shadow-xs transition-transform hover:scale-105" 
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }} 
+          />
         </button>
       </div>
 

@@ -145,11 +145,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               />
               <FeatureCard
                 title="Penilaian Kinerja Mitra Statistik"
-                description="Sistem evaluasi performa dan pembobotan mutu kerja mitra statistik BPS."
+                description="Sistem evaluasi performa dan pembobotan mutu kerja mitra statistik BPS SE2026."
                 icon={Award}
                 iconColor="text-indigo-600"
                 bgColor="bg-indigo-50"
-                badge="Dalam Pengembangan"
                 onClick={() => onNavigate('penilaian-mitra')}
               />
             </div>

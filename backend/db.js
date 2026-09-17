@@ -385,6 +385,87 @@ async function initDB() {
     } catch (e) {
       // Ignore
     }
+
+    // Tabel Penilaian Mitra Statistik (SE2026)
+    try {
+      const [tableExists] = await connection.query(`SHOW TABLES LIKE 'mitra_evaluations'`);
+      if (tableExists.length > 0) {
+        const [colCheck] = await connection.query(`SHOW COLUMNS FROM mitra_evaluations LIKE 'id'`);
+        if (colCheck.length === 0) {
+          console.log('🔄 Migrasi tabel mitra_evaluations ke format id unik (email_role)...');
+          await connection.query(`ALTER TABLE mitra_evaluations DROP PRIMARY KEY`);
+          await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN id VARCHAR(255) FIRST`);
+          await connection.query(`UPDATE mitra_evaluations SET id = CONCAT(LOWER(email), '_', LOWER(role)) WHERE id IS NULL OR id = ''`);
+          await connection.query(`ALTER TABLE mitra_evaluations ADD PRIMARY KEY (id)`);
+          await connection.query(`ALTER TABLE mitra_evaluations ADD INDEX idx_mitra_email (email)`);
+          console.log('✅ Migrasi tabel mitra_evaluations berhasil!');
+        }
+      }
+    } catch (migErr) {
+      console.warn('Catatan migrasi mitra_evaluations:', migErr.message);
+    }
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS mitra_evaluations (
+        id VARCHAR(255) PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        nama VARCHAR(255) NOT NULL,
+        role VARCHAR(50) NOT NULL,
+        pj VARCHAR(255) NOT NULL,
+        kecamatan VARCHAR(100) NOT NULL,
+        nilai INT DEFAULT NULL,
+        kategori VARCHAR(50) DEFAULT NULL,
+        catatan TEXT DEFAULT NULL,
+        penilai VARCHAR(255) DEFAULT NULL,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_mitra_email (email),
+        INDEX idx_mitra_pj (pj),
+        INDEX idx_mitra_kec (kecamatan)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    // Auto-seed data mitra awal dari JSON jika tabel masih kosong atau kurang dari 244
+    try {
+      const [mRows] = await connection.query('SELECT COUNT(*) as count FROM mitra_evaluations');
+      const fs = require('fs');
+      const path = require('path');
+      const initialJsonPath = path.join(__dirname, '../public/data/initial_mitra_se2026.json');
+
+      if (fs.existsSync(initialJsonPath)) {
+        console.log('🔄 Menyelaraskan data mitra & evaluasi SE2026 ke tabel MySQL mitra_evaluations (target 244 mitra: 214 PPL + 30 PML)...');
+        const mitraList = JSON.parse(fs.readFileSync(initialJsonPath, 'utf8'));
+        for (const m of mitraList) {
+          const id = m.id || `${(m.email || '').toLowerCase()}_${(m.role || 'ppl').toLowerCase()}`;
+          await connection.execute(`
+            INSERT INTO mitra_evaluations 
+            (id, email, nama, role, pj, kecamatan, nilai, kategori, catatan)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+            nama = VALUES(nama),
+            role = VALUES(role),
+            pj = VALUES(pj),
+            kecamatan = VALUES(kecamatan),
+            nilai = COALESCE(VALUES(nilai), mitra_evaluations.nilai),
+            kategori = COALESCE(VALUES(kategori), mitra_evaluations.kategori),
+            catatan = IF(VALUES(catatan) != '', VALUES(catatan), mitra_evaluations.catatan)
+          `, [
+            id,
+            m.email || '',
+            m.nama || '',
+            m.role || 'PPL',
+            m.pj || '-',
+            m.kecamatan || '-',
+            m.nilai !== undefined ? m.nilai : null,
+            m.kategori || null,
+            m.catatan || ''
+          ]);
+        }
+        console.log(`✅ Berhasil menyelaraskan ${mitraList.length} mitra & evaluasi ke database MySQL!`);
+      }
+    } catch (mErr) {
+      console.warn('⚠️ Gagal auto-seeding mitra ke MySQL:', mErr.message);
+    }
     
     connection.release();
   } catch (error) {
