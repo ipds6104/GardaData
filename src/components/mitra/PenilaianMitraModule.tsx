@@ -5,7 +5,7 @@ import {
   UserCheck, Users, BarChart3, HelpCircle, Save, Check, X, 
   SlidersHorizontal, Star, ThumbsUp, Smile, Ban, ArrowUpDown, 
   FileSpreadsheet, Sparkles, ShieldAlert, RefreshCw, Briefcase,
-  MessageSquare, Copy, CheckCheck
+  MessageSquare, Copy, CheckCheck, FileDown, CheckSquare, Square, ListChecks
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -81,6 +81,21 @@ export function getKategoriBadge(kategori: string | null) {
       };
   }
 }
+
+// Konfigurasi daftar kolom ekspor yang dapat dipilih pengguna
+export const EXPORT_COLUMNS_CONFIG = [
+  { id: 'no', label: 'Nomor Urut', header: 'No', category: 'Umum' },
+  { id: 'email', label: 'Email Mitra (Primary Key)', header: 'Email Mitra', category: 'Identitas' },
+  { id: 'nama', label: 'Nama Lengkap Mitra', header: 'Nama Mitra', category: 'Identitas' },
+  { id: 'role', label: 'Posisi / Role (PPL / PML)', header: 'Posisi / Role', category: 'Penugasan' },
+  { id: 'pj', label: 'Penanggung Jawab (PJ)', header: 'Penanggung Jawab (PJ)', category: 'Penugasan' },
+  { id: 'kecamatan', label: 'Wilayah / Kecamatan', header: 'Wilayah / Kecamatan', category: 'Penugasan' },
+  { id: 'nilai', label: 'Nilai Kinerja (0-100)', header: 'Nilai Kinerja (0-100)', category: 'Penilaian' },
+  { id: 'kategori', label: 'Kategori Rekomendasi', header: 'Kategori Kinerja', category: 'Penilaian' },
+  { id: 'catatan', label: 'Catatan Kinerja Lapangan', header: 'Catatan Kualitatif Lapangan', category: 'Penilaian' },
+  { id: 'status', label: 'Status Penilaian (Sudah/Belum)', header: 'Status Penilaian', category: 'Penilaian' },
+  { id: 'penilai', label: 'Nama Penilai / Verifikator', header: 'Penilai', category: 'Sistem' }
+];
 
 // Komponen Dropdown Filter Interaktif & Smooth (mirip dashboard monitoring)
 interface SmoothSelectOption {
@@ -244,6 +259,13 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
   // State modal monitoring PJ
   const [showPjModal, setShowPjModal] = useState(false);
 
+  // State modal download dengan pemilihan kolom kustom
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportScope, setExportScope] = useState<'all' | 'evaluated' | 'current'>('all');
+  const [selectedExportCols, setSelectedExportCols] = useState<string[]>([
+    'no', 'email', 'nama', 'role', 'pj', 'kecamatan', 'nilai', 'kategori', 'catatan', 'status'
+  ]);
+
   // State modal import file & column mapping
   const [showImportModal, setShowImportModal] = useState(false);
   const [rawImportData, setRawImportData] = useState<any[]>([]);
@@ -254,7 +276,8 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     role: '',
     pj: '',
     kecamatan: '',
-    nilai: ''
+    nilai: '',
+    catatan: ''
   });
   const [upsertImport, setUpsertImport] = useState(true);
   const [importFileName, setImportFileName] = useState('');
@@ -329,18 +352,27 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
           if (Array.isArray(apiData) && apiData.length > 0) {
             incomingData = apiData;
           }
+        } else {
+          console.warn(`Respon API tidak OK (${res.status}), menggunakan fallback cache lokal`);
         }
       } catch (e) {
-        // Fallback local storage
+        console.warn('Gagal fetch API /api/mitra, menggunakan cache lokal:', e);
+      }
+
+      // Jika incomingData kosong (misal API MySQL offline/kosong), pulihkan dari cache lokal v3
+      if (incomingData.length === 0) {
         const cached = localStorage.getItem('garda_mitra_cache_v3');
         if (cached) {
           try {
-            incomingData = JSON.parse(cached);
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              incomingData = parsed;
+            }
           } catch (err) {}
         }
       }
 
-      // 3. Selaraskan data agar selalu berjumlah tepat 244 mitra (214 PPL + 30 PML)
+      // 3. Selaraskan data baseline dan data incoming (memperbarui nilai/catatan & menyertakan mitra baru)
       let merged: MitraRecord[] = baseline;
       if (incomingData.length > 0 && baseline.length > 0) {
         const incomingMap = new Map<string, MitraRecord>();
@@ -350,12 +382,20 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
           if (m.email) incomingMap.set(m.email.toLowerCase(), m);
         });
 
+        const baselineKeys = new Set<string>();
         merged = baseline.map(b => {
           const key = b.id || `${(b.email || '').toLowerCase()}_${(b.role || 'ppl').toLowerCase()}`;
+          baselineKeys.add(key);
+          if (b.email) baselineKeys.add(b.email.toLowerCase());
+
           const existing = incomingMap.get(key) || (incomingData.length === 243 && b.email.toLowerCase() === 'denok8881@gmail.com' ? null : incomingMap.get(b.email.toLowerCase()));
           if (existing) {
             return {
               ...b,
+              nama: existing.nama || b.nama,
+              role: existing.role || b.role,
+              pj: existing.pj && existing.pj !== '-' ? existing.pj : b.pj,
+              kecamatan: existing.kecamatan && existing.kecamatan !== '-' ? existing.kecamatan : b.kecamatan,
               nilai: existing.nilai !== undefined && existing.nilai !== null ? existing.nilai : b.nilai,
               kategori: existing.kategori || b.kategori,
               catatan: existing.catatan || b.catatan || ''
@@ -363,7 +403,18 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
           }
           return b;
         });
-      } else if (incomingData.length >= 244) {
+
+        // Pertahankan mitra baru yang belum ada di acuan baseline agar tidak hilang
+        const extraMitra = incomingData.filter(m => {
+          const key = m.id || `${(m.email || '').toLowerCase()}_${(m.role || 'ppl').toLowerCase()}`;
+          const emailKey = (m.email || '').toLowerCase();
+          return !baselineKeys.has(key) && !baselineKeys.has(emailKey);
+        });
+
+        if (extraMitra.length > 0) {
+          merged = [...merged, ...extraMitra];
+        }
+      } else if (incomingData.length > 0) {
         merged = incomingData;
       }
 
@@ -576,18 +627,24 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     const recordKey = getRecordKey(record);
 
     try {
-      await fetch(`${baseUrl}/api/mitra/${encodeURIComponent(recordKey)}`, {
+      const res = await fetch(`${baseUrl}/api/mitra/${encodeURIComponent(recordKey)}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({
           id: recordKey,
           email: record.email,
+          nama: record.nama,
           role: record.role,
+          pj: record.pj,
+          kecamatan: record.kecamatan,
           nilai: record.nilai,
           catatan: record.catatan,
           penilai: user?.name || 'Administrator'
         })
       });
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
       setSavingStatus(`Tersimpan: ${record.nama} (${record.role})`);
     } catch (e) {
       console.warn('Simpan offline ke cache:', e);
@@ -610,13 +667,17 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     try {
-      await fetch(`${baseUrl}/api/mitra/bulk`, {
+      const res = await fetch(`${baseUrl}/api/mitra/bulk`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ items: itemsInPj })
       });
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
       setSavingStatus(`✅ Berhasil menyimpan semua nilai & catatan PJ ${pjName}`);
     } catch (e) {
+      console.warn('Simpan massal offline ke cache:', e);
       setSavingStatus(`✅ Tersimpan lokal (${itemsInPj.length} data)`);
     }
 
@@ -706,7 +767,146 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     XLSX.writeFile(workbook, `Rekomendasi_Penawaran_Kerja_Mitra_BPS_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
-  // Export Data ke Excel (Format Manajemen Mitra)
+  // 1. Download Template Excel Pembaruan Data Mitra
+  const handleDownloadTemplate = () => {
+    let rowsToExport: any[] = [];
+
+    if (mitraList.length > 0) {
+      rowsToExport = mitraList.map(m => ({
+        'Email Mitra (Wajib / Identifier)': m.email,
+        'Nama Mitra': m.nama,
+        'Posisi / Role (PPL / PML)': m.role,
+        'Penanggung Jawab (PJ)': m.pj || '-',
+        'Wilayah / Kecamatan': m.kecamatan || '-',
+        'Nilai Kinerja (0-100)': m.nilai !== null && m.nilai !== undefined ? m.nilai : '',
+        'Catatan Kinerja Lapangan': m.catatan || ''
+      }));
+    } else {
+      rowsToExport = [
+        {
+          'Email Mitra (Wajib / Identifier)': 'contoh.mitra1@bps.go.id',
+          'Nama Mitra': 'Ahmad Fauzi',
+          'Posisi / Role (PPL / PML)': 'PPL',
+          'Penanggung Jawab (PJ)': 'Rahman BPS',
+          'Wilayah / Kecamatan': 'Mempawah Hilir',
+          'Nilai Kinerja (0-100)': 85,
+          'Catatan Kinerja Lapangan': 'Disiplin dan tepat waktu dalam pendataan lapangan'
+        },
+        {
+          'Email Mitra (Wajib / Identifier)': 'contoh.mitra2@bps.go.id',
+          'Nama Mitra': 'Siti Aminah',
+          'Posisi / Role (PPL / PML)': 'PML',
+          'Penanggung Jawab (PJ)': 'Rahman BPS',
+          'Wilayah / Kecamatan': 'Sungai Pinyuh',
+          'Nilai Kinerja (0-100)': 92,
+          'Catatan Kinerja Lapangan': 'Supervisi lapangan sangat teliti dan aktif berkoordinasi'
+        }
+      ];
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(rowsToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Pembaruan Nilai Mitra');
+
+    // Auto width
+    worksheet['!cols'] = [
+      { wch: 32 }, // Email
+      { wch: 28 }, // Nama
+      { wch: 20 }, // Posisi
+      { wch: 24 }, // PJ
+      { wch: 22 }, // Kecamatan
+      { wch: 20 }, // Nilai
+      { wch: 45 }  // Catatan
+    ];
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `Template_Pembaruan_Nilai_Mitra_SE2026_${dateStr}.xlsx`);
+  };
+
+  // 2. Export Data Kustom berdasarkan Kolom yang Dipilih Pengguna
+  const handleCustomExport = () => {
+    if (selectedExportCols.length === 0) {
+      alert('Silakan pilih minimal 1 kolom untuk diekspor!');
+      return;
+    }
+
+    let sourceData = mitraList;
+    let fileSuffix = 'Semua';
+    if (exportScope === 'evaluated') {
+      sourceData = mitraList.filter(m => m.nilai !== null && m.nilai !== undefined);
+      fileSuffix = 'Sudah_Dinilai';
+    } else if (exportScope === 'current') {
+      sourceData = filteredMitra;
+      fileSuffix = 'Filter_Aktif';
+    }
+
+    if (sourceData.length === 0) {
+      alert('Tidak ada data mitra untuk diekspor pada cakupan ini.');
+      return;
+    }
+
+    const formattedRows = sourceData.map((m, idx) => {
+      const row: Record<string, any> = {};
+      selectedExportCols.forEach(colId => {
+        const colDef = EXPORT_COLUMNS_CONFIG.find(c => c.id === colId);
+        const header = colDef ? colDef.header : colId;
+
+        switch (colId) {
+          case 'no':
+            row[header] = idx + 1;
+            break;
+          case 'email':
+            row[header] = m.email;
+            break;
+          case 'nama':
+            row[header] = m.nama;
+            break;
+          case 'role':
+            row[header] = m.role;
+            break;
+          case 'pj':
+            row[header] = m.pj;
+            break;
+          case 'kecamatan':
+            row[header] = m.kecamatan;
+            break;
+          case 'nilai':
+            row[header] = m.nilai !== null && m.nilai !== undefined ? m.nilai : '';
+            break;
+          case 'kategori':
+            row[header] = m.kategori || 'Belum Dinilai';
+            break;
+          case 'catatan':
+            row[header] = m.catatan || '';
+            break;
+          case 'status':
+            row[header] = m.nilai !== null && m.nilai !== undefined ? 'Sudah Dinilai' : 'Belum Dinilai';
+            break;
+          case 'penilai':
+            row[header] = user?.name || 'Administrator';
+            break;
+        }
+      });
+      return row;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(formattedRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Evaluasi Mitra');
+
+    // Auto width
+    const keys = Object.keys(formattedRows[0] || {});
+    worksheet['!cols'] = keys.map(k => {
+      const maxLen = formattedRows.reduce((acc, r) => Math.max(acc, String(r[k] || '').length), k.length);
+      return { wch: Math.max(10, Math.min(55, maxLen + 3)) };
+    });
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `Data_Mitra_SE2026_${fileSuffix}_${dateStr}.xlsx`);
+    setShowExportModal(false);
+  };
+
+  // 3. Export Data Cepat Standar ke Excel
   const handleExportToExcel = (filterMode: 'all' | 'evaluated' | 'current') => {
     let dataToExport = mitraList;
     if (filterMode === 'evaluated') {
@@ -722,13 +922,14 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
     const formattedRows = dataToExport.map((m, idx) => ({
       'No': idx + 1,
-      'Email Mitra (Primary Key)': m.email,
+      'Email Mitra': m.email,
       'Nama Mitra': m.nama,
-      'Jabatan / Posisi': m.role,
+      'Posisi / Role': m.role,
       'Penanggung Jawab (PJ)': m.pj,
       'Wilayah / Kecamatan': m.kecamatan,
       'Nilai Kinerja (0-100)': m.nilai !== null ? m.nilai : '',
       'Kategori Kinerja': m.kategori || 'Belum Dinilai',
+      'Catatan Kualitatif Lapangan': m.catatan || '',
       'Status Penilaian': m.nilai !== null ? 'Sudah Dinilai' : 'Belum Dinilai'
     }));
 
@@ -750,7 +951,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     XLSX.writeFile(workbook, `Hasil_Penilaian_Mitra_SE2026_${dateStr}.xlsx`);
   };
 
-  // Baca File saat Import dipilih
+  // 4. Baca File saat Import dipilih
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -781,7 +982,8 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
           role: cols.find(c => /role|jabatan|posisi/i.test(c)) || '',
           pj: cols.find(c => /pj|penanggung/i.test(c)) || '',
           kecamatan: cols.find(c => /kec|wilayah/i.test(c)) || '',
-          nilai: cols.find(c => /nilai|skor|score/i.test(c)) || ''
+          nilai: cols.find(c => /nilai|skor|score/i.test(c)) || '',
+          catatan: cols.find(c => /catatan|keterangan|review|evaluasi|note/i.test(c)) || ''
         };
         setColumnMapping(autoMap);
         setShowImportModal(true);
@@ -794,7 +996,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     e.target.value = '';
   };
 
-  // Konfirmasi Import Data dengan Mapping
+  // 5. Konfirmasi Import Data dengan Mapping (Upsert: Perbarui data lama + Tambah data baru)
   const handleConfirmImport = async () => {
     if (!columnMapping.email) {
       alert('Kolom Email wajib dipilih sebagai Primary Key!');
@@ -811,26 +1013,30 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
       if (!email) return;
 
       const nama = String(row[columnMapping.nama] || 'Tanpa Nama').trim();
-      const role = columnMapping.role ? String(row[columnMapping.role] || 'PPL').trim() : 'PPL';
+      const role = columnMapping.role ? String(row[columnMapping.role] || 'PPL').trim().toUpperCase() : 'PPL';
       const pj = columnMapping.pj ? String(row[columnMapping.pj] || '-').trim() : '-';
       const kecamatan = columnMapping.kecamatan ? String(row[columnMapping.kecamatan] || '-').trim() : '-';
       
       let nilai: number | null = null;
-      if (columnMapping.nilai && row[columnMapping.nilai] !== '') {
-        const parsed = parseInt(row[columnMapping.nilai], 10);
+      if (columnMapping.nilai && row[columnMapping.nilai] !== '' && row[columnMapping.nilai] !== null && row[columnMapping.nilai] !== undefined) {
+        const parsed = parseInt(String(row[columnMapping.nilai]), 10);
         if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
           nilai = parsed;
         }
       }
 
+      const catatan = columnMapping.catatan ? String(row[columnMapping.catatan] || '').trim() : '';
+
       processedItems.push({
+        id: `${email}_${role.toLowerCase()}`,
         email,
         nama,
         role,
         pj,
         kecamatan,
         nilai,
-        kategori: getKategoriFromNilai(nilai)
+        kategori: getKategoriFromNilai(nilai),
+        catatan
       });
     });
 
@@ -855,27 +1061,49 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
       console.warn('Gagal import ke backend MySQL, menyimpan ke local state:', err);
     }
 
-    // Merge ke local state
+    // Merge ke local state: Update data ada dan tambah data baru
+    let updatedCount = 0;
+    let addedCount = 0;
+
     setMitraList(prev => {
-      const existingMap = new Map<string, MitraRecord>(prev.map(m => [m.email.toLowerCase(), m]));
+      const recordMap = new Map<string, MitraRecord>();
+      prev.forEach(m => {
+        recordMap.set(getRecordKey(m), m);
+      });
+
       processedItems.forEach(item => {
-        if (upsertImport || !existingMap.has(item.email.toLowerCase())) {
-          const existing = existingMap.get(item.email.toLowerCase());
-          existingMap.set(item.email.toLowerCase(), {
-            ...item,
-            nilai: item.nilai !== null ? item.nilai : (existing?.nilai ?? null),
-            kategori: item.nilai !== null ? item.kategori : (existing?.kategori ?? null)
-          });
+        const itemKey = getRecordKey(item);
+        const existing = recordMap.get(itemKey) || Array.from(recordMap.values()).find(m => m.email.toLowerCase() === item.email.toLowerCase());
+
+        if (existing) {
+          if (upsertImport) {
+            updatedCount++;
+            const mergedItem: MitraRecord = {
+              ...existing,
+              nama: item.nama || existing.nama,
+              role: item.role || existing.role,
+              pj: item.pj && item.pj !== '-' ? item.pj : existing.pj,
+              kecamatan: item.kecamatan && item.kecamatan !== '-' ? item.kecamatan : existing.kecamatan,
+              nilai: item.nilai !== null ? item.nilai : existing.nilai,
+              kategori: item.nilai !== null ? item.kategori : existing.kategori,
+              catatan: item.catatan ? item.catatan : (existing.catatan || '')
+            };
+            recordMap.set(getRecordKey(mergedItem), mergedItem);
+          }
+        } else {
+          addedCount++;
+          recordMap.set(itemKey, item);
         }
       });
-      const merged = Array.from(existingMap.values());
+
+      const merged = Array.from(recordMap.values());
       localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(merged));
       return merged;
     });
 
     setShowImportModal(false);
-    setSavingStatus(`✅ Berhasil import ${processedItems.length} data mitra!`);
-    setTimeout(() => setSavingStatus(null), 3000);
+    setSavingStatus(`✅ Berhasil import: ${updatedCount} diperbarui, ${addedCount} mitra baru ditambahkan!`);
+    setTimeout(() => setSavingStatus(null), 4000);
   };
 
   return (
@@ -993,32 +1221,45 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
                 {/* Opsi 1: Import & Pembaruan Data */}
-                <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Upload className="w-4 h-4 text-primary-600" />
                       <h4 className="font-black text-xs text-slate-800 uppercase tracking-wider">
-                        Import & Perbarui Data Mitra
+                        Import & Pembaruan Data Mitra
                       </h4>
                     </div>
-                    <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                      Unggah berkas Excel (<code className="font-mono text-slate-700">.xlsx</code>, <code className="font-mono text-slate-700">.csv</code>) untuk menambah mitra baru atau memperbarui data. Anda dapat memilih kolom pemetaan secara leluasa.
+                    <p className="text-xs text-slate-500 leading-relaxed mb-3">
+                      Unduh template Excel terlebih dahulu, isi atau sesuaikan nilai & catatan kualitatif, lalu unggah kembali untuk sinkronisasi database.
                     </p>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 mb-4 text-[11px] text-slate-600 leading-relaxed">
+                      💡 <strong>Aturan Sinkronisasi:</strong> Data yang sudah ada di database akan diperbarui nilai & catatannya. Baris baru yang belum ada akan otomatis ditambahkan ke database.
+                    </div>
                   </div>
-                  <label className="w-full py-2.5 px-4 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-xs text-center cursor-pointer transition-all shadow-xs flex items-center justify-center gap-2">
-                    <FileSpreadsheet className="w-4 h-4" />
-                    <span>Pilih Berkas Excel untuk Di-import</span>
-                    <input 
-                      type="file" 
-                      accept=".xlsx,.xls,.csv" 
-                      onChange={handleFileUpload} 
-                      className="hidden" 
-                    />
-                  </label>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleDownloadTemplate}
+                      className="w-full py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300/80 font-bold rounded-xl text-xs text-center transition-all flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
+                    >
+                      <FileDown className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>1. Unduh Template Excel Pembaruan</span>
+                    </button>
+                    <label className="w-full py-2.5 px-4 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-xs text-center cursor-pointer transition-all shadow-xs flex items-center justify-center gap-2">
+                      <Upload className="w-4 h-4 shrink-0" />
+                      <span>2. Upload Berkas Excel yang Sudah Diisi</span>
+                      <input 
+                        type="file" 
+                        accept=".xlsx,.xls,.csv" 
+                        onChange={handleFileUpload} 
+                        className="hidden" 
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 {/* Opsi 2: Unduh / Export untuk Manajemen Mitra */}
-                <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Download className="w-4 h-4 text-emerald-600" />
@@ -1026,24 +1267,39 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                         Download Data untuk Manajemen Mitra
                       </h4>
                     </div>
-                    <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                      Ekspor hasil penilaian mitra ke format Excel (<code className="font-mono text-slate-700">.xlsx</code>) yang siap diunggah ke portal Manajemen Mitra BPS.
+                    <p className="text-xs text-slate-500 leading-relaxed mb-3">
+                      Ekspor data hasil penilaian mitra ke format Excel (<code className="font-mono text-slate-700">.xlsx</code>) dengan kebebasan memilih kolom mana saja yang ingin diikutsertakan.
                     </p>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 mb-4 text-[11px] text-slate-600 leading-relaxed">
+                      📋 <strong>Pilihan Kustom:</strong> Anda dapat mencentang kolom Identitas, Penugasan, Nilai, Catatan, atau Kategori Rekomendasi sesuai kebutuhan.
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2">
                     <button
-                      onClick={() => handleExportToExcel('all')}
-                      className="flex-grow py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                      onClick={() => setShowExportModal(true)}
+                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download Semua ({mitraList.length})</span>
+                      <SlidersHorizontal className="w-4 h-4 shrink-0" />
+                      <span>Pilih Kolom & Unduh Excel</span>
                     </button>
-                    <button
-                      onClick={() => handleExportToExcel('evaluated')}
-                      className="py-2 px-3 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all"
-                    >
-                      <span>Hanya Sudah Dinilai ({stats.evaluated})</span>
-                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleExportToExcel('all')}
+                        className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-[11px] flex items-center justify-center gap-1 transition-all truncate"
+                        title="Download cepat semua mitra format standar"
+                      >
+                        <Download className="w-3 h-3 text-slate-500 shrink-0" />
+                        <span className="truncate">Cepat: Semua ({mitraList.length})</span>
+                      </button>
+                      <button
+                        onClick={() => handleExportToExcel('evaluated')}
+                        className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-[11px] flex items-center justify-center gap-1 transition-all truncate"
+                        title="Download cepat mitra yang sudah dinilai"
+                      >
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                        <span className="truncate">Dinilai ({stats.evaluated})</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -2117,7 +2373,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden"
+              className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
             >
               {/* Modal Header */}
               <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
@@ -2132,9 +2388,24 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                 </div>
                 <button
                   onClick={() => setShowImportModal(false)}
-                  className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-400 hover:text-slate-700"
+                  className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-400 hover:text-slate-700 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Template Download Quick Helper Banner */}
+              <div className="px-5 py-2.5 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between gap-3 text-xs">
+                <span className="text-emerald-900 font-medium truncate">
+                  Belum memiliki format berkas pembaruan yang tepat?
+                </span>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold rounded-lg text-[11px] flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
+                >
+                  <FileDown className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Download Template Excel</span>
                 </button>
               </div>
 
@@ -2144,7 +2415,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                 {/* 1. Kolom Email */}
                 <div>
                   <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider mb-1">
-                    Kolom Email Mitra (Primary Key) *
+                    Kolom Email Mitra (Primary Key Unik) *
                   </label>
                   <select
                     value={columnMapping.email}
@@ -2193,7 +2464,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                     </select>
                   </div>
 
-                  {/* 4. Kolom Nilai Kinerja (Opsional) */}
+                  {/* 4. Kolom Nilai Kinerja */}
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
                       Kolom Nilai (Opsional)
@@ -2247,18 +2518,40 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                   </div>
                 </div>
 
-                {/* Upsert Option */}
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="upsertCheckbox"
-                    checked={upsertImport}
-                    onChange={(e) => setUpsertImport(e.target.checked)}
-                    className="w-4 h-4 text-primary-600 rounded cursor-pointer"
-                  />
-                  <label htmlFor="upsertCheckbox" className="text-xs text-slate-700 font-medium cursor-pointer">
-                    Perbarui data mitra jika email sudah terdaftar (Upsert)
+                {/* 7. Kolom Catatan Kualitatif Lapangan */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                    Kolom Catatan Kinerja Lapangan (Opsional)
                   </label>
+                  <select
+                    value={columnMapping.catatan}
+                    onChange={(e) => setColumnMapping(p => ({ ...p, catatan: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-slate-800 outline-none"
+                  >
+                    <option value="">-- Kosongkan Jika Tidak Ada Catatan --</option>
+                    {detectedColumns.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Upsert Option Card */}
+                <div className="p-3.5 bg-blue-50/70 rounded-2xl border border-blue-200/80 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="upsertCheckbox"
+                      checked={upsertImport}
+                      onChange={(e) => setUpsertImport(e.target.checked)}
+                      className="w-4 h-4 text-primary-600 rounded cursor-pointer"
+                    />
+                    <label htmlFor="upsertCheckbox" className="text-xs font-bold text-slate-800 cursor-pointer">
+                      Sinkronisasi Database (Perbarui Data Lama + Tambah Data Baru)
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-slate-600 pl-6 leading-relaxed">
+                    Data yang sudah terdaftar di database akan diperbarui nilainya & catatannya. Baris baru yang belum ada di database akan langsung ditambahkan sebagai mitra baru.
+                  </p>
                 </div>
 
                 {/* Preview 3 baris awal */}
@@ -2294,15 +2587,242 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
               <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
                 <button
                   onClick={() => setShowImportModal(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800"
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   onClick={handleConfirmImport}
-                  className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-xs shadow-md"
+                  className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-xs shadow-md cursor-pointer"
                 >
                   Konfirmasi & Import {rawImportData.length} Baris
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL KUSTOMISASI KOLOM & UNDUH EXCEL */}
+      <AnimatePresence>
+        {showExportModal && (
+          <div className="fixed inset-0 z-[1350] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div>
+                  <h3 className="font-black text-slate-900 text-sm tracking-tight flex items-center gap-2">
+                    <Download className="w-4 h-4 text-emerald-600" />
+                    Pilih Kolom & Unduh Data Mitra
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Pilih cakupan data dan centang kolom yang ingin Anda masukkan ke dalam berkas Excel (.xlsx).
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-400 hover:text-slate-700 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-5 overflow-y-auto custom-scrollbar space-y-5 text-xs">
+                
+                {/* 1. Cakupan Data (Scope) */}
+                <div>
+                  <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider mb-2">
+                    1. Cakupan Data yang Diekspor
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setExportScope('all')}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        exportScope === 'all'
+                          ? 'bg-primary-50/70 border-primary-500 ring-2 ring-primary-500/20 text-primary-950'
+                          : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-xs">Semua Mitra</span>
+                        <span className="text-[10px] font-black px-1.5 py-0.5 bg-slate-100 rounded-md text-slate-600">
+                          {mitraList.length}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-tight">Seluruh mitra PPL & PML terdaftar</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExportScope('evaluated')}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        exportScope === 'evaluated'
+                          ? 'bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-950'
+                          : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-xs">Sudah Dinilai</span>
+                        <span className="text-[10px] font-black px-1.5 py-0.5 bg-emerald-100 rounded-md text-emerald-700">
+                          {stats.evaluated}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-tight">Hanya mitra yang sudah memiliki nilai</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExportScope('current')}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        exportScope === 'current'
+                          ? 'bg-amber-50/70 border-amber-500 ring-2 ring-amber-500/20 text-amber-950'
+                          : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-xs">Filter Aktif</span>
+                        <span className="text-[10px] font-black px-1.5 py-0.5 bg-amber-100 rounded-md text-amber-700">
+                          {filteredMitra.length}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-tight">Sesuai pencarian & filter tabel saat ini</p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Pilihan Kolom (Checklist) */}
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                      2. Pilih Kolom Excel ({selectedExportCols.length} dari {EXPORT_COLUMNS_CONFIG.length} terpilih)
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedExportCols(EXPORT_COLUMNS_CONFIG.map(c => c.id))}
+                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-[10px] transition-colors cursor-pointer"
+                      >
+                        Pilih Semua
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedExportCols(['no', 'email', 'nama', 'role', 'pj', 'kecamatan', 'nilai', 'kategori'])}
+                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-[10px] transition-colors cursor-pointer"
+                      >
+                        Default BPS
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedExportCols(['nama', 'role', 'nilai', 'catatan'])}
+                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-[10px] transition-colors cursor-pointer"
+                      >
+                        Nilai & Catatan
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedExportCols([])}
+                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-lg text-[10px] transition-colors cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {EXPORT_COLUMNS_CONFIG.map(col => {
+                      const isChecked = selectedExportCols.includes(col.id);
+                      return (
+                        <div
+                          key={col.id}
+                          onClick={() => {
+                            if (isChecked) {
+                              setSelectedExportCols(prev => prev.filter(c => c !== col.id));
+                            } else {
+                              setSelectedExportCols(prev => [...prev, col.id]);
+                            }
+                          }}
+                          className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                            isChecked
+                              ? 'bg-emerald-50/50 border-emerald-300 text-slate-900 shadow-2xs'
+                              : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-500'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className={`w-4 h-4 rounded-md flex items-center justify-center border transition-all ${
+                              isChecked ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
+                            }`}>
+                              {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                            </div>
+                            <div className="truncate">
+                              <span className={`text-xs font-bold block truncate ${isChecked ? 'text-slate-800' : 'text-slate-600'}`}>
+                                {col.label}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                Header: {col.header}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 shrink-0 ml-2">
+                            {col.category}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Pratinjau Urutan Kolom Terpilih */}
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5">
+                    Urutan Kolom pada File Excel:
+                  </p>
+                  {selectedExportCols.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedExportCols.map((colId, i) => {
+                        const colDef = EXPORT_COLUMNS_CONFIG.find(c => c.id === colId);
+                        return (
+                          <span 
+                            key={colId}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold bg-white px-2 py-1 rounded-lg border border-slate-200 text-slate-700 shadow-2xs"
+                          >
+                            <span className="text-slate-400">{i + 1}.</span>
+                            <span>{colDef?.header || colId}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-rose-500 italic">Belum ada kolom yang dipilih. Silakan centang minimal 1 kolom.</p>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleCustomExport}
+                  disabled={selectedExportCols.length === 0}
+                  className={`px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition-all ${
+                    selectedExportCols.length > 0
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                      : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                  }`}
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Unduh File Excel ({selectedExportCols.length} Kolom)</span>
                 </button>
               </div>
             </motion.div>

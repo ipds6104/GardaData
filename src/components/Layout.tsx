@@ -3,6 +3,7 @@ import { LogOut, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/auth';
 import { ThemeSelector } from './ThemeSelector';
+import { clearAppCacheAndReload } from '../lib/pwaUpdater';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,6 +20,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
 
   const [isServerDisconnected, setIsServerDisconnected] = useState(false);
   const [isCheckingServer, setIsCheckingServer] = useState(false);
+  const [isUpdatingApp, setIsUpdatingApp] = useState(false);
 
   const checkServerConnection = async () => {
     setIsCheckingServer(true);
@@ -48,6 +50,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     } finally {
       setIsCheckingServer(false);
     }
+  };
+
+  const handleRefreshApp = async () => {
+    if (isUpdatingApp) return;
+    setIsUpdatingApp(true);
+    await clearAppCacheAndReload();
   };
 
   useEffect(() => {
@@ -341,6 +349,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Tombol Segarkan / Bersihkan Cache Aplikasi */}
+            <button
+              type="button"
+              onClick={handleRefreshApp}
+              disabled={isUpdatingApp}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-primary-700 transition-all shadow-xs text-xs font-bold cursor-pointer disabled:opacity-50"
+              title="Perbarui versi aplikasi & bersihkan cache"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-primary-600 ${isUpdatingApp ? 'animate-spin' : ''}`} />
+              <span className="hidden xl:inline">{isUpdatingApp ? 'Memperbarui...' : 'Perbarui Web'}</span>
+            </button>
+
             {/* Theme / Preset Selector Button */}
             <ThemeSelector />
 

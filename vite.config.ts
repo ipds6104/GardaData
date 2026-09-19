@@ -20,7 +20,24 @@ export default defineConfig(({mode}) => {
           maximumFileSizeToCacheInBytes: 5000000,
           cleanupOutdatedCaches: true,
           skipWaiting: true,
-          clientsClaim: true
+          clientsClaim: true,
+          navigateFallback: '/index.html',
+          navigateFallbackDenylist: [/^\/api/],
+          runtimeCaching: [
+            {
+              // Navigasi halaman HTML: NetworkFirst agar selalu mengambil versi terbaru dari server saat online
+              // dan otomatis fallback ke cache lokal jika sedang offline di lapangan
+              urlPattern: ({ request }) => request.mode === 'navigate',
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'garda-pages-cache',
+                networkTimeoutSeconds: 2,
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            }
+          ]
         },
         manifest: {
           name: 'Garda Data',

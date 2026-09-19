@@ -113,13 +113,40 @@ const path = require('path');
 // Menyajikan file statis dari hasil build React (Vite)
 const currentDir = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
 const distPath = path.join(currentDir, currentDir.endsWith('backend') ? '../dist' : 'dist');
-app.use(express.static(distPath));
+
+// Konfigurasi cache control presisi:
+// 1. File navigasi (HTML, service worker sw.js, manifest) selalu NO-CACHE agar update langsung diterima pengguna
+// 2. File asset dengan hash unik (assets/*.js, assets/*.css) di-cache jangka panjang (immutable)
+app.use(express.static(distPath, {
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    const basename = path.basename(filePath);
+    if (
+      filePath.endsWith('.html') ||
+      basename === 'sw.js' ||
+      basename === 'registerSW.js' ||
+      basename === 'manifest.webmanifest' ||
+      basename.endsWith('.json')
+    ) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else if (filePath.includes(path.sep + 'assets' + path.sep)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }
+}));
 
 // Tangkap semua route selain /api dan arahkan ke index.html (agar React Router berfungsi)
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'API route not found' });
   }
+  // Pastikan SPA fallback juga selalu meminta HTML segar dari server
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(distPath, 'index.html'));
 });
 

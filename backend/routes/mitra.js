@@ -136,7 +136,24 @@ router.put('/:identifier', async (req, res) => {
     ]);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Mitra tidak ditemukan' });
+      // Jika baris belum ada di database MySQL, lakukan insert (UPSERT)
+      const email = req.body.email ? String(req.body.email).trim().toLowerCase() : identifier.split('_')[0];
+      const role = req.body.role ? String(req.body.role).trim().toUpperCase() : 'PPL';
+      const nama = req.body.nama ? String(req.body.nama).trim() : 'Mitra Lapangan';
+      const pj = req.body.pj ? String(req.body.pj).trim() : '-';
+      const kecamatan = req.body.kecamatan ? String(req.body.kecamatan).trim() : '-';
+      const id = `${email}_${role.toLowerCase()}`;
+
+      await pool.execute(`
+        INSERT INTO mitra_evaluations 
+        (id, email, nama, role, pj, kecamatan, nilai, kategori, catatan, penilai)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+        nilai = VALUES(nilai),
+        kategori = VALUES(kategori),
+        catatan = VALUES(catatan),
+        penilai = VALUES(penilai)
+      `, [id, email, nama, role, pj, kecamatan, finalNilai, kategori, catatan || null, penilai || 'Admin']);
     }
 
     res.json({
@@ -150,7 +167,7 @@ router.put('/:identifier', async (req, res) => {
   }
 });
 
-// POST /api/mitra/bulk - Simpan nilai massal (batch save)
+// POST /api/mitra/bulk - Simpan nilai massal (batch save via UPSERT)
 router.post('/bulk', async (req, res) => {
   const { items } = req.body;
   if (!Array.isArray(items) || items.length === 0) {
@@ -163,8 +180,12 @@ router.post('/bulk', async (req, res) => {
 
     for (const item of items) {
       if (!item.id && !item.email) continue;
-      const id = item.id || `${String(item.email).trim().toLowerCase()}_${String(item.role || 'ppl').trim().toLowerCase()}`;
       const email = String(item.email || '').trim().toLowerCase();
+      const role = String(item.role || 'PPL').trim().toUpperCase();
+      const id = item.id || `${email}_${role.toLowerCase()}`;
+      const nama = String(item.nama || 'Mitra Lapangan').trim();
+      const pj = String(item.pj || '-').trim();
+      const kecamatan = String(item.kecamatan || '-').trim();
       let finalNilai = null;
       let kategori = null;
 
@@ -177,10 +198,15 @@ router.post('/bulk', async (req, res) => {
       }
 
       await connection.execute(`
-        UPDATE mitra_evaluations 
-        SET nilai = ?, kategori = ?, catatan = COALESCE(?, catatan)
-        WHERE id = ? OR (LOWER(email) = ? AND role = ?)
-      `, [finalNilai, kategori, item.catatan || null, id, email, item.role || 'PPL']);
+        INSERT INTO mitra_evaluations 
+        (id, email, nama, role, pj, kecamatan, nilai, kategori, catatan, penilai)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+        nilai = VALUES(nilai),
+        kategori = VALUES(kategori),
+        catatan = COALESCE(VALUES(catatan), catatan),
+        penilai = VALUES(penilai)
+      `, [id, email, nama, role, pj, kecamatan, finalNilai, kategori, item.catatan || null, item.penilai || 'Admin']);
     }
 
     await connection.commit();
@@ -191,6 +217,18 @@ router.post('/bulk', async (req, res) => {
     res.status(500).json({ error: 'Gagal menyimpan nilai massal' });
   } finally {
     connection.release();
+  }
+});
+
+// DELETE /api/mitra/:identifier - Menghapus 1 mitra
+router.delete('/:identifier', async (req, res) => {
+  try {
+    const identifier = decodeURIComponent(req.params.identifier).trim();
+    await pool.execute('DELETE FROM mitra_evaluations WHERE id = ? OR LOWER(email) = LOWER(?)', [identifier, identifier]);
+    res.json({ success: true, message: 'Data mitra berhasil dihapus' });
+  } catch (err) {
+    console.error('Error deleting mitra:', err);
+    res.status(500).json({ error: 'Gagal menghapus data mitra' });
   }
 });
 
@@ -238,17 +276,25 @@ router.post('/import', async (req, res) => {
           pj = VALUES(pj),
           kecamatan = VALUES(kecamatan),
           nilai = COALESCE(VALUES(nilai), nilai),
-          kategori = COALESCE(VALUES(kategori), kategori)
+          kategori = COALESCE(VALUES(kategori), kategori),
+          catatan = CASE 
+            WHEN VALUES(catatan) IS NOT NULL AND VALUES(catatan) != '' THEN VALUES(catatan) 
+            ELSE catatan 
+          END
         `;
-        await connection.execute(query, [id, email, nama, role, pj, kecamatan, nilai, kategori, row.catatan || '']);
-        updated++;
+        const [resUpsert] = await connection.execute(query, [id, email, nama, role, pj, kecamatan, nilai, kategori, row.catatan || null]);
+        if (resUpsert.affectedRows === 1) {
+          inserted++;
+        } else {
+          updated++;
+        }
       } else {
         const query = `
           INSERT IGNORE INTO mitra_evaluations 
           (id, email, nama, role, pj, kecamatan, nilai, kategori, catatan)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
-        const [resIns] = await connection.execute(query, [id, email, nama, role, pj, kecamatan, nilai, kategori, row.catatan || '']);
+        const [resIns] = await connection.execute(query, [id, email, nama, role, pj, kecamatan, nilai, kategori, row.catatan || null]);
         if (resIns.affectedRows > 0) inserted++;
       }
     }
@@ -256,7 +302,9 @@ router.post('/import', async (req, res) => {
     await connection.commit();
     res.json({
       success: true,
-      message: `Berhasil memproses import data mitra (${upsert ? updated + ' data diperbarui/dimasukkan' : inserted + ' data baru ditambahkan'}).`
+      inserted,
+      updated,
+      message: `Berhasil memproses import data mitra (${updated} data diperbarui, ${inserted} mitra baru ditambahkan).`
     });
   } catch (error) {
     await connection.rollback();
