@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'motion/react';
 import { BookOpen, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity, MapPin, ScanLine, Award } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
@@ -14,11 +13,10 @@ interface FeatureCardProps {
 }
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon: Icon, iconColor, bgColor, badge, onClick }) => (
-  <motion.button
-    whileHover={{ y: -4, scale: 1.01 }}
-    whileTap={{ scale: 0.98 }}
+  <button
+    type="button"
     onClick={onClick}
-    className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all text-left flex flex-col h-full cursor-pointer group"
+    className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-xs hover:shadow-lg hover:border-primary-200 hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 text-left flex flex-col h-full cursor-pointer group"
   >
     <div className="flex items-start justify-between gap-2 mb-4">
       <div className="flex items-center gap-3">
@@ -42,7 +40,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon: Ico
       <span>{badge ? 'Fitur Pengembangan' : 'Buka Aplikasi'}</span>
       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
     </div>
-  </motion.button>
+  </button>
 );
 
 interface LandingPageProps {
@@ -54,17 +52,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
 
   return (
     <div className="space-y-8">
-      {/* Hero Banner */}
-      <div className="bg-gradient-to-br from-primary-50/90 via-white to-secondary-50/70 rounded-[2.5rem] p-8 md:p-14 lg:p-16 relative overflow-hidden flex flex-col md:flex-row items-center justify-between min-h-[420px] shadow-xl shadow-primary-500/5 border border-primary-100/80 transition-colors duration-500">
+      {/* Hero Banner - Lightweight, GPU-friendly gradient & smooth composition */}
+      <div className="bg-gradient-to-br from-primary-50 via-white to-secondary-50 rounded-[2.5rem] p-8 md:p-14 lg:p-16 relative overflow-hidden flex flex-col md:flex-row items-center justify-between min-h-[400px] shadow-md border border-primary-100/90">
         
-        {/* Ambient Decorative Lighting */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary-200/40 blur-[100px] rounded-full pointer-events-none -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-secondary-200/30 blur-[90px] rounded-full pointer-events-none -ml-20 -mb-20"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(var(--color-primary-300)_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none"></div>
+        {/* Subtle decorative background (Lightweight radial without heavy GPU blur) */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-primary-100/40 rounded-full pointer-events-none -mr-16 -mt-16"></div>
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-secondary-100/35 rounded-full pointer-events-none -ml-16 -mb-16"></div>
 
         {/* Left Column (Text & Quote) */}
         <div className="relative z-10 flex flex-col items-start text-left space-y-6 w-full md:w-1/2 max-w-xl mx-auto md:mx-0">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 backdrop-blur-sm text-primary-700 text-xs font-black uppercase tracking-wider border border-primary-200 shadow-xs">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white text-primary-700 text-xs font-black uppercase tracking-wider border border-primary-200 shadow-xs">
             <span className="w-2 h-2 rounded-full bg-primary-500 animate-pulse"></span>
             BPS Kabupaten Mempawah
           </div>
@@ -76,8 +73,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             </span>
           </h1>
 
-          
-          <div className="p-4 rounded-2xl bg-white/70 backdrop-blur-sm border border-primary-100/80 max-w-md shadow-xs space-y-1">
+          <div className="p-4 rounded-2xl bg-white/90 border border-primary-100 max-w-md shadow-2xs space-y-1">
             <p className="text-slate-600 text-xs md:text-sm leading-relaxed italic font-serif">
               "Kesempurnaan tidak datang dengan sendirinya. Kesempurnaan harus diupayakan."
             </p>
@@ -87,20 +83,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Right Column (Logo with Adaptive Halo Backdrop) */}
+        {/* Right Column (Logo) */}
         <div className="relative z-10 w-full md:w-1/2 flex justify-center md:justify-end mt-10 md:mt-0">
-          <div className="relative flex items-center justify-center p-6">
-            {/* Radiant Theme Halo */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary-400/30 via-secondary-300/30 to-accent-400/20 blur-3xl rounded-full transform scale-125 animate-pulse pointer-events-none"></div>
-            <div className="absolute w-64 h-64 bg-primary-300/25 rounded-full blur-2xl pointer-events-none"></div>
-            
-            {/* Decorative Glass Badge behind Logo */}
-            <div className="absolute inset-3 bg-white/30 backdrop-blur-md rounded-[2.5rem] border border-white/60 shadow-lg shadow-primary-500/10 pointer-events-none"></div>
-
+          <div className="relative flex items-center justify-center p-4">
             <img 
               src="/logo.png" 
               alt="Garda Data Logo" 
-              className="relative z-10 w-auto h-56 md:h-72 lg:h-80 object-contain hover:scale-105 transition-transform duration-500 drop-shadow-2xl" 
+              className="relative z-10 w-auto h-52 md:h-64 lg:h-72 object-contain drop-shadow-lg transition-transform duration-300 hover:scale-102" 
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }} 

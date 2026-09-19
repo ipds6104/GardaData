@@ -184,7 +184,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
 
     return (
       <div 
-        className={`h-full flex flex-col justify-between bg-white/95 backdrop-blur-md rounded-[28px] border border-slate-200/80 shadow-xl shadow-slate-200/40 overflow-hidden relative transition-all duration-300 ${
+        className={`h-full flex flex-col justify-between bg-white rounded-[28px] border border-slate-200/80 shadow-md overflow-hidden relative transition-all duration-300 ${
           isCollapsed ? 'w-[76px]' : 'w-full'
         }`}
       >
@@ -521,7 +521,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex flex-col min-w-0 h-screen lg:h-[calc(100vh-1.5rem)] lg:my-3 lg:mr-3 lg:ml-2.5 bg-white/95 backdrop-blur-md lg:rounded-[28px] lg:border lg:border-slate-200/80 lg:shadow-xl lg:shadow-slate-200/40 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-screen lg:h-[calc(100vh-1.5rem)] lg:my-3 lg:mr-3 lg:ml-2.5 bg-white lg:rounded-[28px] lg:border lg:border-slate-200/80 lg:shadow-md overflow-hidden">
         {/* Offline / Server Disconnection Banner */}
         <AnimatePresence>
           {isServerDisconnected && (
@@ -557,7 +557,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         </AnimatePresence>
 
         {/* Top Navbar */}
-        <nav className="h-16 px-4 sm:px-6 flex items-center justify-between shrink-0 border-b border-slate-100/90 bg-white/80 backdrop-blur-xs sticky top-0 z-30">
+        <nav className="h-16 px-4 sm:px-6 flex items-center justify-between shrink-0 border-b border-slate-100 bg-white sticky top-0 z-30">
           <div className="flex items-center gap-4">
             {/* Mobile Drawer Hamburger */}
             <button 
