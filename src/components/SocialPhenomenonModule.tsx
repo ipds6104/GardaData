@@ -734,7 +734,7 @@ ${aiSummary.kesimpulan}
                       Gemini AI Executive Summary Engine
                     </h3>
                     <p className="text-xs text-slate-300 font-medium">
-                      Hasilkan ringkasan dinamika sosial ekonomi otomatis menggunakan kecerdasan buatan Google Gemini berdasarkan data laporan terfilter di atas.
+                      Hasilkan ringkasan dinamika sosial ekonomi otomatis menggunakan teknologi AI Google Gemini berdasarkan data laporan terfilter di atas.
                     </p>
                   </div>
 

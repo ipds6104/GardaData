@@ -105,70 +105,70 @@
   --body-bg: #f4f8f6;
 }
 
-/* 3. AUNTUM (Warm Autumn Terracotta & Caramel Amber) */
+/* 3. YELLOW WORD (Dominan Kuning Cerah, Golden Amber & Segar) */
 [data-theme="auntum"] {
   --font-family-sans: "Plus Jakarta Sans", "Inter", sans-serif;
   --font-family-display: "Outfit", sans-serif;
 
-  --p-50: #fff7ed;
-  --p-100: #ffedd5;
-  --p-200: #fed7aa;
-  --p-300: #fdba74;
-  --p-400: #fb923c;
-  --p-500: #ea580c;
-  --p-600: #c2410c;
-  --p-700: #9a3412;
+  --p-50: #fefce8;
+  --p-100: #fef9c3;
+  --p-200: #fef08a;
+  --p-300: #fde047;
+  --p-400: #facc15;
+  --p-500: #eab308;
+  --p-600: #ca8a04;
+  --p-700: #a16207;
 
-  --s-50: #fefce8;
-  --s-100: #fef9c3;
-  --s-200: #fef08a;
-  --s-300: #fde047;
-  --s-400: #facc15;
-  --s-500: #d97706;
-  --s-600: #b45309;
-  --s-700: #78350f;
+  --s-50: #fffbeb;
+  --s-100: #fef3c7;
+  --s-200: #fde68a;
+  --s-300: #fcd34d;
+  --s-400: #fbbf24;
+  --s-500: #f59e0b;
+  --s-600: #d97706;
+  --s-700: #b45309;
 
-  --a-50: #fffbeb;
-  --a-100: #fef3c7;
-  --a-200: #fde68a;
-  --a-400: #fcd34d;
-  --a-500: #fbbf24;
-  --a-600: #d97706;
+  --a-50: #fefce8;
+  --a-100: #fef08a;
+  --a-200: #fde047;
+  --a-400: #facc15;
+  --a-500: #eab308;
+  --a-600: #ca8a04;
 
-  --body-bg: #fff9f2;
+  --body-bg: #fefdf5;
 }
 
-/* 4. NOTEBOOK (Soft Pastel Playful Rose-Peach, Lavender & Mint) */
+/* 4. NOTEBOOK (Dominan Pink Pastel, Sweet Rose Blush & Cotton Candy) */
 [data-theme="notebook"] {
   --font-family-sans: "Nunito", "Inter", sans-serif;
   --font-family-display: "Nunito", "Outfit", sans-serif;
 
-  --p-50: #fff1f2;
-  --p-100: #ffe4e6;
-  --p-200: #fecdd3;
-  --p-300: #fda4af;
-  --p-400: #fb7185;
-  --p-500: #f43f5e;
-  --p-600: #e11d48;
-  --p-700: #be123c;
+  --p-50: #fdf2f8;
+  --p-100: #fce7f3;
+  --p-200: #fbcfe8;
+  --p-300: #f9a8d4;
+  --p-400: #f472b6;
+  --p-500: #ec4899;
+  --p-600: #db2777;
+  --p-700: #be185d;
 
-  --s-50: #eff6ff;
-  --s-100: #dbeafe;
-  --s-200: #bfdbfe;
-  --s-300: #93c5fd;
-  --s-400: #60a5fa;
-  --s-500: #3b82f6;
-  --s-600: #2563eb;
-  --s-700: #1d4ed8;
+  --s-50: #fff1f2;
+  --s-100: #ffe4e6;
+  --s-200: #fecdd3;
+  --s-300: #fda4af;
+  --s-400: #fb7185;
+  --s-500: #f43f5e;
+  --s-600: #e11d48;
+  --s-700: #be123c;
 
-  --a-50: #fdf4ff;
-  --a-100: #fae8ff;
-  --a-200: #f5d0fe;
-  --a-400: #e879f9;
-  --a-500: #d946ef;
-  --a-600: #a21caf;
+  --a-50: #fdf2f8;
+  --a-100: #fce7f3;
+  --a-200: #fbcfe8;
+  --a-400: #f472b6;
+  --a-500: #ec4899;
+  --a-600: #db2777;
 
-  --body-bg: #faf8f5;
+  --body-bg: #fff5f7;
 }
 
 /* 5. PERSIK (Electric Violet, Lilac & Coral Peach) */

@@ -14,7 +14,7 @@ const BuildingAreaModule = lazy(() => import('./components/BuildingAreaModule').
 const AdminBuildingDashboard = lazy(() => import('./components/AdminBuildingDashboard').then(m => ({ default: m.AdminBuildingDashboard })));
 const ImputationModule = lazy(() => import('./components/imputation/ImputationModule').then(m => ({ default: m.ImputationModule })));
 const SocialPhenomenonModule = lazy(() => import('./components/SocialPhenomenonModule').then(m => ({ default: m.SocialPhenomenonModule })));
-const CerdasModule = lazy(() => import('./components/CerdasModule').then(m => ({ default: m.CerdasModule })));
+const LaporanModule = lazy(() => import('./components/laporan/LaporanModule').then(m => ({ default: m.LaporanModule })));
 const VisitorDashboard = lazy(() => import('./components/VisitorDashboard').then(m => ({ default: m.VisitorDashboard })));
 const AdminStrategicData = lazy(() => import('./components/AdminStrategicData').then(m => ({ default: m.AdminStrategicData })));
 const LMSModule = lazy(() => import('./components/LMSModule').then(m => ({ default: m.LMSModule })));
@@ -73,8 +73,8 @@ function AppContent() {
           return <AdminBuildingDashboard onBack={() => setCurrentPage('landing')} />;
         }
         return <BuildingAreaModule onBack={() => setCurrentPage('landing')} />;
-      case 'cerdas-form':
-        return <CerdasModule onBack={() => setCurrentPage('landing')} />;
+      case 'laporan-pendataan':
+        return <LaporanModule onBack={() => setCurrentPage('landing')} />;
       case 'lms':
         return <LMSModule onBack={() => setCurrentPage('landing')} />;
       case 'admin-strategic-data':

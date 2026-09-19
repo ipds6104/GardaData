@@ -202,7 +202,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               icon={FileEdit}
               iconColor="text-indigo-600"
               bgColor="bg-indigo-50"
-              onClick={() => onNavigate('cerdas-form')}
+              onClick={() => onNavigate('laporan-pendataan')}
             />
             <FeatureCard
               title="KBLI 2025 & KBJI 2014"
@@ -214,7 +214,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             />
             <FeatureCard
               title="Imputasi Susenas-Seruti"
-              description="Mesin pencari cerdas untuk panduan nilai imputasi lapangan secara instan."
+              description="Mesin pencari pintar untuk panduan nilai imputasi lapangan secara instan."
               icon={FileEdit}
               iconColor="text-purple-600"
               bgColor="bg-purple-50"

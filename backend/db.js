@@ -108,9 +108,9 @@ async function initDB() {
       )
     `);
 
-    // Tabel Cerdas Report Links
+    // Tabel Laporan Report Links
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS cerdas_report_links (
+      CREATE TABLE IF NOT EXISTS laporan_report_links (
         id VARCHAR(255) PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
         url TEXT NOT NULL,
@@ -466,6 +466,85 @@ async function initDB() {
     } catch (mErr) {
       console.warn('⚠️ Gagal auto-seeding mitra ke MySQL:', mErr.message);
     }
+
+    // ==========================================
+    // TABEL SISTEM FORM LAPORAN PENDATAAN
+    // ==========================================
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS laporan_activities (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        startDate DATE,
+        endDate DATE,
+        isOpen BOOLEAN DEFAULT true,
+        icon VARCHAR(50) DEFAULT 'Layers',
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    try {
+      await connection.query(`ALTER TABLE laporan_activities ADD COLUMN icon VARCHAR(50) DEFAULT 'Layers'`);
+    } catch (e) {
+      // Column probably already exists, ignore
+    }
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS laporan_forms (
+        id VARCHAR(255) PRIMARY KEY,
+        activityId VARCHAR(255) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        icon VARCHAR(50) DEFAULT 'FileText',
+        orderIndex INT DEFAULT 0,
+        sheetUrl TEXT,
+        sheetName VARCHAR(255),
+        webhookUrl TEXT,
+        groupingLevels JSON,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_forms_activity (activityId)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS laporan_fields (
+        id VARCHAR(255) PRIMARY KEY,
+        formId VARCHAR(255) NOT NULL,
+        label TEXT NOT NULL,
+        columnName VARCHAR(255) NOT NULL,
+        dataType ENUM('teks', 'angka', 'lokasi', 'file', 'tanggal', 'jam') NOT NULL,
+        isRequired BOOLEAN DEFAULT false,
+        groupSection VARCHAR(255),
+        orderIndex INT DEFAULT 0,
+        options JSON,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_fields_form (formId)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS laporan_records (
+        id VARCHAR(255) PRIMARY KEY,
+        activityId VARCHAR(255) NOT NULL,
+        formId VARCHAR(255) NOT NULL,
+        rowId VARCHAR(255),
+        data JSON NOT NULL,
+        status ENUM('draft', 'submitted') DEFAULT 'draft',
+        submittedBy VARCHAR(255),
+        submittedAt TIMESTAMP NULL,
+        latitude DOUBLE DEFAULT NULL,
+        longitude DOUBLE DEFAULT NULL,
+        syncStatus VARCHAR(50) DEFAULT 'synced',
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_records_activity (activityId),
+        INDEX idx_records_form (formId),
+        INDEX idx_records_status (status)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    console.log('✅ Tabel Sistem Laporan Pendataan siap.');
     
     connection.release();
   } catch (error) {

@@ -44,6 +44,7 @@ app.use(helmet({
       ]
     }
   },
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // 2. CORS: Hanya mengizinkan request dari frontend kita
@@ -90,7 +91,7 @@ app.use(express.json({ limit: '2mb' }));
 const measurementsRouter = require('./routes/measurements');
 const monitoringRouter = require('./routes/monitoring');
 const lmsRouter = require('./routes/lms');
-const cerdasRouter = require('./routes/cerdas');
+const laporanRouter = require('./routes/laporan');
 const imputationRouter = require('./routes/imputation');
 const infrastructureRouter = require('./routes/infrastructure');
 const socialRouter = require('./routes/social');
@@ -100,7 +101,7 @@ const mitraRouter = require('./routes/mitra');
 app.use('/api/measurements', measurementsRouter);
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api/lms', lmsRouter);
-app.use('/api/cerdas', cerdasRouter);
+app.use('/api/laporan', laporanRouter);
 app.use('/api/imputations', imputationRouter);
 app.use('/api/infrastructure', infrastructureRouter);
 app.use('/api/social', socialRouter);
@@ -123,9 +124,18 @@ require('./cron'); // Jalankan cron job untuk monitoring
 // SERVE FRONTEND (REACT SPA)
 // ==========================================
 const path = require('path');
+const currentDir = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+
+// Menyajikan file static uploads (foto, dokumen form pelaporan)
+const uploadsPath = path.join(currentDir, currentDir.endsWith('backend') ? 'uploads' : 'backend/uploads');
+app.use('/uploads', express.static(uploadsPath, {
+  maxAge: '7d',
+  setHeaders: (res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+}));
 
 // Menyajikan file statis dari hasil build React (Vite)
-const currentDir = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
 const distPath = path.join(currentDir, currentDir.endsWith('backend') ? '../dist' : 'dist');
 
 // Konfigurasi cache control presisi:

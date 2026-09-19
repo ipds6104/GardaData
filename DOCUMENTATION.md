@@ -1,493 +1,588 @@
-﻿# Garda Data: Dokumentasi Teknis & Fungsional Sistem (Edisi Lengkap)
+# Garda Data: Dokumentasi Teknis & Fungsional Sistem (Edisi Lengkap)
 
-> **Platform Terpadu Menjaga Kualitas Data & Akuntabilitas Proses Pendataan**
-> Dibangun oleh Tim Sosial- BPS Kabupaten Mempawah
+> **Platform Terpadu Menjaga Kualitas Data & Akuntabilitas Proses Pendataan**  
+> Dibangun oleh Tim BPS Kabupaten Mempawah (IPDS 6104)
 
-Dokumentasi ini adalah dokumen teknis yang menguraikan secara menyeluruh arsitektur sistem, pilihan teknologi, desain antarmuka, logika *backend*, skema basis data, serta panduan pengembangan dan pemeliharaan Garda Data. Ditujukan bagi *developer*, *system administrator*, atau staf TI internal BPS.
+Dokumen ini merupakan referensi teknis komprehensif yang menguraikan arsitektur sistem, pilihan teknologi, desain antarmuka, logika *backend*, skema basis data relasional, mekanisme integrasi awan dua arah, serta panduan operasional lengkap untuk seluruh modul di Garda Data.
 
 ---
 
 ## Daftar Isi
-1. [Gambaran Umum Sistem](#1-gambaran-umum-sistem)
+1. [Gambaran Umum Sistem & Latar Belakang](#1-gambaran-umum-sistem--latar-belakang)
 2. [Arsitektur Frontend](#2-arsitektur-frontend)
-3. [Arsitektur Backend](#3-arsitektur-backend)
-4. [Skema Database MySQL](#4-skema-database-mysql)
+3. [Arsitektur Backend & API](#3-arsitektur-backend--api)
+4. [Skema Basis Data MySQL](#4-skema-basis-data-mysql)
 5. [Detail Fungsionalitas Modul](#5-detail-fungsionalitas-modul)
-6. [Sistem Tema Dinamis (Dynamic Presets)](#6-sistem-tema-dinamis-dynamic-presets)
-7. [Panduan Deployment ke Production](#7-panduan-deployment-ke-production)
-8. [Keamanan, Performa & Skalabilitas](#8-keamanan-performa--skalabilitas)
+   - [5.1 Modul Manajemen Laporan Pendataan (AppSheet Mode & Form Builder)](#51-modul-manajemen-laporan-pendataan-appsheet-mode--form-builder)
+   - [5.2 Modul Penilaian Mitra Statistik](#52-modul-penilaian-mitra-statistik)
+   - [5.3 Modul Klasifikasi KBLI 2025 & KBJI 2014](#53-modul-klasifikasi-kbli-2025--kbji-2014)
+   - [5.4 Modul Pengukuran Luas Bangunan Geospasial](#54-modul-pengukuran-luas-bangunan-geospasial)
+   - [5.5 Modul Simulator Imputasi Susenas-Seruti](#55-modul-simulator-imputasi-susenas-seruti)
+   - [5.6 Modul Infrastruktur Desa & Peta Wilayah](#56-modul-infrastruktur-desa--peta-wilayah)
+   - [5.7 Modul Pelatihan Petugas (LMS)](#57-modul-pelatihan-petugas-lms)
+   - [5.8 Modul Fenomena Sosial Ekonomi](#58-modul-fenomena-sosial-ekonomi)
+   - [5.9 Dashboard Data Strategis BPS](#59-dashboard-data-strategis-bps)
+6. [Integrasi Google Sheet 2 Arah & Manajemen Kuesioner](#6-integrasi-google-sheet-2-arah--manajemen-kuesioner)
+7. [Sistem Tema Dinamis (6 Dynamic Presets)](#7-sistem-tema-dinamis-6-dynamic-presets)
+8. [Panduan Deployment ke Production](#8-panduan-deployment-ke-production)
+9. [Keamanan, Performa & Skalabilitas](#9-keamanan-performa--skalabilitas)
 
 ---
 
-## 1. Gambaran Umum Sistem
+## 1. Gambaran Umum Sistem & Latar Belakang
 
 ### 1.1 Latar Belakang & Motivasi
-Sebelum Garda Data hadir, petugas lapangan BPS Kabupaten Mempawah menghadapi berbagai hambatan teknis: sulitnya akses pedoman di lapangan (dokumen fisik tebal, minim sinyal internet), inkonsistensi kode KBLI/KBJI akibat ketergantungan pada hafalan, hingga tidak adanya sistem terpusat untuk memantau progres pengisian kuesioner secara *real-time*.
+Pengumpulan data statistik primer di lapangan menghadapi berbagai dinamika operasional:
+- **Kompleksitas Instrumen:** Setiap survei atau sensus (Susenas, Sakernas, Sutas, SE, ST, dll.) memiliki struktur kuesioner dan metodologi yang berbeda.
+- **Pencarian Kode Baku Lapangan:** Tebalnya buku pedoman fisik Klasifikasi Baku Lapangan Usaha Indonesia (KBLI) dan Klasifikasi Baku Jabatan Indonesia (KBJI) memperlambat waktu pencacahan.
+- **Validasi Nilai Konsumsi:** Perlunya acuan cepat nilai batas wajar (imputasi) komoditas makanan dan non-makanan saat verifikasi data responden.
+- **Kondisi Sinyal Pedesaan:** Diperlukannya mekanisme draf lokal (*offline-resilient*) agar data responden tidak hilang saat gawai kehabisan daya atau sinyal terputus.
+- **Kebutuhan Kolaborasi Spreadsheet:** Tim teknis di BPS umumnya mengandalkan Google Sheet untuk pemantauan alokasi beban tugas. Dibutuhkan sinkronisasi dua arah yang interaktif dan mudah tanpa memerlukan keahlian pemrograman lanjutan.
 
-Garda Data dirancang dari nol sebagai jawaban komprehensif: sebuah **portal digital terpadu** yang menggabungkan *e-learning*, *search engine* statistik, simulasi imputasi, pemetaan infrastruktur, serta analitik makro dalam satu antarmuka yang ramah ponsel.
+Garda Data hadir sebagai ekosistem terpadu yang menyatukan *dynamic form builder*, sinkronisasi dua arah Google Sheet, geolokasi GPS, pengukuran luas bangunan satelit, simulator imputasi, pemetaan infrastruktur desa, evaluasi mitra statistik, dan *e-learning* (LMS) dalam satu aplikasi web progresif yang tangguh.
 
-### 1.2 Evolusi Arsitektur: Dari Firebase ke Self-Hosted MySQL
-Garda Data mengalami migrasi arsitektur signifikan:
+### 1.2 Profil Pengguna (*User Roles*)
+Sistem menerapkan kontrol akses berbasis peran (*Role-Based Access Control* - RBAC):
 
-| Generasi | Arsitektur | Kelebihan | Kelemahan |
-|---|---|---|---|
-| **v1** | Firebase Firestore (Serverless) | Cepat dibuat, *offline-ready* bawaan | Biaya kuota mahal, *vendor lock-in*, query relasional sulit |
-| **v2 (Sekarang)** | Node.js + MySQL (Self-hosted) | Kontrol penuh, *query* relasional, biaya minimal, skalabel | Perlu manajemen server sendiri |
-
-Keputusan migrasi ke *self-hosted* MySQL terbukti meningkatkan kecepatan *query* kompleks lebih dari **60%** dan menghilangkan kekhawatiran soal biaya pembacaan data di Firebase.
-
-### 1.3 Profil Pengguna (*User Personas*)
-| Role | Hak Akses | Kebutuhan Utama |
+| Role | Hak Akses & Kemampuan | Modul Utama yang Digunakan |
 |---|---|---|
-| **Admin** | Akses penuh ke semua modul termasuk panel manajemen | Monitoring progres, manajemen pelatihan, publikasi data strategis |
-| **Petugas** | Akses ke modul operasional lapangan | Panduan kerja cepat, pencarian kode, pelaporan harian |
-| **Pengunjung** | Terbatas, hanya tampilan umum | Melihat informasi tanpa bisa mengubah data |
+| **Admin** | Akses penuh ke seluruh konfigurasi sistem, pembuatan kegiatan, perancangan formulir, monitoring progres, manajemen data strategis, dan evaluasi mitra | Form Builder, Google Sheet Integration, Admin Dashboard, Penilaian Mitra, Strategic Data, Infrastruktur Desa |
+| **Petugas** | Akses operasional pengumpulan data lapangan | Kuesioner Lapangan (AppSheet View), GPS Geotagging, Pencarian KBLI/KBJI, Simulator Imputasi, LMS Pelatihan, Lapor Fenomena |
+| **Pengunjung** | Akses publik (*read-only*) | Data Strategis Daerah, Direktori Fasilitas Infrastruktur Desa, Navigasi Umum |
 
 ---
 
 ## 2. Arsitektur Frontend
 
-Antarmuka Garda Data dibangun dengan prinsip **Mobile-First, Performance-First**. Setiap keputusan arsitektur diambil dengan mempertimbangkan bahwa petugas lapangan menggunakan ponsel dengan spesifikasi menengah dan koneksi internet yang tidak stabil.
-
 ### 2.1 Stack Teknologi Frontend
-
-| Teknologi | Versi | Peran |
+| Teknologi | Versi | Peran & Rationale |
 |---|---|---|
-| **React** | 18 | Library antarmuka, Component-based UI |
-| **Vite** | 6 | Build tool ultra-cepat dengan HMR (Hot Module Replacement) |
-| **Tailwind CSS** | v4 | Utility-first CSS dengan sistem variabel tema dinamis |
-| **Framer Motion** | Latest | Animasi dan transisi UI yang halus dan performa tinggi |
-| **Lucide React** | Latest | Ikon SVG modular yang ringan |
-| **Leaflet.js** | Latest | Peta geospasial interaktif dan digitasi bangunan/infrastruktur |
-| **TypeScript** | 5 | Type-safe development, mencegah bug runtime |
-| **Fuse.js** | Latest | Algoritma fuzzy search sisi klien untuk KBLI/KBJI |
-| **xlsx** | Latest | Ekspor data ke format Excel langsung dari browser |
+| **React** | 18.x | Library antarmuka berbasis komponen deklaratif dan reaktif |
+| **Vite** | 6.x | *Build tool* generasi baru dengan *Hot Module Replacement* (HMR) berkecepatan tinggi |
+| **TypeScript** | 5.x | *Static typing* ketat untuk mencegah *runtime errors* pada manipulasi data survei kompleks |
+| **Tailwind CSS** | v4 | Utilitas CSS modern dengan arsitektur `@theme` dan integrasi *CSS custom properties* |
+| **Framer Motion** | Latest | Animasi transisi halaman, modal, *drawer*, dan umpan balik interaktif |
+| **Lucide React** | Latest | Kumpulan ikon grafis SVG modular dan konsisten |
+| **Leaflet & React-Leaflet** | Latest | Peta interaktif, visualisasi titik fasilitas, dan digitasi poligon geospasial |
+| **xlsx (SheetJS)** | Latest | Generator dan pengurai file spreadsheet Excel/CSV langsung di sisi peramban (*client-side*) |
 
 ### 2.2 Strategi Optimasi Bundle: Code Splitting
-
-Salah satu keputusan arsitektur terpenting di Garda Data adalah penggunaan **Code Splitting agresif** menggunakan `React.lazy()` dan `Suspense`. Tanpa ini, aplikasi dengan 10+ modul besar akan menghasilkan file JavaScript awal sebesar >2MB — sangat berat untuk koneksi 4G lemah.
-
-Dengan Code Splitting, browser hanya mengunduh kode modul yang **saat itu sedang diakses pengguna**:
+Semua modul utama di-*load* secara dinamis (*lazy loading*) menggunakan `React.lazy()` dan `Suspense`. Hal ini menjaga bundle awal tetap kecil (~390 KB gzip) sehingga aplikasi dapat terbuka dalam waktu <2 detik bahkan pada koneksi seluler 3G/4G di daerah pedesaan:
 
 ```typescript
-// Contoh dari App.tsx — setiap modul di-lazy-load
-const LMSModule = React.lazy(() => import('./components/LMSModule'));
+// App.tsx
+const AdminLaporanManager = React.lazy(() => import('./components/laporan/AdminLaporanManager'));
+const PetugasLaporanModule = React.lazy(() => import('./components/laporan/PetugasLaporanModule'));
+const PenilaianMitraModule = React.lazy(() => import('./components/mitra/PenilaianMitraModule'));
+const BuildingAreaModule = React.lazy(() => import('./components/BuildingAreaModule'));
 const InfrastructureModule = React.lazy(() => import('./components/InfrastructureModule'));
 const ImputationModule = React.lazy(() => import('./components/imputation/ImputationModule'));
-// ... dan seterusnya
+const ClassificationModule = React.lazy(() => import('./components/ClassificationModule'));
+const LMSModule = React.lazy(() => import('./components/LMSModule'));
+const SocialPhenomenonModule = React.lazy(() => import('./components/SocialPhenomenonModule'));
 ```
 
-**Dampak nyata**: Ukuran *bundle* awal yang perlu diunduh turun dari potensi >2MB menjadi **~393KB gzip** (terkompresi), atau setara dengan loading halaman kurang dari 2 detik bahkan di jaringan 3G.
-
-### 2.3 Sistem Routing & Navigasi
-
-Garda Data menggunakan pola **state-based routing** sederhana — tidak menggunakan React Router. Navigasi dikelola oleh state `currentPage` di komponen `AppContent` di dalam `App.tsx`. Ini sengaja dipilih karena:
-
-1. Lebih ringan (tidak ada library tambahan).
-2. Tidak membutuhkan konfigurasi *history API* yang bisa bermasalah di *hosting* statik.
-3. Semua "rute" bersifat *in-memory*, cocok untuk aplikasi internal yang tidak mengandalkan *deep linking* URL.
-
-### 2.4 Manajemen State
-
-| Level State | Tool yang Digunakan | Deskripsi |
-|---|---|---|
-| **Global Auth** | `React Context` (`src/lib/auth.tsx`) | Data sesi pengguna (username, role, token) |
-| **Global Theme** | `React Context` (`src/lib/theme.tsx`) | Preset tema aktif, disimpan juga ke `localStorage` |
-| **Lokal Komponen** | `useState` / `useReducer` | State form, loading, data tabel per modul |
-| **Persistent** | `localStorage` | Preferensi tema, token otentikasi (opsional) |
-
-Filosofi yang dianut adalah **Colocation**: state hanya di-lift ke level Context jika benar-benar dibutuhkan oleh banyak komponen yang tidak berhubungan secara hierarki. Ini mencegah *re-render* yang tidak perlu.
-
-### 2.5 Desain UI/UX: Premium & Responsive
-
-Garda Data mengimplementasikan prinsip desain modern berstandar industri:
-
-- **Glassmorphism**: Elemen kartu dengan `backdrop-blur` dan `bg-white/70` untuk kesan premium berlapis.
-- **Micro-animations**: Semua transisi halaman dan tampilan modal menggunakan `Framer Motion` dengan `AnimatePresence` untuk masuk dan keluar yang mulus.
-- **Mobile-First Breakpoints**: Semua layout didesain untuk lebar 320px terlebih dahulu, kemudian di-scale ke tablet (`md:`) dan desktop (`lg:`).
-- **Progressive Enhancement**: Fitur berat seperti peta Leaflet hanya dimuat saat benar-benar diperlukan.
-- **Google Fonts**: Menggunakan tipografi premium `Inter`, `Outfit`, `Plus Jakarta Sans`, dan `Nunito` yang diimpor secara kondisional sesuai tema aktif.
+### 2.3 Manajemen Sesi & State
+- **Global Auth (`src/lib/auth.tsx`):** Mengelola sesi pengguna aktif (ID, username, email, role) yang tersimpan secara aman di `localStorage`.
+- **Global Theme (`src/lib/theme.tsx`):** Mengelola preferensi warna tema aktif dengan manipulasi atribut `data-theme` pada root HTML tanpa memicu re-render virtual DOM React.
+- **State Navigasi Berbasis State (`App.tsx`):** Menggunakan state machine internal (`currentModule`, `selectedActivityId`, `selectedFormId`) yang memungkinkan transisi mulus antar modul tanpa reload halaman penuh.
+- **Penyimpanan Draf Lokal:** Kuesioner lapangan mengadopsi sinkronisasi draf lokal di `localStorage` per baris sampel, menjamin keamanan data responden saat baterai gawai habis mendadak.
 
 ---
 
-## 3. Arsitektur Backend
+## 3. Arsitektur Backend & API
 
-Backend Garda Data adalah server REST API ringan namun handal yang dibangun di atas Node.js dan Express.js, berfungsi sebagai jembatan antara antarmuka React dan basis data MySQL.
+Backend Garda Data berupa server REST API mandiri yang dibangun dengan Node.js dan Express.js, terhubung ke basis data relasional MySQL menggunakan *Connection Pooling*.
 
 ### 3.1 Stack Teknologi Backend
-
-| Teknologi | Versi | Peran |
+| Komponen | Spesifikasi | Fungsi |
 |---|---|---|
-| **Node.js** | 18+ LTS | Runtime JavaScript di sisi server |
-| **Express.js** | 4 | Framework web untuk routing dan middleware |
-| **mysql2/promise** | Latest | Driver MySQL asinkron berbasis Promise/async-await |
-| **cors** | Latest | Middleware CORS untuk keamanan lintas-origin |
-| **helmet** | Latest | Menyetel HTTP security headers (CSP, XSS protection, dll) |
-| **PM2** | Latest | Process manager untuk menjaga server tetap hidup di production |
+| **Runtime** | Node.js (v18+ LTS) | Eksekusi server-side JavaScript performa tinggi |
+| **Framework** | Express.js 4.x | Routing RESTful dan middleware handler |
+| **Database Driver** | `mysql2/promise` | Driver koneksi MySQL asinkron berbasis Promise/async-await |
+| **File Handler** | `multer` | Penanganan upload berkas foto dan dokumen survei ke storage server |
+| **Keamanan** | `helmet`, `cors` | Penyetelan HTTP Security Headers dan proteksi Cross-Origin Resource Sharing |
 
 ### 3.2 Struktur Direktori Backend
-
 ```
 backend/
-├── server.js         # Entry point: inisialisasi Express dan mount semua route
-├── db.js             # Koneksi pool ke MySQL, Auto-migration skema tabel
-└── routes/
-    ├── infrastructure.js   # GET/POST/DELETE infrastruktur desa
-    ├── social.js           # GET/POST fenomena sosial ekonomi
-    └── classification.js  # GET klasifikasi KBLI & KBJI
+├── routes/
+│   ├── classification.js   # Endpoint pencarian KBLI 2025 & KBJI 2014
+│   ├── infrastructure.js   # Endpoint inventarisasi infrastruktur desa
+│   ├── laporan.js          # Endpoint kegiatan, formulir, pertanyaan, records, & webhook
+│   └── social.js           # Endpoint pencatatan fenomena sosial ekonomi
+├── uploads/
+│   └── laporan/            # Direktori penyimpanan foto & berkas laporan lapangan
+├── db.js                   # Connection Pool MySQL & Auto-Migration Skema
+└── server.js               # Entry point Express API, middleware, & static file serving
 ```
 
-### 3.3 Alur Request: Dari Frontend ke Database
-
-Setiap permintaan data dari antarmuka React melewati alur berikut:
-
-```
-[Browser/React] → HTTP Request (fetch) → [Express Router] → [Route Handler]
-     → [mysql2 Query] → [MySQL Server] → [Result JSON] → [Browser]
-```
-
-Seluruh koneksi database menggunakan **Connection Pool** (`createPool`) bukan koneksi tunggal. Ini berarti server dapat melayani banyak permintaan secara bersamaan tanpa menunggu koneksi sebelumnya selesai.
-
-### 3.4 Auto-Migration & Auto-Seeding Database
-
-Salah satu fitur canggih backend Garda Data adalah kemampuan **Auto-Initialize**. Saat server pertama kali dijalankan, `db.js` akan secara otomatis:
-
-1. Memeriksa apakah tabel-tabel yang diperlukan sudah ada (`CREATE TABLE IF NOT EXISTS`).
-2. Jika tabel baru dibuat, mengisi data benih (*seed*) awal: seluruh daftar desa dan kecamatan di Kabupaten Mempawah, serta data KBLI/KBJI standar.
-
-Ini berarti instalasi di server baru **tidak membutuhkan script SQL manual**. Cukup jalankan `node server.js` dan database langsung siap pakai.
-
-### 3.5 Fallback Mechanism: Data Tidak Pernah Kosong
-
-Untuk memberikan pengalaman *offline-resilience* terbaik, Garda Data mengimplementasikan dua lapis *fallback*:
-
-- **Layer 1 (Backend)**: Jika query ke tabel infrastruktur kosong, backend langsung merespons dengan data cadangan (*hardcoded seed*) berupa 9 kecamatan dan 60 desa di Kabupaten Mempawah.
-- **Layer 2 (Frontend)**: Jika `fetch()` ke server gagal total (timeout/offline), komponen React menampilkan data cadangan lokal yang sudah di-hardcode di dalam *bundle* JavaScript.
-
-Hasilnya: **pengguna tidak pernah melihat halaman kosong atau error yang mematikan**.
-
-### 3.6 REST API Endpoint Katalog
-
-| Method | Endpoint | Deskripsi | Auth |
+### 3.3 Katalog REST API Utama
+| Method | Endpoint | Deskripsi | Hak Akses |
 |---|---|---|---|
-| `GET` | `/api/status` | Health check server | Tidak |
-| `GET` | `/api/infrastructure` | Daftar seluruh infrastruktur desa | Ya |
-| `POST` | `/api/infrastructure` | Tambah data infrastruktur baru | Ya |
-| `DELETE` | `/api/infrastructure/:id` | Hapus item infrastruktur | Admin |
-| `GET` | `/api/social` | Daftar laporan fenomena sosial | Ya |
-| `POST` | `/api/social` | Tambah laporan fenomena baru | Ya |
-| `GET` | `/api/classifications` | Daftar kode KBLI & KBJI | Ya |
-| `POST` | `/api/classifications` | Tambah kode klasifikasi | Admin |
+| `GET` | `/api/status` | Pemeriksaan kesehatan server (*health check*) | Publik |
+| `GET` | `/api/laporan/activities` | Mengambil daftar seluruh kegiatan survei/sensus | Publik / Petugas |
+| `POST` | `/api/laporan/activities` | Membuat kegiatan survei baru | Admin |
+| `PUT` | `/api/laporan/activities/:id` | Memperbarui nama, tanggal, ikon, atau status buka/tutup kegiatan | Admin |
+| `DELETE` | `/api/laporan/activities/:id` | Menghapus kegiatan beserta seluruh formulir dan datanya | Admin |
+| `GET` | `/api/laporan/activities/:actId/forms` | Mengambil daftar formulir di dalam suatu kegiatan | Publik / Petugas |
+| `POST` | `/api/laporan/activities/:actId/forms` | Menambahkan formulir baru ke dalam kegiatan | Admin |
+| `PUT` | `/api/laporan/forms/:formId` | Mengubah konfigurasi formulir (judul, ikon, link Sheet, webhook, grouping) | Admin |
+| `DELETE` | `/api/laporan/forms/:formId` | Menghapus formulir beserta seluruh pertanyaan dan records | Admin |
+| `GET` | `/api/laporan/forms/:formId/fields` | Mengambil daftar pertanyaan dan tipe data pada formulir | Petugas / Admin |
+| `POST` | `/api/laporan/forms/:formId/fields` | Menyimpan susunan pertanyaan formulir (*batch save*) | Admin |
+| `POST` | `/api/laporan/forms/:formId/sync-sheet` | Menarik dan menyinkronkan data sasaran dari link Google Sheet | Admin |
+| `GET` | `/api/laporan/forms/:formId/records` | Mengambil seluruh record data sampel responden | Petugas / Admin |
+| `POST` | `/api/laporan/forms/:formId/records` | Menyimpan isian survei (draf / submit) dan meneruskan ke Webhook Sheet | Petugas / Admin |
+| `POST` | `/api/laporan/upload` | Mengunggah foto atau berkas lampiran kuesioner ke server | Petugas / Admin |
+| `GET` | `/api/classifications` | Pencarian kode KBLI 2025 dan KBJI 2014 | Petugas / Admin |
+| `GET` | `/api/infrastructure` | Mengambil data inventarisasi infrastruktur desa | Petugas / Admin |
+| `POST` | `/api/infrastructure` | Menambahkan data fasilitas infrastruktur desa baru | Admin |
+| `GET` | `/api/social` | Mengambil daftar catatan fenomena sosial ekonomi | Petugas / Admin |
+| `POST` | `/api/social` | Menambahkan catatan fenomena sosial ekonomi baru | Petugas / Admin |
 
 ---
 
-## 4. Skema Database MySQL
+## 4. Skema Basis Data MySQL
 
-### Tabel `users`
-| Kolom | Tipe Data | Keterangan |
-|---|---|---|
-| id | INT AUTO_INCREMENT | Primary Key |
-| username | VARCHAR(255) NOT NULL | Nama pengguna |
-| email | VARCHAR(255) UNIQUE | Email (login) |
-| password | VARCHAR(255) | Hash kata sandi (bcrypt) |
-| role | ENUM('admin','petugas','pengunjung') | Level akses |
-| created_at | TIMESTAMP DEFAULT NOW() | Waktu pembuatan |
+Sistem mengadopsi skema relasional dengan fitur *Auto-Migration* pada `backend/db.js`. Saat server dijalankan pertama kali, tabel dibuat dan disesuaikan otomatis jika belum ada:
 
-### Tabel `infrastructure_items`
-| Kolom | Tipe Data | Keterangan |
-|---|---|---|
-| id | INT AUTO_INCREMENT | Primary Key |
-| village | VARCHAR(255) | Nama desa |
-| district | VARCHAR(255) | Nama kecamatan |
-| type | VARCHAR(100) | Jenis fasilitas (Sekolah/Puskesmas/Pasar/dll) |
-| name | VARCHAR(255) | Nama fasilitas |
-| condition | VARCHAR(50) | Kondisi (Baik/Rusak Ringan/Rusak Berat) |
-| lat | DECIMAL(10,8) | Koordinat latitude |
-| lng | DECIMAL(11,8) | Koordinat longitude |
-| notes | TEXT | Catatan lapangan |
-| created_at | TIMESTAMP DEFAULT NOW() | Waktu entri |
+```mermaid
+erDiagram
+    laporan_activities ||--o{ laporan_forms : contains
+    laporan_forms ||--o{ laporan_fields : defines
+    laporan_forms ||--o{ laporan_records : collects
+    users ||--o{ laporan_records : submits
+    infrastructure_items ||--o{ village_stats : located_in
 
-### Tabel `village_stats`
-Tabel agregat untuk info wilayah per desa.
-| Kolom | Tipe Data | Keterangan |
-|---|---|---|
-| id | INT AUTO_INCREMENT | Primary Key |
-| village_name | VARCHAR(255) UNIQUE | Nama desa (identifier) |
-| district | VARCHAR(255) | Nama kecamatan |
-| population | INT | Estimasi jumlah penduduk |
-| households | INT | Jumlah rumah tangga |
-| updated_at | TIMESTAMP | Terakhir diperbarui |
+    laporan_activities {
+        varchar id PK
+        varchar title
+        text description
+        date startDate
+        date endDate
+        boolean isOpen
+        varchar icon
+    }
+    laporan_forms {
+        varchar id PK
+        varchar activityId FK
+        varchar title
+        varchar icon
+        int orderIndex
+        varchar sheetUrl
+        varchar sheetName
+        varchar webhookUrl
+        json groupingLevels
+    }
+    laporan_fields {
+        int id PK
+        varchar formId FK
+        varchar label
+        varchar columnName
+        varchar dataType
+        boolean isRequired
+        varchar groupSection
+        int orderIndex
+    }
+    laporan_records {
+        varchar id PK
+        varchar activityId FK
+        varchar formId FK
+        varchar rowId
+        json data
+        enum status
+        decimal latitude
+        decimal longitude
+        varchar submittedBy
+        timestamp submittedAt
+    }
+    infrastructure_items {
+        int id PK
+        varchar district
+        varchar village
+        varchar name
+        varchar type
+        varchar condition
+        decimal lat
+        decimal lng
+    }
+    social_phenomenon {
+        int id PK
+        varchar title
+        varchar category
+        varchar severity
+        text description
+        varchar village
+        varchar reporter
+        timestamp createdAt
+    }
+```
 
-### Tabel `social_phenomenon`
-| Kolom | Tipe Data | Keterangan |
-|---|---|---|
-| id | INT AUTO_INCREMENT | Primary Key |
-| title | VARCHAR(255) NOT NULL | Judul laporan |
-| description | TEXT | Detail observasi kualitatif |
-| category | VARCHAR(100) | Kategori (Ekonomi/Sosial/Lingkungan) |
-| location | VARCHAR(255) | Lokasi/Nama Desa |
-| severity | VARCHAR(50) | Tingkat dampak (Rendah/Sedang/Tinggi) |
-| reporter | VARCHAR(100) | Nama petugas pelapor |
-| status | VARCHAR(50) | Status (Aktif/Ditindaklanjuti/Selesai) |
-| created_at | TIMESTAMP DEFAULT NOW() | Waktu entri |
+### Rincian Tabel Utama:
 
-### Tabel `classifications`
-Menyimpan seluruh kode KBLI 2025 dan KBJI 2014.
-| Kolom | Tipe Data | Keterangan |
-|---|---|---|
-| id | INT AUTO_INCREMENT | Primary Key |
-| type | ENUM('KBLI','KBJI') | Jenis klasifikasi |
-| code | VARCHAR(10) | Kode 5 digit |
-| title | VARCHAR(500) | Nama/Judul kegiatan |
-| description | TEXT | Deskripsi lengkap kegiatan/jabatan |
+#### 1. Tabel `laporan_activities` (Kegiatan Survei/Sensus)
+Menyimpan payung kegiatan statistik (contoh: *Susenas Maret 2026*, *Sakernas Agustus 2026*).
+- `id` (VARCHAR 100, PK)
+- `title` (VARCHAR 255, NOT NULL)
+- `description` (TEXT)
+- `startDate`, `endDate` (DATE)
+- `isOpen` (TINYINT 1 DEFAULT 1): Kontrol buka/tutup akses kuesioner bagi petugas.
+- `icon` (VARCHAR 50 DEFAULT 'Layers'): Ikon tematik Lucide yang dipilih admin.
+
+#### 2. Tabel `laporan_forms` (Formulir Instrumen Survei)
+Menyimpan sub-formulir dalam satu kegiatan (contoh: *Pencacahan Rumah Tangga*, *Pemeriksaan PML*).
+- `id` (VARCHAR 100, PK)
+- `activityId` (VARCHAR 100, FK ke `laporan_activities`)
+- `title` (VARCHAR 255, NOT NULL)
+- `icon` (VARCHAR 50 DEFAULT 'FileText')
+- `orderIndex` (INT DEFAULT 0)
+- `sheetUrl` (VARCHAR 500): Tautan Google Sheet master data sasaran.
+- `sheetName` (VARCHAR 100): Nama lembar tab pada spreadsheet.
+- `webhookUrl` (VARCHAR 500): Tautan Apps Script Webhook untuk pengiriman laporan real-time.
+- `groupingLevels` (JSON): Array 4 kolom pengelompokan hierarki petugas (*drill-down*).
+
+#### 3. Tabel `laporan_fields` (Daftar Pertanyaan & Variabel)
+Menyimpan definisi kolom kuesioner yang dirancang admin.
+- `id` (INT AUTO_INCREMENT, PK)
+- `formId` (VARCHAR 100, FK ke `laporan_forms`)
+- `label` (VARCHAR 255): Teks pertanyaan untuk petugas.
+- `columnName` (VARCHAR 100): Nama variabel / header kolom database.
+- `dataType` (ENUM: `'teks'`, `'angka'`, `'lokasi'`, `'file'`, `'tanggal'`, `'jam'`).
+- `isRequired` (TINYINT 1 DEFAULT 0): Penanda pertanyaan wajib diisi sebelum submit.
+- `orderIndex` (INT DEFAULT 0)
+
+#### 4. Tabel `laporan_records` (Data Isian Laporan Petugas)
+Menyimpan baris data responden/sampel survei.
+- `id` (VARCHAR 100, PK)
+- `activityId` (VARCHAR 100, FK)
+- `formId` (VARCHAR 100, FK)
+- `rowId` (VARCHAR 100): Identifier unik baris responden (contoh: ID Rumah Tangga / Kode Sampel).
+- `data` (JSON): Kumpulan pasangan kunci-nilai jawaban kuesioner dan data sasaran awal.
+- `status` (ENUM: `'draft'`, `'submitted'` DEFAULT `'draft'`).
+- `latitude`, `longitude` (DECIMAL 10,8 & 11,8): Koordinat GPS lokasi pendataan.
+- `submittedBy` (VARCHAR 100): Nama petugas pelapor.
+- `submittedAt` (TIMESTAMP): Waktu penyerahan laporan akhir.
+
+#### 5. Tabel `infrastructure_items` & `village_stats`
+Menyimpan inventarisasi sarana fisik dan rekapitulasi kependudukan di 60 desa pada 9 kecamatan Kabupaten Mempawah.
+- Kolom: `district`, `village`, `name`, `type`, `condition`, `lat`, `lng`, `source`.
+
+#### 6. Tabel `social_phenomenon`
+Menyimpan log observasi kualitatif sosial ekonomi di lapangan.
+- Kolom: `title`, `category`, `severity`, `description`, `village`, `reporter`, `status`, `createdAt`.
 
 ---
 
 ## 5. Detail Fungsionalitas Modul
 
-### 5.1 PELATIHAN: Learning Management System (LMS)
-E-learning platform terintegrasi untuk persiapan petugas sebelum turun lapangan.
-- **Arsitektur Frontend**: Komponen `LMSModule.tsx` menggunakan lazy-loading dengan Suspense. Data kelas ditarik secara real-time.
-- **Admin Panel**: Form dinamis untuk membuat kategori kelas baru (Sakernas, Susenas, ST2023, dll), mengatur tanggal aktif, dan mengunggah tautan berbagai jenis konten (PDF, Zoom, Google Form, YouTube).
-- **Petugas View**: Tampilan kartu (*cards*) berbasis kategori dengan indikator status (Aktif/Akan Datang/Selesai) dan filter pencarian.
+### 5.1 Modul Manajemen Laporan Pendataan (AppSheet Mode & Form Builder)
+Modul ini merupakan inti operasional pengumpulan data lapangan Garda Data:
 
-### 5.2 PENDATAAN: Monitoring Dashboard
-*Command center* operasional berbasis peta dan statistik.
-- **Arsitektur Frontend**: `MonitoringModule.tsx` mengintegrasikan Leaflet.js untuk peta distribusi, dan Chart.js/Recharts untuk visualisasi KPI.
-- **KPI yang Ditampilkan**: Target vs Realisasi pencacahan, Response Rate per Blok Sensus, jumlah anomali terdeteksi.
+```mermaid
+flowchart LR
+    A[Admin: Susun Pertanyaan & Tipe Data] --> B[Admin: Tentukan Hierarki Wilayah 4 Level]
+    B --> C[Admin: Hubungkan Google Sheet & Webhook]
+    C --> D[Petugas: Buka Form AppSheet Mode]
+    D --> E[Petugas: Isi Jawaban, GPS & Foto]
+    E --> F[Kirim Real-Time ke Google Sheet & Database]
+```
 
-### 5.3 PENDATAAN: Laporan Pendataan (Cerdas Form)
-Sistem pelaporan harian elektronik.
-- **Arsitektur Frontend**: `CerdasModule.tsx` — formulir responsif yang dioptimasi untuk layar kecil ponsel lapangan.
-- **Data Flow**: Laporan masuk → dikirim via POST API → masuk ke MySQL → dashboard monitoring memperbarui angka.
-
-### 5.4 PENDATAAN: KBLI 2025 & KBJI 2014
-Mesin pencari *fuzzy* untuk 20.000+ kode klasifikasi.
-- **Arsitektur Frontend**: `ClassificationModule.tsx`. Menggunakan teknik *debounced search* (menunggu pengguna berhenti mengetik 300ms sebelum query diluncurkan) untuk mengurangi beban server.
-- **Algoritma Pencarian**: `LIKE '%keyword%'` di MySQL dikombinasikan dengan penilaian relevansi di sisi klien menggunakan `Fuse.js`.
-- **UX**: Hasil pencarian menampilkan judul, kode 5 digit, dan cuplikan deskripsi. Fitur *copy-to-clipboard* tersedia untuk kode yang dipilih.
-
-### 5.5 PENDATAAN: Imputasi Susenas-Seruti
-Sistem panduan dan kalkulator nilai wajar survei.
-- **Arsitektur Frontend**: `ImputationSearchEngine.tsx` — engine pencarian dengan desain modern menggunakan warna hijau emerald (`emerald-500`) yang segar.
-- **Simulator Multi-Baris**: 
-  - Petugas bisa menambah baris simulasi dengan tombol "+ Tambah Jenis Imputasi"
-  - Setiap baris memiliki: nama jenis imputasi, estimasi satuan nilai, dan kolom input jumlah
-  - Rumus: `Subtotal Baris = Nilai Satuan × Jumlah`
-  - Grand Total dihitung otomatis dari penjumlahan semua subtotal
-  - State simulator **tidak hilang** meskipun pengguna berpindah tab
-  - Tombol "Reset Simulasi" untuk mengosongkan semua baris
-- **Backend**: Data nilai satuan imputasi diambil via `GET /api/imputation-rules` dan dilengkapi fallback lokal.
-
-### 5.6 PENDATAAN: Infrastruktur Desa
-SIG (Sistem Informasi Geospasial) berbasis peta untuk inventarisasi fasilitas.
-- **Arsitektur Frontend**: `InfrastructureModule.tsx` — tab-based UI dengan 5 sub-tampilan.
-- **Sub-modul**:
-  - **Info Wilayah**: Data agregat desa (penduduk, KK) diambil langsung dari tabel `village_stats`, **tidak terhubung ke filter** sehingga selalu menampilkan data yang tersimpan.
-  - **Peta Infrastruktur**: Peta Leaflet dengan marker per fasilitas, popup detail dan filter jenis.
-  - **Tambah Data**: Form entri baru dengan picker koordinat (klik pada peta).
-  - **Rekap**: Tabel agregat per kategori fasilitas.
-  - **Template**: Template Excel yang bisa diunduh dan diisi offline, lalu diimpor kembali.
-- **Auto-Seeding**: Semua 60 desa di 9 kecamatan Kabupaten Mempawah sudah tersedia sebagai data awal tanpa perlu input manual.
-
-### 5.7 PENDATAAN: Pengukuran Luas Bangunan
-Kalkulator luas bangunan berbasis foto satelit.
-- **Arsitektur Frontend**: `BuildingAreaModule.tsx` — modul terberat dalam bundle (~390KB) karena mengintegrasikan Leaflet Draw + algoritma geospasial.
-- **Cara Kerja**: Pengguna menggambar poligon di atas citra satelit Google Maps atau OpenStreetMap. Algoritma menghitung luas area dalam m² menggunakan formula Gauss/Shoelace.
-- **Admin Dashboard**: `AdminBuildingDashboard.tsx` — tampilan khusus admin untuk melihat semua pengukuran yang dikumpulkan petugas.
-
-### 5.8 ANALISIS: Fenomena Sosial Ekonomi
-Sistem pencatatan observasi kualitatif lapangan.
-- **Arsitektur Frontend**: `SocialPhenomenonModule.tsx` — form entri yang panjang dengan validasi real-time.
-- **Fitur**:
-  - Kategori: Ekonomi, Sosial, Lingkungan, Infrastruktur
-  - Tingkat Keparahan (severity) dari Rendah sampai Kritis
-  - Status: Aktif → Ditindaklanjuti → Selesai
-  - Tampilan kartu laporan dengan filter multi-kriteria
-
-### 5.9 ANALISIS: Data Strategis BPS
-Dashboard indikator makro daerah.
-- **Arsitektur Frontend**: `AdminStrategicData.tsx`
-- **Indikator**: Inflasi, Kemiskinan (%), Tingkat Pengangguran Terbuka (TPT), PDRB
-- **Akses Berbasis Role**: Hanya Admin yang dapat memperbarui angka indikator. Petugas dan pengunjung hanya dapat membaca.
+- **Alur Perancangan Formulir 3 Langkah (Admin):**
+  1. **Langkah 1 (Pertanyaan & Jenis Data):** Menyusun daftar variabel survei dengan memilih tipe data yang sesuai:
+     - `teks`: Input string bebas / uraian.
+     - `angka`: Nilai numerik (jumlah ART, pendapatan, luas).
+     - `lokasi`: Koordinat lintang dan bujur otomatis dari sensor GPS gawai.
+     - `file`: Unggah dokumen atau ambil foto langsung dengan kamera gawai.
+     - `tanggal` & `jam`: Pemilih waktu terstandar ISO.
+  2. **Langkah 2 (Pengelompokan Jenis Data & Hierarki):** Menentukan urutan pengelompokan tampilan sampel petugas (Level 1 hingga Level 4, contoh: *Kecamatan > Desa > SLS > No. Responden*).
+  3. **Langkah 3 (Koneksi Google Sheet):** Memasukkan link Google Sheet sasaran untuk ditarik ke aplikasi dan menyalin skrip Webhook Apps Script untuk penerimaan hasil laporan.
+- **Pemilih Ikon Visual (Icon Visual Picker):** Admin dapat memilih dari 17 ikon Lucide tematik (`Layers`, `FileText`, `ClipboardList`, `Building2`, `Home`, `Users`, `MapPin`, `BarChart3`, `Wheat`, `Truck`, `HeartPulse`, `GraduationCap`, `DollarSign`, `Search`, `Calendar`, `Camera`, `CheckCircle2`) untuk merepresentasikan kegiatan dan formulir secara visual.
+- **Mode Petugas Lapangan (Mobile AppSheet View):**
+  - Tampilan kartu responden dengan hierarki navigasi *drill-down* akordion.
+  - Indikator persentase kelengkapan isian (*progress bar* % terisi) pada setiap sampel.
+  - Tombol deteksi koordinat GPS instan (*One-tap Geolocation*).
+  - Kamera dan *file upload* terintegrasi ke storage server.
+  - Penyimpanan draf *offline-resilient* dan filter status responden (*Semua*, *Draf*, *Terkirim*).
+- **Dashboard Monitoring & Rekapitulasi Data:** Admin dapat memantau grafik rasio capaian target, draf tersimpan, dan data terkirim, serta melakukan pencarian dan ekspor tabel rekapitulasi.
 
 ---
 
-## 6. Sistem Tema Dinamis (Dynamic Presets)
+### 5.2 Modul Penilaian Mitra Statistik
+Sistem evaluasi berkala kinerja mitra lapangan (pendata/PCL dan pengawas/PML) untuk menjamin akuntabilitas dan standardisasi rekam jejak:
 
-Fitur penggantian tema adalah salah satu inovasi UI teknis terdepan di Garda Data.
+- **Kriteria Evaluasi Multi-Parameter:**
+  1. **Kualitas Isian Data & Kelengkapan Kuesioner** (Bobot: 35%): Konsistensi logika antar pertanyaan, ketiadaan data kosong tanpa keterangan.
+  2. **Ketepatan Waktu & Pencapaian Target Beban Kerja** (Bobot: 30%): Ketepatan penyelesaian tugas sebelum batas akhir jadwal survei.
+  3. **Kedisiplinan, Integritas & Etika Lapangan** (Bobot: 20%): Sikap sopan kepada responden, kehadiran pada saat briefing, kepatuhan SOP.
+  4. **Pemahaman Konsep & Definisi Operasional** (Bobot: 15%): Kemampuan mengidentifikasi konsep statistik secara benar di lapangan.
+- **Formula Skor Akhir Terbobot:**
+  $$\text{Skor Akhir} = \sum_{i=1}^{n} (w_i \times s_i)$$
+- **Kategori Predikat Kinerja (Badges):**
+  - **Sangat Baik** ($Skor \ge 85$): Rekomendasi prioritas untuk penugasan survei berikutnya.
+  - **Baik** ($70 \le Skor < 85$): Memenuhi standar operasional BPS.
+  - **Cukup** ($60 \le Skor < 70$): Memerlukan supervisi tambahan.
+  - **Perlu Pembinaan** ($Skor < 60$): Evaluasi khusus sebelum penugasan ulang.
+- **Fitur Penunjang:** Rekap riwayat evaluasi historis mitra, pencarian nama mitra/SOBAT ID, dan ekspor lembar evaluasi kinerja.
 
-### 6.1 Cara Kerjanya
-Sistem tema beroperasi dalam 3 lapisan:
+---
 
-**Layer 1: Context & State Management** (`src/lib/theme.tsx`)
-```typescript
-// ThemeProvider menyimpan preferensi dan menerapkan atribut ke <html>
-useEffect(() => {
-  document.documentElement.setAttribute('data-theme', preset);
-}, [preset]);
+### 5.3 Modul Klasifikasi KBLI 2025 & KBJI 2014
+Mesin pencari pintar direktori klasifikasi baku statistik:
+- **KBLI 2025:** Klasifikasi Baku Lapangan Usaha Indonesia versi 2025 dengan struktur 5 digit untuk penentuan sektor ekonomi usaha.
+- **KBJI 2014:** Klasifikasi Baku Jabatan Indonesia dengan struktur 4 digit untuk standardisasi jenis pekerjaan/profesi responden.
+- **Mekanisme Pencarian (*Fuzzy Matching & Debounce*):** Petugas cukup mengetikkan istilah percakapan sehari-hari (contoh: *"jual gorengan"*, *"supir sawit"*, *"tukang las"*), sistem akan mencocokkan kata kunci ke uraian resmi secara instan dengan teknik *debouncing* 300ms untuk efisiensi kueri.
+- **Fitur Cepat:** Salin kode instan ke *clipboard* dan penyaringan berdasarkan kategori/golongan pokok.
+
+---
+
+### 5.4 Modul Pengukuran Luas Bangunan Geospasial
+Alat bantu petugas dan admin untuk mengukur dan memverifikasi luas permukaan bangunan tempat tinggal atau tempat usaha secara presisi di atas citra satelit resolusi tinggi:
+
+- **Digitasi Poligon Interaktif (Leaflet Draw):** Pengguna dapat meletakkan titik-titik simpul (vertex) mengikuti bentuk fisik atap bangunan pada peta satelit.
+- **Formula Perhitungan Luas Geodesik (Formula Gauss / Shoelace Algorithm):**
+  $$A = \frac{1}{2} \left| \sum_{i=1}^{n} (x_i y_{i+1} - x_{i+1} y_i) \right|$$
+  Sistem mengonversi koordinat lintang/bujur (derajat) ke satuan luas meter persegi ($m^2$) secara *real-time* dengan koreksi proyeksi kelengkungan bumi.
+- **Dashboard Admin Pengukuran:** Menyimpan arsip data luas bangunan, koordinat pusat, nama pemilik/responden, waktu pengukuran, dan visualisasi spasial kembali ke peta.
+
+---
+
+### 5.5 Modul Simulator Imputasi Susenas-Seruti
+Pusat referensi dan kalkulator interaktif nilai wajar konsumsi dan pengeluaran komoditas:
+
+- **Engine Pencarian Standar Nilai Wajar:** Memuat rentang harga batas bawah, batas tengah (*median*), dan batas atas untuk ratusan komoditas bahan makanan, minuman, tembakau, energi, dan barang bukan makanan.
+- **Kalkulator Multi-Baris Dinamis:**
+  - Petugas dapat menambahkan baris perhitungan tanpa batas untuk simulasi berbagai komoditas sekaligus.
+  - Perhitungan subtotal otomatis per baris:
+    $$\text{Subtotal} = \text{Nilai Satuan} \times \text{Jumlah Kasus / Frekuensi}$$
+  - Kalkulasi **Grand Total Pengeluaran** secara *real-time*.
+- **Ketahanan State (*Persistent Tab Switching*):** Nilai input dan daftar baris komoditas tetap tersimpan di memori saat petugas berpindah ke tab lain (misal mencari referensi) lalu kembali lagi ke tab kalkulator.
+
+---
+
+### 5.6 Modul Infrastruktur Desa & Peta Wilayah
+Sistem Informasi Geospasial (SIG) dan inventarisasi fasilitas umum untuk 60 desa di 9 kecamatan Kabupaten Mempawah:
+
+- **Cakupan Wilayah 9 Kecamatan:**
+  1. Mempawah Hilir
+  2. Mempawah Timur
+  3. Sungai Pinyuh
+  4. Anjongan
+  5. Toho
+  6. Sadaniang
+  7. Segedong
+  8. Jongkat (Siantan)
+  9. Sungai Kunyit
+- **Kategori Sarana Fisik:** Sarana Pendidikan (SD, SMP, SMA), Fasilitas Kesehatan (Puskesmas, Poskesdes, Klinik), Tempat Ibadah (Masjid, Gereja, Vihara), Titik Perekonomian (Pasar, Sentra Usaha), dan Kantor Pemerintahan Desa.
+- **Mekanisme Auto-Seeding Cadangan:** Jika server basis data baru diinisialisasi atau mengalami latensi, sistem frontend secara otomatis memuat data dasar wilayah (*seed data*) sehingga peta dan statistik desa tidak pernah kosong.
+- **Fitur Manajemen Data:** Import/Export format Excel dan penambahan titik koordinat baru secara langsung.
+
+---
+
+### 5.7 Modul Pelatihan Petugas (LMS)
+Learning Management System terpadu untuk penguatan pemahaman konsep dan metodologi survei bagi calon petugas sebelum bertugas di lapangan:
+
+- **Kategori Materi Pembelajaran:** Modul Survei Sosial & Kesejahteraan Rakyat, Survei Ketenagakerjaan & Ekonomi, Metodologi Sensus & Geospasial, serta Etika & Standar Pelayanan Statistik.
+- **Penyematan Multi-Media:**
+  - *Viewer PDF Interaktif:* Pembacaan buku pedoman pencacahan langsung di dalam aplikasi.
+  - *Streaming Video Edukasi:* Pemutaran video materi konsep survei dari YouTube / Google Drive.
+  - *Tautan Sesi Interaktif:* Tombol peluncuran langsung ke ruang virtual Zoom / Google Meet dan kuis evaluasi Google Form.
+- **Pelacak Progres Pembelajaran:** Status penyelesaian materi per petugas untuk memastikan seluruh modul telah dipelajari sebelum penugasan.
+
+---
+
+### 5.8 Modul Fenomena Sosial Ekonomi
+Kanal pencatatan peristiwa dan dinamika kualitatif di lapangan yang berpotensi memengaruhi indikator statistik daerah:
+
+- **Kategori Fenomena:** Pertanian & Perkebunan (gagal panen, perubahan musim), Perdagangan & Harga (kenaikan harga bahan pokok), Industri & Ketenagakerjaan (PHK massal, pembukaan sentra usaha baru), Bencana Alam (banjir, kemarau panjang), dan Kebijakan Pemerintah Daerah.
+- **Tingkat Keparahan (*Severity Level*):** Rendah, Sedang, Tinggi, dan Kritis.
+- **Pelaporan Berbasis Bukti:** Mendukung deskripsi naratif terperinci, lokasi desa kejadian, estimasi dampak, dan lampiran dokumentasi foto.
+- **Pemanfaatan Data:** Menjadi bahan rujukan analisis dalam penyusunan Berita Resmi Statistik (BRS) dan publikasi Daerah Dalam Angka (DDA).
+
+---
+
+### 5.9 Dashboard Data Strategis BPS
+Penyajian indikator makro ekonomi dan sosial utama Kabupaten Mempawah:
+
+- **Indikator Makro yang Disajikan:**
+  - **Laju Inflasi** (Persentase Perubahan Indeks Harga Konsumen - IHK YoY & MoM)
+  - **Persentase Penduduk Miskin (P0)** & Garis Kemiskinan (GK)
+  - **Tingkat Pengangguran Terbuka (TPT)** & Tingkat Partisipasi Angkatan Kerja (TPAK)
+  - **Produk Domestik Regional Bruto (PDRB)** atas dasar harga berlaku (ADHB) & konstan (ADHK)
+  - **Indeks Pembangunan Manusia (IPM)**
+- **Manajemen Data Berbasis Role:** Hanya akun dengan role **Admin** yang memiliki wewenang untuk memperbarui angka indikator, tahun rilis, dan ringkasan eksekutif publikasi.
+
+---
+
+## 6. Integrasi Google Sheet 2 Arah & Manajemen Kuesioner
+
+Garda Data menerapkan mekanisme integrasi awan dua arah yang **sangat ramah bagi pengguna awam** tanpa memerlukan keahlian pemrograman:
+
+```mermaid
+flowchart TD
+    subgraph Arah 1: Google Sheet ke Aplikasi
+        A1["1. Admin Klik 'Download Format Excel'"] --> A2["2. Buka Google Sheet & Salin Format Tabel"]
+        A2 --> A3["3. Isi Daftar Target Responden"]
+        A3 --> A4["4. Tempelkan Link Sheet & Klik 'Tarik Data'"]
+        A4 --> A5["📱 Sampel Responden Muncul di HP Petugas"]
+    end
+
+    subgraph Arah 2: Aplikasi ke Google Sheet
+        B1["5. Petugas Isi Kuesioner, Koordinat GPS & Foto"] --> B2["6. Petugas Klik 'Submit Laporan'"]
+        B2 --> B3["7. Webhook Apps Script Menerima Data"]
+        B3 --> B4["📊 Baris Responden di Google Sheet Terisi Real-Time"]
+    end
 ```
 
-**Layer 2: CSS Variables Override** (`src/index.css`)
-```css
-/* Setiap preset mendefinisikan ulang variabel warna */
-[data-theme="sky"] {
-  --p-500: #3b82f6;  /* primary berubah jadi biru */
-  --s-500: #0ea5e9;  /* secondary berubah jadi sky */
-  --body-bg: #f8f9fa;
-}
-```
+### Petunjuk Penggunaan Praktis:
 
-**Layer 3: Tailwind CSS Consumption** 
+#### A. Menarik Data Target dari Google Sheet (Arah 1)
+1. Pada menu Admin Form Builder, buat pertanyaan dan susun pengelompokan wilayah.
+2. Klik tombol **"Download Format Excel"**. Buka file tersebut lalu salin (*copy-paste*) ke Google Sheet Anda.
+3. Bagikan Google Sheet dengan akses: **"Siapa saja yang memiliki link dapat melihat (Viewer)"**.
+4. Salin tautan Google Sheet dan masukkan nama lembar (*Sheet Name*) pada formulir Garda Data.
+5. Tekan tombol **"Tarik Data dari Google Sheet"**. Seluruh data sampel responden langsung terunduh dan siap dikerjakan oleh petugas di lapangan.
+
+#### B. Mengirimkan Hasil Laporan Lapangan ke Google Sheet (Arah 2)
+1. Klik tombol **"Lihat Cara Pasang (Mudah)"** di kartu Webhook.
+2. Salin kode Google Apps Script yang disediakan.
+3. Buka Google Sheet Anda, pilih menu **Ekstensi > Apps Script**, tempelkan kode tersebut, lalu klik **Terapkan (Deploy) > Deployment Baru**.
+4. Pilih jenis **Aplikasi Web (Web App)**, atur *Akses* ke **Siapa Saja (Anyone)**, lalu klik **Deploy**.
+5. Salin URL Web App yang dihasilkan dan tempelkan ke kolom **Link Webhook Google Sheet** di Garda Data.
+6. Sekarang, setiap kali petugas menekan tombol **"Submit Laporan"** di lapangan, Google Sheet akan terisi secara otomatis dan *real-time*.
+
+---
+
+## 7. Sistem Tema Dinamis (6 Dynamic Presets)
+
+Garda Data mengimplementasikan sistem tema dinamis tanpa *re-render* virtual DOM dengan memanfaatkan token variabel CSS pada Tailwind CSS v4 `@theme`:
+
 ```css
-/* Di @theme, Tailwind membaca variabel tersebut */
+/* src/index.css */
 @theme {
   --color-primary-500: var(--p-500, #f17e3a);
+  --color-secondary-500: var(--s-500, #e29578);
 }
 ```
 
-Karena Tailwind membaca variabel CSS, dan variabel CSS berubah saat `data-theme` berganti, **seluruh komponen di aplikasi otomatis ikut berubah warna** tanpa perlu merender ulang tree React.
-
-### 6.2 Keuntungan Teknis Pendekatan Ini
-- **Zero re-render**: Perubahan tema tidak memicu React re-render sama sekali karena murni CSS.
-- **Instan**: Perubahan warna terasa langsung, tidak ada delay.
-- **Persistent**: Disimpan di `localStorage`, tetap aktif setelah refresh halaman.
-- **Font-aware**: Setiap preset juga mengganti variabel font family, bukan hanya warna.
-- **Tidak merusak layout**: Hanya token warna dan font yang berubah, struktur HTML/komponen utuh.
-
-### 6.3 Daftar 6 Preset Resmi
-
-| Preset | Primary Color | Secondary | Font | Atmosfer |
-|---|---|---|---|---|
-| **Original** | `#f17e3a` (Orange) | `#e29578` (Terracotta) | Inter + Outfit | Hangat, Klasik |
-| **GreenTea** | `#22c55e` (Green) | `#14b8a6` (Teal) | Plus Jakarta Sans | Segar, Natural |
-| **Auntum** | `#ea580c` (Burnt Orange) | `#d97706` (Amber) | Plus Jakarta Sans | Musim Gugur, Hangat |
-| **Notebook** | `#f43f5e` (Rose) | `#3b82f6` (Blue) | Nunito (Rounded) | Ceria, Playful |
-| **Persik** | `#8b5cf6` (Violet) | `#f43f5e` (Pink) | Plus Jakarta Sans | Modern, Trendy |
-| **Sky** | `#3b82f6` (Blue) | `#0ea5e9` (Sky) | Plus Jakarta Sans | Profesional, Bersih |
+### Palet 6 Preset Warna Resmi:
+1. **Original (Warm Orange & Terracotta):**
+   - Karakter: Enerjik, hangat, mencerminkan identitas korporat statistik BPS.
+   - Primary: `#f17e3a` | Secondary: `#e29578`
+2. **GreenTea (Fresh Mint, Teal, & Sage Green):**
+   - Karakter: Sejuk, menenangkan, nuansa survei pertanian dan lingkungan hidup.
+   - Primary: `#0d9488` | Secondary: `#14b8a6`
+3. **Yellow World (Dominan Kuning Cerah & Golden Amber):**
+   - Karakter: Ceria, optimis, terang, dan segar dengan palet kuning cerah dan aksen emas.
+   - Primary: `#eab308` | Secondary: `#f59e0b`
+4. **Notebook (Dominan Pink Pastel & Rose Blush):**
+   - Karakter: Manis, ceria, estetik, dominan pink lembut yang nyaman di mata.
+   - Primary: `#ec4899` | Secondary: `#f43f5e`
+5. **Persik JosJiz (Electric Violet Lilac & Coral Peach):**
+   - Karakter: Modern, berenergi tinggi, kombinasi ungu violet elektrik dan sentuhan koral persik.
+   - Primary: `#8b5cf6` | Secondary: `#a78bfa`
+6. **Sky (Healthcare Blue & Crisp Professional Blue):**
+   - Karakter: Formal, bersih, berstandar pelayanan publik prima.
+   - Primary: `#0284c7` | Secondary: `#38bdf8`
 
 ---
 
-## 7. Panduan Deployment ke Production
+## 8. Panduan Deployment ke Production
 
-### 7.1 Deployment Backend (Node.js + MySQL di VPS)
-
-**Prasyarat**: Ubuntu 22.04 LTS, Node.js 18+, MySQL 8.0+
-
+### 8.1 Konfigurasi Server Backend (Ubuntu 22.04 LTS / VPS)
 ```bash
-# 1. Update & install dependencies
+# 1. Update paket OS dan instal Node.js serta MySQL
 sudo apt update && sudo apt upgrade -y
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs mysql-server
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs mysql-server git
 
-# 2. Setup database
-sudo mysql -u root << 'EOF'
+# 2. Setup database MySQL
+sudo mysql -u root
 CREATE DATABASE garda_data CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'garda_user'@'localhost' IDENTIFIED BY 'GANTI_PASSWORD_KUAT';
+CREATE USER 'garda_user'@'localhost' IDENTIFIED BY 'PASSWORD_KUAT_ANDA';
 GRANT ALL PRIVILEGES ON garda_data.* TO 'garda_user'@'localhost';
 FLUSH PRIVILEGES;
-EOF
+EXIT;
 
-# 3. Clone dan setup backend
+# 3. Kloning repositori dan instal dependensi backend
 git clone https://github.com/ipds6104/GardaData.git
 cd GardaData/backend
 npm install
 
-# 4. Buat .env
+# 4. Buat konfigurasi .env backend
 cat > .env << 'EOF'
 PORT=3000
 DB_HOST=localhost
 DB_USER=garda_user
-DB_PASSWORD=GANTI_PASSWORD_KUAT
+DB_PASSWORD=PASSWORD_KUAT_ANDA
 DB_NAME=garda_data
 EOF
 
-# 5. Install PM2 dan jalankan
-npm install -g pm2
+# 5. Jalankan backend dengan PM2 Process Manager
+sudo npm install -g pm2
 pm2 start server.js --name "garda-backend"
-pm2 startup    # agar otomatis berjalan setelah reboot
+pm2 startup
 pm2 save
 ```
 
-### 7.2 Deployment Frontend (Vite Build + Nginx)
-
+### 8.2 Konfigurasi Frontend & Nginx Web Server
 ```bash
-# 1. Set environment variable
-cd GardaData
+# 1. Masuk ke root direktori proyek dan tentukan API URL production
+cd ../
 echo "VITE_API_URL=https://api.domain-anda.com" > .env
 
-# 2. Build production bundle
+# 2. Build production frontend bundle
 npm install
 npm run build
 
-# 3. Salin ke Nginx web root
+# 3. Salin hasil build ke direktori web Nginx
 sudo cp -r dist/* /var/www/html/
 
-# 4. Konfigurasi Nginx
-sudo nano /etc/nginx/sites-available/garda-data
-```
+# 4. Konfigurasi Nginx SPA Reverse Proxy (/etc/nginx/sites-available/default)
+# server {
+#     listen 80;
+#     server_name domain-anda.com;
+#     root /var/www/html;
+#     index index.html;
+#
+#     location / {
+#         try_files $uri $uri/ /index.html;
+#     }
+#
+#     location /api/ {
+#         proxy_pass http://localhost:3000/api/;
+#         proxy_http_version 1.1;
+#         proxy_set_header Upgrade $http_upgrade;
+#         proxy_set_header Connection 'upgrade';
+#         proxy_set_header Host $host;
+#         proxy_cache_bypass $http_upgrade;
+#     }
+#
+#     location /uploads/ {
+#         proxy_pass http://localhost:3000/uploads/;
+#     }
+# }
 
-Isi konfigurasi Nginx:
-```nginx
-server {
-    listen 80;
-    server_name domain-anda.com;
-    root /var/www/html;
-    index index.html;
-
-    # SPA Fallback - penting untuk React Router
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Kompresi gzip untuk performa
-    gzip on;
-    gzip_types text/plain application/javascript application/json text/css;
-
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|svg|woff2)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
-```
-
-```bash
-sudo ln -s /etc/nginx/sites-available/garda-data /etc/nginx/sites-enabled/
+# 5. Uji dan muat ulang Nginx
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
 ---
 
-## 8. Keamanan, Performa & Skalabilitas
+## 9. Keamanan, Performa & Skalabilitas
 
-### 8.1 Keamanan Backend
-- **SQL Injection Prevention**: Driver `mysql2/promise` menggunakan *parameterized queries* (`?` placeholder), sehingga input pengguna tidak pernah dieksekusi langsung sebagai SQL.
-- **CORS Protection**: Middleware Express `cors()` dikonfigurasi hanya mengizinkan permintaan dari domain frontend resmi. Domain lain yang mencoba mengakses API akan ditolak otomatis.
-- **Payload Limiting**: Express dikonfigurasi dengan `express.json({ limit: '2mb' })` untuk mencegah serangan *payload flooding*.
-- **Helmet.js**: Menyetel serangkaian HTTP Header keamanan secara otomatis:
-  - `X-Content-Type-Options: nosniff` (mencegah MIME sniffing)
-  - `X-Frame-Options: DENY` (mencegah Clickjacking)
-  - `Strict-Transport-Security` (memaksa HTTPS)
-  - `Content-Security-Policy` (membatasi sumber daya yang dapat dimuat)
+### 9.1 Standar Keamanan
+- **Prepared Statements / Parameterized Queries:** Mencegah 100% risiko kerentanan SQL Injection pada seluruh operasi manipulasi data.
+- **HTTP Security Headers (Helmet):** Mengaktifkan proteksi XSS (*Cross-Site Scripting*), pencegahan *MIME Sniffing*, dan mitigasi *Clickjacking*.
+- **CORS Policy Terbatas:** Menolak akses API dari origin liar yang tidak diizinkan.
+- **Validasi Berkas Unggahan:** Pembatasan ukuran maksimal 25 MB per berkas dan isolasi nama file menggunakan *cryptographic timestamping*.
 
-### 8.2 Performa Frontend
-- **Code Splitting**: Semua modul di-lazy load, bundle awal hanya ~393KB gzip.
-- **PWA (Progressive Web App)**: Menggunakan `vite-plugin-pwa` dengan Workbox. Service Worker meng-cache assets statis dan API response tertentu sehingga aplikasi tetap bisa diakses saat offline.
-- **Debounced Search**: Input pencarian KBLI/KBJI menggunakan debounce 300ms untuk mengurangi frekuensi API call saat mengetik.
-- **Image Compression**: Utilitas `compressImage` berbasis HTML5 Canvas tersedia untuk mengompresi foto yang diunggah petugas langsung di browser, sebelum dikirim ke server.
-- **Virtual Scrolling (Future)**: Untuk list KBLI yang sangat panjang, rekomendasikan implementasi `react-virtual` agar DOM tidak memuat ribuan elemen sekaligus.
-
-### 8.3 Skalabilitas (Roadmap)
-Sistem saat ini sudah mampu melayani 50-200 pengguna concurrent dengan spesifikasi VPS standar (2 vCPU, 4GB RAM). Untuk skala lebih besar:
-
-| Tantangan | Solusi yang Direkomendasikan |
-|---|---|
-| Database *bottleneck* | Tambahkan *read replica* MySQL |
-| Cache API | Implementasi Redis untuk respons yang sering berulang |
-| CDN untuk assets | Cloudflare atau AWS CloudFront untuk distribusi JS/CSS |
-| Load Balancing | Nginx Upstream + beberapa instance PM2 |
+### 9.2 Keandalan & Performa
+- **PWA Service Worker & Workbox:** Aset statis (JavaScript, CSS, Ikon, Tile Peta) di-*cache* di browser pengguna untuk waktu muat instan (<1 detik) pada kunjungan berikutnya.
+- **Connection Pooling MySQL:** Menjaga ketersediaan koneksi database saat terjadi lonjakan *traffic* submit bersamaan dari ratusan petugas di akhir periode survei.
+- **Zero-Dependency Core:** Pemanfaatan protokol Web API bawaan (Geolocation, Canvas, LocalStorage) yang meminimalkan ukuran dependensi eksternal.
 
 ---
 
-> "Platform yang benar-benar berguna bukan yang paling canggih, melainkan yang paling mudah digunakan oleh orang yang paling membutuhkannya." — **Garda Data Core Team**
+> **Garda Data Core Team**  
+> *"Menjaga Kualitas Data, Memudahkan Kinerja Lapangan."*

@@ -54,31 +54,31 @@ export const PRESET_LIST: PresetInfo[] = [
   },
   {
     id: 'auntum',
-    name: 'Auntum',
-    description: 'Warna hangat musim gugur dengan nuansa karamel, tembaga, dan amber',
+    name: 'Yellow World',
+    description: 'Nuansa dominan kuning cerah, emas berkilau, dan amber hangat yang segar',
     font: 'Plus Jakarta Sans',
     colors: {
-      primary: '#ea580c',
-      secondary: '#d97706',
-      accent: '#fbbf24',
-      bg: '#fff9f2'
+      primary: '#eab308',
+      secondary: '#f59e0b',
+      accent: '#fde047',
+      bg: '#fefdf5'
     }
   },
   {
     id: 'notebook',
     name: 'Notebook',
-    description: 'Estetika pastel playful lembut (rose peach, soft lavender, mint sorbet)',
+    description: 'Estetika manis dan ceria dengan palet warna dominan pink, rose blush, dan pastel lembut',
     font: 'Nunito (Rounded)',
     colors: {
-      primary: '#f43f5e',
-      secondary: '#3b82f6',
-      accent: '#d946ef',
-      bg: '#faf8f5'
+      primary: '#ec4899',
+      secondary: '#f43f5e',
+      accent: '#f472b6',
+      bg: '#fff5f7'
     }
   },
   {
     id: 'persik',
-    name: 'Persik',
+    name: 'Persik JosJiz',
     description: 'Kombinasi trendy modern electric violet lilac dengan sentuhan peach coral',
     font: 'Plus Jakarta Sans',
     colors: {
@@ -106,7 +106,7 @@ const ThemeContext = createContext<ThemeContextType>({
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [preset, setPresetState] = useState<ThemePreset>(() => {
     const saved = localStorage.getItem('garda_theme_preset') as ThemePreset;
-    if (saved && ['original', 'greentea', 'auntum', 'notebook', 'persik'].includes(saved)) {
+    if (saved && ['original', 'greentea', 'auntum', 'notebook', 'persik', 'sky'].includes(saved)) {
       return saved;
     }
     return 'original';

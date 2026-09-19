@@ -99,7 +99,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
 
   const searchIndex = [
     { id: 'lms', title: 'Learning Management System', desc: 'Pelatihan, e-learning, materi, sakernas agustus', keywords: ['lms', 'pelatihan', 'sakernas', 'susenas', 'agustus', 'materi', 'kuis', 'jadwal'] },
-    { id: 'cerdas-form', title: 'Laporan Pendataan', desc: 'Laporan progres pendataan lapangan', keywords: ['laporan', 'pendataan', 'cerdas', 'progress', 'progres', 'lapangan'] },
+    { id: 'laporan-pendataan', title: 'Laporan Pendataan', desc: 'Laporan progres pendataan lapangan', keywords: ['laporan', 'pendataan', 'formulir', 'progress', 'progres', 'lapangan'] },
     { id: 'kbli-kbji', title: 'KBLI 2025 & KBJI 2014', desc: 'Pencarian kode klasifikasi KBLI/KBJI', keywords: ['kbli', 'kbji', 'klasifikasi', 'kode', 'industri', 'pekerjaan'] },
     { id: 'building-area', title: 'Pengukuran Luas Bangunan', desc: 'Kalkulator area bangunan via satelit', keywords: ['bangunan', 'luas', 'atap', 'pengukuran', 'peta', 'satelit', 'geospasial'] },
     { id: 'imputation', title: 'Imputasi Susenas-Seruti', desc: 'Panduan nilai imputasi lapangan', keywords: ['imputasi', 'susenas', 'seruti', 'nilai', 'batas'] },
@@ -146,7 +146,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       title: 'PENDATAAN LAPANGAN',
       items: [
         { id: 'monitoring', label: 'Monitoring Dashboard', icon: Activity },
-        { id: 'cerdas-form', label: 'Laporan Pendataan', icon: FileEdit },
+        { id: 'laporan-pendataan', label: 'Laporan Pendataan', icon: FileEdit },
         { id: 'kbli-kbji', label: 'KBLI 2025 & KBJI 2014', icon: BookOpen },
         { id: 'imputation', label: 'Imputasi Susenas-Seruti', icon: FileEdit },
         { id: 'infrastructure', label: 'Infrastruktur Desa', icon: Map },
