@@ -116,6 +116,11 @@ router.put('/:identifier', async (req, res) => {
       }
       finalNilai = num;
       kategori = getKategoriFromNilai(finalNilai);
+
+      const noteText = String(catatan || '').trim();
+      if (noteText.length < 10) {
+        return res.status(400).json({ error: 'Catatan evaluasi kinerja wajib diisi minimal 10 karakter.' });
+      }
     }
 
     const query = `

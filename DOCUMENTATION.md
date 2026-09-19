@@ -316,6 +316,7 @@ Sistem evaluasi berkala kinerja mitra lapangan (pendata/PCL dan pengawas/PML) un
   2. **Ketepatan Waktu & Pencapaian Target Beban Kerja** (Bobot: 30%): Ketepatan penyelesaian tugas sebelum batas akhir jadwal survei.
   3. **Kedisiplinan, Integritas & Etika Lapangan** (Bobot: 20%): Sikap sopan kepada responden, kehadiran pada saat briefing, kepatuhan SOP.
   4. **Pemahaman Konsep & Definisi Operasional** (Bobot: 15%): Kemampuan mengidentifikasi konsep statistik secara benar di lapangan.
+- **Validasi Catatan Evaluasi Kualitatif:** Wajib mengisi catatan evaluasi lapangan dengan panjang **minimal 10 karakter** sebelum nilai dapat disimpan ke database untuk mencegah evaluasi asal-asalan dan menjaga akuntabilitas penilaian.
 - **Formula Skor Akhir Terbobot:**
   $$\text{Skor Akhir} = \sum_{i=1}^{n} (w_i \times s_i)$$
 - **Kategori Predikat Kinerja (Badges):**
@@ -323,7 +324,7 @@ Sistem evaluasi berkala kinerja mitra lapangan (pendata/PCL dan pengawas/PML) un
   - **Baik** ($70 \le Skor < 85$): Memenuhi standar operasional BPS.
   - **Cukup** ($60 \le Skor < 70$): Memerlukan supervisi tambahan.
   - **Perlu Pembinaan** ($Skor < 60$): Evaluasi khusus sebelum penugasan ulang.
-- **Fitur Penunjang:** Rekap riwayat evaluasi historis mitra, pencarian nama mitra/SOBAT ID, dan ekspor lembar evaluasi kinerja.
+- **Fitur Penunjang:** Rekap riwayat evaluasi historis mitra, pencarian nama mitra/SOBAT ID, penghitung karakter catatan real-time, dan ekspor lembar evaluasi kinerja.
 
 ---
 

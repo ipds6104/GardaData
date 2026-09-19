@@ -637,6 +637,13 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
   // Simpan nilai & catatan mitra ke backend / local cache
   const saveSingleMitra = async (record: MitraRecord) => {
+    // Validasi catatan wajib diisi minimal 10 karakter
+    const noteText = (record.catatan || '').trim();
+    if (noteText.length < 10) {
+      alert(`⚠️ Catatan kinerja wajib diisi minimal 10 karakter untuk mitra "${record.nama}"!\n\nSaat ini baru ${noteText.length} karakter. Silakan lengkapi catatan evaluasi kualitatif sebelum menyimpan.`);
+      return;
+    }
+
     setSavingStatus(`Menyimpan ${record.nama} (${record.role})...`);
     const baseUrl = (import.meta as any).env.VITE_API_URL || '';
     const token = localStorage.getItem('navigasi_token');
@@ -663,11 +670,12 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         })
       });
       if (!res.ok) {
-        throw new Error(`Server returned HTTP ${res.status}`);
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server returned HTTP ${res.status}`);
       }
       isServerOk = true;
       setSavingStatus(`Tersimpan: ${record.nama} (${record.role})`);
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Simpan offline ke cache:', e);
       setSavingStatus(`Tersimpan lokal: ${record.nama} (${record.role})`);
     }
@@ -696,6 +704,17 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
   // Simpan semua nilai dalam 1 grup PJ
   const saveAllInPj = async (pjName: string) => {
     const itemsInPj = mitraList.filter(m => m.pj === pjName);
+    
+    // Validasi catatan minimal 10 karakter untuk mitra yang dinilai / memiliki catatan
+    const evaluatedItems = itemsInPj.filter(m => m.nilai !== null && m.nilai !== undefined);
+    const targetsToCheck = evaluatedItems.length > 0 ? evaluatedItems : itemsInPj;
+    const invalidItems = targetsToCheck.filter(m => (m.catatan || '').trim().length < 10);
+
+    if (invalidItems.length > 0) {
+      alert(`⚠️ Catatan kinerja wajib diisi minimal 10 karakter untuk seluruh mitra yang dinilai!\n\nTerdapat ${invalidItems.length} mitra dengan catatan kurang dari 10 karakter:\n${invalidItems.slice(0, 5).map(m => `• ${m.nama} (${(m.catatan || '').trim().length}/10 karakter)`).join('\n')}${invalidItems.length > 5 ? `\n...dan ${invalidItems.length - 5} mitra lainnya.` : ''}\n\nSilakan lengkapi catatan terlebih dahulu.`);
+      return;
+    }
+
     setSavingStatus(`Menyimpan ${itemsInPj.length} nilai PJ ${pjName}...`);
 
     const baseUrl = (import.meta as any).env.VITE_API_URL || '';
@@ -1832,7 +1851,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                                   <th className="py-2.5 px-3 hidden lg:table-cell">Email</th>
                                   <th className="py-2.5 px-3 w-32 text-center">Nilai (0–100 Bulat)</th>
                                   <th className="py-2.5 px-3 w-40 text-center">Kategori Rekomendasi</th>
-                                  <th className="py-2.5 px-3 min-w-[220px]">Catatan Penilaian (Kualitatif)</th>
+                                  <th className="py-2.5 px-3 min-w-[260px]">Catatan Kinerja (Wajib, Min. 10 Karakter)</th>
                                   <th className="py-2.5 px-3 w-20 text-center">Aksi</th>
                                 </tr>
                               </thead>
@@ -1840,6 +1859,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                                 {mitras.map((m) => {
                                   const badge = getKategoriBadge(m.kategori);
                                   const itemKey = getRecordKey(m);
+                                  const noteLength = (m.catatan || '').trim().length;
                                   return (
                                     <tr key={itemKey} className="hover:bg-slate-50/70 transition-colors group">
                                       {/* Nama & Role */}
@@ -1895,14 +1915,25 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
                                       {/* Kolom Catatan Penilaian (Kualitatif) */}
                                       <td className="py-3 px-3">
-                                        <div className="relative">
+                                        <div className="relative flex items-center">
                                           <input
                                             type="text"
-                                            placeholder="Tulis catatan evaluasi / kinerja..."
+                                            placeholder="Tulis catatan evaluasi (Wajib, min. 10 karakter)..."
                                             value={m.catatan || ''}
                                             onChange={(e) => handleNoteChange(itemKey, e.target.value)}
-                                            className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 focus:border-primary-400 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-primary-100 transition-all"
+                                            className={`w-full bg-slate-50 hover:bg-white focus:bg-white border rounded-xl pl-3 pr-14 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 outline-none transition-all ${
+                                              noteLength >= 10
+                                                ? 'border-emerald-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                                                : noteLength > 0
+                                                  ? 'border-amber-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
+                                                  : 'border-slate-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
+                                            }`}
                                           />
+                                          <span className={`absolute right-2.5 text-[10px] font-mono font-bold select-none ${
+                                            noteLength >= 10 ? 'text-emerald-600 font-black' : noteLength > 0 ? 'text-amber-600' : 'text-slate-400'
+                                          }`}>
+                                            {noteLength}/10
+                                          </span>
                                         </div>
                                       </td>
 
@@ -2220,7 +2251,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                     <th className="py-3 px-3">Wilayah & Posisi</th>
                     <th className="py-3 px-3 w-32 text-center">Nilai Kinerja</th>
                     <th className="py-3 px-3 w-40 text-center">Status Rekomendasi</th>
-                    <th className="py-3 px-4 min-w-[260px]">Catatan Kualitatif Lapangan</th>
+                    <th className="py-3 px-4 min-w-[260px]">Catatan Kinerja (Wajib, Min. 10 Karakter)</th>
                     <th className="py-3 px-3 w-28 text-center">Aksi Cepat</th>
                   </tr>
                 </thead>
@@ -2234,6 +2265,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                   ) : (
                     direktoriFilteredMitra.map((m) => {
                       const itemKey = getRecordKey(m);
+                      const noteLength = (m.catatan || '').trim().length;
                       let offerBadge = {
                         text: '⏳ Belum Dinilai',
                         bg: 'bg-slate-100 text-slate-600 border-slate-200'
@@ -2253,7 +2285,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <span className="font-mono text-[11px] text-slate-500">{m.email}</span>
                               <button 
-                                type="button"
+                                type="button" 
                                 onClick={() => handleCopyEmail(m.email)}
                                 title="Salin Email"
                                 className="text-slate-400 hover:text-primary-600 cursor-pointer p-0.5 transition-colors"
@@ -2295,14 +2327,25 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
                           {/* Catatan Kinerja Lapangan (Kualitatif) */}
                           <td className="py-3.5 px-4">
-                            <div className="relative">
+                            <div className="relative flex items-center">
                               <input
                                 type="text"
-                                placeholder="Tulis catatan pertimbangan penawaran kerja..."
+                                placeholder="Tulis catatan pertimbangan (Wajib, min. 10 karakter)..."
                                 value={m.catatan || ''}
                                 onChange={(e) => handleNoteChange(itemKey, e.target.value)}
-                                className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 focus:border-primary-400 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-primary-100 transition-all"
+                                className={`w-full bg-slate-50 hover:bg-white focus:bg-white border rounded-xl pl-3 pr-14 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 outline-none transition-all ${
+                                  noteLength >= 10
+                                    ? 'border-emerald-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                                    : noteLength > 0
+                                      ? 'border-amber-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
+                                      : 'border-slate-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
+                                }`}
                               />
+                              <span className={`absolute right-2.5 text-[10px] font-mono font-bold select-none ${
+                                noteLength >= 10 ? 'text-emerald-600 font-black' : noteLength > 0 ? 'text-amber-600' : 'text-slate-400'
+                              }`}>
+                                {noteLength}/10
+                              </span>
                             </div>
                           </td>
 

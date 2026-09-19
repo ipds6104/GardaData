@@ -23,7 +23,7 @@ Modul unggulan untuk penyusunan dan pengisian instrumen survei lapangan bergaya 
 - **Monitoring & Rekap Data:** Dashboard pemantauan jumlah target, draf, dan laporan masuk beserta tabel rekap yang dapat dicari dan difilter.
 
 ### 2. Modul Penilaian Mitra Statistik
-Sistem evaluasi berkala kinerja mitra lapangan (pendata dan pengawas) dengan penilaian multi-kriteria (kualitas data, kedisiplinan, ketepatan waktu, dan integritas kerja sama) untuk standardisasi rekam jejak mitra.
+Sistem evaluasi berkala kinerja mitra lapangan (pendata dan pengawas) dengan penilaian multi-kriteria (kualitas data, kedisiplinan, ketepatan waktu, dan integritas kerja sama) serta validasi wajib pengisian catatan kualitatif lapangan (minimal 10 karakter) untuk standardisasi rekam jejak mitra.
 
 ### 3. Modul Klasifikasi KBLI 2025 & KBJI 2014
 Mesin pencari pintar berbasis basis data relasional untuk mengklasifikasikan kegiatan ekonomi (KBLI 2025) dan jabatan pekerjaan (KBJI) menggunakan teknik *fuzzy search* dan *debounced query*.
