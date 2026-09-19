@@ -31,16 +31,6 @@ export function initPwaUpdater() {
         checkRegistrationUpdate();
       }
     });
-
-    // 4. Tangani saat controller baru mengambil alih halaman (Service Worker baru aktif)
-    let isRefreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        console.log('[PWA] Versi baru terdeteksi dan aktif. Memuat ulang aplikasi...');
-        window.location.reload();
-      }
-    });
   });
 }
 
