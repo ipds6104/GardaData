@@ -98,9 +98,9 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  preset: 'original',
+  preset: 'persik',
   setPreset: () => {},
-  presetInfo: PRESET_LIST[0]
+  presetInfo: PRESET_LIST.find(p => p.id === 'persik') || PRESET_LIST[0]
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -109,7 +109,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (saved && ['original', 'greentea', 'auntum', 'notebook', 'persik', 'sky'].includes(saved)) {
       return saved;
     }
-    return 'original';
+    return 'persik';
   });
 
   const setPreset = (newPreset: ThemePreset) => {

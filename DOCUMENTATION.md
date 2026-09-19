@@ -461,30 +461,30 @@ Garda Data mengimplementasikan sistem tema dinamis tanpa *re-render* virtual DOM
 ```css
 /* src/index.css */
 @theme {
-  --color-primary-500: var(--p-500, #f17e3a);
-  --color-secondary-500: var(--s-500, #e29578);
+  --color-primary-500: var(--p-500, #8b5cf6);
+  --color-secondary-500: var(--s-500, #f43f5e);
 }
 ```
 
 ### Palet 6 Preset Warna Resmi:
-1. **Original (Warm Orange & Terracotta):**
-   - Karakter: Enerjik, hangat, mencerminkan identitas korporat statistik BPS.
+1. **Persik JosJiz (Default - Electric Violet Lilac & Coral Peach):**
+   - Karakter: Modern, berenergi tinggi, kombinasi ungu violet elektrik dan sentuhan koral persik (tema bawaan utama).
+   - Primary: `#8b5cf6` | Secondary: `#f43f5e`
+2. **Original (Warm Orange & Terracotta):**
+   - Karakter: Enerjik, hangat, nuansa warm orange & terracotta klasik.
    - Primary: `#f17e3a` | Secondary: `#e29578`
-2. **GreenTea (Fresh Mint, Teal, & Sage Green):**
+3. **GreenTea (Fresh Mint, Teal, & Sage Green):**
    - Karakter: Sejuk, menenangkan, nuansa survei pertanian dan lingkungan hidup.
-   - Primary: `#0d9488` | Secondary: `#14b8a6`
-3. **Yellow World (Dominan Kuning Cerah & Golden Amber):**
+   - Primary: `#22c55e` | Secondary: `#14b8a6`
+4. **Yellow World (Dominan Kuning Cerah & Golden Amber):**
    - Karakter: Ceria, optimis, terang, dan segar dengan palet kuning cerah dan aksen emas.
    - Primary: `#eab308` | Secondary: `#f59e0b`
-4. **Notebook (Dominan Pink Pastel & Rose Blush):**
+5. **Notebook (Dominan Pink Pastel & Rose Blush):**
    - Karakter: Manis, ceria, estetik, dominan pink lembut yang nyaman di mata.
    - Primary: `#ec4899` | Secondary: `#f43f5e`
-5. **Persik JosJiz (Electric Violet Lilac & Coral Peach):**
-   - Karakter: Modern, berenergi tinggi, kombinasi ungu violet elektrik dan sentuhan koral persik.
-   - Primary: `#8b5cf6` | Secondary: `#a78bfa`
 6. **Sky (Healthcare Blue & Crisp Professional Blue):**
    - Karakter: Formal, bersih, berstandar pelayanan publik prima.
-   - Primary: `#0284c7` | Secondary: `#38bdf8`
+   - Primary: `#007BFF` | Secondary: `#3B82F6`
 
 ---
 

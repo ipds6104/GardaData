@@ -2,45 +2,45 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-family-sans, "Inter", ui-sans-serif, system-ui, sans-serif);
+  --font-sans: var(--font-family-sans, "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif);
   --font-display: var(--font-family-display, "Outfit", sans-serif);
   --font-serif: "Playfair Display", serif;
 
   /* Primary */
-  --color-primary-50: var(--p-50, #fef6f1);
-  --color-primary-100: var(--p-100, #fdecdb);
-  --color-primary-200: var(--p-200, #fad5b2);
-  --color-primary-300: var(--p-300, #f7b781);
-  --color-primary-400: var(--p-400, #f6a672);
-  --color-primary-500: var(--p-500, #f17e3a);
-  --color-primary-600: var(--p-600, #e36325);
-  --color-primary-700: var(--p-700, #bd4a1f);
+  --color-primary-50: var(--p-50, #f5f3ff);
+  --color-primary-100: var(--p-100, #ede9fe);
+  --color-primary-200: var(--p-200, #ddd6fe);
+  --color-primary-300: var(--p-300, #c4b5fd);
+  --color-primary-400: var(--p-400, #a78bfa);
+  --color-primary-500: var(--p-500, #8b5cf6);
+  --color-primary-600: var(--p-600, #7c3aed);
+  --color-primary-700: var(--p-700, #6d28d9);
 
   /* Secondary */
-  --color-secondary-50: var(--s-50, #fcf4f2);
-  --color-secondary-100: var(--s-100, #f8e8e3);
-  --color-secondary-200: var(--s-200, #f1d3c9);
-  --color-secondary-300: var(--s-300, #e8b6a6);
-  --color-secondary-400: var(--s-400, #e29578);
-  --color-secondary-500: var(--s-500, #d6714f);
-  --color-secondary-600: var(--s-600, #c15635);
-  --color-secondary-700: var(--s-700, #a14429);
+  --color-secondary-50: var(--s-50, #fff1f2);
+  --color-secondary-100: var(--s-100, #ffe4e6);
+  --color-secondary-200: var(--s-200, #fecdd3);
+  --color-secondary-300: var(--s-300, #fda4af);
+  --color-secondary-400: var(--s-400, #fb7185);
+  --color-secondary-500: var(--s-500, #f43f5e);
+  --color-secondary-600: var(--s-600, #e11d48);
+  --color-secondary-700: var(--s-700, #be123c);
 
   /* Accent */
-  --color-accent-50: var(--a-50, #fffdf9);
-  --color-accent-100: var(--a-100, #fffbf0);
-  --color-accent-200: var(--a-200, #fdf5d7);
-  --color-accent-400: var(--a-400, #f7e9ab);
-  --color-accent-500: var(--a-500, #f5e496);
-  --color-accent-600: var(--a-600, #c4b678);
+  --color-accent-50: var(--a-50, #faf5ff);
+  --color-accent-100: var(--a-100, #f3e8ff);
+  --color-accent-200: var(--a-200, #e9d5ff);
+  --color-accent-400: var(--a-400, #c084fc);
+  --color-accent-500: var(--a-500, #a855f7);
+  --color-accent-600: var(--a-600, #7e22ce);
 }
 
 /* =========================================
    THEME PRESETS DEFINITIONS
    ========================================= */
 
-/* 1. ORIGINAL (Default) */
-:root, [data-theme="original"] {
+/* 1. ORIGINAL */
+[data-theme="original"] {
   --font-family-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-family-display: "Outfit", sans-serif;
 
@@ -171,8 +171,8 @@
   --body-bg: #fff5f7;
 }
 
-/* 5. PERSIK (Electric Violet, Lilac & Coral Peach) */
-[data-theme="persik"] {
+/* 5. PERSIK JOSJIZ (Default - Electric Violet, Lilac & Coral Peach) */
+:root, [data-theme="persik"] {
   --font-family-sans: "Plus Jakarta Sans", "Inter", sans-serif;
   --font-family-display: "Outfit", sans-serif;
 
