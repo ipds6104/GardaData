@@ -282,6 +282,25 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
   const [upsertImport, setUpsertImport] = useState(true);
   const [importFileName, setImportFileName] = useState('');
 
+  // State pop up notifikasi data berhasil tersimpan di database
+  const [saveSuccessPopup, setSaveSuccessPopup] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    badge?: string;
+    details?: { label: string; val: string }[];
+  } | null>(null);
+
+  // Auto-dismiss popup setelah 5 detik jika tidak ditutup manual
+  useEffect(() => {
+    if (saveSuccessPopup?.isOpen) {
+      const timer = setTimeout(() => {
+        setSaveSuccessPopup(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveSuccessPopup]);
+
   // Tab aktif: 'form' (Form Penilaian Per PJ) | 'direktori' (Direktori Rekomendasi Kerja)
   const [activeTab, setActiveTab] = useState<'form' | 'direktori'>('form');
 
@@ -625,6 +644,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const recordKey = getRecordKey(record);
+    let isServerOk = false;
 
     try {
       const res = await fetch(`${baseUrl}/api/mitra/${encodeURIComponent(recordKey)}`, {
@@ -645,6 +665,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
       if (!res.ok) {
         throw new Error(`Server returned HTTP ${res.status}`);
       }
+      isServerOk = true;
       setSavingStatus(`Tersimpan: ${record.nama} (${record.role})`);
     } catch (e) {
       console.warn('Simpan offline ke cache:', e);
@@ -654,6 +675,22 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     // Update local cache v3
     localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(mitraList));
     setTimeout(() => setSavingStatus(null), 2500);
+
+    // Tampilkan Pop Up notifikasi data telah tersimpan di database
+    setSaveSuccessPopup({
+      isOpen: true,
+      title: 'Data Berhasil Tersimpan!',
+      badge: isServerOk ? 'Database MySQL Tersinkron' : 'Tersimpan ke Cache Lokal',
+      message: `Data penilaian dan catatan untuk mitra "${record.nama}" (${record.role}) telah berhasil disimpan ke database.`,
+      details: [
+        { label: 'Nama Mitra', val: record.nama },
+        { label: 'Posisi / Role', val: record.role },
+        { label: 'Penanggung Jawab', val: record.pj || '-' },
+        { label: 'Kecamatan', val: record.kecamatan || '-' },
+        { label: 'Nilai Kinerja', val: record.nilai !== null && record.nilai !== undefined ? `${record.nilai} (${record.kategori || 'Ternilai'})` : 'Belum Dinilai' },
+        ...(record.catatan ? [{ label: 'Catatan Kinerja', val: record.catatan }] : [])
+      ]
+    });
   };
 
   // Simpan semua nilai dalam 1 grup PJ
@@ -666,6 +703,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
+    let isServerOk = false;
     try {
       const res = await fetch(`${baseUrl}/api/mitra/bulk`, {
         method: 'POST',
@@ -675,6 +713,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
       if (!res.ok) {
         throw new Error(`Server returned HTTP ${res.status}`);
       }
+      isServerOk = true;
       setSavingStatus(`✅ Berhasil menyimpan semua nilai & catatan PJ ${pjName}`);
     } catch (e) {
       console.warn('Simpan massal offline ke cache:', e);
@@ -683,6 +722,20 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
     localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(mitraList));
     setTimeout(() => setSavingStatus(null), 3000);
+
+    // Tampilkan Pop Up notifikasi data telah tersimpan di database
+    setSaveSuccessPopup({
+      isOpen: true,
+      title: 'Data Berhasil Tersimpan di Database!',
+      badge: isServerOk ? `Database MySQL: PJ ${pjName}` : 'Tersimpan ke Cache',
+      message: `Seluruh data penilaian (${itemsInPj.length} mitra) untuk Penanggung Jawab ${pjName} telah berhasil disimpan ke database.`,
+      details: [
+        { label: 'Penanggung Jawab', val: pjName },
+        { label: 'Total Mitra Tersimpan', val: `${itemsInPj.length} orang` },
+        { label: 'Status Sinkronisasi', val: isServerOk ? 'Tersimpan di Database' : 'Tersimpan Lokal' },
+        { label: 'Waktu Simpan', val: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB' }
+      ]
+    });
   };
 
   // Filter Data Khusus Direktori Penawaran Kerja
@@ -1061,49 +1114,61 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
       console.warn('Gagal import ke backend MySQL, menyimpan ke local state:', err);
     }
 
-    // Merge ke local state: Update data ada dan tambah data baru
+    // Merge ke data: Update data ada dan tambah data baru
     let updatedCount = 0;
     let addedCount = 0;
 
-    setMitraList(prev => {
-      const recordMap = new Map<string, MitraRecord>();
-      prev.forEach(m => {
-        recordMap.set(getRecordKey(m), m);
-      });
-
-      processedItems.forEach(item => {
-        const itemKey = getRecordKey(item);
-        const existing = recordMap.get(itemKey) || Array.from(recordMap.values()).find(m => m.email.toLowerCase() === item.email.toLowerCase());
-
-        if (existing) {
-          if (upsertImport) {
-            updatedCount++;
-            const mergedItem: MitraRecord = {
-              ...existing,
-              nama: item.nama || existing.nama,
-              role: item.role || existing.role,
-              pj: item.pj && item.pj !== '-' ? item.pj : existing.pj,
-              kecamatan: item.kecamatan && item.kecamatan !== '-' ? item.kecamatan : existing.kecamatan,
-              nilai: item.nilai !== null ? item.nilai : existing.nilai,
-              kategori: item.nilai !== null ? item.kategori : existing.kategori,
-              catatan: item.catatan ? item.catatan : (existing.catatan || '')
-            };
-            recordMap.set(getRecordKey(mergedItem), mergedItem);
-          }
-        } else {
-          addedCount++;
-          recordMap.set(itemKey, item);
-        }
-      });
-
-      const merged = Array.from(recordMap.values());
-      localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(merged));
-      return merged;
+    const recordMap = new Map<string, MitraRecord>();
+    mitraList.forEach(m => {
+      recordMap.set(getRecordKey(m), m);
     });
+
+    processedItems.forEach(item => {
+      const itemKey = getRecordKey(item);
+      const existing = recordMap.get(itemKey) || Array.from(recordMap.values()).find(m => m.email.toLowerCase() === item.email.toLowerCase());
+
+      if (existing) {
+        if (upsertImport) {
+          updatedCount++;
+          const mergedItem: MitraRecord = {
+            ...existing,
+            nama: item.nama || existing.nama,
+            role: item.role || existing.role,
+            pj: item.pj && item.pj !== '-' ? item.pj : existing.pj,
+            kecamatan: item.kecamatan && item.kecamatan !== '-' ? item.kecamatan : existing.kecamatan,
+            nilai: item.nilai !== null ? item.nilai : existing.nilai,
+            kategori: item.nilai !== null ? item.kategori : existing.kategori,
+            catatan: item.catatan ? item.catatan : (existing.catatan || '')
+          };
+          recordMap.set(getRecordKey(mergedItem), mergedItem);
+        }
+      } else {
+        addedCount++;
+        recordMap.set(itemKey, item);
+      }
+    });
+
+    const merged = Array.from(recordMap.values());
+    localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(merged));
+    setMitraList(merged);
 
     setShowImportModal(false);
     setSavingStatus(`✅ Berhasil import: ${updatedCount} diperbarui, ${addedCount} mitra baru ditambahkan!`);
     setTimeout(() => setSavingStatus(null), 4000);
+
+    // Tampilkan Pop Up notifikasi data telah tersimpan di database
+    setSaveSuccessPopup({
+      isOpen: true,
+      title: 'Data Berhasil Disimpan di Database!',
+      badge: 'Sinkronisasi Database Berhasil',
+      message: `Pembaruan data penilaian dan penambahan mitra baru dari file "${importFileName || 'Excel'}" telah berhasil disimpan ke database.`,
+      details: [
+        { label: 'Data Diperbarui (Update)', val: `${updatedCount} mitra` },
+        { label: 'Mitra Baru Ditambahkan', val: `${addedCount} orang` },
+        { label: 'Total Mitra di Database', val: `${merged.length} mitra` },
+        { label: 'Status Sinkronisasi', val: 'Database & Cache Tersinkron' }
+      ]
+    });
   };
 
   return (
@@ -2825,6 +2890,93 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                   <span>Unduh File Excel ({selectedExportCols.length} Kolom)</span>
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL POP UP: DATA TELAH TERSIMPAN DI DATABASE */}
+      <AnimatePresence>
+        {saveSuccessPopup?.isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSaveSuccessPopup(null)}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="relative bg-white rounded-3xl shadow-2xl border border-emerald-100 max-w-md w-full p-6 sm:p-7 overflow-hidden z-10 text-center"
+            >
+              {/* Decorative top ambient glow */}
+              <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-48 h-48 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Close icon button */}
+              <button
+                onClick={() => setSaveSuccessPopup(null)}
+                className="absolute right-4 top-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                title="Tutup Notifikasi"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Big Success Icon */}
+              <div className="relative mx-auto w-16 h-16 sm:w-20 sm:h-20 mb-4 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full bg-emerald-100/70 animate-ping opacity-30" />
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-emerald-600 to-teal-500 rounded-2xl sm:rounded-3xl shadow-lg shadow-emerald-500/25 flex items-center justify-center text-white rotate-1 hover:rotate-0 transition-transform">
+                  <CheckCircle2 className="w-9 h-9 sm:w-11 sm:h-11 stroke-[2.5]" />
+                </div>
+              </div>
+
+              {/* Badge */}
+              {saveSuccessPopup.badge && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200/80 uppercase tracking-wider mb-2.5 shadow-2xs">
+                  <Database className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{saveSuccessPopup.badge}</span>
+                </div>
+              )}
+
+              {/* Title */}
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug mb-2">
+                {saveSuccessPopup.title}
+              </h3>
+
+              {/* Message */}
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-5 font-medium">
+                {saveSuccessPopup.message}
+              </p>
+
+              {/* Details List */}
+              {saveSuccessPopup.details && saveSuccessPopup.details.length > 0 && (
+                <div className="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/70 mb-5 text-left divide-y divide-slate-100">
+                  {saveSuccessPopup.details.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between py-1.5 first:pt-0 last:pb-0 text-xs">
+                      <span className="text-slate-500 font-medium">{item.label}</span>
+                      <span className="text-slate-900 font-black text-right ml-2 truncate max-w-[200px]" title={item.val}>
+                        {item.val}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Bottom Action Button */}
+              <button
+                type="button"
+                onClick={() => setSaveSuccessPopup(null)}
+                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+              >
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>Oke, Mengerti</span>
+              </button>
             </motion.div>
           </div>
         )}

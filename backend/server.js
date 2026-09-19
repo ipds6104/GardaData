@@ -6,8 +6,8 @@ require('dotenv').config();
 
 const app = express();
 
-// Konfigurasi trust proxy untuk express-rate-limit di belakang reverse proxy Coolify
-app.set('trust proxy', 1);
+// Konfigurasi trust proxy agar Express mengenali IP klien di belakang Cloudflare / reverse proxy Coolify
+app.set('trust proxy', true);
 
 // ==========================================
 // KEAMANAN (CYBER SECURITY)
@@ -62,7 +62,21 @@ app.use(cors({
 // 3. Rate Limiting: Mencegah DDoS atau Brute Force
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 menit
-  max: 100, // Maksimal 100 request per IP setiap 15 menit
+  max: 3000, // Kuota mencukupi untuk banyak petugas & admin yang mengakses bersamaan
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Ambil IP asli klien dari Cloudflare atau forwarded header
+    return req.headers['cf-connecting-ip'] || 
+           (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) || 
+           req.ip || 
+           '127.0.0.1';
+  },
+  skip: (req) => {
+    // Endpoint status healthcheck tidak boleh dibatasi agar banner koneksi tidak salah muncul
+    const p = req.path || req.url || '';
+    return p.includes('/status');
+  },
   message: 'Terlalu banyak permintaan dari IP ini, silakan coba lagi nanti.'
 });
 app.use('/api/', apiLimiter);

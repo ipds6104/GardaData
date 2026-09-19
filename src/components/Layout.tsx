@@ -41,7 +41,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       });
       clearTimeout(timeoutId);
       if (!res.ok) {
-        setIsServerDisconnected(true);
+        // If HTTP 429 (rate limited), the server is online and running
+        if (res.status === 429) {
+          setIsServerDisconnected(false);
+        } else {
+          setIsServerDisconnected(true);
+        }
       } else {
         setIsServerDisconnected(false);
       }
@@ -147,17 +152,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
 
   const SidebarContent = () => (
     <div className="h-full flex flex-col bg-white border-r border-slate-200 w-64 md:w-72 shrink-0">
-      {/* Sidebar Header (Logo) - Only visible on Desktop or inside Drawer */}
-      <div className="h-20 flex items-center px-6 border-b border-transparent shrink-0">
+      {/* Sidebar Header (Logo) - Centered in sidebar width */}
+      <div className="h-20 flex items-center justify-center w-full px-4 border-b border-transparent shrink-0">
         <button 
           onClick={() => handleNav('landing')} 
-          className="flex items-center hover:opacity-85 transition-opacity focus:outline-none"
+          className="flex items-center justify-center mx-auto hover:opacity-85 transition-opacity focus:outline-none"
           title="Beranda Garda Data"
         >
           <img 
             src="/logo.png" 
             alt="Garda Data Logo" 
-            className="h-14 sm:h-16 w-auto object-contain max-h-16 drop-shadow-xs transition-transform hover:scale-105" 
+            className="h-14 sm:h-16 w-auto object-contain max-h-16 drop-shadow-xs transition-transform hover:scale-105 mx-auto" 
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }} 
