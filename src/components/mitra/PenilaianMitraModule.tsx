@@ -252,6 +252,20 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
   const [mitraList, setMitraList] = useState<MitraRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingStatus, setSavingStatus] = useState<string | null>(null);
+  const [unsavedKeys, setUnsavedKeys] = useState<Set<string>>(new Set());
+
+  // Cegah penutupan tab tidak sengaja saat ada data yang belum disimpan
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (unsavedKeys.size > 0) {
+        e.preventDefault();
+        e.returnValue = 'Terdapat penilaian yang belum disimpan. Yakin ingin keluar?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [unsavedKeys]);
 
   // State dropdown manajemen data (default tersembunyi / hidden)
   const [isDataManagementOpen, setIsDataManagementOpen] = useState(false);
@@ -362,6 +376,18 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         console.warn('Gagal memuat baseline data mitra:', e);
       }
 
+      // Ambil cache lokal v3 yang mungkin menyimpan nilai offline sebelumnya
+      let localCachedRecords: MitraRecord[] = [];
+      const cached = localStorage.getItem('garda_mitra_cache_v3');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            localCachedRecords = parsed;
+          }
+        } catch (err) {}
+      }
+
       // 2. Ambil data dari API MySQL atau Local Cache
       let incomingData: MitraRecord[] = [];
       try {
@@ -378,17 +404,48 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         console.warn('Gagal fetch API /api/mitra, menggunakan cache lokal:', e);
       }
 
-      // Jika incomingData kosong (misal API MySQL offline/kosong), pulihkan dari cache lokal v3
-      if (incomingData.length === 0) {
-        const cached = localStorage.getItem('garda_mitra_cache_v3');
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              incomingData = parsed;
+      // Selaraskan dengan cache lokal: Jika di lokal ada evaluasi (nilai/catatan) yang belum ada di server, pertahankan dan auto-sync
+      if (incomingData.length > 0 && localCachedRecords.length > 0) {
+        const localMap = new Map<string, MitraRecord>();
+        localCachedRecords.forEach(m => {
+          const key = m.id || `${(m.email || '').toLowerCase()}_${(m.role || 'ppl').toLowerCase()}`;
+          localMap.set(key, m);
+          if (m.email) localMap.set(m.email.toLowerCase(), m);
+        });
+
+        const unsyncedToPush: MitraRecord[] = [];
+
+        incomingData = incomingData.map(apiItem => {
+          const key = apiItem.id || `${(apiItem.email || '').toLowerCase()}_${(apiItem.role || 'ppl').toLowerCase()}`;
+          const localItem = localMap.get(key) || (apiItem.email ? localMap.get(apiItem.email.toLowerCase()) : undefined);
+
+          if (localItem && (localItem.nilai !== null && localItem.nilai !== undefined || (localItem.catatan && localItem.catatan.trim().length >= 10))) {
+            if (apiItem.nilai === null || apiItem.nilai === undefined || !apiItem.catatan || apiItem.catatan.trim() === '') {
+              const combinedItem = {
+                ...apiItem,
+                nilai: localItem.nilai !== null && localItem.nilai !== undefined ? localItem.nilai : apiItem.nilai,
+                kategori: localItem.kategori || apiItem.kategori || getKategoriFromNilai(localItem.nilai),
+                catatan: localItem.catatan || apiItem.catatan || ''
+              };
+              unsyncedToPush.push(combinedItem);
+              return combinedItem;
             }
-          } catch (err) {}
+          }
+          return apiItem;
+        });
+
+        // Auto-sync background push ke MySQL
+        if (unsyncedToPush.length > 0 && baseUrl) {
+          fetch(`${baseUrl}/api/mitra/bulk`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ items: unsyncedToPush })
+          }).then(r => {
+            if (r.ok) console.log(`✅ Auto-synced ${unsyncedToPush.length} evaluasi mitra dari cache lokal ke database MySQL`);
+          }).catch(e => console.warn('Background sync failed:', e));
         }
+      } else if (incomingData.length === 0 && localCachedRecords.length > 0) {
+        incomingData = localCachedRecords;
       }
 
       // 3. Selaraskan data baseline dan data incoming (memperbarui nilai/catatan & menyertakan mitra baru)
@@ -608,6 +665,8 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
     const updatedKategori = getKategoriFromNilai(finalVal);
 
+    setUnsavedKeys(prev => new Set(prev).add(recordKey));
+
     setMitraList(prev => prev.map(m => {
       const key = getRecordKey(m);
       if (key === recordKey) {
@@ -623,6 +682,8 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
   // Update catatan kualitatif mitra
   const handleNoteChange = (recordKey: string, noteVal: string) => {
+    setUnsavedKeys(prev => new Set(prev).add(recordKey));
+
     setMitraList(prev => prev.map(m => {
       const key = getRecordKey(m);
       if (key === recordKey) {
@@ -637,9 +698,9 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
   // Simpan nilai & catatan mitra ke backend / local cache
   const saveSingleMitra = async (record: MitraRecord) => {
-    // Validasi catatan wajib diisi minimal 10 karakter
+    // Validasi catatan wajib diisi minimal 10 karakter jika nilai diberikan
     const noteText = (record.catatan || '').trim();
-    if (noteText.length < 10) {
+    if (record.nilai !== null && record.nilai !== undefined && noteText.length < 10) {
       alert(`⚠️ Catatan kinerja wajib diisi minimal 10 karakter untuk mitra "${record.nama}"!\n\nSaat ini baru ${noteText.length} karakter. Silakan lengkapi catatan evaluasi kualitatif sebelum menyimpan.`);
       return;
     }
@@ -680,6 +741,13 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
       setSavingStatus(`Tersimpan lokal: ${record.nama} (${record.role})`);
     }
 
+    // Hapus dari daftar belum disimpan
+    setUnsavedKeys(prev => {
+      const next = new Set(prev);
+      next.delete(recordKey);
+      return next;
+    });
+
     // Update local cache v3
     localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(mitraList));
     setTimeout(() => setSavingStatus(null), 2500);
@@ -705,13 +773,12 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
   const saveAllInPj = async (pjName: string) => {
     const itemsInPj = mitraList.filter(m => m.pj === pjName);
     
-    // Validasi catatan minimal 10 karakter untuk mitra yang dinilai / memiliki catatan
+    // Validasi catatan minimal 10 karakter untuk mitra yang dinilai
     const evaluatedItems = itemsInPj.filter(m => m.nilai !== null && m.nilai !== undefined);
-    const targetsToCheck = evaluatedItems.length > 0 ? evaluatedItems : itemsInPj;
-    const invalidItems = targetsToCheck.filter(m => (m.catatan || '').trim().length < 10);
+    const invalidItems = evaluatedItems.filter(m => (m.catatan || '').trim().length < 10);
 
     if (invalidItems.length > 0) {
-      alert(`⚠️ Catatan kinerja wajib diisi minimal 10 karakter untuk seluruh mitra yang dinilai!\n\nTerdapat ${invalidItems.length} mitra dengan catatan kurang dari 10 karakter:\n${invalidItems.slice(0, 5).map(m => `• ${m.nama} (${(m.catatan || '').trim().length}/10 karakter)`).join('\n')}${invalidItems.length > 5 ? `\n...dan ${invalidItems.length - 5} mitra lainnya.` : ''}\n\nSilakan lengkapi catatan terlebih dahulu.`);
+      alert(`⚠️ Catatan kinerja wajib diisi minimal 10 karakter untuk seluruh mitra yang dinilai!\n\nTerdapat ${invalidItems.length} mitra dengan catatan kurang dari 10 karakter:\n${invalidItems.slice(0, 5).map(m => `• ${m.nama} (${(m.catatan || '').trim().length}/10 karakter)`).join('\n')}${invalidItems.length > 5 ? `\n...dan ${invalidItems.length - 5} mitra lainnya.` : ''}\n\nSilakan lengkapi catatan terlebih dahulu sebelum menyimpan.`);
       return;
     }
 
@@ -738,6 +805,13 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
       console.warn('Simpan massal offline ke cache:', e);
       setSavingStatus(`✅ Tersimpan lokal (${itemsInPj.length} data)`);
     }
+
+    // Bersihkan unsavedKeys untuk seluruh item di PJ ini
+    setUnsavedKeys(prev => {
+      const next = new Set(prev);
+      itemsInPj.forEach(m => next.delete(getRecordKey(m)));
+      return next;
+    });
 
     localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(mitraList));
     setTimeout(() => setSavingStatus(null), 3000);
@@ -1788,169 +1862,191 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                     </div>
                   </div>
 
-                  {/* Progres & Tombol Aksi PJ */}
-                  <div className="flex items-center gap-3 self-end sm:self-auto" onClick={(e) => e.stopPropagation()}>
-                    <div className="text-right hidden sm:block">
-                      <p className="text-xs font-bold text-slate-700">
-                        {evaluatedInPj} / {totalInPj} Dinilai
-                      </p>
-                      <div className="w-28 h-1.5 bg-slate-200 rounded-full mt-1 overflow-hidden">
-                        <div 
-                          className="h-full bg-emerald-500 rounded-full transition-all duration-300"
-                          style={{ width: `${pctInPj}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => saveAllInPj(pjName)}
-                      className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-xs transition-colors"
-                      title="Simpan Semua Nilai PJ Ini"
-                    >
-                      <Save className="w-3.5 h-3.5 text-primary-600" />
-                      <span className="hidden sm:inline">Simpan PJ</span>
-                    </button>
-
-                    <button
-                      onClick={() => setExpandedPjs(p => ({ ...p, [pjName]: !isExpanded }))}
-                      className="p-1.5 rounded-xl hover:bg-slate-200/60 text-slate-500"
-                    >
-                      {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* GRUP LEVEL 2: KECAMATAN */}
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="p-4 sm:p-5 space-y-5"
-                    >
-                      {Object.entries(kecMap).map(([kecName, mitras]) => (
-                        <div key={kecName} className="space-y-3">
-                          {/* Sub-Header Kecamatan */}
-                          <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
-                            <span className="w-2 h-2 rounded-full bg-primary-500"></span>
-                            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600">
-                              Kecamatan {kecName}
-                            </h4>
-                            <span className="text-[10px] text-slate-400 font-bold font-mono">
-                              ({mitras.length} Mitra)
-                            </span>
+                    {/* Progres & Tombol Aksi PJ */}
+                    {(() => {
+                      const hasUnsavedInPj = Object.values(kecMap).some(list => list.some(m => unsavedKeys.has(getRecordKey(m))));
+                      return (
+                        <div className="flex items-center gap-3 self-end sm:self-auto" onClick={(e) => e.stopPropagation()}>
+                          <div className="text-right hidden sm:block">
+                            <p className="text-xs font-bold text-slate-700">
+                              {evaluatedInPj} / {totalInPj} Dinilai
+                            </p>
+                            <div className="w-28 h-1.5 bg-slate-200 rounded-full mt-1 overflow-hidden">
+                              <div 
+                                className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                                style={{ width: `${pctInPj}%` }}
+                              ></div>
+                            </div>
                           </div>
 
-                          {/* LEVEL 3: TABEL DAFTAR MITRA */}
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-left text-xs">
-                              <thead>
-                                <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                                  <th className="py-2.5 px-3">Nama Mitra & Jabatan</th>
-                                  <th className="py-2.5 px-3 hidden lg:table-cell">Email</th>
-                                  <th className="py-2.5 px-3 w-32 text-center">Nilai (0–100 Bulat)</th>
-                                  <th className="py-2.5 px-3 w-40 text-center">Kategori Rekomendasi</th>
-                                  <th className="py-2.5 px-3 min-w-[260px]">Catatan Kinerja (Wajib, Min. 10 Karakter)</th>
-                                  <th className="py-2.5 px-3 w-20 text-center">Aksi</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100">
-                                {mitras.map((m) => {
-                                  const badge = getKategoriBadge(m.kategori);
-                                  const itemKey = getRecordKey(m);
-                                  const noteLength = (m.catatan || '').trim().length;
-                                  return (
-                                    <tr key={itemKey} className="hover:bg-slate-50/70 transition-colors group">
-                                      {/* Nama & Role */}
-                                      <td className="py-3 px-3">
-                                        <div className="flex items-center gap-2">
-                                          <p className="font-bold text-slate-900">{m.nama}</p>
-                                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                                            m.role === 'PML' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-600'
-                                          }`}>
-                                            {m.role}
+                          <button
+                            onClick={() => saveAllInPj(pjName)}
+                            className={`px-3 py-1.5 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer ${
+                              hasUnsavedInPj
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md ring-2 ring-emerald-300 animate-pulse'
+                                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                            }`}
+                            title="Simpan Semua Nilai PJ Ini ke Database"
+                          >
+                            <Save className={`w-3.5 h-3.5 ${hasUnsavedInPj ? 'text-white' : 'text-primary-600'}`} />
+                            <span className="hidden sm:inline">{hasUnsavedInPj ? 'Simpan PJ (Ada Perubahan)' : 'Simpan PJ'}</span>
+                          </button>
+
+                          <button
+                            onClick={() => setExpandedPjs(p => ({ ...p, [pjName]: !isExpanded }))}
+                            className="p-1.5 rounded-xl hover:bg-slate-200/60 text-slate-500"
+                          >
+                            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* GRUP LEVEL 2: KECAMATAN */}
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="p-4 sm:p-5 space-y-5"
+                      >
+                        {Object.entries(kecMap).map(([kecName, mitras]) => (
+                          <div key={kecName} className="space-y-3">
+                            {/* Sub-Header Kecamatan */}
+                            <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
+                              <span className="w-2 h-2 rounded-full bg-primary-500"></span>
+                              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600">
+                                Kecamatan {kecName}
+                              </h4>
+                              <span className="text-[10px] text-slate-400 font-bold font-mono">
+                                ({mitras.length} Mitra)
+                              </span>
+                            </div>
+
+                            {/* LEVEL 3: TABEL DAFTAR MITRA */}
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-left text-xs">
+                                <thead>
+                                  <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                    <th className="py-2.5 px-3">Nama Mitra & Jabatan</th>
+                                    <th className="py-2.5 px-3 hidden lg:table-cell">Email</th>
+                                    <th className="py-2.5 px-3 w-32 text-center">Nilai (0–100 Bulat)</th>
+                                    <th className="py-2.5 px-3 w-40 text-center">Kategori Rekomendasi</th>
+                                    <th className="py-2.5 px-3 min-w-[260px]">Catatan Kinerja (Wajib, Min. 10 Karakter)</th>
+                                    <th className="py-2.5 px-3 w-28 text-center">Aksi</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {mitras.map((m) => {
+                                    const badge = getKategoriBadge(m.kategori);
+                                    const itemKey = getRecordKey(m);
+                                    const noteLength = (m.catatan || '').trim().length;
+                                    const isUnsaved = unsavedKeys.has(itemKey);
+                                    return (
+                                      <tr key={itemKey} className={`hover:bg-slate-50/70 transition-colors group ${isUnsaved ? 'bg-amber-50/30' : ''}`}>
+                                        {/* Nama & Role */}
+                                        <td className="py-3 px-3">
+                                          <div className="flex items-center gap-2">
+                                            <p className="font-bold text-slate-900">{m.nama}</p>
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                              m.role === 'PML' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-600'
+                                            }`}>
+                                              {m.role}
+                                            </span>
+                                          </div>
+                                          <p className="text-[10px] text-slate-400 lg:hidden mt-0.5">{m.email}</p>
+                                        </td>
+
+                                        {/* Email */}
+                                        <td className="py-3 px-3 hidden lg:table-cell font-mono text-[11px] text-slate-500">
+                                          {m.email}
+                                        </td>
+
+                                        {/* Input Nilai Bulat */}
+                                        <td className="py-3 px-3 text-center">
+                                          <div className="inline-flex items-center justify-center">
+                                            <input
+                                              type="number"
+                                              step="1"
+                                              min="0"
+                                              max="100"
+                                              placeholder="—"
+                                              value={m.nilai !== null && m.nilai !== undefined ? m.nilai : ''}
+                                              onChange={(e) => handleScoreChange(itemKey, e.target.value)}
+                                              onKeyDown={(e) => {
+                                                // Mencegah karakter desimal (titik/koma)
+                                                if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E') {
+                                                  e.preventDefault();
+                                                }
+                                              }}
+                                              className={`w-20 px-2 py-1.5 text-center font-black text-sm rounded-xl border outline-none transition-all ${
+                                                m.nilai !== null
+                                                  ? 'bg-white border-primary-400 text-slate-900 shadow-xs focus:ring-2 focus:ring-primary-200'
+                                                  : 'bg-slate-50 border-slate-200 text-slate-400 focus:bg-white focus:border-primary-400'
+                                              }`}
+                                            />
+                                          </div>
+                                        </td>
+
+                                        {/* Kategori Badge */}
+                                        <td className="py-3 px-3 text-center">
+                                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border ${badge.bg}`}>
+                                            {badge.label}
                                           </span>
-                                        </div>
-                                        <p className="text-[10px] text-slate-400 lg:hidden mt-0.5">{m.email}</p>
-                                      </td>
+                                        </td>
 
-                                      {/* Email */}
-                                      <td className="py-3 px-3 hidden lg:table-cell font-mono text-[11px] text-slate-500">
-                                        {m.email}
-                                      </td>
+                                        {/* Kolom Catatan Penilaian (Kualitatif) */}
+                                        <td className="py-3 px-3">
+                                          <div className="space-y-1">
+                                            <div className="relative flex items-center">
+                                              <input
+                                                type="text"
+                                                placeholder="Tulis catatan evaluasi (Wajib, min. 10 karakter)..."
+                                                value={m.catatan || ''}
+                                                onChange={(e) => handleNoteChange(itemKey, e.target.value)}
+                                                className={`w-full bg-slate-50 hover:bg-white focus:bg-white border rounded-xl pl-3 pr-14 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 outline-none transition-all ${
+                                                  noteLength >= 10
+                                                    ? 'border-emerald-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                                                    : noteLength > 0
+                                                      ? 'border-amber-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
+                                                      : 'border-slate-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
+                                                }`}
+                                              />
+                                              <span className={`absolute right-2.5 text-[10px] font-mono font-bold select-none ${
+                                                noteLength >= 10 ? 'text-emerald-600 font-black' : noteLength > 0 ? 'text-amber-600' : 'text-slate-400'
+                                              }`}>
+                                                {noteLength}/10
+                                              </span>
+                                            </div>
+                                            {m.nilai !== null && noteLength < 10 && (
+                                              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 pl-1">
+                                                <span>⚠️ Wajib min. 10 karakter (kurang {10 - noteLength} lagi)</span>
+                                              </p>
+                                            )}
+                                          </div>
+                                        </td>
 
-                                      {/* Input Nilai Bulat */}
-                                      <td className="py-3 px-3 text-center">
-                                        <div className="inline-flex items-center justify-center">
-                                          <input
-                                            type="number"
-                                            step="1"
-                                            min="0"
-                                            max="100"
-                                            placeholder="—"
-                                            value={m.nilai !== null && m.nilai !== undefined ? m.nilai : ''}
-                                            onChange={(e) => handleScoreChange(itemKey, e.target.value)}
-                                            onKeyDown={(e) => {
-                                              // Mencegah karakter desimal (titik/koma)
-                                              if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E') {
-                                                e.preventDefault();
-                                              }
-                                            }}
-                                            className={`w-20 px-2 py-1.5 text-center font-black text-sm rounded-xl border outline-none transition-all ${
-                                              m.nilai !== null
-                                                ? 'bg-white border-primary-400 text-slate-900 shadow-xs focus:ring-2 focus:ring-primary-200'
-                                                : 'bg-slate-50 border-slate-200 text-slate-400 focus:bg-white focus:border-primary-400'
+                                        {/* Tombol Simpan Baris */}
+                                        <td className="py-3 px-3 text-center">
+                                          <button
+                                            onClick={() => saveSingleMitra(m)}
+                                            className={`rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 mx-auto ${
+                                              isUnsaved
+                                                ? 'bg-primary-600 hover:bg-primary-700 text-white font-bold shadow-sm ring-2 ring-primary-300 animate-pulse px-2.5 py-1.5 text-[11px]'
+                                                : 'p-1.5 bg-slate-100 hover:bg-primary-50 text-slate-500 hover:text-primary-600'
                                             }`}
-                                          />
-                                        </div>
-                                      </td>
-
-                                      {/* Kategori Badge */}
-                                      <td className="py-3 px-3 text-center">
-                                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border ${badge.bg}`}>
-                                          {badge.label}
-                                        </span>
-                                      </td>
-
-                                      {/* Kolom Catatan Penilaian (Kualitatif) */}
-                                      <td className="py-3 px-3">
-                                        <div className="relative flex items-center">
-                                          <input
-                                            type="text"
-                                            placeholder="Tulis catatan evaluasi (Wajib, min. 10 karakter)..."
-                                            value={m.catatan || ''}
-                                            onChange={(e) => handleNoteChange(itemKey, e.target.value)}
-                                            className={`w-full bg-slate-50 hover:bg-white focus:bg-white border rounded-xl pl-3 pr-14 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 outline-none transition-all ${
-                                              noteLength >= 10
-                                                ? 'border-emerald-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
-                                                : noteLength > 0
-                                                  ? 'border-amber-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
-                                                  : 'border-slate-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
-                                            }`}
-                                          />
-                                          <span className={`absolute right-2.5 text-[10px] font-mono font-bold select-none ${
-                                            noteLength >= 10 ? 'text-emerald-600 font-black' : noteLength > 0 ? 'text-amber-600' : 'text-slate-400'
-                                          }`}>
-                                            {noteLength}/10
-                                          </span>
-                                        </div>
-                                      </td>
-
-                                      {/* Tombol Simpan Baris */}
-                                      <td className="py-3 px-3 text-center">
-                                        <button
-                                          onClick={() => saveSingleMitra(m)}
-                                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-primary-50 text-slate-500 hover:text-primary-600 transition-colors cursor-pointer"
-                                          title="Simpan Penilaian & Catatan"
-                                        >
-                                          <Save className="w-3.5 h-3.5" />
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
+                                            title={isUnsaved ? 'Perubahan belum disimpan! Klik untuk simpan ke database' : 'Simpan Penilaian & Catatan'}
+                                          >
+                                            <Save className="w-3.5 h-3.5" />
+                                            {isUnsaved && <span>Simpan</span>}
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
                             </table>
                           </div>
                         </div>
