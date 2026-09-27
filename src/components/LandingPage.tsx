@@ -220,6 +220,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           </div>
         </div>
 
+        {/* Kategori: Pengolahan Data (Admin & Petugas Pengolahan) */}
+        {(user?.role === 'admin' || user?.role === 'petugas_pengolahan') && (
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-1.5 h-6 bg-cyan-600 rounded-full"></span>
+              <h2 className="text-lg font-black text-slate-800">
+                Pengolahan Data
+              </h2>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-cyan-100 text-cyan-800 uppercase tracking-wide border border-cyan-200">
+                SE2026
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <FeatureCard
+                title="Peta Responden SE2026"
+                description="Visualisasi sebaran koordinat 84.000+ responden SE2026 di Kabupaten Mempawah dengan overlay batas SLS, Desa, dan Kecamatan."
+                icon={MapPin}
+                iconColor="text-cyan-600"
+                bgColor="bg-cyan-50"
+                onClick={() => onNavigate('peta-responden-se2026')}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Kategori: Analisis dan Diseminasi */}
         <div>
           <h2 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">

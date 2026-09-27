@@ -111,6 +111,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       { id: 'identifikasi-sls', title: 'Identifikasi SLS', desc: 'Identifikasi dan verifikasi SLS di lapangan (Dalam pengembangan)', keywords: ['identifikasi', 'sls', 'verifikasi', 'persiapan'] },
       { id: 'penilaian-mitra', title: 'Penilaian Kinerja Mitra Statistik', desc: 'Sistem penilaian dan evaluasi mutu kinerja mitra lapangan (PML & PPL)', keywords: ['penilaian', 'kinerja', 'mitra', 'statistik', 'persiapan', 'se2026', 'ppl', 'pml'] }
     ] : []),
+    ...((user?.role === 'admin' || user?.role === 'petugas_pengolahan') ? [
+      { id: 'peta-responden-se2026', title: 'Peta Responden SE2026', desc: 'Visualisasi sebaran koordinat responden SE2026 di Kabupaten Mempawah dengan overlay batas SLS, Desa, dan Kecamatan', keywords: ['peta', 'responden', 'se2026', 'pengolahan', 'koordinat', 'rumah', 'sls', 'desa', 'mempawah', 'geospasial'] }
+    ] : []),
   ];
 
   const searchResults = searchIndex.filter(item => {
@@ -153,6 +156,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         { id: 'building-area', label: 'Pengukuran Luas Bangunan', icon: Ruler }
       ]
     },
+    ...((user?.role === 'admin' || user?.role === 'petugas_pengolahan') ? [{
+      title: 'PENGOLAHAN DATA',
+      items: [
+        { id: 'peta-responden-se2026', label: 'Peta Responden SE2026', icon: MapPin }
+      ]
+    }] : []),
     {
       title: 'ANALISIS DAN DISEMINASI',
       items: [
@@ -659,31 +668,40 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         </nav>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto bg-slate-50/40 custom-scrollbar">
-          <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        <main className={`flex-1 overflow-y-auto bg-slate-50/40 custom-scrollbar ${
+          currentPage === 'peta-responden-se2026' || currentPage === 'admin-sls' ? 'flex flex-col h-full' : ''
+        }`}>
+          <div className={
+            currentPage === 'peta-responden-se2026' || currentPage === 'admin-sls'
+              ? 'w-full h-full p-2 sm:p-3 flex flex-col flex-1'
+              : 'w-full px-4 sm:px-6 lg:px-8 py-6'
+          }>
             <motion.div
               key={currentPage}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
+              className={currentPage === 'peta-responden-se2026' || currentPage === 'admin-sls' ? 'h-full flex flex-col flex-1' : ''}
             >
               {children}
             </motion.div>
           </div>
           
-          <footer className="py-12 border-t border-slate-200/60 bg-white/70 mt-auto">
-            <div className="w-full px-6 text-center space-y-3">
-              <div className="flex items-center justify-center gap-2 text-slate-300">
-                <div className="h-px w-8 bg-slate-200" />
-                <img src="/logo.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                }} />
-                <div className="h-px w-8 bg-slate-200" />
+          {currentPage !== 'peta-responden-se2026' && currentPage !== 'admin-sls' && (
+            <footer className="py-12 border-t border-slate-200/60 bg-white/70 mt-auto">
+              <div className="w-full px-6 text-center space-y-3">
+                <div className="flex items-center justify-center gap-2 text-slate-300">
+                  <div className="h-px w-8 bg-slate-200" />
+                  <img src="/logo.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                  }} />
+                  <div className="h-px w-8 bg-slate-200" />
+                </div>
+                <p className="text-slate-400 text-xs font-medium">© 2026 Garda Data - Platform Terpadu Menjaga Kualitas Data.</p>
+                <p className="text-xs font-bold text-primary-600">Created by Tim Sosial BPS Kabupaten Mempawah</p>
               </div>
-              <p className="text-slate-400 text-xs font-medium">© 2026 Garda Data - Platform Terpadu Menjaga Kualitas Data.</p>
-              <p className="text-xs font-bold text-primary-600">Created by Tim Sosial BPS Kabupaten Mempawah</p>
-            </div>
-          </footer>
+            </footer>
+          )}
         </main>
       </div>
 

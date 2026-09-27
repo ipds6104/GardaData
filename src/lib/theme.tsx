@@ -17,6 +17,18 @@ export interface PresetInfo {
 
 export const PRESET_LIST: PresetInfo[] = [
   {
+    id: 'persik',
+    name: 'Persik JosJiz',
+    description: 'Tema Bawaan (Default) - Kombinasi trendy modern electric violet lilac dengan sentuhan peach coral khas JosJiz',
+    font: 'Plus Jakarta Sans',
+    colors: {
+      primary: '#8b5cf6',
+      secondary: '#f43f5e',
+      accent: '#a855f7',
+      bg: '#faf7ff'
+    }
+  },
+  {
     id: 'original',
     name: 'Original',
     description: 'Desain orisinil Garda Data dengan nuansa warm orange & terracotta klasik',
@@ -74,18 +86,6 @@ export const PRESET_LIST: PresetInfo[] = [
       secondary: '#f43f5e',
       accent: '#f472b6',
       bg: '#fff5f7'
-    }
-  },
-  {
-    id: 'persik',
-    name: 'Persik JosJiz',
-    description: 'Kombinasi trendy modern electric violet lilac dengan sentuhan peach coral',
-    font: 'Plus Jakarta Sans',
-    colors: {
-      primary: '#8b5cf6',
-      secondary: '#f43f5e',
-      accent: '#a855f7',
-      bg: '#faf7ff'
     }
   }
 ];

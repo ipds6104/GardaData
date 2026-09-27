@@ -26,7 +26,7 @@ const initDb = async () => {
                 username VARCHAR(50) NOT NULL UNIQUE,
                 password_hash VARCHAR(255) NOT NULL,
                 name VARCHAR(100) NOT NULL,
-                role ENUM('admin', 'petugas') NOT NULL DEFAULT 'petugas',
+                role ENUM('admin', 'petugas', 'petugas_pengolahan', 'pengunjung') NOT NULL DEFAULT 'petugas',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -98,6 +98,17 @@ const initDb = async () => {
                 ['user_petugas', 'petugas', hashedPassword, 'Petugas BPS', 'petugas']
             );
             console.log('Default petugas seeded (username: petugas, password: petugas6104)');
+        }
+
+        const [pengolahanRows] = await pool.query('SELECT * FROM users WHERE username = ?', ['petugas.pengolahan@josjis.com']);
+        if (pengolahanRows.length === 0) {
+            console.log('Seeding default petugas pengolahan into users table...');
+            const hashedPassword = await bcrypt.hash('petugas.pengolahan', salt);
+            await pool.query(
+                'INSERT INTO users (id, username, password_hash, name, role) VALUES (?, ?, ?, ?, ?)',
+                ['user_pengolahan', 'petugas.pengolahan@josjis.com', hashedPassword, 'Petugas Pengolahan BPS', 'petugas_pengolahan']
+            );
+            console.log('Default petugas pengolahan seeded (username: petugas.pengolahan@josjis.com, password: petugas.pengolahan)');
         }
         
         console.log('✔ MySQL Database and Tables initialized successfully');

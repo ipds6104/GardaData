@@ -98,6 +98,7 @@ const socialRouter = require('./routes/social');
 const classificationRouter = require('./routes/classification');
 const slsRouter = require('./routes/sls');
 const mitraRouter = require('./routes/mitra');
+const pengolahanRouter = require('./routes/pengolahan');
 app.use('/api/measurements', measurementsRouter);
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api/lms', lmsRouter);
@@ -108,6 +109,7 @@ app.use('/api/social', socialRouter);
 app.use('/api/classification', classificationRouter);
 app.use('/api/sls', slsRouter);
 app.use('/api/mitra', mitraRouter);
+app.use('/api/pengolahan', pengolahanRouter);
 
 // Root route for API verification (optional, can be removed)
 app.get('/api/status', (req, res) => {

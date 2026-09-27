@@ -65,7 +65,7 @@ export const ThemeSelector: React.FC = () => {
             className="fixed top-[88px] left-4 right-4 sm:absolute sm:top-full sm:left-auto sm:right-0 sm:mt-3 sm:w-96 bg-white rounded-3xl border border-slate-200 shadow-2xl shadow-slate-900/10 p-5 z-[100] overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-primary-50 rounded-xl text-primary-600">
                   <Sparkles className="w-4 h-4" />
@@ -77,14 +77,25 @@ export const ThemeSelector: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            {/* Default Theme Notice Info Box */}
+            <div className="mb-3 px-3 py-2 bg-violet-50/90 border border-violet-100 rounded-2xl flex items-center justify-between text-[11px] text-violet-900 shadow-2xs">
+              <span className="flex items-center gap-1.5 font-bold">
+                <Sparkles className="w-3.5 h-3.5 text-violet-600" />
+                Tema Default Aplikasi:
+              </span>
+              <span className="font-extrabold bg-violet-200/80 text-violet-800 px-2.5 py-0.5 rounded-lg border border-violet-300/60">
+                Persik JosJiz
+              </span>
+            </div>
+
             {/* Presets List */}
-            <div className="space-y-2.5 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
+            <div className="space-y-2.5 max-h-[65vh] overflow-y-auto pr-1 custom-scrollbar">
               {PRESET_LIST.map((item) => {
                 const isSelected = preset === item.id;
                 return (
@@ -95,19 +106,19 @@ export const ThemeSelector: React.FC = () => {
                       setPreset(item.id);
                       setIsOpen(false);
                     }}
-                    className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-start justify-between gap-3 group ${
+                    className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-start justify-between gap-3 group cursor-pointer ${
                       isSelected
                         ? 'bg-primary-50/50 border-primary-500 ring-2 ring-primary-200 shadow-sm'
                         : 'bg-white hover:bg-slate-50 border-slate-200/80 hover:border-slate-300'
                     }`}
                   >
                     <div className="space-y-1.5 min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className={`text-sm font-black tracking-tight ${isSelected ? 'text-primary-700' : 'text-slate-800'}`}>
                           {item.name}
                         </span>
-                        {item.id === 'original' && (
-                          <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">
+                        {item.id === 'persik' && (
+                          <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-violet-100 text-violet-800 border border-violet-200 rounded-md">
                             Default
                           </span>
                         )}

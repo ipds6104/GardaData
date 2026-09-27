@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type UserRole = 'admin' | 'petugas' | 'pengunjung' | null;
+type UserRole = 'admin' | 'petugas' | 'petugas_pengolahan' | 'pengunjung' | null;
 
 interface AuthContextType {
   user: { username: string; role: UserRole; name?: string } | null;
@@ -61,6 +61,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } else if (username === 'petugas' && password === 'petugas6104') {
       const newUser = { username: 'petugas', role: 'petugas' as UserRole, name: 'Petugas BPS' };
+      setUser(newUser);
+      localStorage.setItem('navigasi_user', JSON.stringify(newUser));
+      return true;
+    } else if (username === 'petugas.pengolahan@josjis.com' && password === 'petugas.pengolahan') {
+      const newUser = { username: 'petugas.pengolahan@josjis.com', role: 'petugas_pengolahan' as UserRole, name: 'Petugas Pengolahan BPS' };
       setUser(newUser);
       localStorage.setItem('navigasi_user', JSON.stringify(newUser));
       return true;

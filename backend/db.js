@@ -208,13 +208,18 @@ async function initDB() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(100) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        role ENUM('admin','petugas','pengunjung') DEFAULT 'petugas',
+        role ENUM('admin','petugas','petugas_pengolahan','pengunjung') DEFAULT 'petugas',
         name VARCHAR(255),
         kecamatan VARCHAR(255),
         desa VARCHAR(255),
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Auto-migrate: alter ENUM if necessary
+    try {
+      await connection.query(`ALTER TABLE users MODIFY COLUMN role ENUM('admin','petugas','petugas_pengolahan','pengunjung') DEFAULT 'petugas'`);
+    } catch(e) { /* ignore */ }
 
     // Auto-migrate: tambahkan kolom kecamatan/desa ke users jika belum ada
     try {
