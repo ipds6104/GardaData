@@ -29,7 +29,7 @@ app.use(helmet({
         "https://server.arcgisonline.com",
         "https://cdnjs.cloudflare.com"
       ],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://apis.google.com", "https://accounts.google.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://apis.google.com", "https://accounts.google.com", "https://*.googleapis.com"],
       scriptSrcElem: ["'self'", "'unsafe-inline'", "https://apis.google.com", "https://accounts.google.com", "https://*.googleapis.com"],
       connectSrc: [
         "'self'", 
