@@ -605,6 +605,88 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     setViewMode('form_entry');
   };
 
+  // State for Watermark Warnings on Uploaded Photos
+  const [watermarkWarnings, setWatermarkWarnings] = useState<Record<string, string>>({});
+
+  // Helper to Detect Third-Party Watermark / Timestamp on Uploaded Photos
+  const checkImageForWatermark = (file: File, base64Url: string): Promise<{ hasWatermark: boolean; reason?: string }> => {
+    return new Promise((resolve) => {
+      // 1. Check file name keywords (common in third party camera apps)
+      const lowerName = (file.name || '').toLowerCase();
+      if (
+        lowerName.includes('timestamp') ||
+        lowerName.includes('gps') ||
+        lowerName.includes('watermark') ||
+        lowerName.includes('notecam') ||
+        lowerName.includes('surveycam') ||
+        lowerName.includes('stamp') ||
+        lowerName.includes('geotag')
+      ) {
+        resolve({ 
+          hasWatermark: true, 
+          reason: 'Nama berkas terdeteksi dari aplikasi kamera watermark/timestamp eksternal.' 
+        });
+        return;
+      }
+
+      // 2. Visual Canvas Inspection on bottom/corner banner area (where GPS camera apps burn dark text strips)
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const sampleW = 320;
+          const sampleH = Math.max(100, Math.round((img.height * sampleW) / img.width));
+          canvas.width = sampleW;
+          canvas.height = sampleH;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve({ hasWatermark: false });
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, sampleW, sampleH);
+
+          // Check bottom 14% banner zone
+          const bannerY = Math.round(sampleH * 0.86);
+          const bannerH = sampleH - bannerY;
+          const imgData = ctx.getImageData(0, bannerY, sampleW, bannerH).data;
+
+          let darkCount = 0;
+          let brightCount = 0;
+          const totalSamplePixels = sampleW * bannerH;
+
+          for (let i = 0; i < imgData.length; i += 4) {
+            const r = imgData[i];
+            const g = imgData[i + 1];
+            const b = imgData[i + 2];
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+            if (lum < 40) darkCount++;
+            if (lum > 215) brightCount++;
+          }
+
+          const darkRatio = darkCount / totalSamplePixels;
+          const brightRatio = brightCount / totalSamplePixels;
+
+          // Watermark banner typically has high dark background and crisp bright text
+          if ((darkRatio > 0.40 && brightRatio > 0.04) || darkRatio > 0.70) {
+            resolve({ 
+              hasWatermark: true, 
+              reason: 'Pola bilah watermark/timestamp terdeteksi di bagian bawah foto.' 
+            });
+            return;
+          }
+
+          resolve({ hasWatermark: false });
+        } catch (err) {
+          resolve({ hasWatermark: false });
+        }
+      };
+      img.onerror = () => resolve({ hasWatermark: false });
+      img.src = base64Url;
+    });
+  };
+
   // Save Record
   const handleSaveRecord = async (targetStatus: 'draft' | 'submitted') => {
     if (!currentForm || !editingRecord) return;
@@ -631,6 +713,84 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
 
       if (missing.length > 0) {
         alert(`Lengkapi isian wajib berikut:\n• ${missing.map((f: any) => f.label).join('\n• ')}`);
+        return;
+      }
+    }
+
+    // Validate Custom Field Rules (Number, Date, Time, Image)
+    if (targetStatus === 'submitted' && currentForm.fields) {
+      const validationErrors: string[] = [];
+      currentForm.fields.forEach((f: any) => {
+        const val = formData[f.columnName];
+        if (val === undefined || val === null || String(val).trim() === '') return;
+        const vRule = f.validation;
+        if (!vRule || !vRule.operator || vRule.operator === 'none') return;
+
+        const label = f.label || f.columnName;
+        const dt = String(f.dataType || f.type || '').toLowerCase();
+
+        if (dt === 'number' || dt === 'angka') {
+          const numVal = parseFloat(String(val));
+          if (isNaN(numVal)) {
+            validationErrors.push(`${label}: Nilai harus berupa angka valid`);
+          } else if (vRule.operator === 'range') {
+            const min = parseFloat(vRule.min);
+            const max = parseFloat(vRule.max);
+            if (!isNaN(min) && numVal < min) validationErrors.push(`${label}: Nilai (${numVal}) kurang dari batas minimum (${min})`);
+            if (!isNaN(max) && numVal > max) validationErrors.push(`${label}: Nilai (${numVal}) melebihi batas maksimum (${max})`);
+          } else if (vRule.operator === '>=') {
+            const threshold = parseFloat(vRule.value);
+            if (!isNaN(threshold) && numVal < threshold) validationErrors.push(`${label}: Nilai harus >= ${threshold}`);
+          } else if (vRule.operator === '<=') {
+            const threshold = parseFloat(vRule.value);
+            if (!isNaN(threshold) && numVal > threshold) validationErrors.push(`${label}: Nilai harus <= ${threshold}`);
+          } else if (vRule.operator === '>') {
+            const threshold = parseFloat(vRule.value);
+            if (!isNaN(threshold) && numVal <= threshold) validationErrors.push(`${label}: Nilai harus > ${threshold}`);
+          } else if (vRule.operator === '<') {
+            const threshold = parseFloat(vRule.value);
+            if (!isNaN(threshold) && numVal >= threshold) validationErrors.push(`${label}: Nilai harus < ${threshold}`);
+          } else if (vRule.operator === '==') {
+            const threshold = parseFloat(vRule.value);
+            if (!isNaN(threshold) && numVal !== threshold) validationErrors.push(`${label}: Nilai harus sama dengan ${threshold}`);
+          }
+        } else if (dt === 'date' || dt === 'tanggal') {
+          const strVal = String(val);
+          if (vRule.operator === 'range') {
+            if (vRule.min && strVal < vRule.min) validationErrors.push(`${label}: Tanggal tidak boleh sebelum ${vRule.min}`);
+            if (vRule.max && strVal > vRule.max) validationErrors.push(`${label}: Tanggal tidak boleh setelah ${vRule.max}`);
+          } else if (vRule.operator === '>=' && vRule.value && strVal < vRule.value) {
+            validationErrors.push(`${label}: Tanggal minimal ${vRule.value}`);
+          } else if (vRule.operator === '<=' && vRule.value && strVal > vRule.value) {
+            validationErrors.push(`${label}: Tanggal maksimal ${vRule.value}`);
+          } else if (vRule.operator === '>' && vRule.value && strVal <= vRule.value) {
+            validationErrors.push(`${label}: Tanggal harus setelah ${vRule.value}`);
+          } else if (vRule.operator === '<' && vRule.value && strVal >= vRule.value) {
+            validationErrors.push(`${label}: Tanggal harus sebelum ${vRule.value}`);
+          } else if (vRule.operator === '==' && vRule.value && strVal !== vRule.value) {
+            validationErrors.push(`${label}: Tanggal harus ${vRule.value}`);
+          }
+        } else if (dt === 'time' || dt === 'jam') {
+          const strVal = String(val);
+          if (vRule.operator === 'range') {
+            if (vRule.min && strVal < vRule.min) validationErrors.push(`${label}: Jam tidak boleh sebelum ${vRule.min}`);
+            if (vRule.max && strVal > vRule.max) validationErrors.push(`${label}: Jam tidak boleh setelah ${vRule.max}`);
+          } else if (vRule.operator === '>=' && vRule.value && strVal < vRule.value) {
+            validationErrors.push(`${label}: Jam paling awal adalah ${vRule.value}`);
+          } else if (vRule.operator === '<=' && vRule.value && strVal > vRule.value) {
+            validationErrors.push(`${label}: Jam paling akhir adalah ${vRule.value}`);
+          } else if (vRule.operator === '>' && vRule.value && strVal <= vRule.value) {
+            validationErrors.push(`${label}: Jam harus setelah ${vRule.value}`);
+          } else if (vRule.operator === '<' && vRule.value && strVal >= vRule.value) {
+            validationErrors.push(`${label}: Jam harus sebelum ${vRule.value}`);
+          } else if (vRule.operator === '==' && vRule.value && strVal !== vRule.value) {
+            validationErrors.push(`${label}: Jam harus ${vRule.value}`);
+          }
+        }
+      });
+
+      if (validationErrors.length > 0) {
+        alert(`Perbaiki isian berikut sebelum mengirim laporan:\n• ${validationErrors.join('\n• ')}`);
         return;
       }
     }
@@ -1471,38 +1631,96 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
-                                onChange={(e) => {
+                                onChange={async (e) => {
                                   const file = e.target.files?.[0];
                                   if (!file) return;
-                                  const reader = new FileReader();
-                                  reader.onload = () => {
-                                    setFormData(prev => ({ ...prev, [field.columnName]: reader.result as string }));
-                                  };
-                                  reader.readAsDataURL(file);
+                                  try {
+                                    setIsUploading(true);
+                                    const reader = new FileReader();
+                                    reader.onload = async () => {
+                                      const base64 = reader.result as string;
+                                      setFormData(prev => ({ ...prev, [field.columnName]: base64 }));
+
+                                      // Deteksi watermark jika konfigurasi laporan aktif
+                                      const repSt = selectedActivity?.settings?.reportSettings;
+                                      const isReportActive = repSt?.enableOfficialReport;
+                                      const shouldDetect = repSt?.detectWatermark !== false;
+
+                                      if (isReportActive && shouldDetect) {
+                                        const res = await checkImageForWatermark(file, base64);
+                                        if (res.hasWatermark) {
+                                          setWatermarkWarnings(prev => ({
+                                            ...prev,
+                                            [field.columnName]: 'Foto ini terdeteksi memiliki geotagging atau timestamp. Mohon unggah foto asli yang tidak ada geotagging atau timestamp. Geotagging dan timestamp resmi akan otomatis diambil dari isian Tanggal, Lokasi, dan Jam pada e-form.'
+                                          }));
+                                        } else {
+                                          setWatermarkWarnings(prev => {
+                                            const next = { ...prev };
+                                            delete next[field.columnName];
+                                            return next;
+                                          });
+                                        }
+                                      }
+                                    };
+                                    reader.readAsDataURL(file);
+                                  } catch (imgErr) {
+                                    console.error('Error handling photo upload:', imgErr);
+                                  } finally {
+                                    setIsUploading(false);
+                                  }
                                 }}
                               />
                             </label>
                           )}
 
+                          {/* WARNING JIKA TERDETEKSI WATERMARK / TIMESTAMP */}
+                          {watermarkWarnings[field.columnName] && (
+                            <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2.5">
+                              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                              <div className="space-y-1">
+                                <span className="font-bold block">Peringatan Integritas Foto</span>
+                                <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
+                                  {watermarkWarnings[field.columnName]}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
                           {val && typeof val === 'string' && (val.startsWith('data:image') || val.startsWith('http') || val.startsWith('blob:') || val.startsWith('/')) ? (
-                            <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 h-36 bg-slate-100 dark:bg-slate-800">
-                              <img 
-                                src={val} 
-                                alt="Dokumentasi Foto" 
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLElement).style.display = 'none';
-                                }} 
-                              />
-                              {!isFieldReadOnly && (
-                                <button
-                                  type="button"
-                                  onClick={() => setFormData(prev => ({ ...prev, [field.columnName]: '' }))}
-                                  className="absolute top-2 right-2 p-1.5 bg-slate-900/80 text-white rounded-xl hover:bg-rose-600 cursor-pointer shadow-md transition-colors"
-                                  title="Hapus Foto"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
+                            <div className="space-y-1.5">
+                              <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 h-36 bg-slate-100 dark:bg-slate-800">
+                                <img 
+                                  src={val} 
+                                  alt="Dokumentasi Foto" 
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }} 
+                                />
+                                {!isFieldReadOnly && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setFormData(prev => ({ ...prev, [field.columnName]: '' }));
+                                      setWatermarkWarnings(prev => {
+                                        const next = { ...prev };
+                                        delete next[field.columnName];
+                                        return next;
+                                      });
+                                    }}
+                                    className="absolute top-2 right-2 p-1.5 bg-slate-900/80 text-white rounded-xl hover:bg-rose-600 cursor-pointer shadow-md transition-colors"
+                                    title="Hapus Foto"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+
+                              {!watermarkWarnings[field.columnName] && selectedActivity?.settings?.reportSettings?.enableOfficialReport && (
+                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium inline-flex items-center gap-1">
+                                  <Check className="w-3 h-3" />
+                                  <span>Foto bersih: Geotagging &amp; timestamp laporan diambil dari isian form</span>
+                                </span>
                               )}
                             </div>
                           ) : val && typeof val === 'string' && val.trim() !== '' && !val.startsWith('data:') && !val.startsWith('http') ? (

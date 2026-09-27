@@ -270,6 +270,24 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     requirePhoto: false
   });
 
+  const [reportSettings, setReportSettings] = useState<{
+    enableOfficialReport: boolean;
+    targetFormId: string;
+    dateColumn: string;
+    timeColumn: string;
+    gpsColumn: string;
+    photoColumn: string;
+    detectWatermark: boolean;
+  }>({
+    enableOfficialReport: false,
+    targetFormId: '',
+    dateColumn: '',
+    timeColumn: '',
+    gpsColumn: '',
+    photoColumn: '',
+    detectWatermark: true
+  });
+
   // Simulator Toggle
   const [showRightSimulator, setShowRightSimulator] = useState<boolean>(true);
   const [simulatorKey, setSimulatorKey] = useState<number>(0);
@@ -402,6 +420,16 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         requireGPS: st.requireGPS !== undefined ? st.requireGPS : false,
         requirePhoto: st.requirePhoto || false
       }));
+      const rep = st.reportSettings || {};
+      setReportSettings({
+        enableOfficialReport: rep.enableOfficialReport ?? false,
+        targetFormId: rep.targetFormId || '',
+        dateColumn: rep.dateColumn || '',
+        timeColumn: rep.timeColumn || '',
+        gpsColumn: rep.gpsColumn || '',
+        photoColumn: rep.photoColumn || '',
+        detectWatermark: rep.detectWatermark ?? true
+      });
     }
   }, [selectedActivity?.id]);
 
@@ -2006,7 +2034,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                         <th className="sticky top-0 z-30 py-3 px-2 text-center w-14 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs" title="Judul kartu sampel">LABEL?</th>
                         <th className="sticky top-0 z-30 py-3 px-2 text-center w-14 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs" title="Wajib diisi petugas">REQ?</th>
                         <th className="sticky top-0 z-30 py-3 px-2 text-center w-14 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs" title="Bisa diedit petugas di lapangan">EDIT?</th>
-                        <th className="sticky top-0 z-30 py-3 px-3 min-w-[200px] bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">OPTIONS / FORMULA</th>
+                        <th className="sticky top-0 z-30 py-3 px-3 min-w-[280px] bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">OPTIONS / VALIDASI</th>
                         <th className="sticky top-0 z-30 py-3 px-2 text-center w-10 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs"></th>
                       </tr>
                     </thead>
@@ -2088,9 +2116,162 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                   }}
                                   className="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary-300 placeholder-slate-400"
                                 />
+                              ) : field.dataType === 'Number' ? (
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <CustomDropdown
+                                    size="sm"
+                                    value={field.validation?.operator || 'none'}
+                                    options={[
+                                      { value: 'none', label: 'Tanpa Batas' },
+                                      { value: 'range', label: 'Rentang (Min - Max)' },
+                                      { value: '>=', label: '>= (Minimal)' },
+                                      { value: '<=', label: '<= (Maksimal)' },
+                                      { value: '>', label: '> (Lebih Dari)' },
+                                      { value: '<', label: '< (Kurang Dari)' },
+                                      { value: '==', label: '== (Sama Dengan)' }
+                                    ]}
+                                    onChange={(op) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), operator: op })}
+                                    className="w-36"
+                                  />
+
+                                  {field.validation?.operator === 'range' ? (
+                                    <div className="flex items-center gap-1">
+                                      <input
+                                        type="number"
+                                        placeholder="Min"
+                                        value={field.validation?.min ?? ''}
+                                        onChange={(e) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), min: e.target.value })}
+                                        className="w-16 px-1.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-200 outline-none"
+                                      />
+                                      <span className="text-slate-400 text-xs font-bold">-</span>
+                                      <input
+                                        type="number"
+                                        placeholder="Max"
+                                        value={field.validation?.max ?? ''}
+                                        onChange={(e) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), max: e.target.value })}
+                                        className="w-16 px-1.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-200 outline-none"
+                                      />
+                                    </div>
+                                  ) : field.validation?.operator && field.validation?.operator !== 'none' ? (
+                                    <input
+                                      type="number"
+                                      placeholder="Nilai Patokan"
+                                      value={field.validation?.value ?? ''}
+                                      onChange={(e) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), value: e.target.value })}
+                                      className="w-24 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-200 outline-none"
+                                    />
+                                  ) : null}
+                                </div>
+                              ) : field.dataType === 'Date' ? (
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <CustomDropdown
+                                    size="sm"
+                                    value={field.validation?.operator || 'none'}
+                                    options={[
+                                      { value: 'none', label: 'Bebas' },
+                                      { value: 'range', label: 'Rentang Tanggal' },
+                                      { value: '>=', label: '>= (Mulai Dari)' },
+                                      { value: '<=', label: '<= (Sampai)' },
+                                      { value: '>', label: '> (Setelah)' },
+                                      { value: '<', label: '< (Sebelum)' },
+                                      { value: '==', label: '== (Tepat)' }
+                                    ]}
+                                    onChange={(op) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), operator: op })}
+                                    className="w-36"
+                                  />
+
+                                  {field.validation?.operator === 'range' ? (
+                                    <div className="flex items-center gap-1">
+                                      <input
+                                        type="date"
+                                        value={field.validation?.min ?? ''}
+                                        onChange={(e) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), min: e.target.value })}
+                                        className="px-1.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] text-slate-700 dark:text-slate-200 outline-none"
+                                      />
+                                      <span className="text-slate-400 text-xs font-bold">-</span>
+                                      <input
+                                        type="date"
+                                        value={field.validation?.max ?? ''}
+                                        onChange={(e) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), max: e.target.value })}
+                                        className="px-1.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] text-slate-700 dark:text-slate-200 outline-none"
+                                      />
+                                    </div>
+                                  ) : field.validation?.operator && field.validation?.operator !== 'none' ? (
+                                    <input
+                                      type="date"
+                                      value={field.validation?.value ?? ''}
+                                      onChange={(e) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), value: e.target.value })}
+                                      className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] text-slate-700 dark:text-slate-200 outline-none"
+                                    />
+                                  ) : null}
+                                </div>
+                              ) : field.dataType === 'Time' ? (
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <CustomDropdown
+                                    size="sm"
+                                    value={field.validation?.operator || 'none'}
+                                    options={[
+                                      { value: 'none', label: 'Bebas' },
+                                      { value: 'range', label: 'Rentang Jam' },
+                                      { value: '>=', label: '>= (Paling Awal)' },
+                                      { value: '<=', label: '<= (Paling Akhir)' },
+                                      { value: '>', label: '> (Setelah Jam)' },
+                                      { value: '<', label: '< (Sebelum Jam)' },
+                                      { value: '==', label: '== (Tepat Jam)' }
+                                    ]}
+                                    onChange={(op) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), operator: op })}
+                                    className="w-36"
+                                  />
+
+                                  {field.validation?.operator === 'range' ? (
+                                    <div className="flex items-center gap-1">
+                                      <input
+                                        type="time"
+                                        value={field.validation?.min ?? ''}
+                                        onChange={(e) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), min: e.target.value })}
+                                        className="px-1.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] text-slate-700 dark:text-slate-200 outline-none"
+                                      />
+                                      <span className="text-slate-400 text-xs font-bold">-</span>
+                                      <input
+                                        type="time"
+                                        value={field.validation?.max ?? ''}
+                                        onChange={(e) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), max: e.target.value })}
+                                        className="px-1.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] text-slate-700 dark:text-slate-200 outline-none"
+                                      />
+                                    </div>
+                                  ) : field.validation?.operator && field.validation?.operator !== 'none' ? (
+                                    <input
+                                      type="time"
+                                      value={field.validation?.value ?? ''}
+                                      onChange={(e) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), value: e.target.value })}
+                                      className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] text-slate-700 dark:text-slate-200 outline-none"
+                                    />
+                                  ) : null}
+                                </div>
+                              ) : field.dataType === 'Image' ? (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <label className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+                                    <input
+                                      type="checkbox"
+                                      checked={field.validation?.requireGeotag ?? true}
+                                      onChange={(e) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), requireGeotag: e.target.checked })}
+                                      className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-400 cursor-pointer"
+                                    />
+                                    <span>Mark Geotag</span>
+                                  </label>
+                                  <label className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+                                    <input
+                                      type="checkbox"
+                                      checked={field.validation?.requireTimestamp ?? true}
+                                      onChange={(e) => handleUpdateColumnRow(idx, 'validation', { ...(field.validation || {}), requireTimestamp: e.target.checked })}
+                                      className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-400 cursor-pointer"
+                                    />
+                                    <span>Timestamp</span>
+                                  </label>
+                                </div>
                               ) : (
                                 <span className="text-[11px] text-slate-400 italic">
-                                  {field.dataType === 'LatLong' ? 'Geotagging GPS' : field.dataType === 'Image' ? 'Upload Kamera' : '-'}
+                                  {field.dataType === 'LatLong' ? 'Geotagging GPS' : '-'}
                                 </span>
                               )}
                             </td>
@@ -2618,6 +2799,272 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                   <Power className="w-4 h-4" />
                   <span>{selectedActivity?.isOpen ? 'Aplikasi Dibuka untuk Seluruh Petugas' : 'Aplikasi Ditutup Sementara (Maintenance)'}</span>
                 </button>
+              </div>
+
+              {/* CARD: KONFIGURASI PEMBUATAN LAPORAN RESMI & INTEGRITAS FOTO */}
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                        Konfigurasi Pembuatan Laporan Resmi Dinas
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Atur form target untuk mencetak berkas laporan per PPL dan integritas foto lapangan.
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reportSettings.enableOfficialReport}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        const defaultTargetForm = reportSettings.targetFormId || (forms[0]?.id || '');
+                        const targetF = forms.find(f => f.id === defaultTargetForm) || forms[0];
+                        const tFields = targetF?.fields || [];
+                        const dCol = tFields.find((f: any) => String(f.dataType || f.type).toLowerCase() === 'date')?.columnName || '';
+                        const tCol = tFields.find((f: any) => String(f.dataType || f.type).toLowerCase() === 'time')?.columnName || '';
+                        const gCol = tFields.find((f: any) => ['latlong', 'gps', 'lokasi'].includes(String(f.dataType || f.type).toLowerCase()))?.columnName || '';
+                        const pCol = tFields.find((f: any) => ['image', 'foto'].includes(String(f.dataType || f.type).toLowerCase()))?.columnName || '';
+
+                        const updated = {
+                          ...reportSettings,
+                          enableOfficialReport: enabled,
+                          targetFormId: defaultTargetForm,
+                          dateColumn: reportSettings.dateColumn || dCol,
+                          timeColumn: reportSettings.timeColumn || tCol,
+                          gpsColumn: reportSettings.gpsColumn || gCol,
+                          photoColumn: reportSettings.photoColumn || pCol
+                        };
+                        setReportSettings(updated);
+                        if (selectedActivity?.id) {
+                          const updatedAct = {
+                            ...selectedActivity,
+                            settings: { ...(selectedActivity.settings || {}), reportSettings: updated }
+                          };
+                          setSelectedActivity(updatedAct);
+                          localStorage.setItem(`garda_report_settings_${selectedActivity.id}`, JSON.stringify(updated));
+                        }
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {!reportSettings.enableOfficialReport ? (
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-slate-500 text-xs flex items-center gap-2">
+                    <Info className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>Fitur pembuatan laporan dinas non-aktif untuk kegiatan ini. Aturan deteksi watermark foto dinonaktifkan.</span>
+                  </div>
+                ) : (
+                  <div className="bg-indigo-50/40 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 p-4 space-y-3.5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Formulir Wadah Laporan
+                      </label>
+                      <CustomDropdown
+                        value={reportSettings.targetFormId || (forms[0]?.id || '')}
+                        options={forms.map(f => ({
+                          value: f.id,
+                          label: f.title || f.name || 'Formulir',
+                          icon: FileText
+                        }))}
+                        onChange={(formId) => {
+                          const targetF = forms.find(f => f.id === formId) || forms[0];
+                          const tFields = targetF?.fields || [];
+                          const dCol = tFields.find((f: any) => String(f.dataType || f.type).toLowerCase() === 'date')?.columnName || '';
+                          const tCol = tFields.find((f: any) => String(f.dataType || f.type).toLowerCase() === 'time')?.columnName || '';
+                          const gCol = tFields.find((f: any) => ['latlong', 'gps', 'lokasi'].includes(String(f.dataType || f.type).toLowerCase()))?.columnName || '';
+                          const pCol = tFields.find((f: any) => ['image', 'foto'].includes(String(f.dataType || f.type).toLowerCase()))?.columnName || '';
+
+                          const updated = {
+                            ...reportSettings,
+                            targetFormId: formId,
+                            dateColumn: dCol || reportSettings.dateColumn,
+                            timeColumn: tCol || reportSettings.timeColumn,
+                            gpsColumn: gCol || reportSettings.gpsColumn,
+                            photoColumn: pCol || reportSettings.photoColumn
+                          };
+                          setReportSettings(updated);
+                          if (selectedActivity?.id) {
+                            const updatedAct = {
+                              ...selectedActivity,
+                              settings: { ...(selectedActivity.settings || {}), reportSettings: updated }
+                            };
+                            setSelectedActivity(updatedAct);
+                            localStorage.setItem(`garda_report_settings_${selectedActivity.id}`, JSON.stringify(updated));
+                          }
+                        }}
+                        placeholder="Pilih Formulir..."
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                          Kolom Tanggal Pendataan
+                        </label>
+                        <CustomDropdown
+                          size="sm"
+                          searchable
+                          value={reportSettings.dateColumn || ''}
+                          options={[
+                            { value: '', label: '(Otomatis dari isian Date)', icon: Calendar },
+                            ...((forms.find(f => f.id === reportSettings.targetFormId) || forms[0])?.fields || []).map((f: any) => ({
+                              value: f.columnName,
+                              label: f.label || f.columnName,
+                              icon: Calendar
+                            }))
+                          ]}
+                          onChange={(val) => {
+                            const updated = { ...reportSettings, dateColumn: val };
+                            setReportSettings(updated);
+                            if (selectedActivity?.id) {
+                              const updatedAct = {
+                                ...selectedActivity,
+                                settings: { ...(selectedActivity.settings || {}), reportSettings: updated }
+                              };
+                              setSelectedActivity(updatedAct);
+                              localStorage.setItem(`garda_report_settings_${selectedActivity.id}`, JSON.stringify(updated));
+                            }
+                          }}
+                          placeholder="Pilih Kolom Tanggal..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                          Kolom Jam/Waktu Kunjungan
+                        </label>
+                        <CustomDropdown
+                          size="sm"
+                          searchable
+                          value={reportSettings.timeColumn || ''}
+                          options={[
+                            { value: '', label: '(Otomatis dari isian Time)', icon: Clock },
+                            ...((forms.find(f => f.id === reportSettings.targetFormId) || forms[0])?.fields || []).map((f: any) => ({
+                              value: f.columnName,
+                              label: f.label || f.columnName,
+                              icon: Clock
+                            }))
+                          ]}
+                          onChange={(val) => {
+                            const updated = { ...reportSettings, timeColumn: val };
+                            setReportSettings(updated);
+                            if (selectedActivity?.id) {
+                              const updatedAct = {
+                                ...selectedActivity,
+                                settings: { ...(selectedActivity.settings || {}), reportSettings: updated }
+                              };
+                              setSelectedActivity(updatedAct);
+                              localStorage.setItem(`garda_report_settings_${selectedActivity.id}`, JSON.stringify(updated));
+                            }
+                          }}
+                          placeholder="Pilih Kolom Jam..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                          Kolom Geotagging GPS
+                        </label>
+                        <CustomDropdown
+                          size="sm"
+                          searchable
+                          value={reportSettings.gpsColumn || ''}
+                          options={[
+                            { value: '', label: '(Otomatis dari isian GPS/LatLong)', icon: MapPin },
+                            ...((forms.find(f => f.id === reportSettings.targetFormId) || forms[0])?.fields || []).map((f: any) => ({
+                              value: f.columnName,
+                              label: f.label || f.columnName,
+                              icon: MapPin
+                            }))
+                          ]}
+                          onChange={(val) => {
+                            const updated = { ...reportSettings, gpsColumn: val };
+                            setReportSettings(updated);
+                            if (selectedActivity?.id) {
+                              const updatedAct = {
+                                ...selectedActivity,
+                                settings: { ...(selectedActivity.settings || {}), reportSettings: updated }
+                              };
+                              setSelectedActivity(updatedAct);
+                              localStorage.setItem(`garda_report_settings_${selectedActivity.id}`, JSON.stringify(updated));
+                            }
+                          }}
+                          placeholder="Pilih Kolom GPS..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                          Kolom Foto Dokumentasi
+                        </label>
+                        <CustomDropdown
+                          size="sm"
+                          searchable
+                          value={reportSettings.photoColumn || ''}
+                          options={[
+                            { value: '', label: '(Otomatis dari isian Image)', icon: UploadCloud },
+                            ...((forms.find(f => f.id === reportSettings.targetFormId) || forms[0])?.fields || []).map((f: any) => ({
+                              value: f.columnName,
+                              label: f.label || f.columnName,
+                              icon: UploadCloud
+                            }))
+                          ]}
+                          onChange={(val) => {
+                            const updated = { ...reportSettings, photoColumn: val };
+                            setReportSettings(updated);
+                            if (selectedActivity?.id) {
+                              const updatedAct = {
+                                ...selectedActivity,
+                                settings: { ...(selectedActivity.settings || {}), reportSettings: updated }
+                              };
+                              setSelectedActivity(updatedAct);
+                              localStorage.setItem(`garda_report_settings_${selectedActivity.id}`, JSON.stringify(updated));
+                            }
+                          }}
+                          placeholder="Pilih Kolom Foto..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-indigo-100 dark:border-indigo-900/40 flex items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        id="detectWatermarkToggle"
+                        checked={reportSettings.detectWatermark}
+                        onChange={(e) => {
+                          const updated = { ...reportSettings, detectWatermark: e.target.checked };
+                          setReportSettings(updated);
+                          if (selectedActivity?.id) {
+                            const updatedAct = {
+                              ...selectedActivity,
+                              settings: { ...(selectedActivity.settings || {}), reportSettings: updated }
+                            };
+                            setSelectedActivity(updatedAct);
+                            localStorage.setItem(`garda_report_settings_${selectedActivity.id}`, JSON.stringify(updated));
+                          }
+                        }}
+                        className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-400 cursor-pointer"
+                      />
+                      <label htmlFor="detectWatermarkToggle" className="text-xs cursor-pointer select-none">
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block">
+                          Aktifkan Deteksi Watermark / Timestamp Eksternal
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed block mt-0.5">
+                          Memberikan peringatan pada penugasan bila foto terdeteksi memiliki cap watermark/timestamp dari aplikasi kamera pihak ketiga. Geotagging dan waktu laporan akan disematkan murni dari isian e-form resmi.
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
