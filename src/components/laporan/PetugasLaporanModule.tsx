@@ -10,7 +10,7 @@ import {
   Building2, Home, Users, Wheat, Truck, DollarSign, Calendar,
   Trash2, Settings, Edit3, Type, Hash, UploadCloud, Save, Sliders,
   HelpCircle, MoreVertical, Download, ShieldAlert, CheckSquare,
-  Compass, Eye, ArrowUpRight, BookOpen, Menu, User, Image, Camera,
+  Compass, Eye, ArrowUpRight, BookOpen, Menu, User, Image as ImageIcon, Camera,
   Lock, LocateFixed, Navigation
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme';
@@ -926,7 +926,7 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
             <button
               onClick={() => setViewMode('grouping_view')}
               className="p-1 -ml-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 transition-colors cursor-pointer"
-              title="Kembali"
+              title="Kembali ke Daftar Sampel"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -942,11 +942,15 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
             </button>
           ) : (
             <button
-              onClick={() => setIsActivityDrawerOpen(true)}
+              onClick={() => {
+                setSelectedActivity(null);
+                setDrillStack([]);
+                setViewMode('grouping_view');
+              }}
               className="p-1 -ml-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 transition-colors cursor-pointer"
-              title="Menu & Informasi Kegiatan"
+              title="Kembali ke Daftar Kegiatan"
             >
-              <Menu className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
           )}
 
@@ -960,15 +964,34 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                 ? drillStack[drillStack.length - 1].value
                 : (currentForm?.title || selectedActivity?.title || 'Daftar Grup')}
             </h2>
-            {selectedActivity && drillStack.length > 0 && viewMode === 'grouping_view' && (
+            {selectedActivity && (
               <span className="text-[10px] text-slate-400 font-medium truncate">
-                Level {drillStack.length + 1}: {currentGroupingKey}
+                {drillStack.length > 0 && viewMode === 'grouping_view' 
+                  ? `Level ${drillStack.length + 1}: ${currentGroupingKey}` 
+                  : selectedActivity.title}
               </span>
             )}
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0 text-slate-700 dark:text-slate-300">
+          {/* Tombol Kembali ke Daftar Kegiatan di Header */}
+          {selectedActivity && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedActivity(null);
+                setDrillStack([]);
+                setViewMode('grouping_view');
+              }}
+              className="py-1 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold border border-slate-200/80 dark:border-slate-700 shadow-2xs active:scale-95"
+              title="Kembali ke Daftar Kegiatan"
+            >
+              <Layers className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" />
+              <span className="text-[11px] hidden sm:inline">Daftar Kegiatan</span>
+            </button>
+          )}
+
           {selectedActivity && isDeepestLevel && viewMode === 'grouping_view' && (
             <button
               onClick={() => handleStartFormEntry()}
@@ -1602,23 +1625,128 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                           }`}
                         />
                       ) : fieldType === 'latlong' || fieldType === 'lokasi' || fieldType === 'gps' || fieldType === 'koordinat' ? (
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            readOnly
-                            value={val}
-                            placeholder="Belum ada koordinat..."
-                            className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-800 dark:text-slate-100 outline-none"
-                          />
+                        <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">
+                                Latitude (Garis Lintang)
+                              </label>
+                              <input
+                                type="text"
+                                disabled={isFieldReadOnly}
+                                readOnly={isFieldReadOnly}
+                                value={(() => {
+                                  if (typeof val === 'string' && val.includes(',')) {
+                                    return val.split(',')[0]?.trim() || '';
+                                  }
+                                  return typeof val === 'string' ? val : '';
+                                })()}
+                                onChange={(e) => {
+                                  const newLat = e.target.value;
+                                  const currentLng = typeof val === 'string' && val.includes(',') ? val.split(',')[1]?.trim() || '' : '';
+                                  if (newLat.includes(',')) {
+                                    const parts = newLat.split(',').map(s => s.trim());
+                                    const combined = `${parts[0] || ''}, ${parts[1] || ''}`;
+                                    setFormData(prev => ({ ...prev, [field.columnName]: combined }));
+                                    const pLat = parseFloat(parts[0]);
+                                    const pLng = parseFloat(parts[1]);
+                                    if (!isNaN(pLat) && !isNaN(pLng)) setGpsLocation({ lat: pLat, lng: pLng });
+                                  } else {
+                                    const combined = currentLng ? `${newLat.trim()}, ${currentLng}` : newLat.trim();
+                                    setFormData(prev => ({ ...prev, [field.columnName]: combined }));
+                                    const pLat = parseFloat(newLat);
+                                    const pLng = parseFloat(currentLng);
+                                    if (!isNaN(pLat) && !isNaN(pLng)) setGpsLocation({ lat: pLat, lng: pLng });
+                                  }
+                                }}
+                                placeholder="Cth: -0.024567"
+                                className={`w-full px-3 py-1.5 border rounded-xl text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-300 ${
+                                  isFieldReadOnly 
+                                    ? 'bg-slate-100/90 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 cursor-not-allowed border-dashed text-slate-500' 
+                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                                }`}
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">
+                                Longitude (Garis Bujur)
+                              </label>
+                              <input
+                                type="text"
+                                disabled={isFieldReadOnly}
+                                readOnly={isFieldReadOnly}
+                                value={(() => {
+                                  if (typeof val === 'string' && val.includes(',')) {
+                                    return val.split(',')[1]?.trim() || '';
+                                  }
+                                  return '';
+                                })()}
+                                onChange={(e) => {
+                                  const newLng = e.target.value;
+                                  const currentLat = typeof val === 'string' && val.includes(',') ? val.split(',')[0]?.trim() || '' : (typeof val === 'string' ? val : '');
+                                  if (newLng.includes(',')) {
+                                    const parts = newLng.split(',').map(s => s.trim());
+                                    const combined = `${parts[0] || ''}, ${parts[1] || ''}`;
+                                    setFormData(prev => ({ ...prev, [field.columnName]: combined }));
+                                    const pLat = parseFloat(parts[0]);
+                                    const pLng = parseFloat(parts[1]);
+                                    if (!isNaN(pLat) && !isNaN(pLng)) setGpsLocation({ lat: pLat, lng: pLng });
+                                  } else {
+                                    const combined = currentLat ? `${currentLat}, ${newLng.trim()}` : newLng.trim();
+                                    setFormData(prev => ({ ...prev, [field.columnName]: combined }));
+                                    const pLat = parseFloat(currentLat);
+                                    const pLng = parseFloat(newLng);
+                                    if (!isNaN(pLat) && !isNaN(pLng)) setGpsLocation({ lat: pLat, lng: pLng });
+                                  }
+                                }}
+                                placeholder="Cth: 109.123456"
+                                className={`w-full px-3 py-1.5 border rounded-xl text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-300 ${
+                                  isFieldReadOnly 
+                                    ? 'bg-slate-100/90 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 cursor-not-allowed border-dashed text-slate-500' 
+                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                                }`}
+                              />
+                            </div>
+                          </div>
+
                           {!isFieldReadOnly && (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenMapPicker(field.columnName)}
-                              className="px-3 py-2 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1 border border-rose-200 dark:border-rose-800 cursor-pointer"
-                            >
-                              <MapPin className="w-3.5 h-3.5" />
-                              <span>Peta</span>
-                            </button>
+                            <div className="flex items-center gap-2 pt-1 border-t border-slate-200/70 dark:border-slate-700/70">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenMapPicker(field.columnName)}
+                                className="flex-1 py-1.5 px-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-rose-200 dark:border-rose-800 cursor-pointer shadow-2xs active:scale-95"
+                              >
+                                <MapPin className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                                <span>Pilih di Peta</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (navigator.geolocation) {
+                                    navigator.geolocation.getCurrentPosition(
+                                      (pos) => {
+                                        const latStr = pos.coords.latitude.toFixed(6);
+                                        const lngStr = pos.coords.longitude.toFixed(6);
+                                        const combined = `${latStr}, ${lngStr}`;
+                                        setFormData(prev => ({ ...prev, [field.columnName]: combined }));
+                                        setGpsLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                                      },
+                                      (err) => alert('Gagal membaca GPS perangkat: ' + err.message),
+                                      { enableHighAccuracy: true, timeout: 10000 }
+                                    );
+                                  } else {
+                                    alert('Perangkat tidak mendukung Geolocation.');
+                                  }
+                                }}
+                                className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                                title="Ambil koordinat GPS saat ini"
+                              >
+                                <LocateFixed className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" />
+                                <span>Kunci GPS Saya</span>
+                              </button>
+                            </div>
                           )}
                         </div>
                       ) : fieldType === 'file' || fieldType === 'image' || fieldType === 'foto' ? (
@@ -1929,15 +2057,43 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
               </button>
             </div>
 
-            {/* Coordinates Display Bar */}
-            <div className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs shrink-0">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Koordinat Terpilih</span>
-                <span className="font-mono font-bold text-slate-800 dark:text-slate-100">
-                  {mapTempCoords[0].toFixed(6)}, {mapTempCoords[1].toFixed(6)}
+            {/* Coordinates Display Bar with Editable Inputs */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2 shrink-0">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                  Koordinat Terpilih (Latitude &amp; Longitude)
                 </span>
+                <span className="text-[10px] text-slate-400 italic">Geser pin atau ketik manual</span>
               </div>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 italic">Bisa digeser manual</span>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">Latitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={mapTempCoords[0]}
+                    onChange={(e) => {
+                      const lat = parseFloat(e.target.value);
+                      if (!isNaN(lat)) setMapTempCoords([lat, mapTempCoords[1]]);
+                    }}
+                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-primary-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">Longitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={mapTempCoords[1]}
+                    onChange={(e) => {
+                      const lng = parseFloat(e.target.value);
+                      if (!isNaN(lng)) setMapTempCoords([mapTempCoords[0], lng]);
+                    }}
+                    className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-primary-400"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Modal Actions */}
