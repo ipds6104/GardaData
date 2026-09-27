@@ -48,6 +48,7 @@ const CustomDropdown: React.FC<{
   size = 'md'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const ref = useRef<HTMLDivElement>(null);
 
@@ -60,6 +61,21 @@ const CustomDropdown: React.FC<{
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isOpen && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+      const spaceBelow = windowHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      // If space below is less than 240px and space above is greater, open upward
+      if (spaceBelow < 250 && spaceAbove > 200) {
+        setOpenUpward(true);
+      } else {
+        setOpenUpward(false);
+      }
+    }
+  }, [isOpen]);
 
   const selectedOpt = options.find(o => 
     o.value === value || 
@@ -75,7 +91,7 @@ const CustomDropdown: React.FC<{
   const isSmall = size === 'sm';
 
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div ref={ref} className={`relative ${className} ${isOpen ? 'z-[60]' : ''}`}>
       <button
         type="button"
         disabled={disabled}
@@ -99,11 +115,13 @@ const CustomDropdown: React.FC<{
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 4, scale: 0.98 }}
+            initial={{ opacity: 0, y: openUpward ? -4 : 4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 3, scale: 0.98 }}
+            exit={{ opacity: 0, y: openUpward ? -3 : 3, scale: 0.98 }}
             transition={{ duration: 0.12, ease: 'easeOut' }}
-            className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl p-1.5 space-y-1 max-h-56 overflow-y-auto custom-scrollbar ring-1 ring-black/5"
+            className={`absolute left-0 right-0 ${
+              openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+            } z-[100] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-1.5 space-y-1 max-h-56 overflow-y-auto custom-scrollbar ring-1 ring-black/10 min-w-[130px]`}
           >
             {(searchable || options.length > 7) && (
               <div className="p-1 pb-1.5 border-b border-slate-100 dark:border-slate-700/60 sticky top-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xs z-10">
@@ -433,9 +451,12 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     }
   }, [selectedActivity?.id]);
 
-  // 3. Populate Form Config & Fields when selected form changes
+  const activeFormIdTrackerRef = useRef<string | null>(null);
+
+  // 3. Populate Form Config & Fields ONLY when active selected form actually changes
   useEffect(() => {
-    if (selectedForm) {
+    if (selectedForm && activeFormIdTrackerRef.current !== selectedForm.id) {
+      activeFormIdTrackerRef.current = selectedForm.id;
       const gl = Array.isArray(selectedForm.groupingLevels) ? selectedForm.groupingLevels : [];
       setFormConfig({
         title: selectedForm.title || '',
@@ -464,7 +485,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         ]);
       }
     }
-  }, [selectedFormId, selectedForm]);
+  }, [selectedFormId, selectedForm?.id]);
 
   // Enter Studio for an Activity
   const handleOpenStudio = (act: any) => {
@@ -671,6 +692,62 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     return { headers, schema, records: jsonRows, totalRows: jsonRows.length };
   };
 
+  // Helper to intelligently merge incoming sheet schema while strictly preserving existing data types & configurations
+  const mergeFieldsPreservingConfig = (currentFields: any[], incomingSchema: any[]) => {
+    if (!currentFields || currentFields.length === 0) return incomingSchema;
+
+    const matchedIncomingNames = new Set<string>();
+
+    const merged = incomingSchema.map((newField: any) => {
+      const colNameLower = (newField.columnName || '').trim().toLowerCase();
+      const labelLower = (newField.label || '').trim().toLowerCase();
+
+      // Find existing match
+      const existing = currentFields.find((f: any) => {
+        const exCol = (f.columnName || '').trim().toLowerCase();
+        const exLabel = (f.label || '').trim().toLowerCase();
+        return (exCol && exCol === colNameLower) || (exLabel && exLabel === labelLower);
+      });
+
+      if (existing) {
+        matchedIncomingNames.add((existing.columnName || existing.label || '').trim().toLowerCase());
+        // PRESERVE ALL EXISTING CONFIGURED TYPES & VALIDATIONS
+        return {
+          ...newField,
+          id: existing.id || newField.id,
+          columnName: newField.columnName || existing.columnName,
+          label: existing.label || newField.label,
+          dataType: existing.dataType || newField.dataType, // Type is strictly preserved!
+          isKey: existing.isKey !== undefined ? existing.isKey : newField.isKey,
+          isLabel: existing.isLabel !== undefined ? existing.isLabel : newField.isLabel,
+          isRequired: existing.isRequired !== undefined ? existing.isRequired : newField.isRequired,
+          isEditable: existing.isEditable !== undefined ? existing.isEditable : newField.isEditable,
+          isPredefined: existing.isPredefined !== undefined ? existing.isPredefined : newField.isPredefined,
+          validation: existing.validation ? { ...existing.validation } : newField.validation,
+          options: existing.options && existing.options.length > 0 
+            ? Array.from(new Set([...existing.options, ...(newField.options || [])])) 
+            : newField.options
+        };
+      }
+
+      // Brand new column from sheet
+      return {
+        ...newField,
+        isEditable: newField.isEditable ?? true,
+        isPredefined: newField.isPredefined ?? false
+      };
+    });
+
+    // Also preserve any custom columns created manually by admin that were not in the sheet
+    const unmatchedCustomFields = currentFields.filter((f: any) => {
+      const exCol = (f.columnName || '').trim().toLowerCase();
+      const exLabel = (f.label || '').trim().toLowerCase();
+      return !matchedIncomingNames.has(exCol) && !matchedIncomingNames.has(exLabel);
+    });
+
+    return [...merged, ...unmatchedCustomFields];
+  };
+
   // Sync Columns & Records from Google Sheet (Hybrid: Backend API + Direct Fallback)
   const handleSyncFromGoogleSheet = async () => {
     if (!formConfig.sheetUrl) {
@@ -697,11 +774,12 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           const data = await res.json();
           const extractedFields = data.fields || data.schema || [];
           if (Array.isArray(extractedFields) && extractedFields.length > 0) {
-            setFields(extractedFields);
+            const merged = mergeFieldsPreservingConfig(fields, extractedFields);
+            setFields(merged);
             syncSuccess = true;
             setSyncAlert({ 
               type: 'success', 
-              message: `Berhasil sinkronisasi ${extractedFields.length} kolom dari Google Sheet (Backend)!` 
+              message: `Berhasil sinkronisasi ${merged.length} kolom dari Google Sheet (Tipe data lama tetap dipertahankan)!` 
             });
           }
         }
@@ -713,25 +791,44 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       if (!syncSuccess) {
         const clientResult = await parseGoogleSheetDirectly(formConfig.sheetUrl, formConfig.sheetName || 'Sheet1');
         if (clientResult.schema.length > 0) {
-          setFields(clientResult.schema);
+          const merged = mergeFieldsPreservingConfig(fields, clientResult.schema);
+          setFields(merged);
           
-          // Simpan record data sampel ke penyimpanan lokal
-          if (clientResult.records.length > 0) {
-            const formattedRecords = clientResult.records.map((r, idx) => ({
-              id: `${selectedFormId || 'form'}_row_${idx + 1}`,
-              rowId: `row_${idx + 1}`,
-              formId: selectedFormId,
-              activityId: selectedActivity?.id,
-              data: r,
-              status: 'draft',
-              createdAt: new Date().toISOString()
-            }));
+          // Filter hanya baris yang valid (tidak sepenuhnya kosong)
+          const validRecords = (clientResult.records || []).filter((r: any) => {
+            return Object.values(r).some(v => v !== null && v !== undefined && String(v).trim() !== '');
+          });
+
+          // Simpan record data sampel ke penyimpanan lokal (Hanya kolom predefined / sampel)
+          if (validRecords.length > 0) {
+            const formattedRecords = validRecords.map((r, idx) => {
+              const cleanData: Record<string, any> = {};
+              merged.forEach((f: any) => {
+                const rawVal = r[f.columnName] ?? r[f.label];
+                // Jangan paksa nilai dummy pada kolom foto jika bukan URL/Base64 valid
+                if (f.dataType === 'Image' && (!rawVal || (!String(rawVal).startsWith('http') && !String(rawVal).startsWith('data:') && !String(rawVal).startsWith('blob:')))) {
+                  cleanData[f.columnName] = '';
+                } else {
+                  cleanData[f.columnName] = rawVal !== undefined ? rawVal : '';
+                }
+              });
+
+              return {
+                id: `${selectedFormId || 'form'}_row_${idx + 1}`,
+                rowId: `row_${idx + 1}`,
+                formId: selectedFormId,
+                activityId: selectedActivity?.id,
+                data: cleanData,
+                status: 'draft',
+                createdAt: new Date().toISOString()
+              };
+            });
             localStorage.setItem(`garda_laporan_records_${selectedFormId}`, JSON.stringify(formattedRecords));
           }
 
           setSyncAlert({ 
             type: 'success', 
-            message: `Berhasil sinkronisasi ${clientResult.schema.length} kolom & ${clientResult.totalRows} baris data dari Google Sheet!` 
+            message: `Berhasil sinkronisasi ${merged.length} kolom & ${validRecords.length} baris data sampel! (Konfigurasi tipe data tidak berubah)` 
           });
 
           // Sync Sheet URL to Activity
@@ -823,6 +920,25 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         }
         return f;
       }));
+    }
+  };
+
+  // Update Sheet URL or Sheet Name with immediate persistent form sync
+  const handleUpdateSheetConfig = (key: 'sheetUrl' | 'sheetName', val: string) => {
+    setFormConfig(prev => ({ ...prev, [key]: val }));
+    if (selectedFormId) {
+      setForms(prev => {
+        const updated = prev.map(f => {
+          if (f.id === selectedFormId) {
+            return { ...f, [key]: val };
+          }
+          return f;
+        });
+        if (selectedActivity) {
+          localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updated));
+        }
+        return updated;
+      });
     }
   };
 
@@ -1852,7 +1968,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                       type="text"
                       placeholder="URL Google Sheet..."
                       value={formConfig.sheetUrl}
-                      onChange={(e) => setFormConfig(prev => ({ ...prev, sheetUrl: e.target.value }))}
+                      onChange={(e) => handleUpdateSheetConfig('sheetUrl', e.target.value)}
                       className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-primary-300"
                     />
                   </div>
@@ -1862,7 +1978,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                       type="text"
                       placeholder="Nama Tab (e.g. Sheet1)"
                       value={formConfig.sheetName}
-                      onChange={(e) => setFormConfig(prev => ({ ...prev, sheetName: e.target.value }))}
+                      onChange={(e) => handleUpdateSheetConfig('sheetName', e.target.value)}
                       className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-medium text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-primary-300"
                     />
                   </div>
@@ -2023,7 +2139,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                   </button>
                 </div>
 
-                <div className="border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs flex-1 overflow-auto custom-scrollbar relative max-h-[calc(100vh-270px)]">
+                <div className="border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs flex-1 overflow-auto custom-scrollbar relative max-h-[calc(100vh-270px)] min-h-[380px] pb-40">
                   <table className="w-full text-left text-xs border-collapse relative">
                     <thead className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 uppercase font-black tracking-wider text-[10px] shadow-sm">
                       <tr>
