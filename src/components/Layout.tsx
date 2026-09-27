@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   LogOut, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, 
   MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database, WifiOff, RefreshCw, 
-  MapPin, ScanLine, Award, ChevronLeft, ChevronRight, HelpCircle, Sun, Palette, Sparkles 
+  MapPin, ScanLine, Award, ChevronLeft, ChevronRight, HelpCircle, Sun, Palette, Sparkles,
+  Maximize2, Minimize2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/auth';
@@ -18,13 +19,14 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing', onNavigate }) => {
   const { user, logout } = useAuth();
-  const { preset, setPreset, presetInfo } = useTheme();
+  const { preset, setPreset, presetInfo, mode, toggleMode } = useTheme();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('garda_sidebar_collapsed') === 'true';
   });
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [isFeatureFullscreen, setIsFeatureFullscreen] = useState(false);
 
   const toggleSidebarCollapse = () => {
     setIsSidebarCollapsed(prev => {
@@ -33,6 +35,30 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       return next;
     });
   };
+
+  const toggleFeatureFullscreen = () => {
+    if (!isFeatureFullscreen) {
+      setIsFeatureFullscreen(true);
+      if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } else {
+      setIsFeatureFullscreen(false);
+      if (document.exitFullscreen && document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && isFeatureFullscreen) {
+        setIsFeatureFullscreen(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [isFeatureFullscreen]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -96,6 +122,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  // Otomatis minimalkan (collapse) sidebar Garda Data saat membuka fitur laporan pendataan atau peta responden SE2026 agar ruang kerja maksimal
+  useEffect(() => {
+    if (currentPage === 'laporan-pendataan' || currentPage === 'peta-responden-se2026') {
+      setIsSidebarCollapsed(true);
+    }
+  }, [currentPage]);
 
   const searchIndex = [
     { id: 'lms', title: 'Learning Management System', desc: 'Pelatihan, e-learning, materi, sakernas agustus', keywords: ['lms', 'pelatihan', 'sakernas', 'susenas', 'agustus', 'materi', 'kuis', 'jadwal'] },
@@ -193,7 +226,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
 
     return (
       <div 
-        className={`h-full flex flex-col justify-between bg-white rounded-[28px] border border-slate-200/80 shadow-md overflow-hidden relative transition-all duration-300 ${
+        className={`h-full flex flex-col justify-between bg-white dark:bg-slate-900 rounded-[28px] border border-slate-200/80 dark:border-slate-800 shadow-md overflow-hidden relative transition-all duration-300 ${
           isCollapsed ? 'w-[76px]' : 'w-full'
         }`}
       >
@@ -491,20 +524,22 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       style={{ backgroundColor: presetInfo.colors.bg || '#f8fafc' }}
     >
       {/* Desktop Floating Sidebar (Matching FinSet design in reference image) */}
-      <motion.aside
-        animate={{ width: isSidebarCollapsed ? 76 : 280 }}
-        transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
-        className="hidden lg:flex flex-col shrink-0 my-3 ml-3 z-40 h-[calc(100vh-1.5rem)] sticky top-3 select-none"
-      >
-        <SidebarCard 
-          isCollapsed={isSidebarCollapsed} 
-          onToggle={toggleSidebarCollapse} 
-        />
-      </motion.aside>
+      {!isFeatureFullscreen && (
+        <motion.aside
+          animate={{ width: isSidebarCollapsed ? 76 : 280 }}
+          transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+          className="hidden lg:flex flex-col shrink-0 my-3 ml-3 z-40 h-[calc(100vh-1.5rem)] sticky top-3 select-none"
+        >
+          <SidebarCard 
+            isCollapsed={isSidebarCollapsed} 
+            onToggle={toggleSidebarCollapse} 
+          />
+        </motion.aside>
+      )}
 
       {/* Mobile Drawer */}
       <AnimatePresence>
-        {isSidebarOpen && (
+        {!isFeatureFullscreen && isSidebarOpen && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
@@ -530,7 +565,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex flex-col min-w-0 h-screen lg:h-[calc(100vh-1.5rem)] lg:my-3 lg:mr-3 lg:ml-2.5 bg-white lg:rounded-[28px] lg:border lg:border-slate-200/80 lg:shadow-md overflow-hidden">
+      <div className={`flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 overflow-hidden transition-all duration-300 ${
+        isFeatureFullscreen 
+          ? 'fixed inset-0 z-50 w-screen h-screen m-0 rounded-none border-none shadow-none' 
+          : 'h-screen lg:h-[calc(100vh-1.5rem)] lg:my-3 lg:mr-3 lg:ml-2.5 lg:rounded-[28px] lg:border lg:border-slate-200/80 dark:lg:border-slate-800 lg:shadow-md'
+      }`}>
         {/* Offline / Server Disconnection Banner */}
         <AnimatePresence>
           {isServerDisconnected && (
@@ -566,18 +605,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         </AnimatePresence>
 
         {/* Top Navbar */}
-        <nav className="h-16 px-4 sm:px-6 flex items-center justify-between shrink-0 border-b border-slate-100 bg-white sticky top-0 z-30">
+        <nav className="h-16 px-4 sm:px-6 flex items-center justify-between shrink-0 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-30 transition-colors duration-300">
           <div className="flex items-center gap-4">
             {/* Mobile Drawer Hamburger */}
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 -ml-1 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              className="lg:hidden p-2 -ml-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
               title="Buka Menu"
             >
               <Menu className="w-6 h-6" />
             </button>
             <div className="hidden md:flex relative w-72 lg:w-80">
-              <div className="flex items-center gap-2.5 bg-slate-50/80 px-3.5 py-2 rounded-full border border-slate-200/80 w-full focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-100 transition-all">
+              <div className="flex items-center gap-2.5 bg-slate-50/80 dark:bg-slate-800/80 px-3.5 py-2 rounded-full border border-slate-200/80 dark:border-slate-700 w-full focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-100 transition-all">
                 <Search className="w-4 h-4 text-slate-400 shrink-0" />
                 <input 
                   type="text" 
@@ -586,7 +625,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                   placeholder="Cari fitur atau aplikasi..." 
-                  className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-slate-700 placeholder-slate-400"
+                  className="bg-transparent border-none outline-none text-xs sm:text-sm w-full text-slate-700 dark:text-slate-200 placeholder-slate-400"
                 />
               </div>
               
@@ -597,7 +636,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute top-full mt-2 left-0 right-0 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50"
+                    className="absolute top-full mt-2 left-0 right-0 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden z-50"
                   >
                     {searchResults.length > 0 ? (
                       <ul className="max-h-64 overflow-y-auto custom-scrollbar py-2">
@@ -609,17 +648,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
                                 setSearchQuery('');
                                 setIsSearchFocused(false);
                               }}
-                              className="w-full text-left px-4 py-3 hover:bg-slate-50 flex flex-col transition-colors"
+                              className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 flex flex-col transition-colors"
                             >
-                              <span className="text-sm font-bold text-slate-800">{result.title}</span>
-                              <span className="text-xs text-slate-500 line-clamp-1">{result.desc}</span>
+                              <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{result.title}</span>
+                              <span className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{result.desc}</span>
                             </button>
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <div className="p-6 text-center text-sm text-slate-500">
-                        Pencarian <span className="font-bold text-slate-800">"{searchQuery}"</span> tidak ditemukan.
+                      <div className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                        Pencarian <span className="font-bold text-slate-800 dark:text-slate-200">"{searchQuery}"</span> tidak ditemukan.
                       </div>
                     )}
                   </motion.div>
@@ -634,17 +673,55 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
               type="button"
               onClick={handleRefreshApp}
               disabled={isUpdatingApp}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-primary-700 transition-all shadow-2xs text-xs font-bold cursor-pointer disabled:opacity-50"
-              title="Perbarui versi aplikasi & bersihkan cache"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-primary-700 dark:hover:text-primary-300 transition-all shadow-2xs text-xs font-bold cursor-pointer disabled:opacity-50"
+              title="Perbarui versi aplikasi &amp; bersihkan cache"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-primary-600 ${isUpdatingApp ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 text-primary-600 dark:text-primary-400 ${isUpdatingApp ? 'animate-spin' : ''}`} />
               <span className="hidden xl:inline">{isUpdatingApp ? 'Memperbarui...' : 'Perbarui Web'}</span>
             </button>
 
             {/* Theme / Preset Selector Button */}
             <ThemeSelector />
 
-            <div className="h-5 w-px bg-slate-200 mx-0.5 hidden sm:block" />
+            {/* Quick Dark Mode Toggle */}
+            <button
+              type="button"
+              onClick={toggleMode}
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all shadow-2xs cursor-pointer"
+              title={mode === 'dark' ? 'Ganti ke Mode Terang (Light)' : 'Ganti ke Mode Gelap (Dark)'}
+            >
+              {mode === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-primary-600" />
+              )}
+            </button>
+
+            {/* Fullscreen Mode Toggle */}
+            <button
+              type="button"
+              onClick={toggleFeatureFullscreen}
+              className={`p-2 rounded-xl border transition-all shadow-2xs cursor-pointer flex items-center gap-1.5 ${
+                isFeatureFullscreen
+                  ? 'bg-primary-50 dark:bg-primary-950/60 border-primary-400 text-primary-700 dark:text-primary-300 ring-2 ring-primary-200 dark:ring-primary-900/40'
+                  : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+              }`}
+              title={isFeatureFullscreen ? 'Keluar dari Layar Penuh (Esc)' : 'Layar Penuh (Full Screen)'}
+            >
+              {isFeatureFullscreen ? (
+                <>
+                  <Minimize2 className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                  <span className="hidden xl:inline text-xs font-bold text-primary-700 dark:text-primary-300">Keluar Fullscreen</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                  <span className="hidden xl:inline text-xs font-bold">Layar Penuh</span>
+                </>
+              )}
+            </button>
+
+            <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
 
             {user && (
               <div className="flex items-center gap-2.5">

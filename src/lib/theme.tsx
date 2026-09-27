@@ -90,17 +90,24 @@ export const PRESET_LIST: PresetInfo[] = [
   }
 ];
 
-interface ThemeContextType {
+export type ThemeMode = 'light' | 'dark';
 
+interface ThemeContextType {
   preset: ThemePreset;
   setPreset: (preset: ThemePreset) => void;
   presetInfo: PresetInfo;
+  mode: ThemeMode;
+  setMode: (mode: ThemeMode) => void;
+  toggleMode: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
   preset: 'persik',
   setPreset: () => {},
-  presetInfo: PRESET_LIST.find(p => p.id === 'persik') || PRESET_LIST[0]
+  presetInfo: PRESET_LIST.find(p => p.id === 'persik') || PRESET_LIST[0],
+  mode: 'light',
+  setMode: () => {},
+  toggleMode: () => {}
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -112,19 +119,44 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return 'persik';
   });
 
+  const [mode, setModeState] = useState<ThemeMode>(() => {
+    const saved = localStorage.getItem('garda_theme_mode') as ThemeMode;
+    if (saved === 'light' || saved === 'dark') {
+      return saved;
+    }
+    return 'light'; // Default is light mode
+  });
+
   const setPreset = (newPreset: ThemePreset) => {
     setPresetState(newPreset);
     localStorage.setItem('garda_theme_preset', newPreset);
   };
 
+  const setMode = (newMode: ThemeMode) => {
+    setModeState(newMode);
+    localStorage.setItem('garda_theme_mode', newMode);
+  };
+
+  const toggleMode = () => {
+    const nextMode = mode === 'light' ? 'dark' : 'light';
+    setMode(nextMode);
+  };
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', preset);
-  }, [preset]);
+    if (mode === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.setAttribute('data-mode', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.setAttribute('data-mode', 'light');
+    }
+  }, [preset, mode]);
 
   const presetInfo = PRESET_LIST.find(p => p.id === preset) || PRESET_LIST[0];
 
   return (
-    <ThemeContext.Provider value={{ preset, setPreset, presetInfo }}>
+    <ThemeContext.Provider value={{ preset, setPreset, presetInfo, mode, setMode, toggleMode }}>
       {children}
     </ThemeContext.Provider>
   );

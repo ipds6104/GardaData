@@ -5,6 +5,13 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const ExcelJS = require('exceljs');
+const { 
+  parseGoogleSheetUrl, 
+  parseCsvRows, 
+  inferHeaderDataType, 
+  fetchSheetData, 
+  pushRecordToGoogleSheet 
+} = require('../services/googleSheetsSync');
 
 // ==========================================
 // KONFIGURASI MULTER UPLOAD BERKAS
@@ -138,17 +145,43 @@ router.get('/activities', async (req, res) => {
 // POST create activity
 router.post('/activities', async (req, res) => {
   try {
-    const { title, description, startDate, endDate, isOpen, icon } = req.body;
+    const { title, description, category, startDate, endDate, isOpen, icon, sheetUrl, sheetName, webhookUrl } = req.body;
     if (!title) return res.status(400).json({ error: 'Judul kegiatan wajib diisi' });
 
     const id = `act_${Date.now()}`;
+    const cleanDesc = description || category || '';
     await pool.query(
       `INSERT INTO laporan_activities (id, title, description, startDate, endDate, isOpen, icon)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, title, description || '', startDate || null, endDate || null, isOpen !== false, icon || 'Layers']
+      [id, title, cleanDesc, startDate || null, endDate || null, isOpen !== false, icon || 'Layers']
     );
 
-    res.status(201).json({ id, message: 'Kegiatan berhasil dibuat' });
+    let createdFormId = null;
+    // Jika sheetUrl disertakan, otomatis buat formulir default yang terhubung ke Google Sheet
+    if (sheetUrl && sheetUrl.trim() !== '') {
+      createdFormId = `form_${Date.now()}`;
+      await pool.query(
+        `INSERT INTO laporan_forms (id, activityId, title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          createdFormId,
+          id,
+          title,
+          icon || 'FileSpreadsheet',
+          0,
+          sheetUrl.trim(),
+          sheetName ? sheetName.trim() : 'Sheet1',
+          webhookUrl ? webhookUrl.trim() : '',
+          JSON.stringify([])
+        ]
+      );
+    }
+
+    res.status(201).json({ 
+      id, 
+      formId: createdFormId,
+      message: 'Kegiatan berhasil dibuat dan dihubungkan ke Google Sheet' 
+    });
   } catch (err) {
     console.error('Error creating activity:', err);
     res.status(500).json({ error: 'Gagal membuat kegiatan' });
@@ -495,6 +528,8 @@ router.get('/forms/:formId/template-excel', async (req, res) => {
 router.post('/forms/:formId/sync-sheet', async (req, res) => {
   try {
     const { formId } = req.params;
+    const { maxRows = 50000, schemaOnly = false } = req.body || {};
+
     const [forms] = await pool.query('SELECT * FROM laporan_forms WHERE id = ?', [formId]);
     if (forms.length === 0) return res.status(404).json({ error: 'Formulir tidak ditemukan' });
     const form = forms[0];
@@ -503,85 +538,110 @@ router.post('/forms/:formId/sync-sheet', async (req, res) => {
       return res.status(400).json({ error: 'Tautan Google Sheet belum dikonfigurasi pada form ini.' });
     }
 
-    const csvUrl = getSheetCsvUrl(form.sheetUrl, form.sheetName);
-    if (!csvUrl) {
-      return res.status(400).json({ error: 'Tautan Google Sheet tidak valid. Pastikan link dapat diakses.' });
+    // Gunakan Master Sync Engine dengan proteksi Big Data
+    const sheetResult = await fetchSheetData(form.sheetUrl, form.sheetName || 'Sheet1', { 
+      maxRows: Number(maxRows) || 50000, 
+      schemaOnly: Boolean(schemaOnly) 
+    });
+
+    const { headers, schema, records, totalRows, totalAvailableRows, isTruncated } = sheetResult;
+
+    if (headers.length === 0) {
+      return res.status(400).json({ error: 'Google Sheet tidak memiliki header kolom yang valid.' });
     }
 
-    const fetchUrl = `${csvUrl}&cb=${Date.now()}`;
-    const response = await fetch(fetchUrl);
-    if (!response.ok) {
-      return res.status(400).json({ error: `Gagal mengambil data dari Google Sheet (${response.statusText}). Pastikan hak akses spreadsheet sudah 'Siapa saja yang memiliki link dapat melihat'` });
+    // 1. Auto-discover & buat field jika belum ada
+    const [existingFields] = await pool.query('SELECT COUNT(*) as count FROM laporan_fields WHERE formId = ?', [formId]);
+    if (existingFields[0].count === 0 && schema.length > 0) {
+      for (let hIdx = 0; hIdx < schema.length; hIdx++) {
+        const item = schema[hIdx];
+        const fieldId = `fld_${Date.now()}_${hIdx}`;
+        await pool.query(
+          `INSERT INTO laporan_fields (id, formId, label, columnName, dataType, isRequired, groupSection, orderIndex, options)
+           VALUES (?, ?, ?, ?, ?, 0, '', ?, ?)`,
+          [fieldId, formId, item.label, item.columnName, item.dataType, hIdx, JSON.stringify(item.options || [])]
+        );
+      }
     }
 
-    const csvText = await response.text();
-    const rows = parseCSV(csvText);
-
-    if (rows.length < 2) {
-      return res.status(400).json({ error: 'Google Sheet tidak memiliki baris data (hanya header atau kosong).' });
+    if (schemaOnly || records.length === 0) {
+      return res.json({
+        success: true,
+        message: `Skema kolom berhasil dibaca (${headers.length} kolom ditemukan).`,
+        headers,
+        totalRows: 0,
+        importedCount: 0,
+        updatedCount: 0
+      });
     }
 
-    const headers = rows[0].map(h => h.trim());
+    // 2. Batch Processing ke Database Lokal Garda Data (Chunking 250 per batch untuk efisiensi tinggi)
     let importedCount = 0;
     let updatedCount = 0;
 
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (row.length === 0 || row.every(cell => !cell)) continue;
+    // Ambil daftar record yang sudah ada di database lokal untuk form ini
+    const [existingRows] = await pool.query('SELECT id, data FROM laporan_records WHERE formId = ?', [formId]);
+    const existingMap = new Map();
+    existingRows.forEach(r => {
+      let d = {};
+      try { d = typeof r.data === 'string' ? JSON.parse(r.data) : (r.data || {}); } catch(e) { d = {}; }
+      existingMap.set(r.id, d);
+    });
 
-      const recordData = {};
-      headers.forEach((h, colIdx) => {
-        if (h) {
-          recordData[h] = row[colIdx] !== undefined ? row[colIdx] : '';
+    const chunkSize = 250;
+    for (let c = 0; c < records.length; c += chunkSize) {
+      const chunk = records.slice(c, c + chunkSize);
+      
+      for (const rec of chunk) {
+        const recordData = rec.data;
+        const rowId = rec.rowId;
+        const recordId = `${formId}_${rowId}`;
+
+        let lat = null;
+        let lng = null;
+        if (recordData['Latitude'] || recordData['latitude']) {
+          lat = parseFloat(recordData['Latitude'] || recordData['latitude']) || null;
         }
-      });
+        if (recordData['Longitude'] || recordData['longitude']) {
+          lng = parseFloat(recordData['Longitude'] || recordData['longitude']) || null;
+        }
 
-      // Tentukan ID baris unik (pakai kolom 'ID' / 'Kode SLS' / nomor urut baris)
-      const rowId = recordData['ID'] || recordData['id'] || recordData['Id'] || `row_${i}`;
-      const recordId = `${formId}_${rowId}`;
-
-      // Ambil latitude & longitude jika ada
-      let lat = null;
-      let lng = null;
-      if (recordData['Latitude'] || recordData['latitude']) {
-        lat = parseFloat(recordData['Latitude'] || recordData['latitude']) || null;
+        if (existingMap.has(recordId)) {
+          const mergedData = { ...existingMap.get(recordId), ...recordData };
+          await pool.query(
+            `UPDATE laporan_records 
+             SET data = ?, 
+                 latitude = COALESCE(?, latitude), 
+                 longitude = COALESCE(?, longitude),
+                 syncStatus = 'synced'
+             WHERE id = ?`,
+            [JSON.stringify(mergedData), lat, lng, recordId]
+          );
+          updatedCount++;
+        } else {
+          await pool.query(
+            `INSERT INTO laporan_records (id, activityId, formId, rowId, data, status, latitude, longitude, syncStatus)
+             VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, 'synced')`,
+            [recordId, form.activityId, formId, String(rowId), JSON.stringify(recordData), lat, lng]
+          );
+          importedCount++;
+        }
       }
-      if (recordData['Longitude'] || recordData['longitude']) {
-        lng = parseFloat(recordData['Longitude'] || recordData['longitude']) || null;
-      }
+    }
 
-      // Simpan atau perbarui data sampel ke MySQL
-      const [existing] = await pool.query('SELECT id, status, data FROM laporan_records WHERE id = ?', [recordId]);
-
-      if (existing.length > 0) {
-        // Gabungkan data agar isian petugas tidak tertimpa oleh data kosong dari sheet
-        const mergedData = { ...existing[0].data, ...recordData };
-        await pool.query(
-          `UPDATE laporan_records 
-           SET data = ?, 
-               latitude = COALESCE(?, latitude), 
-               longitude = COALESCE(?, longitude),
-               syncStatus = 'synced'
-           WHERE id = ?`,
-          [JSON.stringify(mergedData), lat, lng, recordId]
-        );
-        updatedCount++;
-      } else {
-        await pool.query(
-          `INSERT INTO laporan_records (id, activityId, formId, rowId, data, status, latitude, longitude, syncStatus)
-           VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, 'synced')`,
-          [recordId, form.activityId, formId, String(rowId), JSON.stringify(recordData), lat, lng]
-        );
-        importedCount++;
-      }
+    let note = '';
+    if (isTruncated) {
+      note = ` (Diproses ${records.length} data pertama dari total ${totalAvailableRows} baris untuk performa optimal)`;
     }
 
     res.json({
       success: true,
-      message: `Sinkronisasi berhasil! ${importedCount} data baru ditambahkan, ${updatedCount} data diperbarui.`,
+      message: `Sinkronisasi berhasil! ${importedCount} data baru ditambahkan, ${updatedCount} data diperbarui.${note}`,
       importedCount,
       updatedCount,
-      totalRows: rows.length - 1
+      totalRows: records.length,
+      totalAvailableRows,
+      isTruncated
     });
   } catch (err) {
     console.error('Error syncing sheet:', err);
@@ -740,40 +800,26 @@ router.get('/records/:id', async (req, res) => {
   }
 });
 
-// Helper: Auto-sync ke Google Sheet via Google Apps Script Webhook
+// Helper: Auto-sync ke Google Sheet (Two-Way Sync Engine)
 async function triggerGoogleSheetWebhook(form, record, rowId, data, status, latitude, longitude, submittedBy) {
-  if (!form || !form.webhookUrl || !form.webhookUrl.startsWith('http')) return;
+  if (!form) return;
 
   try {
     const payload = {
-      sheetName: form.sheetName || 'Sheet1',
       rowId: rowId,
-      action: 'save',
       status: status,
       data: data,
       latitude: latitude,
       longitude: longitude,
-      submittedBy: submittedBy,
-      timestamp: new Date().toISOString()
+      submittedBy: submittedBy
     };
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    fetch(form.webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    }).then(res => {
-      clearTimeout(timeout);
-      console.log(`[Laporan Webhook] Notified Google Apps Script for row ${rowId}: HTTP ${res.status}`);
-    }).catch(err => {
-      clearTimeout(timeout);
-      console.warn(`[Laporan Webhook] Failed to notify Google Apps Script for row ${rowId}:`, err.message);
+    // Jalankan push ke Google Sheet via service Master Sync Engine
+    pushRecordToGoogleSheet(form, payload).catch(err => {
+      console.warn(`[MasterSync Push] Background sync note for row ${rowId}:`, err.message);
     });
   } catch (e) {
-    console.warn('[Laporan Webhook] Webhook error:', e.message);
+    console.warn('[MasterSync Push] Error:', e.message);
   }
 }
 
