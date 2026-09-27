@@ -72,7 +72,7 @@ export const VisitorDashboard: React.FC = () => {
   const secondaryKey = availableKeys[1];
 
   return (
-    <div className="space-y-8 min-h-[85vh] bg-slate-50/50 pb-12">
+    <div className="space-y-8 min-h-[85vh] bg-slate-50/50 dark:bg-slate-950/50 pb-12">
       <header className="relative bg-gradient-to-r from-primary-900 via-primary-800 to-slate-900 rounded-[2.5rem] p-8 md:p-12 overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 blur-[80px] rounded-full" />
         <div className="absolute bottom-0 left-10 w-40 h-40 bg-primary-400 opacity-10 blur-[60px] rounded-full" />
@@ -99,10 +99,10 @@ export const VisitorDashboard: React.FC = () => {
         </div>
       </header>
 
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-xl p-16 text-center mt-12 max-w-4xl mx-auto">
-        <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-        <h2 className="text-2xl font-black text-slate-800 mb-2">Fitur Masih Dalam Pengembangan</h2>
-        <p className="text-slate-500 font-medium max-w-lg mx-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl p-16 text-center mt-12 max-w-4xl mx-auto">
+        <BarChart3 className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+        <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">Fitur Masih Dalam Pengembangan</h2>
+        <p className="text-slate-500 dark:text-slate-400 font-medium max-w-lg mx-auto">
           Mohon maaf, fitur penayangan Data Strategis BPS sedang dalam tahap penyempurnaan dan belum dapat diakses untuk sementara waktu. Silakan cek kembali di waktu mendatang.
         </p>
       </div>

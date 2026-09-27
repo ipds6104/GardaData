@@ -16,27 +16,27 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, icon: Ico
   <button
     type="button"
     onClick={onClick}
-    className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-xs hover:shadow-lg hover:border-primary-200 hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 text-left flex flex-col h-full cursor-pointer group"
+    className="bg-white dark:bg-slate-850 dark:bg-slate-800/90 p-6 rounded-[1.5rem] border border-slate-100 dark:border-slate-800/80 shadow-xs hover:shadow-lg hover:border-primary-200 dark:hover:border-primary-500/50 hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 text-left flex flex-col h-full cursor-pointer group"
   >
     <div className="flex items-start justify-between gap-2 mb-4">
       <div className="flex items-center gap-3">
-        <div className={`p-3 rounded-xl ${bgColor}`}>
+        <div className={`p-3 rounded-xl ${bgColor} dark:bg-slate-700/50`}>
           <Icon className={`w-6 h-6 ${iconColor}`} />
         </div>
-        <h3 className="text-lg font-bold text-slate-800 group-hover:text-primary-600 transition-colors leading-tight">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors leading-tight">
           {title}
         </h3>
       </div>
       {badge && (
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shrink-0 whitespace-nowrap">
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shrink-0 whitespace-nowrap">
           {badge}
         </span>
       )}
     </div>
-    <p className="text-slate-500 text-sm leading-relaxed mb-6 flex-grow">
+    <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-6 flex-grow">
       {description}
     </p>
-    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 group-hover:text-primary-600 transition-all mt-auto uppercase tracking-widest">
+    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 dark:text-slate-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-all mt-auto uppercase tracking-widest">
       <span>{badge ? 'Fitur Pengembangan' : 'Buka Aplikasi'}</span>
       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
     </div>
@@ -52,32 +52,32 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
 
   return (
     <div className="space-y-8">
-      {/* Hero Banner - Lightweight, GPU-friendly gradient & smooth composition */}
-      <div className="bg-gradient-to-br from-primary-50 via-white to-secondary-50 rounded-[2.5rem] p-8 md:p-14 lg:p-16 relative overflow-hidden flex flex-col md:flex-row items-center justify-between min-h-[400px] shadow-md border border-primary-100/90">
+      {/* Hero Banner - Lightweight, GPU-friendly gradient & smooth dark mode */}
+      <div className="bg-gradient-to-br from-primary-50 via-white to-secondary-50 dark:from-slate-900 dark:via-slate-850 dark:via-slate-800/90 dark:to-slate-900 rounded-[2.5rem] p-8 md:p-14 lg:p-16 relative overflow-hidden flex flex-col md:flex-row items-center justify-between min-h-[400px] shadow-md border border-primary-100/90 dark:border-slate-800">
         
-        {/* Subtle decorative background (Lightweight radial without heavy GPU blur) */}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-primary-100/40 rounded-full pointer-events-none -mr-16 -mt-16"></div>
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-secondary-100/35 rounded-full pointer-events-none -ml-16 -mb-16"></div>
+        {/* Subtle decorative background */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-primary-100/40 dark:bg-primary-900/10 rounded-full pointer-events-none -mr-16 -mt-16"></div>
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-secondary-100/35 dark:bg-secondary-900/10 rounded-full pointer-events-none -ml-16 -mb-16"></div>
 
         {/* Left Column (Text & Quote) */}
         <div className="relative z-10 flex flex-col items-start text-left space-y-6 w-full md:w-1/2 max-w-xl mx-auto md:mx-0">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white text-primary-700 text-xs font-black uppercase tracking-wider border border-primary-200 shadow-xs">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white dark:bg-slate-800 text-primary-700 dark:text-primary-300 text-xs font-black uppercase tracking-wider border border-primary-200 dark:border-slate-700 shadow-xs">
             <span className="w-2 h-2 rounded-full bg-primary-500 animate-pulse"></span>
             BPS Kabupaten Mempawah
           </div>
 
-          <h1 className="text-slate-800 text-[26px] sm:text-3xl md:text-4xl lg:text-5xl leading-[1.25] font-serif font-bold tracking-tight break-words hyphens-auto">
+          <h1 className="text-slate-800 dark:text-slate-100 text-[26px] sm:text-3xl md:text-4xl lg:text-5xl leading-[1.25] font-serif font-bold tracking-tight break-words hyphens-auto">
             Portal Integrasi Menjaga Kualitas Data & <br className="hidden md:block" />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600 italic block mt-1 md:mt-0 md:inline">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600 dark:from-primary-400 dark:to-secondary-400 italic block mt-1 md:mt-0 md:inline">
               Akuntabilitas Proses Pendataan
             </span>
           </h1>
 
-          <div className="p-4 rounded-2xl bg-white/90 border border-primary-100 max-w-md shadow-2xs space-y-1">
-            <p className="text-slate-600 text-xs md:text-sm leading-relaxed italic font-serif">
+          <div className="p-4 rounded-2xl bg-white/90 dark:bg-slate-800/90 border border-primary-100 dark:border-slate-700 max-w-md shadow-2xs space-y-1">
+            <p className="text-slate-600 dark:text-slate-300 text-xs md:text-sm leading-relaxed italic font-serif">
               "Kesempurnaan tidak datang dengan sendirinya. Kesempurnaan harus diupayakan."
             </p>
-            <span className="font-bold not-italic block text-xs text-slate-800 tracking-tight">
+            <span className="font-bold not-italic block text-xs text-slate-800 dark:text-slate-200 tracking-tight">
               — Prof. Dr. Ing. B.J. Habibie
             </span>
           </div>
@@ -107,13 +107,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <span className="w-1.5 h-6 bg-rose-500 rounded-full"></span>
-              <h2 className="text-lg font-black text-slate-800">
+              <h2 className="text-lg font-black text-slate-800 dark:text-slate-100">
                 Persiapan Kegiatan
               </h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 uppercase tracking-wide border border-rose-200">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 uppercase tracking-wide border border-rose-200 dark:border-rose-800/60">
                 Khusus Admin
               </span>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <FeatureCard
                 title="Peta Batas SLS Live"
@@ -146,7 +147,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
 
         {/* Kategori: Pelatihan */}
         <div>
-          <h2 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
             <span className="w-1.5 h-6 bg-sky-500 rounded-full"></span>
             Pelatihan
           </h2>
@@ -155,7 +156,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               title="Learning Management System"
               description="Pusat materi, jadwal, instrumen dan kuis pelatihan petugas pendataan yang terstruktur."
               icon={MonitorPlay}
-              iconColor="text-sky-600"
+              iconColor="text-sky-600 dark:text-sky-400"
               bgColor="bg-sky-50"
               onClick={() => onNavigate('lms')}
             />
@@ -164,7 +165,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
 
         {/* Kategori: Pendataan Lapangan */}
         <div>
-          <h2 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
             <span className="w-1.5 h-6 bg-primary-600 rounded-full"></span>
             Pendataan Lapangan
           </h2>
@@ -173,7 +174,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               title="Monitoring Dashboard"
               description="Pantau akumulasi progres lapangan, pencapaian target, dan performa petugas secara real-time."
               icon={Activity}
-              iconColor="text-emerald-600"
+              iconColor="text-emerald-600 dark:text-emerald-400"
               bgColor="bg-emerald-50"
               onClick={() => onNavigate('monitoring')}
             />
@@ -181,7 +182,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               title="Pengukuran Luas Bangunan"
               description="Kalkulator validasi luas atap bangunan berbasis citra satelit dan geospasial."
               icon={Ruler}
-              iconColor="text-primary-600"
+              iconColor="text-primary-600 dark:text-primary-400"
               bgColor="bg-primary-50"
               onClick={() => onNavigate('building-area')}
             />
@@ -189,15 +190,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               title="Laporan Pendataan"
               description="Aplikasi pelaporan dan monitoring progres pendataan lapangan secara real-time."
               icon={FileEdit}
-              iconColor="text-indigo-600"
+              iconColor="text-indigo-600 dark:text-indigo-400"
               bgColor="bg-indigo-50"
+              badge="Dev"
               onClick={() => onNavigate('laporan-pendataan')}
             />
             <FeatureCard
               title="KBLI 2025 & KBJI 2014"
               description="Akses cepat klasifikasi KBLI 2025 dan KBJI untuk penentuan kode yang akurat."
               icon={BookOpen}
-              iconColor="text-primary-600"
+              iconColor="text-primary-600 dark:text-primary-400"
               bgColor="bg-primary-50"
               onClick={() => onNavigate('kbli-kbji')}
             />
@@ -205,7 +207,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               title="Imputasi Susenas-Seruti"
               description="Mesin pencari pintar untuk panduan nilai imputasi lapangan secara instan."
               icon={FileEdit}
-              iconColor="text-purple-600"
+              iconColor="text-purple-600 dark:text-purple-400"
               bgColor="bg-purple-50"
               onClick={() => onNavigate('imputation')}
             />
@@ -213,7 +215,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               title="Infrastruktur Desa"
               description="Monitoring dan update data infrastruktur pendukung desa secara real-time."
               icon={Map}
-              iconColor="text-accent-600"
+              iconColor="text-accent-600 dark:text-accent-400"
               bgColor="bg-accent-50"
               onClick={() => onNavigate('infrastructure')}
             />
@@ -225,10 +227,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <span className="w-1.5 h-6 bg-cyan-600 rounded-full"></span>
-              <h2 className="text-lg font-black text-slate-800">
+              <h2 className="text-lg font-black text-slate-800 dark:text-slate-100">
                 Pengolahan Data
               </h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-cyan-100 text-cyan-800 uppercase tracking-wide border border-cyan-200">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-cyan-100 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 uppercase tracking-wide border border-cyan-200 dark:border-cyan-800/60">
                 SE2026
               </span>
             </div>
@@ -237,7 +239,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 title="Peta Responden SE2026"
                 description="Visualisasi sebaran koordinat 84.000+ responden SE2026 di Kabupaten Mempawah dengan overlay batas SLS, Desa, dan Kecamatan."
                 icon={MapPin}
-                iconColor="text-cyan-600"
+                iconColor="text-cyan-600 dark:text-cyan-400"
                 bgColor="bg-cyan-50"
                 onClick={() => onNavigate('peta-responden-se2026')}
               />
@@ -247,7 +249,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
 
         {/* Kategori: Analisis dan Diseminasi */}
         <div>
-          <h2 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
             <span className="w-1.5 h-6 bg-amber-500 rounded-full"></span>
             Analisis dan Diseminasi
           </h2>
@@ -256,7 +258,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               title="Fenomena Sosial Ekonomi"
               description="Modul pemantauan, analisis, dan pencatatan dinamika fenomena sosial ekonomi."
               icon={Users}
-              iconColor="text-rose-600"
+              iconColor="text-rose-600 dark:text-rose-400"
               bgColor="bg-rose-50"
               onClick={() => onNavigate('social-phenomenon')}
             />
@@ -264,7 +266,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               title="Data Strategis BPS"
               description="Dashboard indikator makro ekonomi, sosial, dan produksi daerah. (Masih dalam pengembangan)"
               icon={TrendingUp}
-              iconColor="text-amber-600"
+              iconColor="text-amber-600 dark:text-amber-400"
               bgColor="bg-amber-50"
               onClick={() => onNavigate('admin-strategic-data')}
             />

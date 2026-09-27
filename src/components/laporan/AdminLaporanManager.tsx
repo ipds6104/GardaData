@@ -1,32 +1,54 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { 
   Plus, Trash2, Save, Download, RefreshCw, Eye, 
   Layers, Power, Settings,
-  FileSpreadsheet, ChevronRight, ChevronDown, CheckCircle2,
+  FileSpreadsheet, ChevronRight, ChevronDown, ChevronUp, ChevronLeft, CheckCircle2,
   AlertCircle, Copy, Info, BarChart3, Check, Type, Hash,
   MapPin, UploadCloud, Calendar, Clock, Sparkles,
-  Pencil, BookOpen, HelpCircle, ArrowLeft,
+  Pencil, Edit3, BookOpen, HelpCircle, ArrowLeft,
   FileText, ClipboardList, CheckSquare, Building2, Home, Users,
   Wheat, Truck, Folder, HeartPulse, GraduationCap, DollarSign,
   Search, MoreVertical, ShieldAlert, Sliders, Play, Smartphone,
   ExternalLink, X, Shield, Bell, Palette, Globe, Lock, SlidersHorizontal,
-  FileCheck2, Database, Wifi, KeyRound, AlertTriangle, Send
+  FileCheck2, Database, Wifi, KeyRound, AlertTriangle, Send, LayoutTemplate,
+  Sidebar, Briefcase, Landmark, Factory, Tag, Cpu, Award, Lightbulb,
+  Tablet, Monitor
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme';
 import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES } from './laporanConstants';
 import { PetugasLaporanModule } from './PetugasLaporanModule';
 
 // Custom Smooth Dropdown Component
+interface DropdownOption {
+  value: string;
+  label: string;
+  icon?: any;
+  desc?: string;
+}
+
 const CustomDropdown: React.FC<{
   value: string;
-  options: Array<{ value: string; label: string; icon?: any; desc?: string }>;
+  options: DropdownOption[];
   onChange: (val: string) => void;
   placeholder?: string;
   className?: string;
-}> = ({ value, options, onChange, placeholder = 'Pilih...', className = '' }) => {
+  disabled?: boolean;
+  searchable?: boolean;
+  size?: 'sm' | 'md';
+}> = ({
+  value,
+  options,
+  onChange,
+  placeholder = 'Pilih...',
+  className = '',
+  disabled = false,
+  searchable = false,
+  size = 'md'
+}) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,59 +61,101 @@ const CustomDropdown: React.FC<{
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const selectedOpt = options.find(o => o.value === value);
+  const selectedOpt = options.find(o => 
+    o.value === value || 
+    (typeof value === 'string' && typeof o.value === 'string' && o.value.trim().toLowerCase() === value.trim().toLowerCase())
+  );
+
+  const filteredOptions = useMemo(() => {
+    if (!searchTerm.trim()) return options;
+    const q = searchTerm.toLowerCase();
+    return options.filter(o => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q));
+  }, [options, searchTerm]);
+
+  const isSmall = size === 'sm';
 
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 flex items-center justify-between transition-all cursor-pointer shadow-2xs font-medium"
+        disabled={disabled}
+        onClick={() => {
+          if (!disabled) {
+            setIsOpen(!isOpen);
+            setSearchTerm('');
+          }
+        }}
+        className={`w-full bg-slate-50 dark:bg-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-700/80 focus:bg-white dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 flex items-center justify-between transition-all cursor-pointer shadow-2xs font-medium ${
+          isSmall ? 'px-2.5 py-1.5 text-xs' : 'px-3.5 py-2.5 text-xs'
+        } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
       >
         <div className="flex items-center gap-2 truncate">
-          {selectedOpt?.icon && <selectedOpt.icon className="w-3.5 h-3.5 text-slate-500 shrink-0" />}
-          <span className="truncate">{selectedOpt ? selectedOpt.label : placeholder}</span>
+          {selectedOpt?.icon && <selectedOpt.icon className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />}
+          <span className="truncate font-semibold">{selectedOpt ? selectedOpt.label : placeholder}</span>
         </div>
-        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+            initial={{ opacity: 0, y: 4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.98 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl p-1.5 space-y-1 max-h-56 overflow-y-auto custom-scrollbar"
+            exit={{ opacity: 0, y: 3, scale: 0.98 }}
+            transition={{ duration: 0.12, ease: 'easeOut' }}
+            className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl p-1.5 space-y-1 max-h-56 overflow-y-auto custom-scrollbar ring-1 ring-black/5"
           >
-            {options.map((opt) => {
-              const isSel = opt.value === value;
-              const OptIcon = opt.icon;
-
-              return (
-                <div
-                  key={opt.value}
-                  onClick={() => {
-                    onChange(opt.value);
-                    setIsOpen(false);
-                  }}
-                  className={`p-2 rounded-xl text-xs cursor-pointer flex items-center justify-between transition-all ${
-                    isSel 
-                      ? 'bg-primary-50 text-primary-900 font-bold border border-primary-200' 
-                      : 'hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {OptIcon && <OptIcon className={`w-3.5 h-3.5 ${isSel ? 'text-primary-600' : 'text-slate-400'}`} />}
-                    <div className="truncate">
-                      <span className="block truncate">{opt.label}</span>
-                      {opt.desc && <span className="text-[10px] text-slate-400 font-normal block truncate">{opt.desc}</span>}
-                    </div>
-                  </div>
-                  {isSel && <Check className="w-3.5 h-3.5 text-primary-600 shrink-0 ml-2" />}
+            {(searchable || options.length > 7) && (
+              <div className="p-1 pb-1.5 border-b border-slate-100 dark:border-slate-700/60 sticky top-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xs z-10">
+                <div className="relative">
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Cari..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-7 pr-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none focus:ring-1 focus:ring-primary-400"
+                  />
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
                 </div>
-              );
-            })}
+              </div>
+            )}
+
+            {filteredOptions.length === 0 ? (
+              <div className="p-3 text-center text-slate-400 text-xs">
+                Tidak ada opsi yang cocok.
+              </div>
+            ) : (
+              filteredOptions.map((opt: DropdownOption) => {
+                const isSel = opt.value === value || 
+                  (typeof value === 'string' && typeof opt.value === 'string' && opt.value.trim().toLowerCase() === value.trim().toLowerCase());
+                const OptIcon = opt.icon;
+
+                return (
+                  <div
+                    key={opt.value}
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                    }}
+                    className={`p-2 rounded-xl text-xs cursor-pointer flex items-center justify-between transition-all ${
+                      isSel 
+                        ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-900 dark:text-primary-200 font-bold border border-primary-200 dark:border-primary-800' 
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {OptIcon && <OptIcon className={`w-3.5 h-3.5 ${isSel ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400'}`} />}
+                      <div className="truncate">
+                        <span className="block truncate">{opt.label}</span>
+                        {opt.desc && <span className="text-[10px] text-slate-400 font-normal block truncate">{opt.desc}</span>}
+                      </div>
+                    </div>
+                    {isSel && <Check className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400 shrink-0 ml-2" />}
+                  </div>
+                );
+              })
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -113,8 +177,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   // Subheader View Toggle: 'apps' vs 'databases'
   const [activeMainTab, setActiveMainTab] = useState<'apps' | 'databases'>('apps');
 
-  // Studio Subtab: 'data' | 'ux' | 'automation' | 'security' | 'settings'
-  const [studioTab, setStudioTab] = useState<'data' | 'ux' | 'automation' | 'security' | 'settings'>('data');
+  // Studio Subtab: 'data' | 'ui' | 'automation' | 'security' | 'settings'
+  const [studioTab, setStudioTab] = useState<'data' | 'ui' | 'automation' | 'security' | 'settings'>('data');
 
   // Sidebar Filter in Home (Gambar 1): 'owned' | 'templates'
   const [homeSidebarFilter, setHomeSidebarFilter] = useState<'owned' | 'templates'>('owned');
@@ -143,6 +207,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   const [newFormSheetUrl, setNewFormSheetUrl] = useState('');
   const [newFormSheetName, setNewFormSheetName] = useState('');
   const [newFormIcon, setNewFormIcon] = useState('FileText');
+  const [simulatorDevice, setSimulatorDevice] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
+  const [isLiveEdit, setIsLiveEdit] = useState<boolean>(true);
+  const [showActivityInfoModal, setShowActivityInfoModal] = useState<boolean>(false);
+  const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
 
   // Schema Columns of Selected Form
   const [fields, setFields] = useState<any[]>([]);
@@ -158,13 +226,34 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     groupingLevels: ['Nama PPL', 'Kecamatan', 'Desa', 'SLS / RT']
   });
 
-  // UX, Automation & Security Settings State
-  const [uxSettings, setUxSettings] = useState({
+  // UI, Automation & Security Settings State
+  const [uxSettings, setUxSettings] = useState<{
+    themeColor: string;
+    viewLayout: string;
+    showBadges: boolean;
+    compactMode: boolean;
+    navMode: 'bottom_bar' | 'sidebar' | 'both';
+  }>({
     themeColor: '#0ea5e9',
     viewLayout: 'card_list',
     showBadges: true,
-    compactMode: false
+    compactMode: false,
+    navMode: 'bottom_bar'
   });
+
+  // Move Form Order (Bottom Bar / Sidebar Navigation Order)
+  const handleMoveForm = (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= forms.length) return;
+    const updated = [...forms];
+    const temp = updated[index];
+    updated[index] = updated[newIndex];
+    updated[newIndex] = temp;
+    setForms(updated);
+    if (selectedActivity?.id) {
+      localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updated));
+    }
+  };
 
   const [autoSettings, setAutoSettings] = useState({
     syncFrequency: 'realtime',
@@ -175,9 +264,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   });
 
   const [securitySettings, setSecuritySettings] = useState({
-    lockOnSubmit: true,
+    lockOnSubmit: false,
     allowPetugasDelete: false,
-    requireGPS: true,
+    requireGPS: false,
     requirePhoto: false
   });
 
@@ -290,11 +379,29 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   useEffect(() => {
     if (selectedActivity?.id) {
       fetchForms(selectedActivity.id);
-      if (selectedActivity.settings) {
-        setUxSettings(prev => ({ ...prev, ...(selectedActivity.settings.ux || {}) }));
-        setAutoSettings(prev => ({ ...prev, ...(selectedActivity.settings.auto || {}) }));
-        setSecuritySettings(prev => ({ ...prev, ...(selectedActivity.settings.security || {}) }));
-      }
+      const st = selectedActivity.settings || {};
+      setUxSettings({
+        themeColor: st.themeColor || st.ux?.themeColor || '#0ea5e9',
+        viewLayout: st.viewLayout || st.ux?.viewLayout || 'card_list',
+        showBadges: st.showBadges !== undefined ? st.showBadges : (st.ux?.showBadges !== false),
+        compactMode: st.compactMode || st.ux?.compactMode || false,
+        navMode: st.navMode || st.ux?.navMode || 'bottom_bar'
+      });
+      setAutoSettings(prev => ({
+        ...prev,
+        syncFrequency: st.syncFrequency || st.auto?.syncFrequency || 'realtime',
+        webhookUrl: st.webhookUrl || st.auto?.webhookUrl || '',
+        notifyWhatsapp: st.notifyWhatsapp || st.auto?.notifyWhatsapp || false,
+        enableGeofence: st.enableGeofence !== undefined ? st.enableGeofence : true,
+        maxRadiusMeters: st.maxRadiusMeters || 250
+      }));
+      setSecuritySettings(prev => ({
+        ...prev,
+        lockOnSubmit: st.lockOnSubmit !== undefined ? st.lockOnSubmit : false,
+        allowPetugasDelete: st.allowPetugasDelete || false,
+        requireGPS: st.requireGPS !== undefined ? st.requireGPS : false,
+        requirePhoto: st.requirePhoto || false
+      }));
     }
   }, [selectedActivity?.id]);
 
@@ -307,10 +414,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         sheetUrl: selectedForm.sheetUrl || selectedActivity?.sheetUrl || '',
         sheetName: selectedForm.sheetName || 'Sheet1',
         groupingLevels: [
-          gl[0] || 'Nama PPL',
-          gl[1] || 'Kecamatan',
-          gl[2] || 'Desa',
-          gl[3] || 'SLS / RT'
+          gl[0] !== undefined ? gl[0] : '',
+          gl[1] !== undefined ? gl[1] : '',
+          gl[2] !== undefined ? gl[2] : '',
+          gl[3] !== undefined ? gl[3] : ''
         ]
       });
 
@@ -472,7 +579,71 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     setTimeout(() => setSyncAlert(null), 3000);
   };
 
-  // Sync Columns from Google Sheet
+  // Client-side Direct Google Sheet Parser Fallback
+  const parseGoogleSheetDirectly = async (sheetUrl: string, sheetName: string = 'Sheet1') => {
+    if (!sheetUrl) throw new Error('URL Google Sheet kosong');
+    let docId = sheetUrl.trim();
+    if (sheetUrl.includes('/d/')) {
+      const match = sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      if (match && match[1]) docId = match[1];
+    }
+
+    const cleanSheetName = sheetName.trim() || 'Sheet1';
+    const targetUrl = `https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(cleanSheetName)}`;
+
+    const res = await fetch(targetUrl);
+    if (!res.ok) {
+      throw new Error('Gagal mengunduh Google Sheet. Pastikan sharing diatur: "Anyone with the link can view/edit"');
+    }
+
+    const csvText = await res.text();
+    const workbook = XLSX.read(csvText, { type: 'string' });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const jsonRows: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+    let headers: string[] = [];
+    if (jsonRows.length > 0) {
+      headers = Object.keys(jsonRows[0]);
+    } else {
+      const rawData: string[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      if (rawData.length > 0) headers = rawData[0].map(c => String(c || '').trim()).filter(Boolean);
+    }
+
+    if (headers.length === 0) {
+      throw new Error('Google Sheet tidak memiliki header kolom yang terbaca.');
+    }
+
+    const schema = headers.map((h, i) => {
+      let type = 'Text';
+      const hLower = h.toLowerCase();
+      if (hLower.includes('foto') || hLower.includes('gambar') || hLower.includes('image') || hLower.includes('dokumen')) type = 'Image';
+      else if (hLower.includes('gps') || hLower.includes('lokasi') || hLower.includes('lat') || hLower.includes('long') || hLower.includes('koordinat')) type = 'LatLong';
+      else if (hLower.includes('tgl') || hLower.includes('tanggal') || hLower.includes('date')) type = 'Date';
+      else if (hLower.includes('jam') || hLower.includes('waktu') || hLower.includes('time')) type = 'Time';
+      else if (hLower.includes('jumlah') || hLower.includes('total') || hLower.includes('nilai') || hLower.includes('luas') || hLower.includes('umur') || hLower.includes('harga') || hLower.includes('pendapatan') || hLower.includes('kapasitas')) type = 'Number';
+      else if (hLower.includes('status') || hLower.includes('jenis') || hLower.includes('kategori')) type = 'Enum';
+
+      const uniqueVals = Array.from(new Set(jsonRows.map(r => String(r[h] || '').trim()).filter(Boolean)));
+      const options = uniqueVals.length > 0 && uniqueVals.length <= 20 ? uniqueVals : [];
+      if (options.length > 0 && options.length <= 10 && type === 'Text') type = 'Enum';
+
+      return {
+        id: `fld_${Date.now()}_${i}`,
+        columnName: h,
+        label: h,
+        dataType: type,
+        isRequired: i === 0 || hLower.includes('nama') || hLower.includes('krt'),
+        isLabel: i === 0 || hLower.includes('nama') || hLower.includes('krt'),
+        isKey: i === 0 && (hLower.includes('id') || hLower.includes('kode')),
+        options
+      };
+    });
+
+    return { headers, schema, records: jsonRows, totalRows: jsonRows.length };
+  };
+
+  // Sync Columns & Records from Google Sheet (Hybrid: Backend API + Direct Fallback)
   const handleSyncFromGoogleSheet = async () => {
     if (!formConfig.sheetUrl) {
       alert('Masukkan Tautan Google Sheet terlebih dahulu.');
@@ -481,33 +652,86 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
 
     try {
       setIsSyncingSheet(true);
-      const res = await fetch(`${baseUrl}/api/laporan/forms/${selectedFormId}/sync-sheet`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sheetUrl: formConfig.sheetUrl,
-          sheetName: formConfig.sheetName || 'Sheet1'
-        })
-      });
+      let syncSuccess = false;
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.fields && Array.isArray(data.fields) && data.fields.length > 0) {
-          setFields(data.fields);
-          setSyncAlert({ type: 'success', message: `Berhasil sinkronisasi ${data.fields.length} kolom dari Google Sheet!` });
-        } else {
-          setSyncAlert({ type: 'success', message: 'Struktur kolom berhasil disinkronkan!' });
+      // 1. Coba lewat backend server
+      try {
+        const res = await fetch(`${baseUrl}/api/laporan/forms/${selectedFormId}/sync-sheet`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sheetUrl: formConfig.sheetUrl,
+            sheetName: formConfig.sheetName || 'Sheet1'
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const extractedFields = data.fields || data.schema || [];
+          if (Array.isArray(extractedFields) && extractedFields.length > 0) {
+            setFields(extractedFields);
+            syncSuccess = true;
+            setSyncAlert({ 
+              type: 'success', 
+              message: `Berhasil sinkronisasi ${extractedFields.length} kolom dari Google Sheet (Backend)!` 
+            });
+          }
         }
-      } else {
-        setSyncAlert({ type: 'success', message: 'Tautan Google Sheet terhubung.' });
+      } catch (backendErr) {
+        console.warn('Backend sync unreachable, falling back to direct client-side fetch:', backendErr);
       }
-    } catch (err) {
-      setSyncAlert({ type: 'error', message: 'Gagal terhubung ke Google Sheet. Periksa izin sharing dokumen.' });
+
+      // 2. Fallback: Ekstraksi langsung di browser (Client-Side) jika backend offline/localhost
+      if (!syncSuccess) {
+        const clientResult = await parseGoogleSheetDirectly(formConfig.sheetUrl, formConfig.sheetName || 'Sheet1');
+        if (clientResult.schema.length > 0) {
+          setFields(clientResult.schema);
+          
+          // Simpan record data sampel ke penyimpanan lokal
+          if (clientResult.records.length > 0) {
+            const formattedRecords = clientResult.records.map((r, idx) => ({
+              id: `${selectedFormId || 'form'}_row_${idx + 1}`,
+              rowId: `row_${idx + 1}`,
+              formId: selectedFormId,
+              activityId: selectedActivity?.id,
+              data: r,
+              status: 'draft',
+              createdAt: new Date().toISOString()
+            }));
+            localStorage.setItem(`garda_laporan_records_${selectedFormId}`, JSON.stringify(formattedRecords));
+          }
+
+          setSyncAlert({ 
+            type: 'success', 
+            message: `Berhasil sinkronisasi ${clientResult.schema.length} kolom & ${clientResult.totalRows} baris data dari Google Sheet!` 
+          });
+
+          // Sync Sheet URL to Activity
+          if (selectedActivity) {
+            const updatedAct = {
+              ...selectedActivity,
+              sheetUrl: formConfig.sheetUrl,
+              sheetName: formConfig.sheetName || 'Sheet1'
+            };
+            setSelectedActivity(updatedAct);
+            const updatedActs = activities.map(a => a.id === selectedActivity.id ? updatedAct : a);
+            setActivities(updatedActs);
+            localStorage.setItem('garda_laporan_activities', JSON.stringify(updatedActs));
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('Error syncing Google Sheet:', err);
+      setSyncAlert({ 
+        type: 'error', 
+        message: err.message || 'Gagal terhubung ke Google Sheet. Pastikan sharing dokumen "Anyone with the link can view".' 
+      });
     } finally {
       setIsSyncingSheet(false);
-      setTimeout(() => setSyncAlert(null), 3500);
+      setTimeout(() => setSyncAlert(null), 4000);
     }
   };
+
 
   // Add Column Row
   const handleAddColumnRow = () => {
@@ -538,6 +762,40 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       updated[index].columnName = value;
     }
     setFields(updated);
+
+    // Live sync into forms state so simulator updates in real time
+    if (selectedFormId) {
+      setForms(prev => prev.map(f => {
+        if (f.id === selectedFormId) {
+          return { ...f, fields: updated };
+        }
+        return f;
+      }));
+    }
+  };
+
+  // Update Grouping Level
+  const handleUpdateGroupingLevel = (levelIdx: number, val: string) => {
+    const updated = [...(formConfig.groupingLevels || ['', '', '', ''])];
+    if (!val) {
+      for (let i = levelIdx; i < 4; i++) {
+        updated[i] = '';
+      }
+    } else {
+      updated[levelIdx] = val;
+    }
+    const cleanGroupings = updated.filter(g => g && String(g).trim() !== '');
+    setFormConfig(prev => ({ ...prev, groupingLevels: updated }));
+
+    // Live sync into forms state
+    if (selectedFormId) {
+      setForms(prev => prev.map(f => {
+        if (f.id === selectedFormId) {
+          return { ...f, groupingLevels: cleanGroupings };
+        }
+        return f;
+      }));
+    }
   };
 
   // Save All Settings (Schema, UX, Auto, Security)
@@ -563,15 +821,20 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         });
       }
 
-      // 2. Update Activity Settings (UX, Auto, Security) in Backend
+      // 2. Update Activity Settings (UI, Auto, Security) in Backend
       const updatedActivityObj = {
         ...selectedActivity,
         title: selectedActivity.title,
+        description: selectedActivity.description || '',
+        icon: selectedActivity.icon || 'Layers',
+        sheetUrl: formConfig.sheetUrl || selectedActivity.sheetUrl || '',
+        sheetName: formConfig.sheetName || selectedActivity.sheetName || 'Sheet1',
         settings: {
           themeColor: uxSettings.themeColor,
           viewLayout: uxSettings.viewLayout,
           showBadges: uxSettings.showBadges,
           compactMode: uxSettings.compactMode,
+          navMode: uxSettings.navMode,
           syncFrequency: autoSettings.syncFrequency,
           webhookUrl: autoSettings.webhookUrl,
           enableGeofence: autoSettings.enableGeofence,
@@ -595,25 +858,27 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       localStorage.setItem('garda_laporan_activities', JSON.stringify(updatedActs));
 
       if (selectedFormId) {
-        const updatedForms = forms.map(f => {
+        const updatedForms = forms.map((f, fIdx) => {
           if (f.id === selectedFormId) {
             return {
               ...f,
               title: formConfig.title || f.title,
+              icon: f.icon || 'FileText',
               sheetUrl: formConfig.sheetUrl,
               sheetName: formConfig.sheetName,
               groupingLevels: cleanGroupings,
-              fields: fields
+              fields: fields,
+              orderIndex: fIdx
             };
           }
-          return f;
+          return { ...f, orderIndex: fIdx };
         });
         setForms(updatedForms);
         localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
       }
 
       setSimulatorKey(Date.now());
-      setSyncAlert({ type: 'success', message: 'Seluruh konfigurasi skema, UX, otomatisasi, dan keamanan berhasil disimpan!' });
+      setSyncAlert({ type: 'success', message: 'Seluruh konfigurasi skema, UI, otomatisasi, dan keamanan berhasil disimpan!' });
     } catch (err) {
       setSyncAlert({ type: 'success', message: 'Konfigurasi disimpan secara lokal.' });
     } finally {
@@ -776,9 +1041,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   // =========================================================================
   if (adminScreen === 'apps_home') {
     return (
-      <div className="flex flex-col h-[calc(100vh-4.5rem)] w-full bg-slate-50 overflow-hidden font-sans">
+      <div className="flex flex-col h-[calc(100vh-4.5rem)] w-full bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans">
         {/* Top Header Bar */}
-        <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shrink-0">
+        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4 flex-1 max-w-xl">
             <div className="relative w-full">
               <input
@@ -786,11 +1051,11 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 placeholder="Search apps and databases..."
                 value={homeSearchQuery}
                 onChange={(e) => setHomeSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-100/80 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary-300 transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-slate-100/80 hover:bg-slate-100 focus:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-800 dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary-300 transition-all"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               {homeSearchQuery && (
-                <button onClick={() => setHomeSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <button onClick={() => setHomeSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -798,19 +1063,21 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-primary-50 text-primary-700 border border-primary-200">
+            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800">
               Admin Portal
             </span>
           </div>
         </div>
 
         {/* Subheader Switcher [ Apps | Databases ] */}
-        <div className="bg-white border-b border-slate-200 px-6 py-2.5 flex items-center justify-between shrink-0">
+        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-2.5 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setActiveMainTab('apps')}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeMainTab === 'apps' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                activeMainTab === 'apps' 
+                  ? 'bg-slate-900 dark:bg-slate-800 text-white shadow-xs' 
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
               }`}
             >
               Apps
@@ -818,7 +1085,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             <button 
               onClick={() => setActiveMainTab('databases')}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeMainTab === 'databases' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                activeMainTab === 'databases' 
+                  ? 'bg-slate-900 dark:bg-slate-800 text-white shadow-xs' 
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
               }`}
             >
               <Database className="w-3.5 h-3.5" />
@@ -839,9 +1108,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         </div>
 
         {/* Main Body (Left Sidebar + Content Grid) */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden bg-slate-50 dark:bg-slate-950">
           {/* Left Sidebar (Only 'Owned by me' and 'Templates') */}
-          <div className="w-60 bg-white border-r border-slate-200 p-4 flex flex-col justify-between shrink-0 space-y-4">
+          <div className="w-60 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-between shrink-0 space-y-4">
             <div className="space-y-4">
               {/* Primary + Create Button */}
               <button
@@ -861,14 +1130,14 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                     setActiveMainTab('apps');
                   }}
                   className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                    homeSidebarFilter === 'owned' && activeMainTab === 'apps' ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50'
+                    homeSidebarFilter === 'owned' && activeMainTab === 'apps' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Layers className="w-4 h-4 text-slate-500" />
+                    <Layers className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                     <span>Owned by me</span>
                   </div>
-                  <span className="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.2 rounded-full">
+                  <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold px-2 py-0.2 rounded-full">
                     {activities.length}
                   </span>
                 </button>
@@ -876,42 +1145,42 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 <button
                   onClick={() => setHomeSidebarFilter('templates')}
                   className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-colors cursor-pointer ${
-                    homeSidebarFilter === 'templates' ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50'
+                    homeSidebarFilter === 'templates' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60'
                   }`}
                 >
-                  <FileText className="w-4 h-4 text-slate-500" />
+                  <FileText className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                   <span>Templates</span>
                 </button>
               </div>
             </div>
 
-            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70 text-[11px] text-slate-500 space-y-1">
-              <span className="font-bold text-slate-700 block">Garda Data Studio</span>
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
+              <span className="font-bold text-slate-700 dark:text-slate-200 block">Garda Data Studio</span>
               <p className="leading-tight">Platform integrasi e-form survei terhubung Google Sheets.</p>
             </div>
           </div>
 
           {/* Right Area */}
-          <div className="flex-1 p-6 overflow-y-auto custom-scrollbar space-y-4">
+          <div className="flex-1 p-6 overflow-y-auto custom-scrollbar space-y-4 bg-slate-50 dark:bg-slate-950">
             
             {/* TAB 1: DATABASES REGISTRY */}
             {activeMainTab === 'databases' ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                       Daftar Database &amp; Tautan Google Sheets ({activities.length})
                     </h3>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Kelola status keaktifan aplikasi dan koneksi spreadsheet Google Sheets yang terhubung.
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-black tracking-wider text-[10px]">
+                      <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 uppercase font-black tracking-wider text-[10px]">
                         <tr>
                           <th className="py-3 px-4">Nama Kegiatan / Aplikasi</th>
                           <th className="py-3 px-4">Tautan Google Sheets</th>
@@ -920,7 +1189,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                           <th className="py-3 px-4 text-right">Aksi</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {activities.length === 0 ? (
                           <tr>
                             <td colSpan={5} className="py-8 text-center text-slate-400">
@@ -933,10 +1202,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                             const hasSheet = !!act.sheetUrl;
 
                             return (
-                              <tr key={act.id} className="hover:bg-slate-50/70 transition-colors">
-                                <td className="py-3 px-4 font-bold text-slate-900">
+                              <tr key={act.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/60 transition-colors">
+                                <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100">
                                   <div className="flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
+                                    <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 shrink-0">
                                       <ActIcon className="w-4 h-4" />
                                     </div>
                                     <div>
@@ -945,6 +1214,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                     </div>
                                   </div>
                                 </td>
+
 
                                 <td className="py-3 px-4 font-mono text-[11px]">
                                   {hasSheet ? (
@@ -964,7 +1234,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                 </td>
 
                                 <td className="py-3 px-3">
-                                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-[11px]">
+                                  <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[11px]">
                                     {act.sheetName || 'Sheet1'}
                                   </span>
                                 </td>
@@ -975,8 +1245,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                     onClick={() => handleToggleActivityOpen(act)}
                                     className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
                                       act.isOpen 
-                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100' 
-                                        : 'bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100'
+                                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100' 
+                                        : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 hover:bg-rose-100'
                                     }`}
                                   >
                                     {act.isOpen ? '🟢 Aktif (Dibuka)' : '🔴 Nonaktif (Ditutup)'}
@@ -987,7 +1257,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                   <button
                                     type="button"
                                     onClick={() => handleOpenStudio(act)}
-                                    className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                                    className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
                                   >
                                     Buka Studio
                                   </button>
@@ -1006,10 +1276,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                       Katalog Template E-Form Siap Pakai
                     </h3>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Gunakan template survei resmi BPS yang telah dikonfigurasi variabel dan skemanya.
                     </p>
                   </div>
@@ -1021,26 +1291,26 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                     return (
                       <div
                         key={tpl.id}
-                        className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between space-y-3"
+                        className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between space-y-3"
                       >
                         <div className="flex items-start gap-3.5">
-                          <div className="w-12 h-12 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+                          <div className="w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
                             <TplIcon className="w-6 h-6" />
                           </div>
                           <div>
-                            <span className="text-[10px] font-bold uppercase text-primary-600 tracking-wider block">
+                            <span className="text-[10px] font-bold uppercase text-primary-600 dark:text-primary-400 tracking-wider block">
                               {tpl.category}
                             </span>
-                            <h4 className="text-sm font-bold text-slate-900 leading-snug">
+                            <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-snug">
                               {tpl.title}
                             </h4>
-                            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                               {tpl.desc}
                             </p>
                           </div>
                         </div>
 
-                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <div className="pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
                           <span className="text-[11px] text-slate-400 font-medium">
                             {tpl.fieldsCount} Variabel Standar
                           </span>
@@ -1074,7 +1344,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               /* TAB 3: OWNED APPS GRID */
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                     Owned ({filteredActivities.length})
                   </h3>
                 </div>
@@ -1088,10 +1358,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                         key={act.id}
                         whileHover={{ y: -3 }}
                         onClick={() => handleOpenStudio(act)}
-                        className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between p-5 group min-h-[175px] relative"
+                        className="bg-white dark:bg-slate-800/95 rounded-2xl border border-slate-200/90 dark:border-slate-700 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between p-5 group min-h-[175px] relative"
                       >
                         <div className="flex items-center justify-between">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${act.isOpen ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${act.isOpen ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800'}`}>
                             {act.isOpen ? 'Live' : 'Closed'}
                           </span>
 
@@ -1108,7 +1378,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                 downloading: false
                               });
                             }}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                             title="Hapus Kegiatan (Wajib Unduh Cadangan Excel)"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1116,22 +1386,22 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                         </div>
 
                         <div className="my-3 flex items-center justify-center">
-                          <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-700 group-hover:scale-105 group-hover:border-primary-200 transition-all shadow-2xs">
-                            <ActIcon className="w-8 h-8 text-slate-700 group-hover:text-primary-600 transition-colors" />
+                          <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-700/60 border border-slate-100 dark:border-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 group-hover:scale-105 group-hover:border-primary-200 transition-all shadow-2xs">
+                            <ActIcon className="w-8 h-8 text-slate-700 dark:text-slate-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors" />
                           </div>
                         </div>
 
-                        <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between">
                           <div className="min-w-0 pr-2">
-                            <h4 className="text-xs sm:text-sm font-bold text-slate-900 truncate group-hover:text-primary-600 transition-colors">
+                            <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                               {act.title}
                             </h4>
-                            <span className="text-[11px] text-slate-400 block truncate">
+                            <span className="text-[11px] text-slate-400 dark:text-slate-400 block truncate">
                               {act.category || 'Survei Lapangan'}
                             </span>
                           </div>
 
-                          <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-slate-100 text-slate-600 shrink-0">
+                          <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
                             Shared
                           </span>
                         </div>
@@ -1142,15 +1412,15 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                   {/* + Create New App Card */}
                   <div
                     onClick={() => setIsNewActivityModalOpen(true)}
-                    className="rounded-2xl border-2 border-dashed border-slate-300 hover:border-primary-400 bg-white/60 hover:bg-white p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[175px] group"
+                    className="rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 bg-white/60 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[175px] group"
                   >
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 group-hover:bg-primary-50 text-slate-400 group-hover:text-primary-600 flex items-center justify-center mb-2 transition-colors">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-700 group-hover:bg-primary-50 dark:group-hover:bg-primary-950/60 text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 flex items-center justify-center mb-2 transition-colors">
                       <Plus className="w-6 h-6" />
                     </div>
-                    <span className="text-xs sm:text-sm font-bold text-slate-700 group-hover:text-primary-700">
+                    <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-primary-700 dark:group-hover:text-primary-400">
                       Buat Aplikasi Baru
                     </span>
-                    <span className="text-[11px] text-slate-400 mt-0.5">
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
                       Dari Google Sheet / Template
                     </span>
                   </div>
@@ -1167,26 +1437,26 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 space-y-4"
+              className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 max-w-lg w-full p-6 space-y-4"
             >
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
                     <FileSpreadsheet className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-slate-900">Buat Aplikasi Baru</h3>
-                    <p className="text-[11px] text-slate-500">Integrasikan dengan Google Sheets</p>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Buat Aplikasi Baru</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Integrasikan dengan Google Sheets</p>
                   </div>
                 </div>
-                <button onClick={() => setIsNewActivityModalOpen(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <button onClick={() => setIsNewActivityModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <form onSubmit={handleCreateActivity} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Nama Aplikasi / Kegiatan <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -1195,12 +1465,12 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                     value={newActivityForm.title}
                     onChange={(e) => setNewActivityForm(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="Contoh: SNLIK 2026 atau Susenas"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-2 focus:ring-primary-300 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-300 font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Kategori Statistik
                   </label>
                   <CustomDropdown
@@ -1211,7 +1481,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Tautan Google Sheet (Opsional)
                   </label>
                   <input
@@ -1219,15 +1489,15 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                     value={newActivityForm.sheetUrl}
                     onChange={(e) => setNewActivityForm(prev => ({ ...prev, sheetUrl: e.target.value }))}
                     placeholder="https://docs.google.com/spreadsheets/d/..."
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 outline-none focus:ring-2 focus:ring-primary-300 font-mono"
+                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-300 font-mono"
                   />
                 </div>
 
-                <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+                <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
                   <button
                     type="button"
                     onClick={() => setIsNewActivityModalOpen(false)}
-                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                    className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
                   >
                     Batal
                   </button>
@@ -1252,34 +1522,34 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full p-6 space-y-4"
+              className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 max-w-md w-full p-6 space-y-4"
             >
-              <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-                <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
                   <ShieldAlert className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                     Hapus {deleteBackupModal.type === 'activity' ? 'Kegiatan' : 'Formulir'}
                   </h3>
-                  <p className="text-[11px] text-slate-500">Pemberian ruang penyimpanan database</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Pemberian ruang penyimpanan database</p>
                 </div>
               </div>
 
-              <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1">
+              <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200 space-y-1">
                 <p className="font-bold">Wajib Mengunduh File Cadangan:</p>
-                <p className="text-[11px] text-amber-800 leading-relaxed">
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
                   Sebelum menghapus data untuk mengosongkan database, Anda <b>wajib mengunduh arsip Excel (.xlsx)</b> terlebih dahulu.
                 </p>
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-700 dark:text-slate-300">
                 <span className="text-[10px] uppercase font-bold text-slate-400 block">Item target:</span>
-                <span className="font-bold text-slate-900 block">{deleteBackupModal.item?.title}</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100 block">{deleteBackupModal.item?.title}</span>
               </div>
 
               <div className="space-y-1.5 pt-1">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
                   Langkah 1: Unduh Arsip Excel
                 </label>
                 <button
@@ -1288,14 +1558,14 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                   disabled={deleteBackupModal.downloading}
                   className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs ${
                     deleteBackupModal.hasDownloaded 
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' 
-                      : 'bg-slate-800 hover:bg-slate-900 text-white'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' 
+                      : 'bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white'
                   }`}
                 >
                   {deleteBackupModal.downloading ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : deleteBackupModal.hasDownloaded ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   ) : (
                     <Download className="w-4 h-4" />
                   )}
@@ -1303,8 +1573,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 </button>
               </div>
 
-              <div className="space-y-1.5 pt-1 border-t border-slate-100">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+              <div className="space-y-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
                   Langkah 2: Hapus dari Database
                 </label>
                 <button
@@ -1314,7 +1584,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                   className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs ${
                     deleteBackupModal.hasDownloaded 
                       ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer' 
-                      : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-60'
                   }`}
                 >
                   {deleteBackupModal.isDeleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -1326,7 +1596,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 <button
                   type="button"
                   onClick={() => setDeleteBackupModal(null)}
-                  className="px-4 py-1.5 text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl font-bold cursor-pointer"
+                  className="px-4 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl font-bold cursor-pointer"
                 >
                   Batal
                 </button>
@@ -1342,31 +1612,31 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   // VIEW 2: GAMBAR 2 - APPSHEET STUDIO & BEZEL-LESS LIVE SIMULATOR
   // =========================================================================
   return (
-    <div className="flex flex-col h-[calc(100vh-4.5rem)] w-full bg-slate-100 overflow-hidden font-sans">
+    <div className="flex flex-col h-[calc(100vh-4.5rem)] w-full bg-slate-100 dark:bg-slate-950 overflow-hidden font-sans">
       {/* Top App Studio Navigation Bar */}
-      <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between shrink-0 shadow-xs z-20">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 flex items-center justify-between shrink-0 shadow-xs z-20">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => setAdminScreen('apps_home')}
-            className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+            className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold"
             title="Kembali ke Daftar Aplikasi"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Apps</span>
           </button>
 
-          <div className="h-5 w-px bg-slate-200" />
+          <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
 
           <div className="flex items-center gap-2 min-w-0">
-            <h2 className="text-sm font-bold text-slate-900 truncate">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
               {selectedActivity?.title || 'Studio Editor'}
             </h2>
             <button
               onClick={() => handleToggleActivityOpen()}
               className={`px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-all ${
                 selectedActivity?.isOpen 
-                  ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
-                  : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200' 
+                  : 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 hover:bg-rose-200'
               }`}
             >
               {selectedActivity?.isOpen ? '🟢 Live / Terbuka' : '🔴 Ditutup'}
@@ -1375,29 +1645,29 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         </div>
 
         {/* Center Studio Navigation Tabs */}
-        <div className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+        <div className="hidden md:flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
           <button
             onClick={() => setStudioTab('data')}
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              studioTab === 'data' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              studioTab === 'data' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Database className="w-3.5 h-3.5" />
             <span>Data</span>
           </button>
           <button
-            onClick={() => setStudioTab('ux')}
+            onClick={() => setStudioTab('ui')}
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              studioTab === 'ux' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              studioTab === 'ui' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Palette className="w-3.5 h-3.5" />
-            <span>UX</span>
+            <span>UI</span>
           </button>
           <button
             onClick={() => setStudioTab('automation')}
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              studioTab === 'automation' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              studioTab === 'automation' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -1406,7 +1676,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           <button
             onClick={() => setStudioTab('security')}
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              studioTab === 'security' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              studioTab === 'security' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Shield className="w-3.5 h-3.5" />
@@ -1415,7 +1685,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           <button
             onClick={() => setStudioTab('settings')}
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              studioTab === 'settings' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              studioTab === 'settings' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             <Settings className="w-3.5 h-3.5" />
@@ -1430,8 +1700,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             onClick={() => setShowRightSimulator(!showRightSimulator)}
             className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
               showRightSimulator 
-                ? 'bg-primary-50 text-primary-700 border-primary-200' 
-                : 'bg-white text-slate-600 border-slate-200'
+                ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 border-primary-200 dark:border-primary-800' 
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
             }`}
             title="Tampilkan / Sembunyikan Simulator HP"
           >
@@ -1461,15 +1731,15 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             exit={{ opacity: 0, y: -10 }}
             className={`p-3 text-xs font-bold flex items-center justify-between shadow-xs border-b ${
               syncAlert.type === 'success' 
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                : 'bg-rose-50 text-rose-800 border-rose-200'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800' 
+                : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-800'
             }`}
           >
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>{syncAlert.message}</span>
             </div>
-            <button onClick={() => setSyncAlert(null)} className="text-slate-400 hover:text-slate-700">✕</button>
+            <button onClick={() => setSyncAlert(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">✕</button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1483,16 +1753,16 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         {studioTab === 'data' && (
           <>
             {/* LEFT PANEL: TABLES / FORMS NAVIGATION */}
-            <div className="w-72 bg-white border-r border-slate-200 p-4 flex flex-col justify-between shrink-0 overflow-y-auto custom-scrollbar space-y-4">
+            <div className="w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-between shrink-0 overflow-y-auto custom-scrollbar space-y-4">
               <div className="space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     Tabel / Formulir
                   </span>
                   <button
                     type="button"
                     onClick={() => setIsNewFormModalOpen(true)}
-                    className="p-1 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors cursor-pointer"
+                    className="p-1 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/50 rounded-lg transition-colors cursor-pointer"
                     title="Tambah Formulir / Tabel Baru"
                   >
                     <Plus className="w-4 h-4" />
@@ -1510,12 +1780,12 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                         onClick={() => setSelectedFormId(f.id)}
                         className={`p-2.5 rounded-xl cursor-pointer flex items-center justify-between transition-all ${
                           isSel 
-                            ? 'bg-slate-900 text-white shadow-xs font-bold' 
-                            : 'hover:bg-slate-50 text-slate-700 border border-transparent'
+                            ? 'bg-slate-900 dark:bg-slate-800 text-white shadow-xs font-bold border border-slate-700/50' 
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 border border-transparent'
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <FIcon className={`w-4 h-4 ${isSel ? 'text-white' : 'text-slate-500'}`} />
+                          <FIcon className={`w-4 h-4 ${isSel ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
                           <span className="text-xs truncate">{f.title}</span>
                         </div>
 
@@ -1545,8 +1815,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 </div>
 
                 {/* Google Sheets Data Source Settings */}
-                <div className="pt-3 border-t border-slate-100 space-y-2">
-                  <span className="text-[11px] font-bold text-slate-700 block">
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
                     Sumber Data Google Sheet
                   </span>
                   <div>
@@ -1555,7 +1825,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                       placeholder="URL Google Sheet..."
                       value={formConfig.sheetUrl}
                       onChange={(e) => setFormConfig(prev => ({ ...prev, sheetUrl: e.target.value }))}
-                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-mono text-slate-800 outline-none focus:ring-1 focus:ring-primary-300"
+                      className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-primary-300"
                     />
                   </div>
 
@@ -1565,7 +1835,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                       placeholder="Nama Tab (e.g. Sheet1)"
                       value={formConfig.sheetName}
                       onChange={(e) => setFormConfig(prev => ({ ...prev, sheetName: e.target.value }))}
-                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-medium text-slate-800 outline-none focus:ring-1 focus:ring-primary-300"
+                      className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-medium text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-primary-300"
                     />
                   </div>
 
@@ -1573,96 +1843,144 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                     type="button"
                     onClick={handleSyncFromGoogleSheet}
                     disabled={isSyncingSheet}
-                    className="w-full py-1.5 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="w-full py-1.5 px-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSheet ? 'animate-spin text-primary-600' : ''}`} />
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSheet ? 'animate-spin text-primary-600 dark:text-primary-400' : ''}`} />
                     <span>Sinkronkan dari Sheet</span>
                   </button>
                 </div>
 
-                {/* Grouping Hierarchy Configuration (Level 1 s.d. Level 4) */}
-                <div className="pt-3 border-t border-slate-100 space-y-2">
+                {/* Grouping Hierarchy Configuration (Level 1 s.d. Level 4) with Column Dropdowns */}
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-700 block">
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
                       Struktur Grouping (Max 4 Level)
                     </span>
                     <span className="text-[10px] text-slate-400 font-bold">Level 1 - 4</span>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <div>
-                      <label className="text-[10px] text-slate-500 font-bold block">Level 1 (Grup Utama):</label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: Nama PPL"
-                        value={formConfig.groupingLevels?.[0] || ''}
-                        onChange={(e) => {
-                          const updated = [...(formConfig.groupingLevels || [])];
-                          updated[0] = e.target.value;
-                          setFormConfig(prev => ({ ...prev, groupingLevels: updated }));
-                        }}
-                        className="w-full px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 outline-none"
-                      />
-                    </div>
 
-                    <div>
-                      <label className="text-[10px] text-slate-500 font-bold block">Level 2 (Wilayah / Kategori):</label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: Kecamatan"
-                        value={formConfig.groupingLevels?.[1] || ''}
-                        onChange={(e) => {
-                          const updated = [...(formConfig.groupingLevels || [])];
-                          updated[1] = e.target.value;
-                          setFormConfig(prev => ({ ...prev, groupingLevels: updated }));
-                        }}
-                        className="w-full px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 outline-none"
-                      />
+                  {fields.length === 0 ? (
+                    <div className="p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-[10px] text-amber-800 dark:text-amber-300">
+                      Sinkronkan Google Sheet di atas untuk memuat daftar kolom grouping.
                     </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {/* LEVEL 1 */}
+                      <div>
+                        <label className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block mb-1">
+                          Level 1 (Grup Utama):
+                        </label>
+                        <CustomDropdown
+                          size="sm"
+                          searchable={fields.length > 5}
+                          value={formConfig.groupingLevels?.[0] || ''}
+                          options={[
+                            { value: '', label: '-- Tidak Digunakan (Kosong) --' },
+                            ...fields.map(f => ({
+                              value: f.columnName || f.label,
+                              label: f.label || f.columnName,
+                              desc: `Tipe: ${f.dataType || 'Text'}`
+                            }))
+                          ]}
+                          onChange={(val) => handleUpdateGroupingLevel(0, val)}
+                        />
+                      </div>
 
-                    <div>
-                      <label className="text-[10px] text-slate-500 font-bold block">Level 3 (Sub-Wilayah):</label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: Desa / Kelurahan"
-                        value={formConfig.groupingLevels?.[2] || ''}
-                        onChange={(e) => {
-                          const updated = [...(formConfig.groupingLevels || [])];
-                          updated[2] = e.target.value;
-                          setFormConfig(prev => ({ ...prev, groupingLevels: updated }));
-                        }}
-                        className="w-full px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 outline-none"
-                      />
-                    </div>
+                      {/* LEVEL 2 */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">
+                            Level 2 (Sub-Grup):
+                          </label>
+                          {!formConfig.groupingLevels?.[0] && (
+                            <span className="text-[9px] text-slate-400 italic">Pilih Level 1 dulu</span>
+                          )}
+                        </div>
+                        <CustomDropdown
+                          size="sm"
+                          disabled={!formConfig.groupingLevels?.[0]}
+                          searchable={fields.length > 5}
+                          value={formConfig.groupingLevels?.[1] || ''}
+                          options={[
+                            { value: '', label: '-- Tidak Digunakan (Kosong) --' },
+                            ...fields.map(f => ({
+                              value: f.columnName || f.label,
+                              label: f.label || f.columnName,
+                              desc: `Tipe: ${f.dataType || 'Text'}`
+                            }))
+                          ]}
+                          onChange={(val) => handleUpdateGroupingLevel(1, val)}
+                        />
+                      </div>
 
-                    <div>
-                      <label className="text-[10px] text-slate-500 font-bold block">Level 4 (Blok / RT / SLS):</label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: SLS / RT / Blok Sensus"
-                        value={formConfig.groupingLevels?.[3] || ''}
-                        onChange={(e) => {
-                          const updated = [...(formConfig.groupingLevels || [])];
-                          updated[3] = e.target.value;
-                          setFormConfig(prev => ({ ...prev, groupingLevels: updated }));
-                        }}
-                        className="w-full px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 outline-none"
-                      />
+                      {/* LEVEL 3 */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">
+                            Level 3 (Wilayah / Kategori):
+                          </label>
+                          {!formConfig.groupingLevels?.[1] && (
+                            <span className="text-[9px] text-slate-400 italic">Pilih Level 2 dulu</span>
+                          )}
+                        </div>
+                        <CustomDropdown
+                          size="sm"
+                          disabled={!formConfig.groupingLevels?.[1]}
+                          searchable={fields.length > 5}
+                          value={formConfig.groupingLevels?.[2] || ''}
+                          options={[
+                            { value: '', label: '-- Tidak Digunakan (Kosong) --' },
+                            ...fields.map(f => ({
+                              value: f.columnName || f.label,
+                              label: f.label || f.columnName,
+                              desc: `Tipe: ${f.dataType || 'Text'}`
+                            }))
+                          ]}
+                          onChange={(val) => handleUpdateGroupingLevel(2, val)}
+                        />
+                      </div>
+
+                      {/* LEVEL 4 */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">
+                            Level 4 (Blok / RT / SLS):
+                          </label>
+                          {!formConfig.groupingLevels?.[2] && (
+                            <span className="text-[9px] text-slate-400 italic">Pilih Level 3 dulu</span>
+                          )}
+                        </div>
+                        <CustomDropdown
+                          size="sm"
+                          disabled={!formConfig.groupingLevels?.[2]}
+                          searchable={fields.length > 5}
+                          value={formConfig.groupingLevels?.[3] || ''}
+                          options={[
+                            { value: '', label: '-- Tidak Digunakan (Kosong) --' },
+                            ...fields.map(f => ({
+                              value: f.columnName || f.label,
+                              label: f.label || f.columnName,
+                              desc: `Tipe: ${f.dataType || 'Text'}`
+                            }))
+                          ]}
+                          onChange={(val) => handleUpdateGroupingLevel(3, val)}
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* CENTER PANEL: SCHEMA COLUMNS & DATA TYPES EDITOR */}
-            <div className="flex-1 bg-white p-5 overflow-y-auto custom-scrollbar flex flex-col justify-between">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex-1 bg-white dark:bg-slate-900 p-5 flex flex-col justify-between overflow-hidden">
+              <div className="space-y-4 flex flex-col h-full overflow-hidden">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-slate-900">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                       {selectedForm?.title || 'Formulir'} - Definisi Kolom &amp; Tipe Data
                     </h3>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                       {fields.length} Kolom
                     </span>
                   </div>
@@ -1670,32 +1988,32 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                   <button
                     type="button"
                     onClick={handleAddColumnRow}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-200"
+                    className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>+ Add Column</span>
                   </button>
                 </div>
 
-                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-black tracking-wider text-[10px]">
-                        <tr>
-                          <th className="py-2.5 px-3 w-10 text-center">#</th>
-                          <th className="py-2.5 px-3 min-w-[170px]">NAME</th>
-                          <th className="py-2.5 px-3 min-w-[140px]">TYPE</th>
-                          <th className="py-2.5 px-2 text-center w-14">KEY?</th>
-                          <th className="py-2.5 px-2 text-center w-14">LABEL?</th>
-                          <th className="py-2.5 px-2 text-center w-14">REQ?</th>
-                          <th className="py-2.5 px-3 min-w-[200px]">OPTIONS / FORMULA</th>
-                          <th className="py-2.5 px-2 text-center w-10"></th>
-                        </tr>
-                      </thead>
+                <div className="border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs flex-1 overflow-auto custom-scrollbar relative max-h-[calc(100vh-270px)]">
+                  <table className="w-full text-left text-xs border-collapse relative">
+                    <thead className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 uppercase font-black tracking-wider text-[10px] shadow-sm">
+                      <tr>
+                        <th className="sticky top-0 z-30 py-3 px-3 w-10 text-center bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">#</th>
+                        <th className="sticky top-0 z-30 py-3 px-3 min-w-[160px] bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">NAME</th>
+                        <th className="sticky top-0 z-30 py-3 px-3 min-w-[150px] bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">TYPE</th>
+                        <th className="sticky top-0 z-30 py-3 px-2 text-center w-14 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs" title="Primary Key unik baris">KEY?</th>
+                        <th className="sticky top-0 z-30 py-3 px-2 text-center w-14 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs" title="Judul kartu sampel">LABEL?</th>
+                        <th className="sticky top-0 z-30 py-3 px-2 text-center w-14 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs" title="Wajib diisi petugas">REQ?</th>
+                        <th className="sticky top-0 z-30 py-3 px-2 text-center w-14 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs" title="Bisa diedit petugas di lapangan">EDIT?</th>
+                        <th className="sticky top-0 z-30 py-3 px-3 min-w-[200px] bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">OPTIONS / FORMULA</th>
+                        <th className="sticky top-0 z-30 py-3 px-2 text-center w-10 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs"></th>
+                      </tr>
+                    </thead>
 
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {fields.map((field, idx) => (
-                          <tr key={field.id || idx} className="hover:bg-slate-50/70 transition-colors">
+                          <tr key={field.id || idx} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                             <td className="py-2 px-3 text-center text-slate-400 font-mono text-[11px]">
                               {idx + 1}
                             </td>
@@ -1705,22 +2023,17 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                 type="text"
                                 value={field.label || field.columnName || ''}
                                 onChange={(e) => handleUpdateColumnRow(idx, 'label', e.target.value)}
-                                className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 outline-none focus:ring-1 focus:ring-primary-300"
+                                className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-primary-300"
                               />
                             </td>
 
                             <td className="py-2 px-3">
-                              <select
+                              <CustomDropdown
+                                size="sm"
                                 value={field.dataType || 'Text'}
-                                onChange={(e) => handleUpdateColumnRow(idx, 'dataType', e.target.value)}
-                                className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none cursor-pointer focus:bg-white"
-                              >
-                                {DATA_TYPES.map((dt) => (
-                                  <option key={dt.id} value={dt.id}>
-                                    {dt.label}
-                                  </option>
-                                ))}
-                              </select>
+                                options={DATA_TYPES.map(dt => ({ value: dt.id, label: dt.label }))}
+                                onChange={(val) => handleUpdateColumnRow(idx, 'dataType', val)}
+                              />
                             </td>
 
                             <td className="py-2 px-2 text-center">
@@ -1728,7 +2041,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                 type="checkbox"
                                 checked={!!field.isKey}
                                 onChange={(e) => handleUpdateColumnRow(idx, 'isKey', e.target.checked)}
-                                className="rounded border-slate-300 text-primary-600 focus:ring-primary-400 cursor-pointer"
+                                className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-400 cursor-pointer"
+                                title="Primary Key baris data"
                               />
                             </td>
 
@@ -1737,7 +2051,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                 type="checkbox"
                                 checked={!!field.isLabel}
                                 onChange={(e) => handleUpdateColumnRow(idx, 'isLabel', e.target.checked)}
-                                className="rounded border-slate-300 text-primary-600 focus:ring-primary-400 cursor-pointer"
+                                className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-400 cursor-pointer"
+                                title="Judul tampilan utama kartu"
                               />
                             </td>
 
@@ -1746,7 +2061,18 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                 type="checkbox"
                                 checked={!!field.isRequired}
                                 onChange={(e) => handleUpdateColumnRow(idx, 'isRequired', e.target.checked)}
-                                className="rounded border-slate-300 text-primary-600 focus:ring-primary-400 cursor-pointer"
+                                className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-400 cursor-pointer"
+                                title="Wajib diisi sebelum kirim"
+                              />
+                            </td>
+
+                            <td className="py-2 px-2 text-center">
+                              <input
+                                type="checkbox"
+                                checked={field.isEditable !== false}
+                                onChange={(e) => handleUpdateColumnRow(idx, 'isEditable', e.target.checked)}
+                                className="rounded border-slate-300 dark:border-slate-600 text-primary-600 focus:ring-primary-400 cursor-pointer"
+                                title="Bisa diedit oleh petugas di lapangan"
                               />
                             </td>
 
@@ -1760,7 +2086,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                     const list = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
                                     handleUpdateColumnRow(idx, 'options', list);
                                   }}
-                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 outline-none focus:ring-1 focus:ring-primary-300 placeholder-slate-400"
+                                  className="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary-300 placeholder-slate-400"
                                 />
                               ) : (
                                 <span className="text-[11px] text-slate-400 italic">
@@ -1773,7 +2099,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                               <button
                                 type="button"
                                 onClick={() => handleRemoveColumnRow(idx)}
-                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
                                 title="Hapus Kolom"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1785,101 +2111,332 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                     </table>
                   </div>
                 </div>
-              </div>
 
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-xs text-slate-500">
-                  Perubahan skema akan otomatis disinkronkan ke aplikasi petugas di simulator.
-                </span>
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    Perubahan skema akan otomatis disinkronkan ke aplikasi petugas di simulator.
+                  </span>
 
-                <button
-                  type="button"
-                  onClick={handleSaveAllSettings}
-                  disabled={isSavingSchema}
-                  style={{ backgroundColor: presetInfo.colors.primary }}
-                  className="px-5 py-2.5 text-white rounded-xl text-xs font-bold shadow-xs hover:opacity-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {isSavingSchema ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  <span>Simpan Perubahan Skema</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveAllSettings}
+                    disabled={isSavingSchema}
+                    style={{ backgroundColor: presetInfo.colors.primary }}
+                    className="px-5 py-2.5 text-white rounded-xl text-xs font-bold shadow-xs hover:opacity-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingSchema ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>Simpan Perubahan Skema</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
 
         {/* =====================================================================
-            TAB CONTENT: UX (ANTARMUKA & TEMA PETUGAS)
+            TAB CONTENT: UI (ANTARMUKA & TEMA PETUGAS)
             ===================================================================== */}
-        {studioTab === 'ux' && (
-          <div className="flex-1 bg-white p-6 overflow-y-auto custom-scrollbar space-y-6">
-            <div className="border-b border-slate-100 pb-4">
-              <h3 className="text-base font-bold text-slate-900">Konfigurasi UX &amp; Antarmuka Aplikasi</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Atur tampilan visual, tema warna, dan gaya kartu isian yang akan dilihat petugas di lapangan.
+        {studioTab === 'ui' && (
+          <div className="flex-1 bg-white dark:bg-slate-900 p-6 overflow-y-auto custom-scrollbar space-y-6">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Konfigurasi UI &amp; Antarmuka Aplikasi</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Atur nama kegiatan, deskripsi, tema warna, icon, judul e-form, posisi dan mode navigasi (bottom bar / sidebar), serta tata letak daftar assignment.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                <label className="text-xs font-bold text-slate-800 block">Tema Warna Utama (Brand Color)</label>
-                <div className="flex items-center gap-3 flex-wrap">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl">
+              {/* CARD 1: IDENTITAS KEGIATAN LAPANGAN */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3.5">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-200/80 dark:border-slate-700">
+                  <Layers className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                  <label className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[11px]">
+                    Identitas &amp; Tampilan Kegiatan
+                  </label>
+                </div>
+
+                {/* Nama Kegiatan */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">Nama Kegiatan Pendataan</label>
+                  <input
+                    type="text"
+                    value={selectedActivity?.title || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedActivity((prev: any) => ({ ...prev, title: val }));
+                    }}
+                    placeholder="Contoh: Survei Angkatan Kerja Nasional (Sakernas)..."
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                {/* Deskripsi Kegiatan */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">Deskripsi Singkat Kegiatan</label>
+                  <textarea
+                    rows={2}
+                    value={selectedActivity?.description || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedActivity((prev: any) => ({ ...prev, description: val }));
+                    }}
+                    placeholder="Deskripsi kegiatan untuk petunjuk petugas di lapangan..."
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                  />
+                </div>
+
+                {/* Icon Kegiatan Lapangan */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">Icon Kegiatan (Sama dengan LMS &amp; Monitoring)</label>
+                  <CustomDropdown
+                    size="sm"
+                    searchable={true}
+                    value={selectedActivity?.icon || 'Layers'}
+                    options={AVAILABLE_ICONS.map(ic => ({
+                      value: ic.id,
+                      label: ic.label,
+                      icon: ic.icon
+                    }))}
+                    onChange={(val) => {
+                      setSelectedActivity((prev: any) => ({ ...prev, icon: val }));
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* CARD 2: TEMA WARNA & BRAND COLOR */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3.5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 pb-2 border-b border-slate-200/80 dark:border-slate-700">
+                    <Palette className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                    <label className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[11px]">
+                      Tema Warna Kegiatan &amp; Formulir
+                    </label>
+                  </div>
+
+                  <div className="mt-3 space-y-3">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">Pilihan Palet Warna Utama</label>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {[
+                        { name: 'Sky Blue (Default BPS)', color: '#0ea5e9' },
+                        { name: 'Navy Blue', color: '#1e3a8a' },
+                        { name: 'Emerald Green', color: '#059669' },
+                        { name: 'Violet Purple', color: '#7c3aed' },
+                        { name: 'Amber Gold', color: '#d97706' },
+                        { name: 'Rose Red', color: '#e11d48' },
+                      ].map((t) => (
+                        <button
+                          key={t.color}
+                          type="button"
+                          onClick={() => {
+                            setUxSettings(prev => ({ ...prev, themeColor: t.color }));
+                            setSelectedActivity((prev: any) => ({
+                              ...prev,
+                              settings: {
+                                ...(prev?.settings || {}),
+                                themeColor: t.color
+                              }
+                            }));
+                          }}
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform cursor-pointer ${
+                            uxSettings.themeColor === t.color ? 'scale-110 ring-2 ring-offset-2 ring-slate-800 dark:ring-white' : 'hover:scale-105'
+                          }`}
+                          style={{ backgroundColor: t.color }}
+                          title={t.name}
+                        >
+                          {uxSettings.themeColor === t.color && <Check className="w-4 h-4 text-white" />}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 pt-2 text-xs">
+                      <span className="text-slate-400 text-[11px]">Kode Hex Warna:</span>
+                      <input
+                        type="text"
+                        value={uxSettings.themeColor}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setUxSettings(prev => ({ ...prev, themeColor: val }));
+                          setSelectedActivity((prev: any) => ({
+                            ...prev,
+                            settings: {
+                              ...(prev?.settings || {}),
+                              themeColor: val
+                            }
+                          }));
+                        }}
+                        className="w-24 px-2 py-1 font-mono text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-primary-500 uppercase"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 bg-primary-50 dark:bg-primary-950/40 border border-primary-100 dark:border-primary-900/60 rounded-xl text-[10px] text-primary-800 dark:text-primary-300">
+                  Warna ini akan diterapkan ke tombol aksi, status aktif, navigasi, dan banner formulir petugas.
+                </div>
+              </div>
+
+              {/* CARD 3: IDENTITAS & ICON FORMULIR AKTIF */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3.5">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-200/80 dark:border-slate-700">
+                  <Edit3 className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                  <label className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[11px]">
+                    Identitas Formulir / E-Form Aktif
+                  </label>
+                </div>
+
+                {/* Nama Formulir */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">Nama Formulir Aktif</label>
+                  <input
+                    type="text"
+                    value={selectedForm?.title || ''}
+                    onChange={(e) => {
+                      const newTitle = e.target.value;
+                      if (!selectedForm) return;
+                      setForms(prev => prev.map(f => f.id === selectedForm.id ? { ...f, title: newTitle } : f));
+                    }}
+                    placeholder="Nama Formulir..."
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                {/* Icon Formulir */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">Icon Formulir di Navigasi</label>
+                  <CustomDropdown
+                    size="sm"
+                    searchable={true}
+                    value={selectedForm?.icon || 'FileText'}
+                    options={AVAILABLE_ICONS.map(ic => ({
+                      value: ic.id,
+                      label: ic.label,
+                      icon: ic.icon
+                    }))}
+                    onChange={(val) => {
+                      if (!selectedForm) return;
+                      setForms(prev => prev.map(f => f.id === selectedForm.id ? { ...f, icon: val } : f));
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* CARD 4: URUTAN FORMULIR DI NAVIGASI */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3.5">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 dark:border-slate-700">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                    <label className="text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[11px]">
+                      Urutan Formulir di Navigasi
+                    </label>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-bold">{forms.length} Formulir</span>
+                </div>
+
+                <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                  {forms.map((f, idx) => {
+                    const FormIcon = getIconComponent(f.icon, FileText);
+                    return (
+                      <div 
+                        key={f.id || idx}
+                        className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <FormIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">
+                            {f.title}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => handleMoveForm(idx, 'up')}
+                            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                            title="Pindah ke atas"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5 rotate-90" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === forms.length - 1}
+                            onClick={() => handleMoveForm(idx, 'down')}
+                            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                            title="Pindah ke bawah"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5 -rotate-90" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* CARD 5: MODE NAVIGASI (BOTTOM BAR / SIDEBAR / BOTH) */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3 md:col-span-2">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Mode Navigasi Formulir Petugas</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
-                    { name: 'Sky Blue (Default BPS)', color: '#0ea5e9' },
-                    { name: 'Navy Blue', color: '#1e3a8a' },
-                    { name: 'Emerald Green', color: '#059669' },
-                    { name: 'Violet Purple', color: '#7c3aed' },
-                    { name: 'Amber Gold', color: '#d97706' },
-                    { name: 'Rose Red', color: '#e11d48' },
-                  ].map((t) => (
-                    <button
-                      key={t.color}
-                      type="button"
-                      onClick={() => setUxSettings(prev => ({ ...prev, themeColor: t.color }))}
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform cursor-pointer ${
-                        uxSettings.themeColor === t.color ? 'scale-110 ring-2 ring-offset-2 ring-slate-800' : 'hover:scale-105'
+                    { id: 'bottom_bar', label: 'Bottom Bar Saja', desc: 'Navigasi bawah, cocok untuk smartphone' },
+                    { id: 'sidebar', label: 'Sidebar Saja', desc: 'Navigasi samping kiri, cocok untuk tablet/desktop' },
+                    { id: 'both', label: 'Dua-duanya (Both)', desc: 'Menampilkan bottom bar dan menu sidebar sekaligus' }
+                  ].map((nav) => (
+                    <div
+                      key={nav.id}
+                      onClick={() => setUxSettings(prev => ({ ...prev, navMode: nav.id as any }))}
+                      className={`p-3 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${
+                        uxSettings.navMode === nav.id 
+                          ? 'bg-white dark:bg-slate-700 border-primary-400 shadow-2xs font-bold' 
+                          : 'bg-slate-100/60 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
                       }`}
-                      style={{ backgroundColor: t.color }}
-                      title={t.name}
                     >
-                      {uxSettings.themeColor === t.color && <Check className="w-4 h-4 text-white" />}
-                    </button>
+                      <div>
+                        <span className="text-xs block text-slate-800 dark:text-slate-100">{nav.label}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-400 font-normal block">{nav.desc}</span>
+                      </div>
+                      {uxSettings.navMode === nav.id && <Check className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0" />}
+                    </div>
                   ))}
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                <label className="text-xs font-bold text-slate-800 block">Tampilan Daftar Sampel</label>
-                <div className="space-y-2">
+              {/* CARD 6: TAMPILAN DAFTAR ASSIGNMENT */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3 md:col-span-2">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Tampilan Daftar Assignment Petugas</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {[
-                    { id: 'card_list', label: 'Kartu Sampel dengan Foto (Gambar 4)', desc: 'Menampilkan thumbnail foto dan tombol aksi cepat GPS/Edit' },
-                    { id: 'compact_list', label: 'Daftar Ramping (Compact Rows)', desc: 'Menampilkan lebih banyak data per layar tanpa thumbnail foto' }
+                    { id: 'card_list', label: 'Kartu Assignment dengan Foto', desc: 'Menampilkan thumbnail foto dan tombol aksi cepat GPS/Edit di setiap item' },
+                    { id: 'compact_list', label: 'Daftar Ramping (Compact Rows)', desc: 'Menampilkan lebih banyak data per layar dalam format baris padat tanpa thumbnail foto' }
                   ].map((lay) => (
                     <div
                       key={lay.id}
                       onClick={() => setUxSettings(prev => ({ ...prev, viewLayout: lay.id }))}
                       className={`p-3 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${
-                        uxSettings.viewLayout === lay.id ? 'bg-white border-primary-400 shadow-2xs font-bold' : 'bg-slate-100/60 border-slate-200 text-slate-600'
+                        uxSettings.viewLayout === lay.id ? 'bg-white dark:bg-slate-700 border-primary-400 shadow-2xs font-bold' : 'bg-slate-100/60 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
                       }`}
                     >
                       <div>
-                        <span className="text-xs block text-slate-800">{lay.label}</span>
-                        <span className="text-[10px] text-slate-400 font-normal block">{lay.desc}</span>
+                        <span className="text-xs block text-slate-800 dark:text-slate-100">{lay.label}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-400 font-normal block">{lay.desc}</span>
                       </div>
-                      {uxSettings.viewLayout === lay.id && <Check className="w-4 h-4 text-primary-600 shrink-0" />}
+                      {uxSettings.viewLayout === lay.id && <Check className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0" />}
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex justify-end">
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
               <button
                 type="button"
                 onClick={handleSaveAllSettings}
                 style={{ backgroundColor: presetInfo.colors.primary }}
-                className="px-5 py-2.5 text-white rounded-xl text-xs font-bold shadow-xs hover:opacity-95 cursor-pointer"
+                className="px-5 py-2.5 text-white rounded-xl text-xs font-bold shadow-xs hover:opacity-95 cursor-pointer flex items-center gap-1.5"
               >
-                Simpan Pengaturan UX
+                <Save className="w-4 h-4" />
+                <span>Simpan Pengaturan UI</span>
               </button>
             </div>
           </div>
@@ -1889,17 +2446,17 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             TAB CONTENT: AUTOMATION (OTOMATISASI & NOTIFIKASI)
             ===================================================================== */}
         {studioTab === 'automation' && (
-          <div className="flex-1 bg-white p-6 overflow-y-auto custom-scrollbar space-y-6">
-            <div className="border-b border-slate-100 pb-4">
-              <h3 className="text-base font-bold text-slate-900">Otomatisasi &amp; Notifikasi Data Lapangan</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+          <div className="flex-1 bg-white dark:bg-slate-900 p-6 overflow-y-auto custom-scrollbar space-y-6">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Otomatisasi &amp; Notifikasi Data Lapangan</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Konfigurasi jadwal sinkronisasi otomatis ke Google Sheets, webhook API, dan validasi radius GPS.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                <label className="text-xs font-bold text-slate-800 block">Jadwal Sinkronisasi Google Sheets</label>
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Jadwal Sinkronisasi Google Sheets</label>
                 <div className="space-y-2">
                   {[
                     { id: 'realtime', label: 'Real-time (Instan Saat Petugas Submit)', desc: 'Data langsung terkirim ke baris Google Sheets secara simultan' },
@@ -1910,22 +2467,22 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                       key={freq.id}
                       onClick={() => setAutoSettings(prev => ({ ...prev, syncFrequency: freq.id }))}
                       className={`p-3 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${
-                        autoSettings.syncFrequency === freq.id ? 'bg-white border-primary-400 shadow-2xs font-bold' : 'bg-slate-100/60 border-slate-200 text-slate-600'
+                        autoSettings.syncFrequency === freq.id ? 'bg-white dark:bg-slate-700 border-primary-400 shadow-2xs font-bold' : 'bg-slate-100/60 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
                       }`}
                     >
                       <div>
-                        <span className="text-xs block text-slate-800">{freq.label}</span>
-                        <span className="text-[10px] text-slate-400 font-normal block">{freq.desc}</span>
+                        <span className="text-xs block text-slate-800 dark:text-slate-100">{freq.label}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-400 font-normal block">{freq.desc}</span>
                       </div>
-                      {autoSettings.syncFrequency === freq.id && <Check className="w-4 h-4 text-primary-600 shrink-0" />}
+                      {autoSettings.syncFrequency === freq.id && <Check className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0" />}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800">Validasi Radius Lokasi GPS Lapangan</label>
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">Validasi Radius Lokasi GPS Lapangan</label>
                   <input
                     type="checkbox"
                     checked={autoSettings.enableGeofence}
@@ -1933,7 +2490,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                     className="rounded text-primary-600 cursor-pointer"
                   />
                 </div>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Peringatkan petugas jika titik koordinat pengisian berada di luar batas toleransi wilayah target.
                 </p>
                 {autoSettings.enableGeofence && (
@@ -1943,7 +2500,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                       type="number"
                       value={autoSettings.maxRadiusMeters}
                       onChange={(e) => setAutoSettings(prev => ({ ...prev, maxRadiusMeters: Number(e.target.value) }))}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-800 dark:text-slate-100"
                       placeholder="250 (Meter)"
                     />
                   </div>
@@ -1951,7 +2508,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex justify-end">
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
               <button
                 type="button"
                 onClick={handleSaveAllSettings}
@@ -1968,19 +2525,19 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             TAB CONTENT: SECURITY (HAK AKSES & KEAMANAN)
             ===================================================================== */}
         {studioTab === 'security' && (
-          <div className="flex-1 bg-white p-6 overflow-y-auto custom-scrollbar space-y-6">
-            <div className="border-b border-slate-100 pb-4">
-              <h3 className="text-base font-bold text-slate-900">Hak Akses &amp; Proteksi Data Petugas</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+          <div className="flex-1 bg-white dark:bg-slate-900 p-6 overflow-y-auto custom-scrollbar space-y-6">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Hak Akses &amp; Proteksi Data Petugas</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Konfigurasi integritas data, kunci edit setelah pengiriman, dan kewajiban verifikasi GPS.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-start justify-between gap-3">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-start justify-between gap-3">
                 <div>
-                  <h4 className="text-xs font-bold text-slate-800">Kunci Edit Data Setelah Submit</h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Kunci Edit Data Setelah Submit</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                     Mencegah perubahan data isian setelah status diubah menjadi <i>Terkirim</i> oleh petugas.
                   </p>
                 </div>
@@ -1992,10 +2549,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 />
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-start justify-between gap-3">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-start justify-between gap-3">
                 <div>
-                  <h4 className="text-xs font-bold text-slate-800">Wajib Geotagging GPS untuk Submit</h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Wajib Geotagging GPS untuk Submit</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                     Petugas tidak dapat mengirimkan laporan tanpa menyalakan titik koordinat GPS lokasi.
                   </p>
                 </div>
@@ -2008,7 +2565,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex justify-end">
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
               <button
                 type="button"
                 onClick={handleSaveAllSettings}
@@ -2025,17 +2582,17 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             TAB CONTENT: SETTINGS (PENGATURAN UMUM)
             ===================================================================== */}
         {studioTab === 'settings' && (
-          <div className="flex-1 bg-white p-6 overflow-y-auto custom-scrollbar space-y-6">
-            <div className="border-b border-slate-100 pb-4">
-              <h3 className="text-base font-bold text-slate-900">Pengaturan Umum Kegiatan</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+          <div className="flex-1 bg-white dark:bg-slate-900 p-6 overflow-y-auto custom-scrollbar space-y-6">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Pengaturan Umum Kegiatan</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Kelola informasi nama survei, kategori, saklar status buka/tutup aplikasi, dan arsip data.
               </p>
             </div>
 
             <div className="max-w-2xl space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nama Aplikasi / Kegiatan Survei</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Aplikasi / Kegiatan Survei</label>
                 <input
                   type="text"
                   value={selectedActivity?.title || ''}
@@ -2043,19 +2600,19 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                     const updated = { ...selectedActivity, title: e.target.value };
                     setSelectedActivity(updated);
                   }}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-bold"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 font-bold"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Status Keaktifan Petugas</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status Keaktifan Petugas</label>
                 <button
                   type="button"
                   onClick={() => handleToggleActivityOpen()}
                   className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                     selectedActivity?.isOpen 
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' 
-                      : 'bg-rose-50 text-rose-700 border border-rose-300'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' 
+                      : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
                   }`}
                 >
                   <Power className="w-4 h-4" />
@@ -2063,7 +2620,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 </button>
               </div>
 
-              <div className="pt-4 border-t border-slate-100">
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => {
@@ -2076,7 +2633,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                       downloading: false
                     });
                   }}
-                  className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2"
+                  className="px-4 py-2.5 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2"
                 >
                   <Trash2 className="w-4 h-4" />
                   <span>Hapus Kegiatan &amp; Unduh Cadangan Excel</span>
@@ -2087,44 +2644,124 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         )}
 
         {/* =====================================================================
-            RIGHT PANEL: BEZEL-LESS LIVE INTERACTIVE MOBILE SIMULATOR
+            RIGHT PANEL: BEZEL-LESS LIVE INTERACTIVE SIMULATOR (ADAPTIVE LIGHT/DARK)
             ===================================================================== */}
         {showRightSimulator && (
-          <div className="w-[360px] bg-slate-900/95 border-l border-slate-800 p-3.5 flex flex-col items-center justify-center shrink-0 overflow-hidden relative shadow-2xl">
-            <div className="absolute top-2 left-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Frameless Live Simulator</span>
+          <div className="w-[340px] lg:w-[370px] bg-slate-50/90 dark:bg-slate-900/95 border-l border-slate-200 dark:border-slate-800 p-2 flex flex-col items-center justify-between shrink-0 overflow-hidden relative">
+            {/* Top Toolbar: Device Switcher, Live Edit Toggle, Popout */}
+            <div className="w-full pb-2 flex items-center justify-between text-xs border-b border-slate-200 dark:border-slate-800 shrink-0">
+              {/* Device Selector Buttons */}
+              <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800/90 p-0.5 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setSimulatorDevice('mobile')}
+                  className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                    simulatorDevice === 'mobile' ? 'bg-primary-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                  title="Tampilan Smartphone (Mobile)"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSimulatorDevice('tablet')}
+                  className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                    simulatorDevice === 'tablet' ? 'bg-primary-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                  title="Tampilan Tablet"
+                >
+                  <Tablet className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSimulatorDevice('desktop')}
+                  className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                    simulatorDevice === 'desktop' ? 'bg-primary-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                  title="Tampilan Desktop / Laptop"
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Right: Live Edit Toggle with Info & Popout */}
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsLiveEdit(!isLiveEdit)}
+                    className={`w-8 h-4 rounded-full transition-colors cursor-pointer relative p-0.5 ${
+                      isLiveEdit ? 'bg-primary-600' : 'bg-slate-300 dark:bg-slate-700'
+                    }`}
+                    title={isLiveEdit ? "Live Interactive Mode Aktif" : "Mode Pratinjau Terkunci"}
+                  >
+                    <motion.div
+                      animate={{ x: isLiveEdit ? 14 : 0 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      className="w-3 h-3 rounded-full bg-white shadow-xs"
+                    />
+                  </button>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Edit</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowActivityInfoModal(true)}
+                    className="text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 p-0.5 transition-colors cursor-pointer"
+                    title="Informasi / Deskripsi Kegiatan"
+                  >
+                    <Info className="w-3 h-3" />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = `${window.location.origin}/?activityId=${selectedActivity?.id}`;
+                    window.open(url, '_blank');
+                  }}
+                  className="p-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Buka Pratinjau di Tab Baru"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
-            {/* Ultra-Modern Flagship Smartphone Container */}
-            <div className="w-[340px] h-[610px] bg-slate-950 rounded-[42px] p-2 shadow-2xl ring-1 ring-white/10 relative flex flex-col overflow-hidden border border-slate-800">
-              {/* Sleek Flagship Top Status Bar */}
-              <div className="h-5 px-5 flex items-center justify-between text-[10px] font-bold text-white/80 shrink-0 z-30 select-none bg-slate-950">
-                <span>09:41</span>
-                <div className="w-14 h-2.5 bg-slate-900 rounded-full flex items-center justify-center gap-1 shadow-inner">
-                  <div className="w-1 h-1 rounded-full bg-slate-800" />
-                </div>
-                <div className="flex items-center gap-1.5 text-[9px]">
+            {/* Responsive Device Container - Full Width with No Wasted Side Margin */}
+            <div className="w-full flex-1 max-h-[calc(100vh-130px)] bg-white dark:bg-slate-900 rounded-2xl shadow-md ring-1 ring-slate-200/80 dark:ring-slate-800 relative flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 transition-all duration-300 my-1">
+              {/* Clean Status Bar */}
+              <div className="h-5 px-3 flex items-center justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400 shrink-0 z-30 select-none bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-800">
+                <span className="font-mono">09:41</span>
+                <div className="w-10 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                <div className="flex items-center gap-1 text-[9px]">
                   <span>5G</span>
-                  <div className="w-3.5 h-2 rounded-xs border border-white/60 p-0.5 flex items-center">
-                    <div className="w-full h-full bg-emerald-400 rounded-2xs" />
+                  <div className="w-3 h-1.5 rounded-xs border border-slate-400 dark:border-slate-500 p-0.5 flex items-center">
+                    <div className="w-full h-full bg-emerald-500 rounded-2xs" />
                   </div>
                 </div>
               </div>
 
-              <div className="flex-1 bg-white rounded-[30px] overflow-hidden relative shadow-inner flex flex-col">
+              <div className="flex-1 bg-white dark:bg-slate-900 overflow-hidden relative flex flex-col">
                 {selectedActivity && (
                   <PetugasLaporanModule
-                    key={simulatorKey}
+                    key={`${selectedActivity.id}_${uxSettings.themeColor}_${simulatorKey}`}
                     user={user}
                     initialActivityId={selectedActivity.id}
                     isSimulator={true}
+                    isLiveEdit={isLiveEdit}
+                    activityOverride={{
+                      ...selectedActivity,
+                      settings: {
+                        ...(selectedActivity.settings || {}),
+                        themeColor: uxSettings.themeColor,
+                        viewLayout: uxSettings.viewLayout,
+                        navMode: uxSettings.navMode
+                      }
+                    }}
+                    formsOverride={forms}
+                    themeColorOverride={uxSettings.themeColor}
                   />
                 )}
               </div>
-
-              {/* Bottom Home Indicator */}
-              <div className="w-24 h-1 bg-slate-700/80 rounded-full mx-auto mt-1.5 mb-0.5 shrink-0" />
             </div>
           </div>
         )}
@@ -2232,34 +2869,34 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full p-6 space-y-4"
+            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 max-w-md w-full p-6 space-y-4"
           >
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-              <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
                 <ShieldAlert className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                   Hapus {deleteBackupModal.type === 'activity' ? 'Kegiatan' : 'Formulir'}
                 </h3>
-                <p className="text-[11px] text-slate-500">Pemberian ruang penyimpanan database</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Pemberian ruang penyimpanan database</p>
               </div>
             </div>
 
-            <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1">
+            <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200 space-y-1">
               <p className="font-bold">Wajib Mengunduh File Cadangan:</p>
-              <p className="text-[11px] text-amber-800 leading-relaxed">
+              <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
                 Sebelum menghapus data untuk mengosongkan database, Anda <b>wajib mengunduh arsip Excel (.xlsx)</b> terlebih dahulu.
               </p>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-700 dark:text-slate-300">
               <span className="text-[10px] uppercase font-bold text-slate-400 block">Item target:</span>
-              <span className="font-bold text-slate-900 block">{deleteBackupModal.item?.title}</span>
+              <span className="font-bold text-slate-900 dark:text-slate-100 block">{deleteBackupModal.item?.title}</span>
             </div>
 
             <div className="space-y-1.5 pt-1">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
                 Langkah 1: Unduh Arsip Excel
               </label>
               <button
@@ -2268,14 +2905,14 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 disabled={deleteBackupModal.downloading}
                 className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs ${
                   deleteBackupModal.hasDownloaded 
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' 
-                    : 'bg-slate-800 hover:bg-slate-900 text-white'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' 
+                    : 'bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white'
                 }`}
               >
                 {deleteBackupModal.downloading ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />
                 ) : deleteBackupModal.hasDownloaded ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 ) : (
                   <Download className="w-4 h-4" />
                 )}
@@ -2283,8 +2920,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               </button>
             </div>
 
-            <div className="space-y-1.5 pt-1 border-t border-slate-100">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+            <div className="space-y-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
                 Langkah 2: Hapus dari Database
               </label>
               <button
@@ -2294,7 +2931,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs ${
                   deleteBackupModal.hasDownloaded 
                     ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer' 
-                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-60'
                 }`}
               >
                 {deleteBackupModal.isDeleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -2306,10 +2943,138 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               <button
                 type="button"
                 onClick={() => setDeleteBackupModal(null)}
-                className="px-4 py-1.5 text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl font-bold cursor-pointer"
+                className="px-4 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl font-bold cursor-pointer"
               >
                 Batal
               </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal Panduan & SOP Pembuatan E-Form (Business Process Guide) */}
+      {showGuideModal && (
+        <div className="fixed inset-0 z-[140] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 max-w-2xl w-full p-6 space-y-5 max-h-[90vh] flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    Panduan &amp; SOP Pembuatan E-Form Terintegrasi
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Alur standar pembuatan form survei lapangan terhubung Google Sheets
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setShowGuideModal(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3.5 text-xs text-slate-700 dark:text-slate-300">
+              {/* Step 1 */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0">1</span>
+                  <h4 className="font-bold text-slate-900 dark:text-slate-100">Persiapkan Dokumen Google Spreadsheet</h4>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 text-[11px] pl-7 leading-relaxed">
+                  Buat Google Spreadsheet baru. Pastikan baris pertama (Row 1) berisi nama kolom header yang jelas (contoh: <i>Nama PPL, Kecamatan, Desa, SLS, Nama KRT, Foto Lapangan, Titik GPS</i>). Atur hak akses sharing menjadi <b>"Anyone with the link can view/edit"</b>.
+                </p>
+              </div>
+
+              {/* Step 2 */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0">2</span>
+                  <h4 className="font-bold text-slate-900 dark:text-slate-100">Buat E-Form &amp; Sinkronkan Data Awal</h4>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 text-[11px] pl-7 leading-relaxed">
+                  Klik <b>+ Create</b> atau pilih template. Masukkan URL Google Sheet dan nama Sheet (misal: <i>Sheet1</i>), lalu klik <b>Sinkronkan dari Sheet</b> untuk menarik seluruh kolom dan sampel awal secara instan.
+                </p>
+              </div>
+
+              {/* Step 3 */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0">3</span>
+                  <h4 className="font-bold text-slate-900 dark:text-slate-100">Konfigurasi Tipe Data &amp; Hak Edit Petugas</h4>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 text-[11px] pl-7 leading-relaxed">
+                  Di tabel skema (tengah), tentukan tipe data kolom: <b>Text</b>, <b>Number</b>, <b>Date</b>, <b>Enum (Dropdown)</b>, <b>LatLong (GPS)</b>, atau <b>Image (Foto)</b>. Centang <b>EDIT?</b> jika kolom tersebut boleh diisi/diubah petugas di lapangan, atau kosongkan jika kolom hanya berupa data prelist (Terkunci/Read-only).
+                </p>
+              </div>
+
+              {/* Step 4 */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0">4</span>
+                  <h4 className="font-bold text-slate-900 dark:text-slate-100">Struktur Grouping Berjenjang (Level 1 s.d. 4)</h4>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 text-[11px] pl-7 leading-relaxed">
+                  Pilih hirarki grouping di panel kiri (misal: <i>Level 1: Nama PPL &rarr; Level 2: Kecamatan &rarr; Level 3: Desa &rarr; Level 4: SLS</i>). Di level terdalam, petugas akan melihat daftar assignment target dan tombol <b>+ Tambah Assignment</b>.
+                </p>
+              </div>
+
+              {/* Step 5 */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0">5</span>
+                  <h4 className="font-bold text-slate-900 dark:text-slate-100">Kustomisasi UI, Keamanan &amp; Publikasi Live</h4>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 text-[11px] pl-7 leading-relaxed">
+                  Atur warna tema form di tab <b>UI</b>, kebijakan proteksi di tab <b>Security</b>, lalu pastikan saklar berstatus <b>🟢 Live / Terbuka</b>. Bagikan tautan aplikasi kepada seluruh petugas pencacah di lapangan.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowGuideModal(false);
+                  setHomeSidebarFilter('templates');
+                  setActiveMainTab('apps');
+                }}
+                className="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              >
+                📋 Lihat Template
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowGuideModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowGuideModal(false);
+                    setIsNewActivityModalOpen(true);
+                  }}
+                  style={{ backgroundColor: presetInfo.colors.primary }}
+                  className="px-5 py-2 text-white rounded-xl text-xs font-bold shadow-xs hover:opacity-95 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Buat E-Form Baru Sekarang</span>
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>

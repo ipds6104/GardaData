@@ -14,3 +14,12 @@ Dataawal/
 # Data Batas SLS dan Shapefile Rahasia
 Batas SLS/
 Batas SLS/**
+
+# Data Direktori & Berkas Rahasia / Template Lokal
+data/
+data/**
+*.xlsx
+*.docx
+*Implementation Plan*
+*implementation_plan*
+*.plan.md

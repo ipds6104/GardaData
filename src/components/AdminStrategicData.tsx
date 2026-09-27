@@ -69,15 +69,15 @@ export const AdminStrategicData: React.FC<AdminStrategicDataProps> = ({ onBack }
       <header className="flex items-center gap-4">
         <button
           onClick={onBack}
-          className="p-3 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 hover:text-slate-700 transition-colors shadow-sm"
+          className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 transition-colors shadow-2xs cursor-pointer"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
             {isAdmin ? 'Update Data Strategis' : 'Data Strategis BPS'}
           </h1>
-          <p className="text-slate-500 font-medium">
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-xs sm:text-sm">
             {isAdmin ? 'Pengelolaan Dashboard Pengunjung' : 'Indikator Makro Ekonomi dan Sosial'}
           </p>
         </div>
@@ -86,11 +86,11 @@ export const AdminStrategicData: React.FC<AdminStrategicDataProps> = ({ onBack }
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-3xl border border-slate-200 shadow-xl p-16 text-center"
+        className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl p-12 sm:p-16 text-center"
       >
-        <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-        <h2 className="text-2xl font-black text-slate-800 mb-2">Fitur Masih Dalam Pengembangan</h2>
-        <p className="text-slate-500 font-medium max-w-lg mx-auto">
+        <BarChart3 className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+        <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">Fitur Masih Dalam Pengembangan</h2>
+        <p className="text-slate-500 dark:text-slate-400 font-medium text-xs sm:text-sm max-w-lg mx-auto">
           Mohon maaf, fitur {isAdmin ? 'pengelolaan dan ' : ''}penayangan Data Strategis BPS sedang dalam tahap penyempurnaan. Silakan cek kembali di pembaruan sistem berikutnya.
         </p>
       </motion.div>

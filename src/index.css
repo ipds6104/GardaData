@@ -246,16 +246,34 @@ html.dark {
 }
 
 html.dark body {
-  background-color: #0b0f19;
-  color: #f1f5f9;
+  background-color: #0f172a;
+  color: #f8fafc;
 }
 
-html.dark [data-theme="persik"] { --body-bg: #0d0b14; }
-html.dark [data-theme="original"] { --body-bg: #120e0a; }
-html.dark [data-theme="sky"] { --body-bg: #090d16; }
-html.dark [data-theme="greentea"] { --body-bg: #07130b; }
-html.dark [data-theme="auntum"] { --body-bg: #141208; }
-html.dark [data-theme="notebook"] { --body-bg: #15090f; }
+html.dark [data-theme="persik"] { --body-bg: #0f172a; }
+html.dark [data-theme="original"] { --body-bg: #0f172a; }
+html.dark [data-theme="sky"] { --body-bg: #0b132b; }
+html.dark [data-theme="greentea"] { --body-bg: #061e14; }
+html.dark [data-theme="auntum"] { --body-bg: #1a1608; }
+html.dark [data-theme="notebook"] { --body-bg: #1c0f18; }
+
+/* Dark Mode Form Inputs & UI Defaults */
+html.dark input[type="text"],
+html.dark input[type="number"],
+html.dark input[type="date"],
+html.dark input[type="time"],
+html.dark input[type="email"],
+html.dark input[type="password"],
+html.dark input[type="search"],
+html.dark textarea,
+html.dark select {
+  color-scheme: dark;
+}
+
+html.dark select option {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
 
 body {
   background-color: var(--body-bg, #f8fafc);

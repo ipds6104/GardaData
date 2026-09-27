@@ -73,17 +73,17 @@ export const MonitoringModule: React.FC<MonitoringModuleProps> = ({ onBack }) =>
         <div className="flex items-center gap-4">
           <button 
             onClick={onBack}
-            className="p-2 bg-white hover:bg-slate-100 rounded-full shadow-sm transition-colors"
+            className="p-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full shadow-sm border border-slate-200 dark:border-slate-700 transition-colors"
           >
-            <ChevronLeft className="w-6 h-6 text-slate-700" />
+            <ChevronLeft className="w-6 h-6 text-slate-700 dark:text-slate-200" />
           </button>
-          <h1 className="text-2xl font-black text-slate-800">Kembali ke Beranda</h1>
+          <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100">Kembali ke Beranda</h1>
         </div>
         
         {user?.role === 'admin' && (
           <button 
             onClick={() => setIsAdminMode(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-100 text-primary-700 font-bold rounded-xl hover:bg-primary-200 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-100 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 font-bold rounded-xl hover:bg-primary-200 dark:hover:bg-primary-900/60 border border-primary-200 dark:border-primary-800 transition-colors"
           >
             <Settings className="w-4 h-4" />
             Kelola Monitoring (Admin)

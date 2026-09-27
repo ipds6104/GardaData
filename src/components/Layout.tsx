@@ -182,7 +182,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       title: 'PENDATAAN LAPANGAN',
       items: [
         { id: 'monitoring', label: 'Monitoring Dashboard', icon: Activity },
-        { id: 'laporan-pendataan', label: 'Laporan Pendataan', icon: FileEdit },
+        { id: 'laporan-pendataan', label: 'Laporan Pendataan', icon: FileEdit, isDev: true },
         { id: 'kbli-kbji', label: 'KBLI 2025 & KBJI 2014', icon: BookOpen },
         { id: 'imputation', label: 'Imputasi Susenas-Seruti', icon: FileEdit },
         { id: 'infrastructure', label: 'Infrastruktur Desa', icon: Map },
@@ -520,8 +520,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
 
   return (
     <div 
-      className="min-h-screen font-sans text-slate-900 flex overflow-hidden transition-colors duration-300"
-      style={{ backgroundColor: presetInfo.colors.bg || '#f8fafc' }}
+      className="min-h-screen font-sans text-slate-900 dark:text-slate-100 flex overflow-hidden transition-colors duration-300"
+      style={{ backgroundColor: mode === 'dark' ? 'var(--body-bg, #0b0f19)' : (presetInfo.colors.bg || '#f8fafc') }}
     >
       {/* Desktop Floating Sidebar (Matching FinSet design in reference image) */}
       {!isFeatureFullscreen && (
@@ -729,12 +729,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
                   <User className="w-4 h-4" />
                 </div>
                 <div className="hidden sm:flex flex-col">
-                  <span className="text-xs font-bold text-slate-800 leading-tight">{user.username}</span>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">{user.role}</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight">{user.username}</span>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase">{user.role}</span>
                 </div>
                 <button
                   onClick={() => logout()}
-                  className="ml-1 p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                  className="ml-1 p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
                   title="Keluar"
                 >
                   <LogOut className="w-4 h-4" />
@@ -745,7 +745,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         </nav>
 
         {/* Main Content Area */}
-        <main className={`flex-1 overflow-y-auto bg-slate-50/40 custom-scrollbar ${
+        <main className={`flex-1 overflow-y-auto bg-slate-50/40 dark:bg-slate-950/80 custom-scrollbar ${
           currentPage === 'peta-responden-se2026' || currentPage === 'admin-sls' ? 'flex flex-col h-full' : ''
         }`}>
           <div className={
@@ -765,17 +765,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
           </div>
           
           {currentPage !== 'peta-responden-se2026' && currentPage !== 'admin-sls' && (
-            <footer className="py-12 border-t border-slate-200/60 bg-white/70 mt-auto">
+            <footer className="py-12 border-t border-slate-200/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 mt-auto">
               <div className="w-full px-6 text-center space-y-3">
-                <div className="flex items-center justify-center gap-2 text-slate-300">
-                  <div className="h-px w-8 bg-slate-200" />
+                <div className="flex items-center justify-center gap-2 text-slate-300 dark:text-slate-600">
+                  <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
                   <img src="/logo.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" onError={(e) => {
                       e.currentTarget.style.display = 'none';
                   }} />
-                  <div className="h-px w-8 bg-slate-200" />
+                  <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
                 </div>
-                <p className="text-slate-400 text-xs font-medium">© 2026 Garda Data - Platform Terpadu Menjaga Kualitas Data.</p>
-                <p className="text-xs font-bold text-primary-600">Created by Tim Sosial BPS Kabupaten Mempawah</p>
+                <p className="text-slate-400 dark:text-slate-500 text-xs font-medium">© 2026 Garda Data - Platform Terpadu Menjaga Kualitas Data.</p>
+                <p className="text-xs font-bold text-primary-600 dark:text-primary-400">Created by Tim Sosial BPS Kabupaten Mempawah</p>
               </div>
             </footer>
           )}
@@ -797,9 +797,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 sm:p-7 overflow-hidden z-10"
+              className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 max-w-lg w-full p-6 sm:p-7 overflow-hidden z-10"
             >
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-4">
                 <div className="flex items-center gap-3">
                   <div 
                     className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md"
@@ -808,21 +808,21 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
                     <HelpCircle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-black text-slate-900">Pusat Bantuan Garda Data</h3>
-                    <p className="text-xs text-slate-500">Platform Terpadu Manajemen & Kualitas Data</p>
+                    <h3 className="text-base font-black text-slate-900 dark:text-slate-100">Pusat Bantuan Garda Data</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Platform Terpadu Manajemen & Kualitas Data</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowHelpModal(false)}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 cursor-pointer"
+                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="space-y-4 text-xs text-slate-600 leading-relaxed max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
-                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
-                  <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <div className="space-y-4 text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-2">
+                  <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: presetInfo.colors.primary }} />
                     Tentang Aplikasi
                   </h4>
@@ -831,22 +831,22 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
                   </p>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
-                  <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-2">
+                  <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: presetInfo.colors.secondary }} />
                     Kontak Bantuan Teknis
                   </h4>
                   <p>
                     Jika Anda mengalami kendala teknis atau memiliki pertanyaan terkait pendataan, silakan hubungi tim pengelola:
                   </p>
-                  <div className="text-[11px] font-semibold text-slate-700 bg-white p-2.5 rounded-xl border border-slate-200">
+                  <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
                     <p>📍 Tim Sosial & IPDS BPS Kabupaten Mempawah</p>
                     <p>📧 Email: digitalofficer79@gmail.com</p>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-5 pt-3 border-t border-slate-100 flex justify-end">
+              <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                 <button
                   onClick={() => setShowHelpModal(false)}
                   style={{ backgroundColor: presetInfo.colors.primary }}

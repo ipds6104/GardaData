@@ -69,14 +69,14 @@ export const MonitoringList: React.FC<MonitoringListProps> = ({ onNavigateToDash
       </div>
 
       {Object.keys(grouped).length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-3xl border border-slate-100">
-          <Database className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <p className="text-slate-500 font-medium text-lg">Belum ada monitoring yang aktif.</p>
+        <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800">
+          <Database className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">Belum ada monitoring yang aktif.</p>
         </div>
       ) : (
         (Object.entries(grouped) as [string, MonitoringConfig[]][]).map(([kegiatan, items]) => (
           <div key={kegiatan} className="space-y-6">
-            <h2 className="text-xl font-black text-slate-800 flex items-center gap-3">
+            <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
               <div className="w-2 h-6 bg-primary-500 rounded-full"></div>
               {kegiatan}
             </h2>
