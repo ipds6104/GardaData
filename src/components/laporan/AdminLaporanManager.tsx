@@ -488,22 +488,30 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
 
   const baseUrl = (import.meta as any).env.VITE_API_URL || '';
 
-  // 1. Fetch Activities
+  // 1. Fetch Activities with strong localStorage fallback
   const fetchActivities = async () => {
+    const cached = localStorage.getItem('garda_laporan_activities');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setActivities(parsed);
+        }
+      } catch (e) {}
+    }
+
     try {
       const res = await fetch(`${baseUrl}/api/laporan/activities?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
         const actList = Array.isArray(data) ? data : [];
-        setActivities(actList);
-        localStorage.setItem('garda_laporan_activities', JSON.stringify(actList));
-        return;
+        if (actList.length > 0 || !cached) {
+          setActivities(actList);
+          localStorage.setItem('garda_laporan_activities', JSON.stringify(actList));
+        }
       }
     } catch (err) {
-      const cached = localStorage.getItem('garda_laporan_activities');
-      if (cached) {
-        try { setActivities(JSON.parse(cached)); } catch(e){}
-      }
+      // Network offline - cached version already active
     }
   };
 
@@ -511,32 +519,40 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     fetchActivities();
   }, []);
 
-  // 2. Fetch Forms for selected activity
+  // 2. Fetch Forms for selected activity with strong localStorage fallback
   const fetchForms = async (actId: string) => {
     if (!actId) return;
+    const cached = localStorage.getItem(`garda_laporan_forms_${actId}`);
+    let hasCached = false;
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setForms(parsed);
+          setSelectedFormId(prev => prev || parsed[0].id);
+          hasCached = true;
+        }
+      } catch (e) {}
+    }
+
     try {
       const res = await fetch(`${baseUrl}/api/laporan/activities/${actId}/forms?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
         const formArray = Array.isArray(data) ? data : [];
-        setForms(formArray);
-        localStorage.setItem(`garda_laporan_forms_${actId}`, JSON.stringify(formArray));
         if (formArray.length > 0) {
-          setSelectedFormId(formArray[0].id);
-        } else {
-          createDefaultFormForActivity(actId);
+          setForms(formArray);
+          localStorage.setItem(`garda_laporan_forms_${actId}`, JSON.stringify(formArray));
+          setSelectedFormId(prev => prev || formArray[0].id);
+          return;
         }
-        return;
       }
     } catch (err) {
-      const cached = localStorage.getItem(`garda_laporan_forms_${actId}`);
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          setForms(parsed);
-          if (parsed.length > 0) setSelectedFormId(parsed[0].id);
-        } catch(e){}
-      }
+      // Network error - keep cached
+    }
+
+    if (!hasCached) {
+      createDefaultFormForActivity(actId);
     }
   };
 
@@ -900,9 +916,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           isEditable: existing.isEditable !== undefined ? existing.isEditable : newField.isEditable,
           isPredefined: existing.isPredefined !== undefined ? existing.isPredefined : newField.isPredefined,
           validation: existing.validation ? { ...existing.validation } : newField.validation,
-          options: existing.options && existing.options.length > 0 
-            ? Array.from(new Set([...existing.options, ...(newField.options || [])])) 
-            : newField.options
+          options: (existing.options && Array.isArray(existing.options) && existing.options.length > 0)
+            ? sanitizeOptions(existing.options)
+            : sanitizeOptions(newField.options || [])
         };
       }
 
@@ -1218,7 +1234,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               sheetUrl: formConfig.sheetUrl,
               sheetName: formConfig.sheetName,
               groupingLevels: cleanGroupings,
-              fields: fields,
+              fields: sanitizedFields,
               orderIndex: fIdx
             };
           }
@@ -1226,6 +1242,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         });
         setForms(updatedForms);
         localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
+        setFields(sanitizedFields);
       }
 
       setSimulatorKey(Date.now());

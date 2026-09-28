@@ -814,32 +814,14 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
   const lockOnSubmit = effectiveActivity?.settings?.lockOnSubmit !== false;
   const requireGPS = effectiveActivity?.settings?.requireGPS === true;
 
-  // 1. Fetch Activities
+  // 1. Fetch Activities with robust localStorage fallback
   const fetchActivities = async (preferredActId?: string) => {
-    try {
-      setIsLoading(true);
-      const res = await fetch(`${baseUrl}/api/laporan/activities?t=${Date.now()}`);
-      if (res.ok) {
-        const data = await res.json();
-        const openActivities = isAdmin ? data : data.filter((a: any) => a.isOpen !== false);
-        setActivities(openActivities);
-        
-        if (openActivities.length > 0) {
-          const targetId = preferredActId || initialActivityId;
-          if (targetId) {
-            const found = openActivities.find((a: any) => a.id === targetId);
-            if (found) {
-              setSelectedActivity(found);
-            }
-          }
-        }
-      }
-    } catch (err) {
-      const cached = localStorage.getItem('garda_laporan_activities');
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          const open = isAdmin ? parsed : parsed.filter((a: any) => a.isOpen !== false);
+    const cached = localStorage.getItem('garda_laporan_activities');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        const open = isAdmin ? parsed : parsed.filter((a: any) => a.isOpen !== false);
+        if (Array.isArray(open) && open.length > 0) {
           setActivities(open);
           const targetId = preferredActId || initialActivityId;
           if (targetId) {
@@ -848,8 +830,33 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
               setSelectedActivity(found);
             }
           }
-        } catch (e) {}
+        }
+      } catch (e) {}
+    }
+
+    try {
+      setIsLoading(true);
+      const res = await fetch(`${baseUrl}/api/laporan/activities?t=${Date.now()}`);
+      if (res.ok) {
+        const data = await res.json();
+        const openActivities = isAdmin ? data : data.filter((a: any) => a.isOpen !== false);
+        if (Array.isArray(openActivities) && (openActivities.length > 0 || !cached)) {
+          setActivities(openActivities);
+          localStorage.setItem('garda_laporan_activities', JSON.stringify(data));
+          
+          if (openActivities.length > 0) {
+            const targetId = preferredActId || initialActivityId;
+            if (targetId) {
+              const found = openActivities.find((a: any) => a.id === targetId);
+              if (found) {
+                setSelectedActivity(found);
+              }
+            }
+          }
+        }
       }
+    } catch (err) {
+      // Offline fallback already loaded from cache
     } finally {
       setIsLoading(false);
     }
@@ -859,35 +866,43 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     fetchActivities(initialActivityId);
   }, [initialActivityId]);
 
-  // 2. Fetch Forms when Activity Changes
+  // 2. Fetch Forms when Activity Changes with robust localStorage fallback
   const fetchForms = async (actId: string) => {
     if (!actId) return;
-    try {
-      const res = await fetch(`${baseUrl}/api/laporan/activities/${actId}/forms?t=${Date.now()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setForms(data);
-        localStorage.setItem(`garda_laporan_forms_${actId}`, JSON.stringify(data));
-        setActiveFormIndex(0);
-        setDrillStack([]);
-        setViewMode('grouping_view');
-        return;
-      }
-    } catch (err) {
-      const cached = localStorage.getItem(`garda_laporan_forms_${actId}`);
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
+    const cached = localStorage.getItem(`garda_laporan_forms_${actId}`);
+    let hasCached = false;
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
           setForms(parsed);
           setActiveFormIndex(0);
           setDrillStack([]);
           setViewMode('grouping_view');
-        } catch (e) {
-          setForms([]);
+          hasCached = true;
         }
-      } else {
-        setForms([]);
+      } catch (e) {}
+    }
+
+    try {
+      const res = await fetch(`${baseUrl}/api/laporan/activities/${actId}/forms?t=${Date.now()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setForms(data);
+          localStorage.setItem(`garda_laporan_forms_${actId}`, JSON.stringify(data));
+          setActiveFormIndex(0);
+          setDrillStack([]);
+          setViewMode('grouping_view');
+          return;
+        }
       }
+    } catch (err) {
+      // Offline - fallback to cached
+    }
+
+    if (!hasCached) {
+      setForms([]);
     }
   };
 
