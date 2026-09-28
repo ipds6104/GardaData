@@ -23,3 +23,11 @@ data/**
 *Implementation Plan*
 *implementation_plan*
 *.plan.md
+
+# Server Secret Config & Local Storage
+server/config/
+server/config/**
+server/data/
+server/data/**
+*service-account*.json
+

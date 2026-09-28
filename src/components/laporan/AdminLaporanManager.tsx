@@ -259,7 +259,12 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   // Schema Columns of Selected Form
   const [fields, setFields] = useState<any[]>([]);
   const [isSavingSchema, setIsSavingSchema] = useState<boolean>(false);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [isSyncingSheet, setIsSyncingSheet] = useState<boolean>(false);
+  const [copiedScript, setCopiedScript] = useState<boolean>(false);
+  const [copiedEmail, setCopiedEmail] = useState<boolean>(false);
+  const [isTestingWebhook, setIsTestingWebhook] = useState<boolean>(false);
+  const [isTestingApiSync, setIsTestingApiSync] = useState<boolean>(false);
 
   // Form Config (Supports up to Level 4 Grouping)
   const selectedForm = (forms || []).find(f => f.id === selectedFormId) || (forms && forms.length > 0 ? forms[0] : null);
@@ -519,15 +524,17 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     fetchActivities();
   }, []);
 
-  // 2. Fetch Forms for selected activity with strong localStorage fallback
+  // 2. Fetch Forms for selected activity with strong localStorage fallback & safe merge
   const fetchForms = async (actId: string) => {
     if (!actId) return;
     const cached = localStorage.getItem(`garda_laporan_forms_${actId}`);
     let hasCached = false;
+    let cachedList: any[] = [];
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          cachedList = parsed;
           setForms(parsed);
           setSelectedFormId(prev => prev || parsed[0].id);
           hasCached = true;
@@ -541,9 +548,22 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         const data = await res.json();
         const formArray = Array.isArray(data) ? data : [];
         if (formArray.length > 0) {
-          setForms(formArray);
-          localStorage.setItem(`garda_laporan_forms_${actId}`, JSON.stringify(formArray));
-          setSelectedFormId(prev => prev || formArray[0].id);
+          // If cached version exists, merge smartly to never lose locally configured schema
+          const mergedForms = formArray.map((serverForm: any) => {
+            const matchedCache = cachedList.find((c: any) => c.id === serverForm.id);
+            if (matchedCache) {
+              const cacheHasCustom = Array.isArray(matchedCache.fields) && matchedCache.fields.length > 0;
+              const serverHasCustom = Array.isArray(serverForm.fields) && serverForm.fields.length > 0;
+              if (cacheHasCustom && (!serverHasCustom || (matchedCache.version || 1) >= (serverForm.version || 1))) {
+                return { ...serverForm, ...matchedCache };
+              }
+            }
+            return serverForm;
+          });
+
+          setForms(mergedForms);
+          localStorage.setItem(`garda_laporan_forms_${actId}`, JSON.stringify(mergedForms));
+          setSelectedFormId(prev => prev || mergedForms[0].id);
           return;
         }
       }
@@ -630,12 +650,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     }
   }, [selectedActivity?.id]);
 
-  const activeFormIdTrackerRef = useRef<string | null>(null);
-
-  // 3. Populate Form Config & Fields ONLY when active selected form actually changes
+  // 3. Populate Form Config & Fields when selected form changes or loads
   useEffect(() => {
-    if (selectedForm && activeFormIdTrackerRef.current !== selectedForm.id) {
-      activeFormIdTrackerRef.current = selectedForm.id;
+    if (selectedForm) {
       const gl = Array.isArray(selectedForm.groupingLevels) ? selectedForm.groupingLevels : [];
       setFormConfig({
         title: selectedForm.title || '',
@@ -649,22 +666,15 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         ]
       });
 
-      const existingFields = Array.isArray(selectedForm.fields) ? selectedForm.fields : [];
+      const existingFields = Array.isArray(selectedForm.fields) && selectedForm.fields.length > 0 
+        ? selectedForm.fields 
+        : (Array.isArray(selectedForm.publishedSchema) && selectedForm.publishedSchema.length > 0 ? selectedForm.publishedSchema : []);
+
       if (existingFields.length > 0) {
         setFields(existingFields);
-      } else {
-        setFields([
-          { id: 'f1', columnName: 'Nama PPL', label: 'Nama PPL', dataType: 'Enum', isKey: false, isLabel: true, isRequired: true, options: ['Dandy', 'Sefty Eca Putri', 'Rendi Pratama', 'Muhammad Irfan'] },
-          { id: 'f2', columnName: 'Jabatan Petugas', label: 'Jabatan Petugas', dataType: 'Text', isKey: false, isLabel: false, isRequired: false, options: [] },
-          { id: 'f3', columnName: 'Kabupaten', label: 'Kabupaten / Kota', dataType: 'Text', isKey: false, isLabel: false, isRequired: false, options: [] },
-          { id: 'f4', columnName: 'Kecamatan', label: 'Kecamatan', dataType: 'Text', isKey: false, isLabel: true, isRequired: true, options: [] },
-          { id: 'f5', columnName: 'Desa', label: 'Desa / Kelurahan', dataType: 'Text', isKey: false, isLabel: false, isRequired: false, options: [] },
-          { id: 'f6', columnName: 'Lokasi GPS', label: 'Titik Lokasi GPS', dataType: 'LatLong', isKey: false, isLabel: false, isRequired: false, options: [] },
-          { id: 'f7', columnName: 'Foto Lapangan', label: 'Foto Lapangan / Dokumen', dataType: 'Image', isKey: false, isLabel: false, isRequired: false, options: [] },
-        ]);
       }
     }
-  }, [selectedFormId, selectedForm?.id]);
+  }, [selectedFormId, selectedActivity?.id, adminScreen]);
 
   // Enter Studio for an Activity
   const handleOpenStudio = (act: any) => {
@@ -672,6 +682,39 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     setAdminScreen('studio');
     setStudioTab('data');
     setSimulatorKey(Date.now());
+
+    // Load cached forms immediately
+    const cachedForms = localStorage.getItem(`garda_laporan_forms_${act.id}`);
+    let formList = [];
+    if (cachedForms) {
+      try {
+        formList = JSON.parse(cachedForms);
+      } catch (e) {}
+    }
+    if (!formList || formList.length === 0) {
+      formList = Array.isArray(act.forms) ? act.forms : [];
+    }
+
+    if (formList.length > 0) {
+      setForms(formList);
+      const targetForm = formList[0];
+      setSelectedFormId(targetForm.id);
+      const gl = Array.isArray(targetForm.groupingLevels) ? targetForm.groupingLevels : [];
+      setFormConfig({
+        title: targetForm.title || '',
+        sheetUrl: targetForm.sheetUrl || act.sheetUrl || '',
+        sheetName: targetForm.sheetName || 'Sheet1',
+        groupingLevels: [
+          gl[0] !== undefined ? gl[0] : '',
+          gl[1] !== undefined ? gl[1] : '',
+          gl[2] !== undefined ? gl[2] : '',
+          gl[3] !== undefined ? gl[3] : ''
+        ]
+      });
+      if (Array.isArray(targetForm.fields) && targetForm.fields.length > 0) {
+        setFields(targetForm.fields);
+      }
+    }
   };
 
   // Toggle Activity Status
@@ -1078,6 +1121,12 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     const nextFields = [...fields, newField];
     setFields(nextFields);
     pushHistorySnapshot(nextFields);
+
+    if (selectedFormId && selectedActivity?.id) {
+      const updatedForms = forms.map(f => f.id === selectedFormId ? { ...f, fields: nextFields } : f);
+      setForms(updatedForms);
+      localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
+    }
   };
 
   // Remove Column Row
@@ -1085,6 +1134,12 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     const nextFields = fields.filter((_, i) => i !== index);
     setFields(nextFields);
     pushHistorySnapshot(nextFields);
+
+    if (selectedFormId && selectedActivity?.id) {
+      const updatedForms = forms.map(f => f.id === selectedFormId ? { ...f, fields: nextFields } : f);
+      setForms(updatedForms);
+      localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
+    }
   };
 
   // Update Column Row
@@ -1102,14 +1157,16 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     setFields(updated);
     pushHistorySnapshot(updated);
 
-    // Live sync into forms state so simulator updates in real time
-    if (selectedFormId) {
-      setForms(prev => prev.map(f => {
+    // Live sync into forms state and local storage immediately
+    if (selectedFormId && selectedActivity?.id) {
+      const updatedForms = forms.map(f => {
         if (f.id === selectedFormId) {
           return { ...f, fields: updated };
         }
         return f;
-      }));
+      });
+      setForms(updatedForms);
+      localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
     }
   };
 
@@ -1128,14 +1185,16 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     setFormConfig(nextConfig);
     pushHistorySnapshot(fields, nextConfig);
 
-    // Live sync into forms state
-    if (selectedFormId) {
-      setForms(prev => prev.map(f => {
+    // Live sync into forms state and local storage immediately
+    if (selectedFormId && selectedActivity?.id) {
+      const updatedForms = forms.map(f => {
         if (f.id === selectedFormId) {
           return { ...f, groupingLevels: cleanGroupings };
         }
         return f;
-      }));
+      });
+      setForms(updatedForms);
+      localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
     }
   };
 
@@ -1252,6 +1311,86 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     } finally {
       setIsSavingSchema(false);
       setTimeout(() => setSyncAlert(null), 3000);
+    }
+  };
+
+  // Publish Form Schema & Activity to Petugas
+  const handlePublishFormToPetugas = async () => {
+    if (!selectedActivity || !selectedFormId) return;
+
+    try {
+      setIsPublishing(true);
+      const cleanGroupings = (formConfig.groupingLevels || []).filter(g => g && String(g).trim() !== '');
+      const sanitizedFields = fields.map(f => ({
+        ...f,
+        options: sanitizeOptions(f.options)
+      }));
+
+      const publishPayload = {
+        title: formConfig.title || selectedForm?.title,
+        sheetUrl: formConfig.sheetUrl,
+        sheetName: formConfig.sheetName,
+        groupingLevels: cleanGroupings,
+        fields: sanitizedFields,
+        isPublished: true,
+        publishedAt: new Date().toISOString()
+      };
+
+      // 1. Post to Backend Publish Endpoint
+      const res = await fetch(`${baseUrl}/api/laporan/forms/${selectedFormId}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(publishPayload)
+      });
+
+      let pubVersion = (selectedForm?.version || 1) + 1;
+      if (res.ok) {
+        const data = await res.json();
+        if (data.form && data.form.version) pubVersion = data.form.version;
+      }
+
+      // 2. Update Local State & Cache
+      const updatedForms = forms.map(f => {
+        if (f.id === selectedFormId) {
+          return {
+            ...f,
+            ...publishPayload,
+            version: pubVersion,
+            publishedSchema: sanitizedFields,
+            publishedGroupings: cleanGroupings
+          };
+        }
+        return f;
+      });
+
+      setForms(updatedForms);
+      localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
+
+      // Also ensure Activity is published
+      const updatedActivityObj = {
+        ...selectedActivity,
+        isPublished: true,
+        publishedAt: new Date().toISOString(),
+        version: pubVersion
+      };
+      setSelectedActivity(updatedActivityObj);
+      const updatedActs = activities.map(a => a.id === selectedActivity.id ? updatedActivityObj : a);
+      setActivities(updatedActs);
+      localStorage.setItem('garda_laporan_activities', JSON.stringify(updatedActs));
+
+      setSimulatorKey(Date.now());
+      setSyncAlert({
+        type: 'success',
+        message: `🚀 Formulir Berhasil Dipublish (Versi ${pubVersion})! Seluruh Petugas kini dapat mengakses konfigurasi terbaru.`
+      });
+    } catch (err: any) {
+      setSyncAlert({
+        type: 'error',
+        message: 'Gagal mempublish formulir ke server: ' + (err.message || 'Koneksi terputus')
+      });
+    } finally {
+      setIsPublishing(false);
+      setTimeout(() => setSyncAlert(null), 4000);
     }
   };
 
@@ -2096,6 +2235,19 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             </button>
           </div>
 
+          {/* Publish / Draft Status Indicator */}
+          {selectedForm?.isPublished ? (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Terbit v{selectedForm.version || 1}</span>
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span>Draft</span>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => setShowRightSimulator(!showRightSimulator)}
@@ -2114,11 +2266,22 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             type="button"
             onClick={handleSaveAllSettings}
             disabled={isSavingSchema}
-            style={{ backgroundColor: presetInfo.colors.primary }}
-            className="px-4 py-2 text-white rounded-xl text-xs font-bold shadow-xs hover:opacity-95 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            title="Simpan perubahan draf ke memori server"
           >
-            {isSavingSchema ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {isSavingSchema ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 text-slate-600 dark:text-slate-300" />}
             <span>Simpan</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePublishFormToPetugas}
+            disabled={isPublishing || !selectedFormId}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            title="Publish skema formulir ini secara resmi ke seluruh akun petugas lapangan"
+          >
+            {isPublishing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+            <span>Publish</span>
           </button>
         </div>
       </div>
@@ -3009,6 +3172,170 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+              {/* CARD 1: Google Sheets API v4 Resmi (Service Account) - Recommended */}
+              <div className="p-5 bg-emerald-50/50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 space-y-4 md:col-span-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                        🟢 Rekomendasi Utama (API v4)
+                      </span>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                        Service Account Terkonfigurasi &amp; Siap Pakai
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1 flex items-center gap-2">
+                      <Database className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>Google Sheets API v4 (Sinkronisasi Otomatis Tanpa Perlu Skrip)</span>
+                    </h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                      Admin <b>tidak perlu menyalin kode/skrip apa pun</b>. Cukup bagikan (<i>Share</i>) spreadsheet Google Sheet Anda ke email robot di bawah sebagai <b>Editor</b>:
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const sheetUrl = formConfig.sheetUrl || selectedActivity?.sheetUrl;
+                      if (!sheetUrl) {
+                        alert('Silakan hubungkan Google Sheet URL pada tab Data terlebih dahulu.');
+                        return;
+                      }
+                      try {
+                        setIsTestingApiSync(true);
+                        const res = await fetch(`${baseUrl}/api/laporan/google-sheets/test-sync`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            sheetUrl: sheetUrl,
+                            sheetName: formConfig.sheetName || 'Sheet1'
+                          })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          setSyncAlert({ type: 'success', message: '🚀 Uji Google Sheets API Berhasil! Baris uji telah ditulis ke Google Sheet.' });
+                        } else {
+                          setSyncAlert({ type: 'error', message: 'Gagal sinkron API: ' + (data.error || data.reason || 'Pastikan Google Sheet telah di-Share ke email robot') });
+                        }
+                      } catch (e: any) {
+                        setSyncAlert({ type: 'error', message: 'Koneksi API gagal: ' + e.message });
+                      } finally {
+                        setIsTestingApiSync(false);
+                        setTimeout(() => setSyncAlert(null), 5000);
+                      }
+                    }}
+                    disabled={isTestingApiSync}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {isTestingApiSync ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    <span>{isTestingApiSync ? 'Menguji API...' : 'Uji Tulis ke Sheet'}</span>
+                  </button>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-3.5 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between gap-3 shadow-2xs">
+                  <div className="min-w-0">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                      Email Service Account Robot:
+                    </span>
+                    <span className="font-mono text-xs font-bold text-emerald-800 dark:text-emerald-300 block truncate select-all">
+                      garda-sheets-bot@ornate-entropy-510006-j6.iam.gserviceaccount.com
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText('garda-sheets-bot@ornate-entropy-510006-j6.iam.gserviceaccount.com');
+                      setCopiedEmail(true);
+                      setTimeout(() => setCopiedEmail(false), 2500);
+                    }}
+                    className="px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-100 dark:bg-emerald-950/80 hover:bg-emerald-200 text-emerald-800 dark:text-emerald-200 flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors shadow-2xs"
+                  >
+                    {copiedEmail ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedEmail ? 'Email Tersalin!' : 'Salin Email Robot'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* CARD 2: Google Apps Script Webhook (Alternative Method) */}
+              <div className="p-5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-4 md:col-span-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                      <ExternalLink className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                      <span>Metode Alternatif: Webhook Google Apps Script</span>
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Opsi tambahan jika Anda ingin meneruskan data menggunakan Webhook kustom milik Anda:
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!autoSettings.webhookUrl) {
+                        alert('Silakan masukkan Webhook URL terlebih dahulu.');
+                        return;
+                      }
+                      try {
+                        setIsTestingWebhook(true);
+                        const res = await fetch(autoSettings.webhookUrl, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'text/plain' },
+                          body: JSON.stringify({
+                            test: true,
+                            sheetName: formConfig.sheetName || 'Sheet1',
+                            data: { Status_Uji: 'Webhook Terhubung Sukses!', Waktu: new Date().toLocaleString('id-ID') }
+                          })
+                        });
+                        setSyncAlert({ type: 'success', message: 'Koneksi Webhook Google Apps Script Berhasil!' });
+                      } catch (e: any) {
+                        setSyncAlert({ type: 'error', message: 'Gagal mengirim test webhook: ' + e.message });
+                      } finally {
+                        setIsTestingWebhook(false);
+                        setTimeout(() => setSyncAlert(null), 4000);
+                      }
+                    }}
+                    disabled={isTestingWebhook || !autoSettings.webhookUrl}
+                    className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold shrink-0 hover:bg-slate-300 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {isTestingWebhook ? 'Menguji...' : 'Uji Webhook'}
+                  </button>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Google Apps Script Web App URL:
+                  </label>
+                  <input
+                    type="url"
+                    value={autoSettings.webhookUrl}
+                    onChange={(e) => setAutoSettings(prev => ({ ...prev, webhookUrl: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-primary-500/20"
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                  />
+                </div>
+
+                <div className="bg-white dark:bg-slate-900/90 rounded-xl p-3.5 border border-slate-200 dark:border-slate-700 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                      Kode Google Apps Script Cadangan:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const script = `function doPost(e) {\\n  try {\\n    var lock = LockService.getScriptLock();\\n    lock.waitLock(30000);\\n    var ss = SpreadsheetApp.getActiveSpreadsheet();\\n    var body = JSON.parse(e.postData.contents);\\n    var sheetName = body.sheetName || 'Sheet1';\\n    var sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);\\n    var lastCol = Math.max(1, sheet.getLastColumn());\\n    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];\\n    var data = body.data || {};\\n    Object.keys(data).forEach(function(k) {\\n      if (k && headers.indexOf(k) === -1) {\\n        sheet.getRange(1, sheet.getLastColumn() + 1).setValue(k);\\n        headers.push(k);\\n      }\\n    });\\n    var rowId = body.rowId || body.id || data['id'] || data['ID'] || '';\\n    var targetRow = -1;\\n    if (rowId && sheet.getLastRow() > 1) {\\n      var colValues = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();\\n      for (var r = 0; r < colValues.length; r++) {\\n        if (String(colValues[r][0]) === String(rowId)) {\\n          targetRow = r + 2;\\n          break;\\n        }\\n      }\\n    }\\n    var rowValues = headers.map(function(h) {\\n      return data[h] !== undefined ? data[h] : '';\\n    });\\n    if (targetRow > 1) {\\n      sheet.getRange(targetRow, 1, 1, headers.length).setValues([rowValues]);\\n    } else {\\n      sheet.appendRow(rowValues);\\n    }\\n    lock.releaseLock();\\n    return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);\\n  } catch (err) {\\n    return ContentService.createTextOutput(JSON.stringify({ status: 'error', error: err.toString() })).setMimeType(ContentService.MimeType.JSON);\\n  }\\n}`;
+                        navigator.clipboard.writeText(script.replace(/\\\\n/g, '\\n'));
+                        setCopiedScript(true);
+                        setTimeout(() => setCopiedScript(false), 2500);
+                      }}
+                      className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      {copiedScript ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedScript ? 'Tersalin!' : 'Salin Skrip'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">Jadwal Sinkronisasi Google Sheets</label>
                 <div className="space-y-2">

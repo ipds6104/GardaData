@@ -1034,13 +1034,24 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     }
   }, [currentForm?.id]);
 
-  // Grouping Levels (Up to Level 4) - Only include valid, non-empty levels
-  const rawGroupings = Array.isArray(currentForm?.groupingLevels) ? currentForm.groupingLevels : [];
+  // Grouping Levels (Up to Level 4) - Priority given to published groupings
+  const rawGroupings = Array.isArray(currentForm?.publishedGroupings) && currentForm.publishedGroupings.length > 0 
+    ? currentForm.publishedGroupings 
+    : (Array.isArray(currentForm?.groupingLevels) ? currentForm.groupingLevels : []);
   const activeGroupingLevels = useMemo(() => {
     return rawGroupings
       .map((g: any) => cleanText(g))
       .filter((g: string) => g !== '' && g !== '-- Tidak Digunakan (Kosong) --' && g !== 'undefined' && g !== 'null');
-  }, [currentForm?.groupingLevels]);
+  }, [rawGroupings]);
+
+  // Dynamic Form Fields - Priority given to published schema
+  const activeFormFields = useMemo(() => {
+    if (!currentForm) return [];
+    if (Array.isArray(currentForm.publishedSchema) && currentForm.publishedSchema.length > 0) {
+      return currentForm.publishedSchema;
+    }
+    return Array.isArray(currentForm.fields) ? currentForm.fields : [];
+  }, [currentForm]);
 
   const currentLevelIndex = drillStack.length; // 0 for Level 1, 1 for Level 2, 2 for Level 3, 3 for Level 4
   const isDeepestLevel = !isLoading && !!currentForm && (
@@ -1074,7 +1085,7 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     const groupMap: Record<string, any[]> = {};
     
     // Check if field defined in schema
-    const fieldObj = (currentForm?.fields || []).find((f: any) => 
+    const fieldObj = (activeFormFields || []).find((f: any) => 
       (f.columnName && normalizeKey(f.columnName) === normalizeKey(currentGroupingKey)) || 
       (f.label && normalizeKey(f.label) === normalizeKey(currentGroupingKey))
     );
@@ -1433,8 +1444,8 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     }
 
     // Validate Required Fields
-    if (targetStatus === 'submitted' && currentForm.fields) {
-      const missing = currentForm.fields.filter((f: any) => {
+    if (targetStatus === 'submitted' && activeFormFields.length > 0) {
+      const missing = activeFormFields.filter((f: any) => {
         if (!f.isRequired) return false;
         const val = formData[f.columnName];
         return val === undefined || val === null || String(val).trim() === '';
@@ -1447,9 +1458,9 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     }
 
     // Validate Custom Field Rules (Number, Date, Time, Image)
-    if (targetStatus === 'submitted' && currentForm.fields) {
+    if (targetStatus === 'submitted' && activeFormFields.length > 0) {
       const validationErrors: string[] = [];
-      currentForm.fields.forEach((f: any) => {
+      activeFormFields.forEach((f: any) => {
         const val = formData[f.columnName];
         if (val === undefined || val === null || String(val).trim() === '') return;
         const vRule = f.validation;
@@ -2274,8 +2285,8 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
 
             {/* Vertical Input Fields */}
             <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3.5 shadow-2xs">
-              {currentForm?.fields && currentForm.fields.length > 0 ? (
-                currentForm.fields.map((field: any, idx: number) => {
+              {activeFormFields && activeFormFields.length > 0 ? (
+                activeFormFields.map((field: any, idx: number) => {
                   const rawVal = getRecordVal(formData, field.columnName);
                   const val = rawVal !== undefined && rawVal !== null ? rawVal : '';
                   const fieldType = String(field.dataType || field.type || 'Text').toLowerCase();
