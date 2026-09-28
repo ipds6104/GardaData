@@ -9,7 +9,7 @@ import {
   downloadDocxReport, 
   ReportItemData 
 } from './report/docxGeneratorEngine';
-import { getRecordVal } from './PetugasLaporanModule';
+import { getRecordVal, cleanText } from './laporanConstants';
 
 interface ReportGeneratorModalProps {
   isOpen: boolean;

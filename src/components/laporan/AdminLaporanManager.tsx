@@ -17,7 +17,7 @@ import {
   Tablet, Monitor, Undo2, Redo2
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme';
-import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES } from './laporanConstants';
+import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES, getRecordVal, cleanText, normalizeKey, normalizeStringVal } from './laporanConstants';
 import { PetugasLaporanModule } from './PetugasLaporanModule';
 
 // Helper to sanitize and clean options array (strip brackets, empty tokens, stringified JSON)
@@ -800,7 +800,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       if (match && match[1]) docId = match[1];
     }
 
-    const cleanSheetName = sheetName.trim() || 'Sheet1';
+    const cleanSheetName = cleanText(sheetName) || 'Sheet1';
     const targetUrl = `https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(cleanSheetName)}`;
 
     const res = await fetch(targetUrl);
@@ -809,17 +809,30 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     }
 
     const csvText = await res.text();
-    const workbook = XLSX.read(csvText, { type: 'string' });
+    const cleanCsv = csvText.replace(/^\uFEFF/, '');
+    const workbook = XLSX.read(cleanCsv, { type: 'string' });
     const firstSheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[firstSheetName];
-    const jsonRows: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+    const rawJsonRows: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+    // Clean all row keys and values to eliminate BOM, NBSP, trailing spaces
+    const jsonRows = rawJsonRows.map((row: any) => {
+      const cleanRow: Record<string, any> = {};
+      Object.entries(row).forEach(([k, v]) => {
+        const cleanK = cleanText(k);
+        if (cleanK) {
+          cleanRow[cleanK] = cleanText(v);
+        }
+      });
+      return cleanRow;
+    });
 
     let headers: string[] = [];
     if (jsonRows.length > 0) {
       headers = Object.keys(jsonRows[0]);
     } else {
       const rawData: string[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-      if (rawData.length > 0) headers = rawData[0].map(c => String(c || '').trim()).filter(Boolean);
+      if (rawData.length > 0) headers = rawData[0].map(c => cleanText(c)).filter(Boolean);
     }
 
     if (headers.length === 0) {
@@ -836,9 +849,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       else if (hLower.includes('jumlah') || hLower.includes('total') || hLower.includes('nilai') || hLower.includes('luas') || hLower.includes('umur') || hLower.includes('harga') || hLower.includes('pendapatan') || hLower.includes('kapasitas')) type = 'Number';
       else if (hLower.includes('status') || hLower.includes('jenis') || hLower.includes('kategori')) type = 'Enum';
 
-      const uniqueVals = Array.from(new Set(jsonRows.map(r => String(r[h] || '').trim()).filter(Boolean)));
-      const options = uniqueVals.length > 0 && uniqueVals.length <= 20 ? uniqueVals : [];
-      if (options.length > 0 && options.length <= 10 && type === 'Text') type = 'Enum';
+      const uniqueVals = Array.from(new Set(jsonRows.map(r => cleanText(r[h])).filter(Boolean)));
+      const options = uniqueVals.length > 0 && uniqueVals.length <= 100 ? uniqueVals : [];
+      if (options.length > 0 && options.length <= 15 && type === 'Text') type = 'Enum';
 
       return {
         id: `fld_${Date.now()}_${i}`,
@@ -959,22 +972,33 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           
           // Filter hanya baris yang valid (tidak sepenuhnya kosong)
           const validRecords = (clientResult.records || []).filter((r: any) => {
-            return Object.values(r).some(v => v !== null && v !== undefined && String(v).trim() !== '');
+            return Object.values(r).some(v => v !== null && v !== undefined && cleanText(v) !== '');
           });
 
-          // Simpan record data sampel ke penyimpanan lokal (Hanya kolom predefined / sampel)
+          // Simpan record data sampel ke penyimpanan lokal (Preserve all columns!)
           if (validRecords.length > 0) {
             const formattedRecords = validRecords.map((r, idx) => {
-              const cleanData: Record<string, any> = {};
+              const cleanData: Record<string, any> = { ...r };
               merged.forEach((f: any) => {
-                const rawVal = r[f.columnName] ?? r[f.label];
-                // Jangan paksa nilai dummy pada kolom foto jika bukan URL/Base64 valid
+                const rawVal = getRecordVal(r, f.columnName) || getRecordVal(r, f.label);
                 if (f.dataType === 'Image' && (!rawVal || (!String(rawVal).startsWith('http') && !String(rawVal).startsWith('data:') && !String(rawVal).startsWith('blob:')))) {
                   cleanData[f.columnName] = '';
-                } else {
-                  cleanData[f.columnName] = rawVal !== undefined ? rawVal : '';
+                } else if (rawVal !== undefined && rawVal !== '') {
+                  cleanData[f.columnName] = rawVal;
                 }
               });
+
+              // Discover GPS coordinates
+              const gpsVal = getRecordVal(cleanData, 'gps');
+              let lat: number | null = null;
+              let lng: number | null = null;
+              if (gpsVal && typeof gpsVal === 'string' && gpsVal.includes(',')) {
+                const parts = gpsVal.split(',').map(s => parseFloat(s.trim()));
+                if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                  lat = parts[0];
+                  lng = parts[1];
+                }
+              }
 
               return {
                 id: `${selectedFormId || 'form'}_row_${idx + 1}`,
@@ -982,6 +1006,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 formId: selectedFormId,
                 activityId: selectedActivity?.id,
                 data: cleanData,
+                latitude: lat,
+                longitude: lng,
                 status: 'draft',
                 createdAt: new Date().toISOString()
               };

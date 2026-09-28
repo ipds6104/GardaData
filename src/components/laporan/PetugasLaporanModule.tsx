@@ -15,7 +15,7 @@ import {
   Lock, LocateFixed, Navigation
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme';
-import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES } from './laporanConstants';
+import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES, getRecordVal, cleanText, normalizeKey, normalizeStringVal, isRecordMatchStep } from './laporanConstants';
 
 // Custom Pin Icon for Leaflet
 const customDraggableIcon = L.divIcon({
@@ -732,21 +732,6 @@ const SmoothTimePicker24h: React.FC<{
   );
 };
 
-// Helper to normalize and retrieve record field value safely
-export const getRecordVal = (data: Record<string, any>, keyName: string): any => {
-  if (!data || !keyName) return '';
-  if (data[keyName] !== undefined && data[keyName] !== null) return data[keyName];
-  
-  const normalizedKey = keyName.trim().toLowerCase().replace(/[\s_-]+/g, '');
-  for (const [k, v] of Object.entries(data)) {
-    const normK = k.trim().toLowerCase().replace(/[\s_-]+/g, '');
-    if (normK === normalizedKey) {
-      return v;
-    }
-  }
-  return '';
-};
-
 interface PetugasLaporanModuleProps {
   onBack?: () => void;
   user?: any;
@@ -912,7 +897,7 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     }
   }, [selectedActivity?.id]);
 
-  // 3. Fetch Records when Current Form Changes
+  // 3. Fetch Records when Current Form Changes (Hybrid: Backend API + Direct Google Sheet Fallback)
   const fetchRecords = async (formId: string) => {
     if (!formId) {
       setRecords([]);
@@ -920,16 +905,103 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     }
     try {
       setIsRefreshing(true);
-      const res = await fetch(`${baseUrl}/api/laporan/forms/${formId}/records?t=${Date.now()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setRecords(Array.isArray(data) ? data : []);
-        localStorage.setItem(`garda_laporan_records_${formId}`, JSON.stringify(data));
-      } else {
+      let loadedRecords: any[] = [];
+      
+      // 1. Try Backend API
+      try {
+        const res = await fetch(`${baseUrl}/api/laporan/forms/${formId}/records?t=${Date.now()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            loadedRecords = data;
+          }
+        }
+      } catch (e) {
+        console.warn('Backend API unreachable for records:', e);
+      }
+
+      // 2. Direct Google Sheet Fetch Fallback if backend returned empty/offline
+      const sheetUrl = currentForm?.sheetUrl || selectedActivity?.sheetUrl || selectedActivity?.connectedSheetUrl;
+      if (loadedRecords.length === 0 && sheetUrl) {
+        try {
+          const sheetName = currentForm?.sheetName || selectedActivity?.sheetName || 'Sheet1';
+          let docId = sheetUrl.trim();
+          if (sheetUrl.includes('/d/')) {
+            const match = sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (match && match[1]) docId = match[1];
+          }
+
+          const targetUrl = `https://docs.google.com/spreadsheets/d/${docId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(cleanText(sheetName))}`;
+          const sheetRes = await fetch(targetUrl);
+          if (sheetRes.ok) {
+            const csvText = await sheetRes.text();
+            const cleanCsv = csvText.replace(/^\uFEFF/, '');
+            const workbook = XLSX.read(cleanCsv, { type: 'string' });
+            const firstSheet = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheet];
+            const rawRows: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+            if (rawRows.length > 0) {
+              const formatted = rawRows
+                .filter(r => Object.values(r).some(v => v !== null && v !== undefined && cleanText(v) !== ''))
+                .map((r, idx) => {
+                  const cleanData: Record<string, any> = {};
+                  Object.entries(r).forEach(([k, v]) => {
+                    const cleanK = cleanText(k);
+                    if (cleanK) {
+                      cleanData[cleanK] = cleanText(v);
+                    }
+                  });
+
+                  // Discover GPS coordinates if present
+                  const gpsVal = getRecordVal(cleanData, 'gps');
+                  let lat: number | null = null;
+                  let lng: number | null = null;
+                  if (gpsVal && typeof gpsVal === 'string' && gpsVal.includes(',')) {
+                    const parts = gpsVal.split(',').map(s => parseFloat(s.trim()));
+                    if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                      lat = parts[0];
+                      lng = parts[1];
+                    }
+                  }
+
+                  return {
+                    id: `${formId}_row_${idx + 1}`,
+                    rowId: `row_${idx + 1}`,
+                    formId: formId,
+                    activityId: selectedActivity?.id,
+                    data: cleanData,
+                    latitude: lat,
+                    longitude: lng,
+                    status: 'draft',
+                    createdAt: new Date().toISOString()
+                  };
+                });
+
+              if (formatted.length > 0) {
+                loadedRecords = formatted;
+              }
+            }
+          }
+        } catch (sheetErr) {
+          console.warn('Direct Google Sheet fetch error:', sheetErr);
+        }
+      }
+
+      // 3. Fallback to cached records if still empty
+      if (loadedRecords.length === 0) {
         const cached = localStorage.getItem(`garda_laporan_records_${formId}`);
-        if (cached) setRecords(JSON.parse(cached));
+        if (cached) {
+          try { loadedRecords = JSON.parse(cached); } catch(e){}
+        }
+      }
+
+      setRecords(loadedRecords);
+      if (loadedRecords.length > 0) {
+        localStorage.setItem(`garda_laporan_records_${formId}`, JSON.stringify(loadedRecords));
       }
     } catch (err) {
+      console.error('Error fetching records:', err);
       const cached = localStorage.getItem(`garda_laporan_records_${formId}`);
       if (cached) {
         try { setRecords(JSON.parse(cached)); } catch(e){}
@@ -951,7 +1023,7 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
   const rawGroupings = Array.isArray(currentForm?.groupingLevels) ? currentForm.groupingLevels : [];
   const activeGroupingLevels = useMemo(() => {
     return rawGroupings
-      .map((g: any) => String(g || '').trim())
+      .map((g: any) => cleanText(g))
       .filter((g: string) => g !== '' && g !== '-- Tidak Digunakan (Kosong) --' && g !== 'undefined' && g !== 'null');
   }, [currentForm?.groupingLevels]);
 
@@ -963,15 +1035,14 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     ? activeGroupingLevels[currentLevelIndex]
     : '';
 
-  // Filter records based on active drilldown stack
+  // Filter records based on active drilldown stack using fuzzy semantic matching
   const recordsFilteredByDrill = useMemo(() => {
     return (records || []).filter(r => {
       const d = r.data || {};
       for (const step of drillStack) {
-        if (!step.levelKey || step.value === 'Semua') continue;
-        const cellVal = String(getRecordVal(d, step.levelKey) || '').trim().toLowerCase();
-        const stepVal = step.value.trim().toLowerCase();
-        if (cellVal !== stepVal) {
+        if (!step.levelKey || step.value === 'Semua' || step.value === 'All') continue;
+        const cellVal = getRecordVal(d, step.levelKey);
+        if (!isRecordMatchStep(cellVal, step.value)) {
           return false;
         }
       }
@@ -989,8 +1060,8 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     
     // Check if field defined in schema
     const fieldObj = (currentForm?.fields || []).find((f: any) => 
-      (f.columnName && f.columnName.toLowerCase() === currentGroupingKey.toLowerCase()) || 
-      (f.label && f.label.toLowerCase() === currentGroupingKey.toLowerCase())
+      (f.columnName && normalizeKey(f.columnName) === normalizeKey(currentGroupingKey)) || 
+      (f.label && normalizeKey(f.label) === normalizeKey(currentGroupingKey))
     );
     
     // Sanitize predefined options
@@ -998,16 +1069,16 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     let predefinedOptions: string[] = [];
     if (Array.isArray(rawOptions)) {
       predefinedOptions = rawOptions
-        .map(opt => String(opt || '').trim())
+        .map(opt => cleanText(opt))
         .filter(opt => opt !== '' && opt !== '[' && opt !== ']' && opt !== '[,]' && opt !== 'null' && opt !== 'undefined');
     } else if (typeof rawOptions === 'string') {
-      const trimmed = rawOptions.trim();
+      const trimmed = cleanText(rawOptions);
       if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
         try {
           const parsed = JSON.parse(trimmed);
           if (Array.isArray(parsed)) {
             predefinedOptions = parsed
-              .map(opt => String(opt || '').trim())
+              .map(opt => cleanText(opt))
               .filter(opt => opt !== '' && opt !== '[' && opt !== ']' && opt !== '[,]' && opt !== 'null' && opt !== 'undefined');
           }
         } catch (e) {}
@@ -1015,23 +1086,34 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
       if (predefinedOptions.length === 0) {
         predefinedOptions = trimmed
           .split(',')
-          .map(opt => opt.trim())
+          .map(opt => cleanText(opt))
           .filter(opt => opt !== '' && opt !== '[' && opt !== ']' && opt !== '[,]' && opt !== 'null' && opt !== 'undefined');
       }
     }
 
-    predefinedOptions.forEach(opt => {
-      if (opt && String(opt).trim()) groupMap[String(opt).trim()] = [];
-    });
+    // Only populate initial predefined options at Level 1 (top-level) or if no records exist yet
+    if (currentLevelIndex === 0 || recordsFilteredByDrill.length === 0) {
+      predefinedOptions.forEach(opt => {
+        if (opt && cleanText(opt)) groupMap[cleanText(opt)] = [];
+      });
+    }
 
     recordsFilteredByDrill.forEach(rec => {
       const d = rec.data || {};
       const rawVal = getRecordVal(d, currentGroupingKey) || (fieldObj?.columnName ? getRecordVal(d, fieldObj.columnName) : '');
-      let strVal = (rawVal !== undefined && rawVal !== null) ? String(rawVal).trim() : '';
+      let strVal = cleanText(rawVal);
       if (strVal === '[' || strVal === ']' || strVal === '[,]') strVal = '';
       const val = strVal !== '' ? strVal : 'Lainnya';
-      if (!groupMap[val]) groupMap[val] = [];
-      groupMap[val].push(rec);
+      
+      // Check if this val matches an existing key (with loose normalization)
+      let targetKey = val;
+      const existingKey = Object.keys(groupMap).find(k => normalizeKey(k) === normalizeKey(val));
+      if (existingKey) {
+        targetKey = existingKey;
+      }
+      
+      if (!groupMap[targetKey]) groupMap[targetKey] = [];
+      groupMap[targetKey].push(rec);
     });
 
     return Object.entries(groupMap)
@@ -1040,9 +1122,23 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
         count: items.length,
         records: items
       }))
-      .filter(g => (g.count > 0 || predefinedOptions.includes(g.name)) && g.name !== '[' && g.name !== ']' && g.name !== '[,]')
+      .filter(g => {
+        if (g.name === '[' || g.name === ']' || g.name === '[,]') return false;
+        if (searchQuery.trim()) {
+          const q = searchQuery.trim().toLowerCase();
+          const matchesName = g.name.toLowerCase().includes(q);
+          const matchesInsideRecords = g.records && g.records.some(r => Object.values(r.data || {}).some(v => cleanText(v).toLowerCase().includes(q)));
+          if (!matchesName && !matchesInsideRecords) return false;
+        }
+        // At level 1 (top level): show items with records OR predefined options
+        // At level > 0 (sublevels like Level 2 SLS): show ONLY items with actual records in this branch!
+        if (currentLevelIndex > 0) {
+          return g.count > 0;
+        }
+        return g.count > 0 || predefinedOptions.includes(g.name);
+      })
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  }, [selectedActivity, currentForm, isDeepestLevel, currentGroupingKey, recordsFilteredByDrill]);
+  }, [selectedActivity, currentForm, isDeepestLevel, currentGroupingKey, recordsFilteredByDrill, currentLevelIndex, searchQuery]);
 
   // Filtered samples when reaching final level
   const displayedSamples = useMemo(() => {
@@ -1917,27 +2013,20 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                           const nextLevelIndex = currentLevelIndex + 1;
                           const isFinalGroupLevel = nextLevelIndex >= activeGroupingLevels.length;
 
-                          // Jika grouping sudah habis di level ini
-                          if (isFinalGroupLevel) {
-                            if (grp.records && grp.records.length === 1) {
-                              // Langsung buka form isian untuk assignment tunggal
-                              handleStartFormEntry(grp.records[0]);
-                              return;
-                            } else if (grp.records && grp.records.length === 0) {
-                              // Langsung buka form kosong baru dengan grouping terisi
-                              setDrillStack(prev => [
-                                ...prev,
-                                { levelIndex: currentLevelIndex, levelKey: currentGroupingKey, value: grp.name }
-                              ]);
-                              handleStartFormEntry();
-                              return;
-                            }
-                          }
-
                           setDrillStack(prev => [
                             ...prev,
                             { levelIndex: currentLevelIndex, levelKey: currentGroupingKey, value: grp.name }
                           ]);
+
+                          // Jika grouping sudah habis di level ini dan hanya ada 1 record
+                          if (isFinalGroupLevel && grp.records && grp.records.length === 1) {
+                            handleStartFormEntry(grp.records[0]);
+                            return;
+                          } else if (isFinalGroupLevel && grp.records && grp.records.length === 0) {
+                            handleStartFormEntry();
+                            return;
+                          }
+
                           setSearchQuery('');
                         }}
                         className="p-3.5 px-4 flex items-center justify-between hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors group"
