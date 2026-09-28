@@ -166,7 +166,7 @@ const SearchableFilterDropdown: React.FC<SearchableFilterDropdownProps> = ({
   );
 
   return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
+    <div className={`relative ${isOpen ? 'z-[100]' : 'z-10'} ${className}`} ref={dropdownRef}>
       <button 
         type="button"
         onClick={() => {
@@ -195,7 +195,7 @@ const SearchableFilterDropdown: React.FC<SearchableFilterDropdownProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.97 }}
             transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute z-50 top-full left-0 mt-1.5 min-w-[220px] max-w-[320px] w-max bg-white border border-slate-200/90 rounded-2xl shadow-xl shadow-slate-900/10 overflow-hidden flex flex-col"
+            className="absolute z-[100] top-full left-0 mt-1.5 min-w-[220px] max-w-[calc(100vw-32px)] sm:max-w-[320px] w-max bg-white border border-slate-200/90 rounded-2xl shadow-2xl shadow-slate-900/20 overflow-hidden flex flex-col"
           >
             {options.length > 5 && (
               <div className="p-2 border-b border-slate-100 bg-slate-50/80">
@@ -411,14 +411,14 @@ function LocateUserControl({ accentColor = '#0ea5e9', markerText = 'Lokasi Anda 
   }, [map, accentColor, markerText, locating]);
 
   return (
-    <div className="leaflet-bottom leaflet-right mb-5 mr-4 z-[999] pointer-events-auto">
+    <div className="leaflet-top leaflet-right mt-16 mr-3 z-[900] pointer-events-auto">
       <div className="leaflet-control">
         <button
           ref={buttonRef}
           type="button"
           onClick={handleLocate}
           title="Pusatkan ke Lokasi Saya"
-          className="p-2.5 sm:p-3 bg-white hover:bg-slate-50 text-slate-700 active:scale-95 rounded-2xl shadow-xl border border-slate-200/80 transition-all flex items-center gap-1.5 font-bold text-xs cursor-pointer select-none ring-1 ring-black/5"
+          className="p-2.5 sm:p-3 bg-white/95 backdrop-blur-md hover:bg-cyan-50 text-slate-700 hover:text-cyan-700 active:scale-95 rounded-2xl shadow-xl border border-slate-200/90 transition-all flex items-center justify-center gap-1.5 font-bold text-xs cursor-pointer select-none ring-1 ring-black/5"
         >
           <LocateFixed className={`w-4 h-4 sm:w-5 sm:h-5 ${locating ? 'animate-spin text-cyan-600' : 'text-slate-700'}`} style={{ color: locating ? accentColor : undefined }} />
           <span className="hidden sm:inline font-bold">Lokasi Saya</span>
@@ -1083,7 +1083,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: 'easeInOut' }}
-            className="overflow-hidden bg-slate-50/95 px-3.5 sm:px-5 py-2 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-2 z-20 shrink-0"
+            className="bg-slate-50/95 px-3.5 sm:px-5 py-2 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-2 z-40 relative shrink-0"
           >
             <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
               {/* 1. Kecamatan Dropdown */}
