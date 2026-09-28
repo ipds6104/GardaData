@@ -69,145 +69,41 @@ function MapController({
   return null;
 }
 
-// Komponen penemu lokasi GPS pengguna dengan HTML5 Geolocation & isolasi event Leaflet
-function LocateUserControl({ accentColor = '#ea580c', markerText = 'Lokasi Anda Saat Ini' }: { accentColor?: string; markerText?: string }) {
+// Komponen penemu lokasi GPS pengguna
+function LocateUserControl() {
   const map = useMap();
   const [locating, setLocating] = useState(false);
-  const userLayerGroupRef = useRef<L.LayerGroup | null>(null);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
 
-  // Initialize LayerGroup for user location marker & circle
-  useEffect(() => {
-    const layerGroup = L.layerGroup().addTo(map);
-    userLayerGroupRef.current = layerGroup;
-    return () => {
-      layerGroup.clearLayers();
-      layerGroup.remove();
-    };
-  }, [map]);
-
-  // Disable Leaflet map drag/click propagation on the locate button
-  useEffect(() => {
-    if (buttonRef.current) {
-      L.DomEvent.disableClickPropagation(buttonRef.current);
-      L.DomEvent.disableScrollPropagation(buttonRef.current);
-    }
-  }, []);
-
-  const handleLocate = useCallback((e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    if (locating) return;
-
-    if (!navigator.geolocation) {
-      alert('Perangkat atau browser Anda tidak mendukung fitur lokasi (Geolocation).');
-      return;
-    }
-
+  const handleLocate = () => {
     setLocating(true);
-
-    const onLocationSuccess = (pos: GeolocationPosition) => {
+    map.locate({ setView: true, maxZoom: 16 });
+    map.once('locationfound', (e) => {
       setLocating(false);
-      const { latitude, longitude, accuracy } = pos.coords;
-      const latlng: [number, number] = [latitude, longitude];
-
-      if (userLayerGroupRef.current) {
-        userLayerGroupRef.current.clearLayers();
-
-        // Accuracy Circle
-        if (accuracy && accuracy < 5000) {
-          const accCircle = L.circle(latlng, {
-            radius: Math.max(accuracy, 15),
-            color: accentColor,
-            fillColor: accentColor,
-            fillOpacity: 0.15,
-            weight: 1.5,
-          });
-          userLayerGroupRef.current.addLayer(accCircle);
-        }
-
-        // Pulse Marker
-        const userMarker = L.circleMarker(latlng, {
-          radius: 8,
-          fillColor: accentColor,
-          color: '#ffffff',
-          weight: 3,
-          opacity: 1,
-          fillOpacity: 1,
-        });
-
-        userMarker.bindPopup(
-          `<div style="font-family: sans-serif; padding: 4px;">
-            <b style="font-size: 12px; color: #0f172a;">📍 ${markerText}</b>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
-              Akurasi: ±${Math.round(accuracy || 0)} meter<br/>
-              ${latitude.toFixed(6)}, ${longitude.toFixed(6)}
-            </div>
-          </div>`,
-          { offset: [0, -6] }
-        );
-
-        userLayerGroupRef.current.addLayer(userMarker);
-        userMarker.openPopup();
-      }
-
-      map.flyTo(latlng, Math.max(map.getZoom(), 17), { duration: 1.2 });
-    };
-
-    const showErrorMsg = (err: GeolocationPositionError) => {
-      if (err.code === 1) { // PERMISSION_DENIED
-        alert('Akses lokasi (GPS) ditolak. Harap izinkan akses lokasi pada pengaturan browser atau smartphone Anda.');
-      } else if (err.code === 2) { // POSITION_UNAVAILABLE
-        alert('Informasi lokasi tidak tersedia. Pastikan GPS/Layanan Lokasi perangkat Anda sudah aktif.');
-      } else if (err.code === 3) { // TIMEOUT
-        alert('Waktu permintaan lokasi GPS habis. Pastikan sinyal GPS cukup kuat.');
-      } else {
-        alert('Gagal mendeteksi lokasi: ' + (err.message || 'Kesalahan tidak diketahui'));
-      }
-    };
-
-    const onLocationError = (err: GeolocationPositionError) => {
-      // If high accuracy failed with timeout, retry once with low accuracy (network/wifi-based)
-      if (err.code === err.TIMEOUT) {
-        navigator.geolocation.getCurrentPosition(
-          onLocationSuccess,
-          (finalErr) => {
-            setLocating(false);
-            showErrorMsg(finalErr);
-          },
-          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
-        );
-        return;
-      }
-
+      L.circleMarker(e.latlng, {
+        radius: 8,
+        fillColor: '#ea580c',
+        color: '#ffffff',
+        weight: 3,
+        opacity: 1,
+        fillOpacity: 0.9,
+      }).addTo(map).bindPopup('<b>Lokasi Anda Saat Ini</b>').openPopup();
+    });
+    map.once('locationerror', (err) => {
       setLocating(false);
-      showErrorMsg(err);
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      onLocationSuccess,
-      onLocationError,
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-    );
-  }, [map, accentColor, markerText, locating]);
+      alert('Tidak dapat mendeteksi lokasi GPS Anda: ' + err.message);
+    });
+  };
 
   return (
-    <div className="leaflet-bottom leaflet-right mb-5 mr-4 z-[999] pointer-events-auto">
-      <div className="leaflet-control">
-        <button
-          ref={buttonRef}
-          type="button"
-          onClick={handleLocate}
-          title="Pusatkan ke Lokasi Saya"
-          className="p-2.5 sm:p-3 bg-white hover:bg-orange-50 text-slate-700 hover:text-orange-600 active:scale-95 rounded-2xl shadow-xl border border-orange-100 transition-all flex items-center gap-1.5 font-bold text-xs cursor-pointer select-none ring-1 ring-black/5"
-        >
-          <LocateFixed className={`w-4 h-4 sm:w-5 sm:h-5 ${locating ? 'animate-spin text-orange-600' : 'text-slate-700'}`} style={{ color: locating ? accentColor : undefined }} />
-          <span className="hidden sm:inline font-bold">Lokasi Saya</span>
-        </button>
-      </div>
+    <div className="leaflet-bottom leaflet-right mb-4 mr-3 z-[800] pointer-events-auto">
+      <button
+        onClick={handleLocate}
+        title="Pusatkan ke Lokasi Saya"
+        className="p-2.5 sm:p-3 bg-white hover:bg-orange-50 text-slate-700 hover:text-orange-600 rounded-2xl shadow-lg border border-orange-100 transition-all active:scale-95 flex items-center gap-1.5 font-bold text-xs"
+      >
+        <LocateFixed className={`w-4 h-4 sm:w-5 sm:h-5 ${locating ? 'animate-spin text-orange-600' : ''}`} />
+        <span className="hidden sm:inline">Lokasi Saya</span>
+      </button>
     </div>
   );
 }
