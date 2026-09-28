@@ -8,7 +8,7 @@ import {
   RotateCcw, Filter, ChevronRight, Info, LocateFixed, Eye, EyeOff,
   Building2, Home, Briefcase, Users, ShieldCheck, Sparkles,
   SlidersHorizontal, CheckCircle2, Clock, AlertCircle, Compass, Lock,
-  Maximize2, Minimize2, ChevronDown
+  Maximize2, Minimize2, ChevronDown, ChevronUp, AlertTriangle, XCircle, FileText, Phone, UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { decryptMilitaryPayload } from '../../utils/cryptoSecurity';
@@ -26,7 +26,7 @@ interface PetaRespondenSE2026Props {
 }
 
 export interface RespondenPoint {
-  i: string;       // safe hashed id (e.g. SE26-A1B2C3D4)
+  i: string;       // safe hashed id (e.g. SE26-A1B2C3D4 or MST-...)
   k: string;       // namaKK
   lt: number;      // lat
   lg: number;      // lng
@@ -39,6 +39,20 @@ export interface RespondenPoint {
   kb: string;      // kbli
   st: string;      // status
   sk: string;      // skala
+  // Matching SE-ST attributes:
+  m?: number;      // 1 if Matching SE-ST
+  mKat?: string;   // Kategori: 'Sebagian Ditemukan' | 'Seluruh Usaha Prelist Tidak Ditemukan' | 'Seluruh Usaha Tutup'
+  mFound?: string; // Daftar usaha ditemukan
+  mNotFound?: string; // Daftar usaha tidak ditemukan
+  mClosed?: string; // Daftar usaha tutup
+  mFCnt?: number;  // Jml usaha ditemukan
+  mNFCnt?: number; // Jml usaha tidak ditemukan
+  mCCnt?: number;  // Jml usaha tutup
+  mNotes?: string; // Catatan lapangan
+  pml?: string;    // Nama PML
+  ppl?: string;    // Nama PPL
+  telp?: string;   // No Telp Responden
+  resp?: string;   // Nama Responden Pemberi Informasi
 }
 
 interface KecamatanMeta {
@@ -439,23 +453,40 @@ function ViewportPointsLayer({
     <>
       {visiblePoints.map((point) => {
         const isSelected = selectedPointId === point.i;
-        const color = point.u > 0 ? '#059669' : '#2563eb';
+        const isMatching = point.m === 1 || !!point.mKat;
+
+        // COLOR RULES:
+        // Yellow/Amber (#f59e0b) = Usaha Tidak/Sebagian Ditemukan / Tutup (Matching SE-ST)
+        // Green (#059669) = Ada Usaha SE2026
+        // Blue (#2563eb) = Tidak Ada Usaha SE2026
+        const fillColor = isMatching ? '#f59e0b' : point.u > 0 ? '#059669' : '#2563eb';
+        const strokeColor = isSelected ? '#ffffff' : isMatching ? '#d97706' : point.u > 0 ? '#047857' : '#1d4ed8';
 
         const latDMS = toDMS(point.lt, true);
         const lngDMS = toDMS(point.lg, false);
         const decimalStr = `Long: ${point.lg.toFixed(6)}°, Lat: ${point.lt.toFixed(6)}°`;
         const dmsStr = `${lngDMS}, ${latDMS}`;
 
+        // Helper to format itemized list of businesses
+        const renderBusinessList = (raw: string) => {
+          if (!raw || raw === '-') return [];
+          return raw.split(/[;\n]/).map(s => s.trim()).filter(Boolean);
+        };
+
+        const foundList = renderBusinessList(point.mFound || '');
+        const notFoundList = renderBusinessList(point.mNotFound || '');
+        const closedList = renderBusinessList(point.mClosed || '');
+
         return (
           <CircleMarker
             key={point.i}
             center={[point.lt, point.lg]}
-            radius={isSelected ? 10 : 6}
+            radius={isSelected ? 11 : isMatching ? 7.5 : 6}
             pathOptions={{
-              fillColor: color,
-              color: isSelected ? '#ffffff' : color,
-              weight: isSelected ? 3 : 1,
-              fillOpacity: isSelected ? 1 : 0.85,
+              fillColor: fillColor,
+              color: strokeColor,
+              weight: isSelected ? 3.5 : isMatching ? 2 : 1,
+              fillOpacity: isSelected ? 1 : 0.88,
             }}
             eventHandlers={{
               click: () => {
@@ -464,15 +495,21 @@ function ViewportPointsLayer({
             }}
           >
             <Popup className="custom-leaflet-popup">
-              <div className="p-3 max-w-[310px] space-y-2.5 text-slate-800">
+              <div className="p-3 max-w-[320px] max-h-[400px] overflow-y-auto space-y-2.5 text-slate-800 custom-scrollbar">
                 {/* Header: Status & Nama KK */}
                 <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2">
                   <div className="w-full">
-                    <span className={`inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                      point.u > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {point.u > 0 ? `Ada Usaha (${point.u})` : 'Tidak Ada Usaha'}
-                    </span>
+                    {isMatching ? (
+                      <span className="inline-block text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                        🟡 {point.mKat || 'Matching SE-ST'}
+                      </span>
+                    ) : (
+                      <span className={`inline-block text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                        point.u > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {point.u > 0 ? `Ada Usaha (${point.u})` : 'Tidak Ada Usaha'}
+                      </span>
+                    )}
                     
                     {/* Explicit Nama Kepala Keluarga */}
                     <div className="mt-1.5 flex items-start gap-1.5">
@@ -480,10 +517,13 @@ function ViewportPointsLayer({
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Nama Kepala Keluarga (KK):</span>
                         <h4 className="font-extrabold text-sm text-slate-900 leading-tight">
-                          {point.k || 'Responden SE2026'}
+                          {point.k || 'Responden'}
                         </h4>
                       </div>
                     </div>
+                    {point.resp && point.resp !== point.k && (
+                      <span className="text-[10px] text-slate-500 block mt-0.5">Pemberi Info: <b>{point.resp}</b></span>
+                    )}
                     <span className="text-[9px] font-mono text-slate-400 block mt-0.5">ID: {point.i}</span>
                   </div>
                 </div>
@@ -499,16 +539,88 @@ function ViewportPointsLayer({
                   </p>
                 </div>
 
-                {/* Info Usaha (jika ada) */}
-                {point.nu && (
-                  <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100 space-y-0.5">
-                    <p className="font-bold text-emerald-900 text-xs flex items-center gap-1">
-                      <Briefcase className="w-3.5 h-3.5 text-emerald-700" />
-                      {point.nu}
-                    </p>
-                    {point.kb && <p className="text-[10px] text-emerald-700">{point.kb}</p>}
-                    {point.sk && <p className="text-[9px] font-bold text-emerald-800 uppercase tracking-wider">Skala: {point.sk}</p>}
+                {/* DETAIL MATCHING SE-ST: USAHA DITEMUKAN, TIDAK DITEMUKAN, TUTUP */}
+                {isMatching ? (
+                  <div className="space-y-1.5 text-xs">
+                    {/* 1. Usaha Ditemukan */}
+                    {foundList.length > 0 && (
+                      <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                          Usaha Ditemukan ({point.mFCnt || foundList.length})
+                        </span>
+                        <div className="space-y-1 pl-4">
+                          {foundList.map((item, idx) => (
+                            <p key={idx} className="text-[11px] font-bold text-emerald-950 leading-tight">
+                              • {item}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. Usaha Tidak Ditemukan */}
+                    {notFoundList.length > 0 && (
+                      <div className="p-2 bg-rose-50 rounded-xl border border-rose-200 space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-900 flex items-center gap-1">
+                          <XCircle className="w-3 h-3 text-rose-600 shrink-0" />
+                          Usaha Tidak Ditemukan ({point.mNFCnt || notFoundList.length})
+                        </span>
+                        <div className="space-y-1 pl-4">
+                          {notFoundList.map((item, idx) => (
+                            <p key={idx} className="text-[11px] font-bold text-rose-950 leading-tight">
+                              • {item}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Usaha Tutup */}
+                    {closedList.length > 0 && (
+                      <div className="p-2 bg-amber-50 rounded-xl border border-amber-200 space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+                          Usaha Tutup ({point.mCCnt || closedList.length})
+                        </span>
+                        <div className="space-y-1 pl-4">
+                          {closedList.map((item, idx) => (
+                            <p key={idx} className="text-[11px] font-bold text-amber-950 leading-tight">
+                              • {item}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Catatan Lapangan */}
+                    {point.mNotes && (
+                      <div className="p-2 bg-slate-100 rounded-xl border border-slate-200 text-[11px] text-slate-700">
+                        <span className="font-bold block text-[10px] uppercase text-slate-500">Catatan Lapangan:</span>
+                        <p className="italic">{point.mNotes}</p>
+                      </div>
+                    )}
+
+                    {/* Petugas PPL & PML */}
+                    {(point.ppl || point.pml) && (
+                      <div className="p-1.5 bg-slate-50 rounded-lg text-[10px] text-slate-600 flex items-center justify-between">
+                        <span><b>PPL:</b> {point.ppl || '-'}</span>
+                        <span><b>PML:</b> {point.pml || '-'}</span>
+                      </div>
+                    )}
                   </div>
+                ) : (
+                  /* Info Usaha Biasa (jika ada) */
+                  point.nu && (
+                    <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-100 space-y-0.5">
+                      <p className="font-bold text-emerald-900 text-xs flex items-center gap-1">
+                        <Briefcase className="w-3.5 h-3.5 text-emerald-700" />
+                        {point.nu}
+                      </p>
+                      {point.kb && <p className="text-[10px] text-emerald-700">{point.kb}</p>}
+                      {point.sk && <p className="text-[9px] font-bold text-emerald-800 uppercase tracking-wider">Skala: {point.sk}</p>}
+                    </div>
+                  )
                 )}
 
                 {/* KOORDINAT: FORMAT DECIMAL & DMS (Degree Minute Second) */}
@@ -602,6 +714,11 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
   const [filterUsaha, setFilterUsaha] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showSearchDropdown, setShowSearchDropdown] = useState<boolean>(false);
+
+  // Filter Toolbar Collapsible State (Allows hiding filters on Mobile / Desktop to expand map view)
+  const [isFilterOpen, setIsFilterOpen] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? window.innerWidth >= 768 : true;
+  });
 
   // UI Panels
   const [showDrawer, setShowDrawer] = useState<boolean>(false);
@@ -761,11 +878,13 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
       result = result.filter(p => p.ks === selectedSls || p.s === selectedSls);
     }
 
-    // Filter Usaha
+    // Filter Usaha & Matching SE-ST
     if (filterUsaha === 'ada_usaha') {
-      result = result.filter(p => p.u > 0);
+      result = result.filter(p => p.u > 0 && !p.m);
+    } else if (filterUsaha === 'matching_sest') {
+      result = result.filter(p => p.m === 1 || !!p.mKat);
     } else if (filterUsaha === 'non_usaha') {
-      result = result.filter(p => p.u === 0);
+      result = result.filter(p => p.u === 0 && !p.m);
     }
 
     // Filter Query
@@ -777,7 +896,14 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
         (p.s && p.s.toLowerCase().includes(q)) ||
         (p.i && p.i.toLowerCase().includes(q)) ||
         (p.kb && p.kb.toLowerCase().includes(q)) ||
-        (p.dn && p.dn.toLowerCase().includes(q))
+        (p.dn && p.dn.toLowerCase().includes(q)) ||
+        (p.mKat && p.mKat.toLowerCase().includes(q)) ||
+        (p.mFound && p.mFound.toLowerCase().includes(q)) ||
+        (p.mNotFound && p.mNotFound.toLowerCase().includes(q)) ||
+        (p.mClosed && p.mClosed.toLowerCase().includes(q)) ||
+        (p.ppl && p.ppl.toLowerCase().includes(q)) ||
+        (p.pml && p.pml.toLowerCase().includes(q)) ||
+        (p.resp && p.resp.toLowerCase().includes(q))
       );
     }
 
@@ -796,7 +922,9 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
         (p.k && p.k.toLowerCase().includes(q)) ||
         (p.nu && p.nu.toLowerCase().includes(q)) ||
         (p.s && p.s.toLowerCase().includes(q)) ||
-        (p.i && p.i.toLowerCase().includes(q))
+        (p.i && p.i.toLowerCase().includes(q)) ||
+        (p.mKat && p.mKat.toLowerCase().includes(q)) ||
+        (p.resp && p.resp.toLowerCase().includes(q))
       ) {
         matches.push(p);
         if (matches.length >= 8) break;
@@ -828,15 +956,17 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
   const filteredStats = useMemo(() => {
     let total = displayedPoints.length;
     let berUsaha = 0;
+    let matchingSEST = 0;
     let nonUsaha = 0;
 
     for (let i = 0; i < total; i++) {
       const p = displayedPoints[i];
-      if (p.u > 0) berUsaha++;
+      if (p.m === 1 || p.mKat) matchingSEST++;
+      else if (p.u > 0) berUsaha++;
       else nonUsaha++;
     }
 
-    return { total, berUsaha, nonUsaha };
+    return { total, berUsaha, matchingSEST, nonUsaha };
   }, [displayedPoints]);
 
   // Handle Copy Helper
@@ -911,9 +1041,22 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
 
   const usahaOptions: DropdownOption[] = [
     { value: 'all', label: 'Semua Responden' },
-    { value: 'ada_usaha', label: 'Hanya Ada Usaha', badge: metadata?.totalBerusaha },
-    { value: 'non_usaha', label: 'Hanya Tidak Ada Usaha', badge: metadata?.totalNonUsaha },
+    { value: 'ada_usaha', label: '🟢 Ada Usaha (SE2026)', badge: metadata?.totalBerusaha },
+    { value: 'matching_sest', label: '🟡 Usaha Tidak/Sebagian Ditemukan (Matching SE-ST)', badge: 16524 },
+    { value: 'non_usaha', label: '🔵 Tidak Ada Usaha', badge: metadata?.totalNonUsaha },
   ];
+
+  // Count active non-default filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedKec !== 'all') count++;
+    if (selectedDesa !== 'all') count++;
+    if (selectedSls !== 'all') count++;
+    if (filterUsaha !== 'all') count++;
+    if (searchQuery.trim() !== '') count++;
+    if (boundaryMode !== 'all') count++;
+    return count;
+  }, [selectedKec, selectedDesa, selectedSls, filterUsaha, searchQuery, boundaryMode]);
 
   // Active Boundary Layer States based on boundaryMode
   const showKec = boundaryMode === 'all' || boundaryMode === 'kec_desa' || boundaryMode === 'kec';
@@ -955,19 +1098,43 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
         </div>
 
         {/* Action Controls & Fullscreen Button */}
-        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto shrink-0">
+          {/* Toggle Filter Button (Collapsible / Expandable for Mobile / Desktop) */}
+          <button
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className={`px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border shadow-2xs ${
+              isFilterOpen
+                ? 'bg-cyan-50 border-cyan-300 text-cyan-800'
+                : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200/80'
+            }`}
+            title={isFilterOpen ? 'Sembunyikan Filter & Perluas Peta' : 'Buka Panel Filter'}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-600" />
+            <span className="hidden xs:inline">Filter</span>
+            {activeFilterCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-cyan-600 text-white text-[9px] font-black flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+            {isFilterOpen ? (
+              <ChevronUp className="w-3 h-3 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-3 h-3 text-slate-400" />
+            )}
+          </button>
+
           <button
             onClick={() => setShowStatsModal(true)}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-cyan-50 hover:text-cyan-700 text-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-200/60 shadow-2xs"
+            className="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-cyan-50 hover:text-cyan-700 text-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-200/60 shadow-2xs"
             title="Statistik Sebaran Responden"
           >
             <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
-            <span>Statistik</span>
+            <span className="hidden sm:inline">Statistik</span>
           </button>
 
           <button
             onClick={() => setShowDrawer(!showDrawer)}
-            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border ${
+            className={`px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border ${
               showDrawer 
                 ? 'bg-cyan-600 text-white border-cyan-600 shadow-md' 
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200/60'
@@ -975,7 +1142,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
             title="Daftar Responden"
           >
             <Compass className="w-3.5 h-3.5" />
-            <span>Daftar</span>
+            <span className="hidden sm:inline">Daftar</span>
           </button>
 
           {/* Fullscreen Toggle Button */}
@@ -989,164 +1156,192 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
         </div>
       </div>
 
-      {/* 2. NEAT SEARCHABLE FILTER TOOLBAR (PENILAIAN MITRA STYLE) */}
-      <div className="bg-slate-50/95 px-3.5 sm:px-5 py-2 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-2 z-20">
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
-          {/* 1. Kecamatan Dropdown */}
-          <SearchableFilterDropdown
-            options={kecamatanOptions}
-            value={selectedKec}
-            onChange={(val) => {
-              setSelectedKec(val);
-              setSelectedDesa('all');
-              setSelectedSls('all');
-            }}
-            placeholder="Pilih Kecamatan"
-            prefix="Kec: "
-            searchPlaceholder="Cari Kecamatan..."
-            icon={Building2}
-          />
-
-          {/* 2. Desa Dropdown */}
-          <SearchableFilterDropdown
-            options={desaOptions}
-            value={selectedDesa}
-            onChange={(val) => {
-              setSelectedDesa(val);
-              setSelectedSls('all');
-            }}
-            placeholder="Pilih Desa"
-            prefix="Desa: "
-            searchPlaceholder="Cari Desa/Kel..."
-            icon={Home}
-          />
-
-          {/* 3. SLS Dropdown (jika desa terpilih) */}
-          {selectedDesa !== 'all' && availableSlsList.length > 0 && (
-            <SearchableFilterDropdown
-              options={slsOptions}
-              value={selectedSls}
-              onChange={setSelectedSls}
-              placeholder="Pilih SLS"
-              prefix="SLS: "
-              searchPlaceholder="Cari SLS..."
-              icon={MapPin}
-            />
-          )}
-
-          {/* 4. Dropdown Batas Wilayah */}
-          <SearchableFilterDropdown
-            options={boundaryOptions}
-            value={boundaryMode}
-            onChange={setBoundaryMode}
-            placeholder="Pilih Batas Wilayah"
-            prefix="Batas: "
-            searchPlaceholder="Pilih opsi batas..."
-            icon={Layers}
-          />
-
-          {/* 5. Dropdown Status Usaha */}
-          <SearchableFilterDropdown
-            options={usahaOptions}
-            value={filterUsaha}
-            onChange={setFilterUsaha}
-            placeholder="Status Usaha"
-            prefix="Usaha: "
-            searchPlaceholder="Filter usaha..."
-            icon={Briefcase}
-          />
-        </div>
-
-        {/* INSTANT SEARCH & AUTO-ZOOM TO COORDINATE */}
-        <div className="flex items-center gap-1.5 w-full sm:w-auto relative">
-          <div className="relative w-full sm:w-72">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowSearchDropdown(true);
-              }}
-              onFocus={() => setShowSearchDropdown(true)}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="Cari Nama KK (Tekan Enter utk Zoom)..."
-              className="w-full pl-8 pr-7 py-2 text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-2xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none shadow-2xs transition-all"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setShowSearchDropdown(false);
-                }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-
-            {/* Instant Search Suggestions Dropdown with Auto-Zoom on Click */}
-            <AnimatePresence>
-              {showSearchDropdown && searchSuggestions.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 5 }}
-                  className="absolute top-full mt-1.5 left-0 right-0 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-[9999] max-h-72 overflow-y-auto custom-scrollbar"
-                >
-                  <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <span>Hasil Pencarian ({searchSuggestions.length})</span>
-                    <span>Klik utk Zoom</span>
-                  </div>
-                  <ul className="divide-y divide-slate-100">
-                    {searchSuggestions.map((item) => (
-                      <li key={item.i}>
-                        <button
-                          onClick={() => handleSelectAndZoomToPoint(item)}
-                          className="w-full text-left p-2.5 hover:bg-cyan-50/70 flex items-start justify-between gap-2 transition-colors cursor-pointer group"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-extrabold text-xs text-slate-900 group-hover:text-cyan-700 truncate">
-                                👤 {item.k || 'Responden SE2026'}
-                              </span>
-                              <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full shrink-0 ${
-                                item.u > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
-                              }`}>
-                                {item.u > 0 ? 'Ada Usaha' : 'Non-Usaha'}
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-slate-500 truncate mt-0.5">
-                              📍 {item.s} • {item.dn || item.d}
-                            </p>
-                            {item.nu && (
-                              <p className="text-[10px] font-bold text-emerald-700 truncate">
-                                💼 {item.nu}
-                              </p>
-                            )}
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-cyan-600 shrink-0 mt-1 transition-transform group-hover:translate-x-0.5" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <button
-            onClick={handleResetView}
-            className="p-2 bg-white hover:bg-slate-100 text-slate-600 rounded-2xl border border-slate-200 shadow-2xs transition-colors cursor-pointer shrink-0"
-            title="Reset Peta ke Mempawah"
+      {/* 2. NEAT SEARCHABLE FILTER TOOLBAR (Collapsible / Expandable for Full Map View) */}
+      <AnimatePresence initial={false}>
+        {isFilterOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeInOut' }}
+            className="overflow-hidden bg-slate-50/95 px-3.5 sm:px-5 py-2 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-2 z-20 shrink-0"
           >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+              {/* 1. Kecamatan Dropdown */}
+              <SearchableFilterDropdown
+                options={kecamatanOptions}
+                value={selectedKec}
+                onChange={(val) => {
+                  setSelectedKec(val);
+                  setSelectedDesa('all');
+                  setSelectedSls('all');
+                }}
+                placeholder="Pilih Kecamatan"
+                prefix="Kec: "
+                searchPlaceholder="Cari Kecamatan..."
+                icon={Building2}
+              />
+
+              {/* 2. Desa Dropdown */}
+              <SearchableFilterDropdown
+                options={desaOptions}
+                value={selectedDesa}
+                onChange={(val) => {
+                  setSelectedDesa(val);
+                  setSelectedSls('all');
+                }}
+                placeholder="Pilih Desa"
+                prefix="Desa: "
+                searchPlaceholder="Cari Desa/Kel..."
+                icon={Home}
+              />
+
+              {/* 3. SLS Dropdown (jika desa terpilih) */}
+              {selectedDesa !== 'all' && availableSlsList.length > 0 && (
+                <SearchableFilterDropdown
+                  options={slsOptions}
+                  value={selectedSls}
+                  onChange={setSelectedSls}
+                  placeholder="Pilih SLS"
+                  prefix="SLS: "
+                  searchPlaceholder="Cari SLS..."
+                  icon={MapPin}
+                />
+              )}
+
+              {/* 4. Dropdown Batas Wilayah */}
+              <SearchableFilterDropdown
+                options={boundaryOptions}
+                value={boundaryMode}
+                onChange={setBoundaryMode}
+                placeholder="Pilih Batas Wilayah"
+                prefix="Batas: "
+                searchPlaceholder="Pilih opsi batas..."
+                icon={Layers}
+              />
+
+              {/* 5. Dropdown Status Usaha */}
+              <SearchableFilterDropdown
+                options={usahaOptions}
+                value={filterUsaha}
+                onChange={setFilterUsaha}
+                placeholder="Status Usaha"
+                prefix="Usaha: "
+                searchPlaceholder="Filter usaha..."
+                icon={Briefcase}
+              />
+            </div>
+
+            {/* INSTANT SEARCH & AUTO-ZOOM TO COORDINATE */}
+            <div className="flex items-center gap-1.5 w-full sm:w-auto relative">
+              <div className="relative w-full sm:w-72">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowSearchDropdown(true);
+                  }}
+                  onFocus={() => setShowSearchDropdown(true)}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Cari Nama KK (Tekan Enter utk Zoom)..."
+                  className="w-full pl-8 pr-7 py-2 text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-2xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none shadow-2xs transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setShowSearchDropdown(false);
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
+                {/* Instant Search Suggestions Dropdown with Auto-Zoom on Click */}
+                <AnimatePresence>
+                  {showSearchDropdown && searchSuggestions.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 5 }}
+                      className="absolute top-full mt-1.5 left-0 right-0 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-[9999] max-h-72 overflow-y-auto custom-scrollbar"
+                    >
+                      <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        <span>Hasil Pencarian ({searchSuggestions.length})</span>
+                        <span>Klik utk Zoom</span>
+                      </div>
+                      <ul className="divide-y divide-slate-100">
+                        {searchSuggestions.map((item) => (
+                          <li key={item.i}>
+                            <button
+                              onClick={() => handleSelectAndZoomToPoint(item)}
+                              className="w-full text-left p-2.5 hover:bg-cyan-50/70 flex items-start justify-between gap-2 transition-colors cursor-pointer group"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-extrabold text-xs text-slate-900 group-hover:text-cyan-700 truncate">
+                                    👤 {item.k || 'Responden SE2026'}
+                                  </span>
+                                  <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full shrink-0 ${
+                                    item.u > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {item.u > 0 ? 'Ada Usaha' : 'Non-Usaha'}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                                  📍 {item.s} • {item.dn || item.d}
+                                </p>
+                                {item.nu && (
+                                  <p className="text-[10px] font-bold text-emerald-700 truncate">
+                                    💼 {item.nu}
+                                  </p>
+                                )}
+                              </div>
+                              <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-cyan-600 shrink-0 mt-1 transition-transform group-hover:translate-x-0.5" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <button
+                onClick={handleResetView}
+                className="p-2 bg-white hover:bg-slate-100 text-slate-600 rounded-2xl border border-slate-200 shadow-2xs transition-colors cursor-pointer shrink-0"
+                title="Reset Peta ke Mempawah"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 3. MAIN MAP WORKSPACE (Large & Immersion Mode) */}
       <div className="flex-1 w-full h-full relative z-0">
+        {/* Floating Quick Open Filter Pill when filter toolbar is hidden */}
+        {!isFilterOpen && (
+          <motion.button
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            onClick={() => setIsFilterOpen(true)}
+            className="absolute top-3 left-1/2 -translate-x-1/2 z-[990] bg-white/95 hover:bg-white backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-lg border border-slate-200/90 flex items-center gap-2 text-xs font-bold text-slate-800 hover:text-cyan-700 transition-all cursor-pointer group"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-600 group-hover:rotate-45 transition-transform" />
+            <span>Buka Filter</span>
+            {activeFilterCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-cyan-600 text-white text-[10px] font-black leading-none">
+                {activeFilterCount}
+              </span>
+            )}
+          </motion.button>
+        )}
         {/* Decryption status indicator */}
         {(loadingMeta || loadingPoints) && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl shadow-xl border border-slate-200 flex items-center gap-2.5 text-xs font-bold text-slate-700">
@@ -1271,8 +1466,8 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
           />
         </MapContainer>
 
-        {/* 4. SIMPLIFIED 2-ITEM MAP LEGEND */}
-        <div className="absolute bottom-6 left-6 z-[800] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-slate-200/80 max-w-[200px] space-y-1.5 pointer-events-auto">
+        {/* 4. SIMPLIFIED 3-ITEM MAP LEGEND */}
+        <div className="absolute bottom-6 left-6 z-[800] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-slate-200/80 max-w-[260px] space-y-2 pointer-events-auto">
           <div className="flex items-center justify-between pb-1 border-b border-slate-100">
             <span className="text-[11px] font-black text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-cyan-600" />
@@ -1282,11 +1477,15 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
           <div className="space-y-1.5 text-xs font-bold text-slate-700">
             <div className="flex items-center gap-2">
               <span className="w-3.5 h-3.5 rounded-full bg-emerald-600 shadow-2xs shrink-0 ring-2 ring-emerald-200"></span>
-              <span>Ada Usaha</span>
+              <span>🟢 Ada Usaha (SE2026)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3.5 h-3.5 rounded-full bg-amber-500 shadow-2xs shrink-0 ring-2 ring-amber-200"></span>
+              <span>🟡 Usaha Tidak/Sebagian Ditemukan (Matching SE-ST)</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-3.5 h-3.5 rounded-full bg-blue-600 shadow-2xs shrink-0 ring-2 ring-blue-200"></span>
-              <span>Tidak Ada Usaha</span>
+              <span>🔵 Tidak Ada Usaha (SE2026)</span>
             </div>
           </div>
         </div>
@@ -1323,6 +1522,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
               <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
                 {displayedPoints.slice(0, 150).map((pt) => {
                   const isSelected = selectedPoint?.i === pt.i;
+                  const isMatching = pt.m === 1 || !!pt.mKat;
                   return (
                     <button
                       key={pt.i}
@@ -1334,28 +1534,40 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                       }`}
                     >
                       <div className="flex items-start justify-between gap-1.5">
-                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                          pt.u > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {pt.u > 0 ? `Ada Usaha (${pt.u})` : 'Tidak Ada Usaha'}
-                        </span>
+                        {isMatching ? (
+                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                            🟡 {pt.mKat || 'Matching SE-ST'}
+                          </span>
+                        ) : (
+                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                            pt.u > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {pt.u > 0 ? `Ada Usaha (${pt.u})` : 'Tidak Ada Usaha'}
+                          </span>
+                        )}
                         <span className="text-[10px] font-mono text-slate-400">
                           {pt.lt.toFixed(4)}, {pt.lg.toFixed(4)}
                         </span>
                       </div>
 
                       <h5 className="font-extrabold text-xs text-slate-900 mt-1.5 truncate">
-                        👤 {pt.k || 'Responden SE2026'}
+                        👤 {pt.k || 'Responden'}
                       </h5>
                       <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                        📍 {pt.s}
+                        📍 {pt.s} {pt.dn ? `(${pt.dn})` : ''}
                       </p>
 
-                      {pt.nu && (
+                      {isMatching ? (
+                        <div className="mt-1 space-y-0.5 text-[10px]">
+                          {pt.mFound && <p className="text-emerald-700 font-bold truncate">✅ Ditemukan: {pt.mFound}</p>}
+                          {pt.mNotFound && <p className="text-rose-700 font-bold truncate">❌ Tdk Ditemukan: {pt.mNotFound}</p>}
+                          {pt.mClosed && <p className="text-amber-700 font-bold truncate">⚠️ Tutup: {pt.mClosed}</p>}
+                        </div>
+                      ) : pt.nu ? (
                         <p className="text-[11px] font-bold text-emerald-700 truncate mt-1">
                           💼 {pt.nu}
                         </p>
-                      )}
+                      ) : null}
                     </button>
                   );
                 })}
@@ -1369,9 +1581,265 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* 6. SWIPEABLE BOTTOM SHEET / MOBILE DRAWER FOR SELECTED RESPONDENT */}
+        <AnimatePresence>
+          {selectedPoint && (
+            <div className="fixed sm:absolute inset-x-0 bottom-0 z-[950] pointer-events-none flex justify-center p-0 sm:p-4">
+              <motion.div
+                initial={{ y: '100%', opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: '100%', opacity: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                drag="y"
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={0.25}
+                onDragEnd={(e, info) => {
+                  if (info.offset.y > 80 || info.velocity.y > 400) {
+                    setSelectedPoint(null);
+                  }
+                }}
+                className="w-full sm:max-w-lg bg-white/95 backdrop-blur-xl border-t sm:border border-slate-200/90 sm:rounded-3xl shadow-2xl pointer-events-auto max-h-[82vh] flex flex-col rounded-t-3xl overflow-hidden touch-pan-y ring-1 ring-black/5"
+              >
+                {/* Drag Handle Bar for Touch Gestures on Mobile/HP */}
+                <div className="pt-2.5 pb-1 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing bg-slate-50/80 border-b border-slate-100">
+                  <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 mb-1" />
+                  <span className="text-[10px] text-slate-400 font-bold tracking-tight">Geser ke bawah untuk menutup</span>
+                </div>
+
+                {/* Header */}
+                <div className="px-4 py-2.5 flex items-center justify-between border-b border-slate-100">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`w-3 h-3 rounded-full shrink-0 ${
+                      (selectedPoint.m === 1 || selectedPoint.mKat)
+                        ? 'bg-amber-500 ring-2 ring-amber-200' 
+                        : selectedPoint.u > 0 
+                        ? 'bg-emerald-500 ring-2 ring-emerald-200' 
+                        : 'bg-blue-500 ring-2 ring-blue-200'
+                    }`} />
+                    <div className="min-w-0">
+                      <h4 className="text-xs sm:text-sm font-black text-slate-900 truncate">
+                        {selectedPoint.k || 'Responden'}
+                      </h4>
+                      <span className="text-[10px] font-mono text-slate-400 block truncate">ID: {selectedPoint.i}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedPoint(null)}
+                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 text-slate-800">
+                  {/* Status Banner */}
+                  {(selectedPoint.m === 1 || selectedPoint.mKat) ? (
+                    <div className="p-2.5 bg-amber-50 rounded-2xl border border-amber-200/80 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🟡</span>
+                        <div>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 block">Status Matching SE-ST:</span>
+                          <span className="text-xs font-extrabold text-amber-950">{selectedPoint.mKat || 'Sebagian Ditemukan'}</span>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                        Matching
+                      </span>
+                    </div>
+                  ) : (
+                    <div className={`p-2.5 rounded-2xl border flex items-center justify-between ${
+                      selectedPoint.u > 0 
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-950' 
+                        : 'bg-blue-50 border-blue-200 text-blue-950'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{selectedPoint.u > 0 ? '🟢' : '🔵'}</span>
+                        <div>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Status Responden SE2026:</span>
+                          <span className="text-xs font-extrabold">{selectedPoint.u > 0 ? `Ada Usaha (${selectedPoint.u})` : 'Tidak Ada Usaha'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Wilayah */}
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 text-xs">
+                    <div className="flex items-center gap-1.5 text-slate-700">
+                      <MapPin className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                      <span className="truncate"><b>SLS:</b> {selectedPoint.s || '-'}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 pl-5">
+                      <span><b>Desa/Kel:</b> {selectedPoint.dn || selectedPoint.d || '-'}</span>
+                      {selectedPoint.ks && <span><b>Kode SLS:</b> {selectedPoint.ks}</span>}
+                    </div>
+                  </div>
+
+                  {/* DETAIL USAHA MATCHING SE-ST */}
+                  {(selectedPoint.m === 1 || selectedPoint.mKat) ? (
+                    <div className="space-y-2 text-xs">
+                      {/* 1. Usaha Ditemukan */}
+                      {selectedPoint.mFound && selectedPoint.mFound !== '-' && (
+                        <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              Daftar Usaha Ditemukan ({selectedPoint.mFCnt || 1})
+                            </span>
+                          </div>
+                          <div className="space-y-1 pl-5">
+                            {selectedPoint.mFound.split(/[;\n]/).map((item, idx) => item.trim() && (
+                              <p key={idx} className="text-xs font-bold text-emerald-950 leading-relaxed">
+                                • {item.trim()}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 2. Usaha Tidak Ditemukan */}
+                      {selectedPoint.mNotFound && selectedPoint.mNotFound !== '-' && (
+                        <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-rose-900 flex items-center gap-1.5">
+                              <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                              Daftar Usaha Tidak Ditemukan ({selectedPoint.mNFCnt || 1})
+                            </span>
+                          </div>
+                          <div className="space-y-1 pl-5">
+                            {selectedPoint.mNotFound.split(/[;\n]/).map((item, idx) => item.trim() && (
+                              <p key={idx} className="text-xs font-bold text-rose-950 leading-relaxed">
+                                • {item.trim()}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3. Usaha Tutup */}
+                      {selectedPoint.mClosed && selectedPoint.mClosed !== '-' && (
+                        <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              Daftar Usaha Tutup ({selectedPoint.mCCnt || 1})
+                            </span>
+                          </div>
+                          <div className="space-y-1 pl-5">
+                            {selectedPoint.mClosed.split(/[;\n]/).map((item, idx) => item.trim() && (
+                              <p key={idx} className="text-xs font-bold text-amber-950 leading-relaxed">
+                                • {item.trim()}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Catatan Lapangan */}
+                      {selectedPoint.mNotes && (
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700 space-y-1">
+                          <span className="font-bold text-[10px] uppercase text-slate-500 flex items-center gap-1">
+                            <FileText className="w-3.5 h-3.5 text-slate-500" />
+                            Catatan Lapangan:
+                          </span>
+                          <p className="italic text-slate-800 leading-relaxed">{selectedPoint.mNotes}</p>
+                        </div>
+                      )}
+
+                      {/* Informasi Petugas Lapangan & Responden */}
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-bold uppercase">Petugas Pendataan (PPL):</span>
+                          <span className="font-bold text-slate-800">{selectedPoint.ppl || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-bold uppercase">Petugas Pengawas (PML):</span>
+                          <span className="font-bold text-slate-800">{selectedPoint.pml || '-'}</span>
+                        </div>
+                        {selectedPoint.resp && (
+                          <div className="col-span-2 pt-1 border-t border-slate-100 flex items-center justify-between">
+                            <span className="text-slate-600">Pemberi Info: <b>{selectedPoint.resp}</b></span>
+                            {selectedPoint.telp && <span className="font-mono text-[11px] text-cyan-700">📞 {selectedPoint.telp}</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Info Usaha Biasa (SE2026) */
+                    selectedPoint.nu && (
+                      <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-1">
+                        <p className="font-extrabold text-emerald-900 text-xs flex items-center gap-1.5">
+                          <Briefcase className="w-4 h-4 text-emerald-700" />
+                          {selectedPoint.nu}
+                        </p>
+                        {selectedPoint.kb && <p className="text-[11px] text-emerald-700">{selectedPoint.kb}</p>}
+                        {selectedPoint.sk && <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Skala: {selectedPoint.sk}</p>}
+                      </div>
+                    )
+                  )}
+
+                  {/* Geospasial Coordinates Card */}
+                  <div className="p-3 bg-cyan-50/60 rounded-2xl border border-cyan-100 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-cyan-800 flex items-center gap-1">
+                      <Compass className="w-3.5 h-3.5 text-cyan-700" />
+                      Koordinat Geospasial
+                    </span>
+
+                    {/* Format Desimal */}
+                    <div className="space-y-0.5 text-xs">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase">Format Desimal (Long, Lat):</span>
+                      <div className="font-mono text-slate-800 font-bold bg-white px-2.5 py-1.5 rounded-xl border border-cyan-100 flex items-center justify-between">
+                        <span className="truncate">Long: {selectedPoint.lg.toFixed(6)}°, Lat: {selectedPoint.lt.toFixed(6)}°</span>
+                        <button
+                          onClick={() => handleCopy(`${selectedPoint.lg}, ${selectedPoint.lt}`, selectedPoint.i + '_dec_drawer')}
+                          className="text-cyan-600 hover:text-cyan-800 p-1 cursor-pointer ml-1"
+                          title="Salin Desimal"
+                        >
+                          {copiedId === selectedPoint.i + '_dec_drawer' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Format DMS */}
+                    <div className="space-y-0.5 text-xs pt-1 border-t border-cyan-100/80">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase">Format DMS:</span>
+                      <div className="font-mono text-slate-800 font-bold bg-white px-2.5 py-1.5 rounded-xl border border-cyan-100 flex items-center justify-between">
+                        <div className="space-y-0.5 text-[11px] truncate">
+                          <div><b>Long:</b> {toDMS(selectedPoint.lg, false)}</div>
+                          <div><b>Lat:</b> {toDMS(selectedPoint.lt, true)}</div>
+                        </div>
+                        <button
+                          onClick={() => handleCopy(`${toDMS(selectedPoint.lg, false)}, ${toDMS(selectedPoint.lt, true)}`, selectedPoint.i + '_dms_drawer')}
+                          className="text-cyan-600 hover:text-cyan-800 p-1 cursor-pointer ml-1 shrink-0"
+                          title="Salin DMS"
+                        >
+                          {copiedId === selectedPoint.i + '_dms_drawer' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Google Maps Link */}
+                    <div className="pt-1">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${selectedPoint.lt},${selectedPoint.lg}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2.5 px-3 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        <span>Buka Rute di Google Maps</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* 6. STATS MODAL DIALOG */}
+      {/* 7. STATS MODAL DIALOG */}
       <AnimatePresence>
         {showStatsModal && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
@@ -1395,7 +1863,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   </div>
                   <div>
                     <h3 className="text-base font-black text-slate-900">Ringkasan Sebaran Responden SE2026</h3>
-                    <p className="text-xs text-slate-500">Statistik agregat se-Kabupaten Mempawah</p>
+                    <p className="text-xs text-slate-500">Statistik agregat se-Kabupaten Mempawah & Matching SE-ST</p>
                   </div>
                 </div>
                 <button
@@ -1414,27 +1882,29 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between">
-                    <span className="text-[10px] font-black uppercase text-slate-500 flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-slate-600" />
-                      Total Responden
-                    </span>
-                    <p className="text-2xl font-black text-slate-900 mt-2">
-                      {metadata?.totalValidPoints.toLocaleString('id-ID') || '84.124'}
-                    </p>
-                    <span className="text-[10px] text-slate-400 mt-0.5">100% dari total populasi</span>
-                  </div>
-
                   <div className="p-4 bg-emerald-50/80 rounded-2xl border border-emerald-100 flex flex-col justify-between">
                     <span className="text-[10px] font-black uppercase text-emerald-800 flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-                      Ada Usaha
+                      Ada Usaha (SE2026)
                     </span>
                     <p className="text-2xl font-black text-emerald-900 mt-2">
                       {metadata?.totalBerusaha.toLocaleString('id-ID') || '41.599'}
                     </p>
                     <span className="text-[10px] text-emerald-700 font-medium mt-0.5">
-                      {metadata?.totalValidPoints ? ((metadata.totalBerusaha / metadata.totalValidPoints) * 100).toFixed(1) : '49.4'}% dari total
+                      Populasi SE2026
+                    </span>
+                  </div>
+
+                  <div className="p-4 bg-amber-50/80 rounded-2xl border border-amber-200 flex flex-col justify-between">
+                    <span className="text-[10px] font-black uppercase text-amber-800 flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                      Matching SE-ST
+                    </span>
+                    <p className="text-2xl font-black text-amber-900 mt-2">
+                      16.524
+                    </p>
+                    <span className="text-[10px] text-amber-800 font-bold mt-0.5">
+                      Sebagian / Tdk Ditemukan / Tutup
                     </span>
                   </div>
 
@@ -1447,8 +1917,30 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                       {metadata?.totalNonUsaha.toLocaleString('id-ID') || '42.525'}
                     </p>
                     <span className="text-[10px] text-blue-700 font-medium mt-0.5">
-                      {metadata?.totalValidPoints ? ((metadata.totalNonUsaha / metadata.totalValidPoints) * 100).toFixed(1) : '50.6'}% dari total
+                      Non-Usaha Rumah Tangga
                     </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Breakdown Matching SE-ST Categories */}
+              <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/80 space-y-2">
+                <span className="text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+                  Rincian Kategori Matching SE-ST (16.524 Responden)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  <div className="p-2.5 bg-white rounded-xl border border-amber-200">
+                    <span className="text-[10px] font-bold text-amber-800 block">Sebagian Ditemukan:</span>
+                    <span className="text-sm font-black text-amber-950">7.809 (47,3%)</span>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-xl border border-amber-200">
+                    <span className="text-[10px] font-bold text-amber-800 block">Seluruh Tutup:</span>
+                    <span className="text-sm font-black text-amber-950">5.958 (36,1%)</span>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-xl border border-amber-200">
+                    <span className="text-[10px] font-bold text-amber-800 block">Prelist Tdk Ditemukan:</span>
+                    <span className="text-sm font-black text-amber-950">2.757 (16,7%)</span>
                   </div>
                 </div>
               </div>
@@ -1465,55 +1957,22 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                       {filteredStats.total.toLocaleString('id-ID')} Responden Terfilter
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-3 gap-2 text-xs">
                     <div className="p-2 bg-white/90 rounded-xl border border-cyan-100 flex items-center justify-between">
                       <span className="text-emerald-800 font-bold">🟢 Ada Usaha:</span>
                       <span className="font-extrabold text-emerald-950">{filteredStats.berUsaha.toLocaleString('id-ID')}</span>
                     </div>
+                    <div className="p-2 bg-white/90 rounded-xl border border-amber-200 flex items-center justify-between bg-amber-50/60">
+                      <span className="text-amber-800 font-bold">🟡 Matching:</span>
+                      <span className="font-extrabold text-amber-950">{filteredStats.matchingSEST.toLocaleString('id-ID')}</span>
+                    </div>
                     <div className="p-2 bg-white/90 rounded-xl border border-cyan-100 flex items-center justify-between">
-                      <span className="text-blue-800 font-bold">🔵 Tidak Ada Usaha:</span>
+                      <span className="text-blue-800 font-bold">🔵 Non-Usaha:</span>
                       <span className="font-extrabold text-blue-950">{filteredStats.nonUsaha.toLocaleString('id-ID')}</span>
                     </div>
                   </div>
                 </div>
               )}
-
-              {/* Kecamatan Breakdown Table */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-black text-slate-700 uppercase tracking-wide">
-                  Distribusi Per Kecamatan
-                </h4>
-                <div className="max-h-56 overflow-y-auto rounded-2xl border border-slate-100 custom-scrollbar">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0 border-b border-slate-100">
-                      <tr>
-                        <th className="p-2.5 pl-3.5">Kecamatan</th>
-                        <th className="p-2.5 text-right">Total</th>
-                        <th className="p-2.5 text-right text-emerald-700">Ada Usaha</th>
-                        <th className="p-2.5 text-right text-blue-700 pr-3.5">Tidak Ada Usaha</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {metadata?.kecamatanList.map(k => (
-                        <tr key={k.kecCode} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="p-2.5 pl-3.5 font-bold text-slate-800">
-                            [{k.kecCode}] {k.kecName}
-                          </td>
-                          <td className="p-2.5 text-right font-extrabold text-slate-900">
-                            {k.total.toLocaleString('id-ID')}
-                          </td>
-                          <td className="p-2.5 text-right font-semibold text-emerald-700">
-                            {k.totalBerusaha.toLocaleString('id-ID')}
-                          </td>
-                          <td className="p-2.5 text-right font-semibold text-blue-700 pr-3.5">
-                            {k.totalNonUsaha.toLocaleString('id-ID')}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
 
               <div className="pt-2 flex justify-end">
                 <button

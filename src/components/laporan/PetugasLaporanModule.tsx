@@ -992,7 +992,33 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
       (f.columnName && f.columnName.toLowerCase() === currentGroupingKey.toLowerCase()) || 
       (f.label && f.label.toLowerCase() === currentGroupingKey.toLowerCase())
     );
-    const predefinedOptions: string[] = Array.isArray(fieldObj?.options) ? fieldObj.options : [];
+    
+    // Sanitize predefined options
+    const rawOptions = fieldObj?.options;
+    let predefinedOptions: string[] = [];
+    if (Array.isArray(rawOptions)) {
+      predefinedOptions = rawOptions
+        .map(opt => String(opt || '').trim())
+        .filter(opt => opt !== '' && opt !== '[' && opt !== ']' && opt !== '[,]' && opt !== 'null' && opt !== 'undefined');
+    } else if (typeof rawOptions === 'string') {
+      const trimmed = rawOptions.trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            predefinedOptions = parsed
+              .map(opt => String(opt || '').trim())
+              .filter(opt => opt !== '' && opt !== '[' && opt !== ']' && opt !== '[,]' && opt !== 'null' && opt !== 'undefined');
+          }
+        } catch (e) {}
+      }
+      if (predefinedOptions.length === 0) {
+        predefinedOptions = trimmed
+          .split(',')
+          .map(opt => opt.trim())
+          .filter(opt => opt !== '' && opt !== '[' && opt !== ']' && opt !== '[,]' && opt !== 'null' && opt !== 'undefined');
+      }
+    }
 
     predefinedOptions.forEach(opt => {
       if (opt && String(opt).trim()) groupMap[String(opt).trim()] = [];
@@ -1001,7 +1027,8 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     recordsFilteredByDrill.forEach(rec => {
       const d = rec.data || {};
       const rawVal = getRecordVal(d, currentGroupingKey) || (fieldObj?.columnName ? getRecordVal(d, fieldObj.columnName) : '');
-      const strVal = (rawVal !== undefined && rawVal !== null) ? String(rawVal).trim() : '';
+      let strVal = (rawVal !== undefined && rawVal !== null) ? String(rawVal).trim() : '';
+      if (strVal === '[' || strVal === ']' || strVal === '[,]') strVal = '';
       const val = strVal !== '' ? strVal : 'Lainnya';
       if (!groupMap[val]) groupMap[val] = [];
       groupMap[val].push(rec);
@@ -1013,7 +1040,7 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
         count: items.length,
         records: items
       }))
-      .filter(g => g.count > 0 || predefinedOptions.includes(g.name))
+      .filter(g => (g.count > 0 || predefinedOptions.includes(g.name)) && g.name !== '[' && g.name !== ']' && g.name !== '[,]')
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   }, [selectedActivity, currentForm, isDeepestLevel, currentGroupingKey, recordsFilteredByDrill]);
 

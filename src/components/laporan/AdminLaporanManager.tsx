@@ -14,11 +14,37 @@ import {
   ExternalLink, X, Shield, Bell, Palette, Globe, Lock, SlidersHorizontal,
   FileCheck2, Database, Wifi, KeyRound, AlertTriangle, Send, LayoutTemplate,
   Sidebar, Briefcase, Landmark, Factory, Tag, Cpu, Award, Lightbulb,
-  Tablet, Monitor
+  Tablet, Monitor, Undo2, Redo2
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme';
 import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES } from './laporanConstants';
 import { PetugasLaporanModule } from './PetugasLaporanModule';
+
+// Helper to sanitize and clean options array (strip brackets, empty tokens, stringified JSON)
+export function sanitizeOptions(raw: any): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map(item => String(item || '').trim())
+      .filter(item => item !== '' && item !== '[' && item !== ']' && item !== '[,]' && item !== 'null' && item !== 'undefined');
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return sanitizeOptions(parsed);
+        }
+      } catch (e) {}
+    }
+    return trimmed
+      .split(',')
+      .map(item => item.trim())
+      .filter(item => item !== '' && item !== '[' && item !== ']' && item !== '[,]' && item !== 'null' && item !== 'undefined');
+  }
+  return [];
+}
 
 // Custom Smooth Dropdown Component
 interface DropdownOption {
@@ -305,6 +331,143 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     photoColumn: '',
     detectWatermark: true
   });
+
+  // Undo & Redo History Management
+  interface StudioHistoryState {
+    fields: any[];
+    formConfig: {
+      title: string;
+      sheetUrl: string;
+      sheetName: string;
+      groupingLevels: string[];
+    };
+    uxSettings: any;
+    autoSettings: any;
+    securitySettings: any;
+    reportSettings: any;
+  }
+
+  const [historyStack, setHistoryStack] = useState<StudioHistoryState[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const isHistoryActionRef = useRef<boolean>(false);
+
+  // Helper to push history snapshot
+  const pushHistorySnapshot = (
+    newFields = fields,
+    newFormConfig = formConfig,
+    newUx = uxSettings,
+    newAuto = autoSettings,
+    newSec = securitySettings,
+    newRep = reportSettings
+  ) => {
+    if (isHistoryActionRef.current) return;
+    const snapshot: StudioHistoryState = {
+      fields: JSON.parse(JSON.stringify(newFields)),
+      formConfig: JSON.parse(JSON.stringify(newFormConfig)),
+      uxSettings: JSON.parse(JSON.stringify(newUx)),
+      autoSettings: JSON.parse(JSON.stringify(newAuto)),
+      securitySettings: JSON.parse(JSON.stringify(newSec)),
+      reportSettings: JSON.parse(JSON.stringify(newRep))
+    };
+
+    setHistoryStack(prev => {
+      const sliced = historyIndex >= 0 ? prev.slice(0, historyIndex + 1) : [];
+      const updated = [...sliced, snapshot].slice(-30);
+      setHistoryIndex(updated.length - 1);
+      return updated;
+    });
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      isHistoryActionRef.current = true;
+      const targetState = historyStack[historyIndex - 1];
+      setHistoryIndex(historyIndex - 1);
+      
+      setFields(JSON.parse(JSON.stringify(targetState.fields)));
+      setFormConfig(JSON.parse(JSON.stringify(targetState.formConfig)));
+      setUxSettings(JSON.parse(JSON.stringify(targetState.uxSettings)));
+      setAutoSettings(JSON.parse(JSON.stringify(targetState.autoSettings)));
+      setSecuritySettings(JSON.parse(JSON.stringify(targetState.securitySettings)));
+      setReportSettings(JSON.parse(JSON.stringify(targetState.reportSettings)));
+
+      if (selectedFormId) {
+        setForms(prev => prev.map(f => f.id === selectedFormId ? { 
+          ...f, 
+          fields: targetState.fields, 
+          groupingLevels: targetState.formConfig.groupingLevels,
+          sheetUrl: targetState.formConfig.sheetUrl,
+          sheetName: targetState.formConfig.sheetName
+        } : f));
+      }
+
+      setSyncAlert({ type: 'success', message: 'Perubahan berhasil di-Undo' });
+      setTimeout(() => setSyncAlert(null), 1500);
+
+      setTimeout(() => {
+        isHistoryActionRef.current = false;
+      }, 50);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < historyStack.length - 1 && historyIndex >= 0) {
+      isHistoryActionRef.current = true;
+      const targetState = historyStack[historyIndex + 1];
+      setHistoryIndex(historyIndex + 1);
+
+      setFields(JSON.parse(JSON.stringify(targetState.fields)));
+      setFormConfig(JSON.parse(JSON.stringify(targetState.formConfig)));
+      setUxSettings(JSON.parse(JSON.stringify(targetState.uxSettings)));
+      setAutoSettings(JSON.parse(JSON.stringify(targetState.autoSettings)));
+      setSecuritySettings(JSON.parse(JSON.stringify(targetState.securitySettings)));
+      setReportSettings(JSON.parse(JSON.stringify(targetState.reportSettings)));
+
+      if (selectedFormId) {
+        setForms(prev => prev.map(f => f.id === selectedFormId ? { 
+          ...f, 
+          fields: targetState.fields, 
+          groupingLevels: targetState.formConfig.groupingLevels,
+          sheetUrl: targetState.formConfig.sheetUrl,
+          sheetName: targetState.formConfig.sheetName
+        } : f));
+      }
+
+      setSyncAlert({ type: 'success', message: 'Perubahan berhasil di-Redo' });
+      setTimeout(() => setSyncAlert(null), 1500);
+
+      setTimeout(() => {
+        isHistoryActionRef.current = false;
+      }, 50);
+    }
+  };
+
+  // Global Keyboard shortcut for Undo / Redo (Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z)
+  useEffect(() => {
+    if (adminScreen !== 'studio') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if user is actively typing in a standard input or textarea
+      const target = e.target as HTMLElement;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          handleRedo();
+        } else if (!isInput) {
+          e.preventDefault();
+          handleUndo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y' && !isInput) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [adminScreen, historyIndex, historyStack]);
 
   // Simulator Toggle
   const [showRightSimulator, setShowRightSimulator] = useState<boolean>(true);
@@ -870,23 +1033,32 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       isRequired: false,
       options: []
     };
-    setFields([...fields, newField]);
+    const nextFields = [...fields, newField];
+    setFields(nextFields);
+    pushHistorySnapshot(nextFields);
   };
 
   // Remove Column Row
   const handleRemoveColumnRow = (index: number) => {
-    setFields(fields.filter((_, i) => i !== index));
+    const nextFields = fields.filter((_, i) => i !== index);
+    setFields(nextFields);
+    pushHistorySnapshot(nextFields);
   };
 
   // Update Column Row
   const handleUpdateColumnRow = (index: number, key: string, value: any) => {
     const updated = [...fields];
-    updated[index] = { ...updated[index], [key]: value };
+    let sanitizedVal = value;
+    if (key === 'options') {
+      sanitizedVal = sanitizeOptions(value);
+    }
+    updated[index] = { ...updated[index], [key]: sanitizedVal };
     
     if (key === 'label' && !updated[index].columnName) {
-      updated[index].columnName = value;
+      updated[index].columnName = sanitizedVal;
     }
     setFields(updated);
+    pushHistorySnapshot(updated);
 
     // Live sync into forms state so simulator updates in real time
     if (selectedFormId) {
@@ -910,7 +1082,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       updated[levelIdx] = val;
     }
     const cleanGroupings = updated.filter(g => g && String(g).trim() !== '');
-    setFormConfig(prev => ({ ...prev, groupingLevels: updated }));
+    const nextConfig = { ...formConfig, groupingLevels: updated };
+    setFormConfig(nextConfig);
+    pushHistorySnapshot(fields, nextConfig);
 
     // Live sync into forms state
     if (selectedFormId) {
@@ -925,7 +1099,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
 
   // Update Sheet URL or Sheet Name with immediate persistent form sync
   const handleUpdateSheetConfig = (key: 'sheetUrl' | 'sheetName', val: string) => {
-    setFormConfig(prev => ({ ...prev, [key]: val }));
+    const nextConfig = { ...formConfig, [key]: val };
+    setFormConfig(nextConfig);
+    pushHistorySnapshot(fields, nextConfig);
+
     if (selectedFormId) {
       setForms(prev => {
         const updated = prev.map(f => {
@@ -949,6 +1126,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     try {
       setIsSavingSchema(true);
       const cleanGroupings = (formConfig.groupingLevels || []).filter(g => g && String(g).trim() !== '');
+      const sanitizedFields = fields.map(f => ({
+        ...f,
+        options: sanitizeOptions(f.options)
+      }));
 
       // 1. Update Form in Backend
       if (selectedFormId) {
@@ -960,7 +1141,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             sheetUrl: formConfig.sheetUrl,
             sheetName: formConfig.sheetName,
             groupingLevels: cleanGroupings,
-            fields: fields
+            fields: sanitizedFields
           })
         });
       }
@@ -1839,6 +2020,39 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
 
         {/* Right Studio Actions */}
         <div className="flex items-center gap-2">
+          {/* Undo & Redo Action Buttons */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={handleUndo}
+              disabled={historyIndex <= 0}
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                historyIndex > 0
+                  ? 'text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 hover:shadow-xs cursor-pointer'
+                  : 'text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-50'
+              }`}
+              title="Undo perubahan konfigurasi form (Ctrl+Z)"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline text-[11px]">Undo</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRedo}
+              disabled={historyIndex >= historyStack.length - 1 || historyIndex < 0}
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                historyIndex < historyStack.length - 1 && historyIndex >= 0
+                  ? 'text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 hover:shadow-xs cursor-pointer'
+                  : 'text-slate-300 dark:text-slate-600 cursor-not-allowed opacity-50'
+              }`}
+              title="Redo perubahan konfigurasi form (Ctrl+Y)"
+            >
+              <Redo2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline text-[11px]">Redo</span>
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => setShowRightSimulator(!showRightSimulator)}
