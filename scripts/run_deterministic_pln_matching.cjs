@@ -612,6 +612,185 @@ async function runDeterministicMatchingPipeline() {
   seStream.on('close', () => {
     stats.totalRawRows = rowCount;
 
+    // ==========================================
+    // INTEGRATE MATCHING SE-ST (SENSUS PERTANIAN - SENSUS EKONOMI)
+    // ==========================================
+    const MATCHING_SEST_CSV = path.join(__dirname, '../data/Matching SE-ST.csv');
+    if (fs.existsSync(MATCHING_SEST_CSV)) {
+      console.log('\n[Step 3.5/5] Integrating Matching SE-ST (16,524 Agricultural-Economic Matching Records)...');
+      const XLSX = require('xlsx');
+      const sestContent = fs.readFileSync(MATCHING_SEST_CSV, 'utf8');
+      const wb = XLSX.read(sestContent, { type: 'string' });
+      const matchRows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      console.log(`  ✔ Loaded ${matchRows.length} Matching SE-ST rows.`);
+
+      const kecNameToCode = {
+        'MEMPAWAH HILIR': '100',
+        'MEMPAWAH TIMUR': '101',
+        'SUNGAI KUNYIT': '110',
+        'TOHO': '120',
+        'SADANIANG': '121',
+        'JONGKAT': '080',
+        'SUNGAI PINYUH': '090',
+        'SEGEDONG': '081',
+        'ANJONGAN': '091'
+      };
+
+      let totalSestMatched = 0;
+      let totalSestNewAdded = 0;
+
+      Object.entries(kecNameToCode).forEach(([kName, kCode]) => {
+        if (!byKecamatan[kCode]) {
+          byKecamatan[kCode] = {
+            kecCode: kCode,
+            kecName: kName,
+            rawKec: `[${kCode}] ${kName}`,
+            total: 0,
+            totalBerusaha: 0,
+            totalNonUsaha: 0,
+            desaList: {},
+            points: []
+          };
+        }
+
+        const kecData = byKecamatan[kCode];
+        const kecPoints = kecData.points;
+        const kecMatchRows = matchRows.filter(r => cleanStr(r.kecamatan) === kName);
+        const matchedRowIndices = new Set();
+
+        // 1. First pass: Match by coordinates (< 20 meters)
+        kecPoints.forEach((p) => {
+          let bestRow = null;
+          let bestDist = Infinity;
+          let bestIdx = -1;
+
+          kecMatchRows.forEach((r, idx) => {
+            if (matchedRowIndices.has(idx)) return;
+            const coordStr = r.koordinat_appsheet || '';
+            if (coordStr) {
+              const parts = coordStr.split(',').map(s => parseFloat(s.trim()));
+              if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                const latDiff = Math.abs(p.lt - parts[0]);
+                const lngDiff = Math.abs(p.lg - parts[1]);
+                const distApprox = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+                if (distApprox < 0.00025 && distApprox < bestDist) {
+                  bestDist = distApprox;
+                  bestRow = r;
+                  bestIdx = idx;
+                }
+              }
+            }
+          });
+
+          if (bestRow) {
+            matchedRowIndices.add(bestIdx);
+            p.m = 1; // Flag: Matching SE-ST
+            p.mKat = bestRow.kategori_status_usaha_keluarga || 'Sebagian Ditemukan';
+            p.mFound = bestRow.daftar_usaha_ditemukan && bestRow.daftar_usaha_ditemukan !== '-' ? bestRow.daftar_usaha_ditemukan : '';
+            p.mNotFound = bestRow.daftar_usaha_tidak_ditemukan && bestRow.daftar_usaha_tidak_ditemukan !== '-' ? bestRow.daftar_usaha_tidak_ditemukan : '';
+            p.mClosed = bestRow.daftar_usaha_tutup && bestRow.daftar_usaha_tutup !== '-' ? bestRow.daftar_usaha_tutup : '';
+            p.mFCnt = parseInt(bestRow.jumlah_usaha_ditemukan || 0) || 0;
+            p.mNFCnt = parseInt(bestRow.jumlah_usaha_tidak_ditemukan || 0) || 0;
+            p.mCCnt = parseInt(bestRow.jumlah_usaha_tutup || 0) || 0;
+            p.mNotes = bestRow.catatan_lapangan && bestRow.catatan_lapangan !== '-' ? bestRow.catatan_lapangan : '';
+            p.pml = bestRow.pml || '';
+            p.ppl = bestRow.ppl || '';
+            p.telp = bestRow.no_telp_responden && bestRow.no_telp_responden !== '-' ? bestRow.no_telp_responden : '';
+            p.resp = bestRow.nama_responden_pemberi_informasi || '';
+            totalSestMatched++;
+          }
+        });
+
+        // 2. Second pass: Match remaining by exact Nama KK in same Kecamatan
+        kecPoints.forEach((p) => {
+          if (p.m) return;
+          const pName = (p.k || '').trim().toUpperCase();
+          if (!pName) return;
+
+          const idx = kecMatchRows.findIndex((r, i) => !matchedRowIndices.has(i) && cleanStr(r.nama_kepala_keluarga) === pName);
+          if (idx !== -1) {
+            const r = kecMatchRows[idx];
+            matchedRowIndices.add(idx);
+            p.m = 1;
+            p.mKat = r.kategori_status_usaha_keluarga || 'Sebagian Ditemukan';
+            p.mFound = r.daftar_usaha_ditemukan && r.daftar_usaha_ditemukan !== '-' ? r.daftar_usaha_ditemukan : '';
+            p.mNotFound = r.daftar_usaha_tidak_ditemukan && r.daftar_usaha_tidak_ditemukan !== '-' ? r.daftar_usaha_tidak_ditemukan : '';
+            p.mClosed = r.daftar_usaha_tutup && r.daftar_usaha_tutup !== '-' ? r.daftar_usaha_tutup : '';
+            p.mFCnt = parseInt(r.jumlah_usaha_ditemukan || 0) || 0;
+            p.mNFCnt = parseInt(r.jumlah_usaha_tidak_ditemukan || 0) || 0;
+            p.mCCnt = parseInt(r.jumlah_usaha_tutup || 0) || 0;
+            p.mNotes = r.catatan_lapangan && r.catatan_lapangan !== '-' ? r.catatan_lapangan : '';
+            p.pml = r.pml || '';
+            p.ppl = r.ppl || '';
+            p.telp = r.no_telp_responden && r.no_telp_responden !== '-' ? r.no_telp_responden : '';
+            p.resp = r.nama_responden_pemberi_informasi || '';
+            totalSestMatched++;
+          }
+        });
+
+        // 3. Third pass: Any remaining unmatched rows in Matching SE-ST become Yellow points
+        kecMatchRows.forEach((r, idx) => {
+          if (!matchedRowIndices.has(idx)) {
+            let lat = 0;
+            let lng = 0;
+            const coordStr = r.koordinat_appsheet || '';
+            if (coordStr) {
+              const parts = coordStr.split(',').map(s => parseFloat(s.trim()));
+              if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                lat = parts[0];
+                lng = parts[1];
+              }
+            }
+
+            if (lat >= -1.0 && lat <= 1.5 && lng >= 108.0 && lng <= 110.5) {
+              const desaName = cleanStr(r.desa_kelurahan || 'DESA');
+              const desaCode = '000';
+              const namaSls = r.nama_sls || 'SLS';
+              const kodeSls = String(r.kode_sls || '');
+
+              const newPt = {
+                i: `MST-${r.id_assignment ? r.id_assignment.replace('assignment:', '').slice(0, 10) : Date.now() + '_' + idx}`,
+                k: (r.nama_kepala_keluarga || 'Responden Matching').trim().toUpperCase(),
+                lt: Math.round(lat * 1000000) / 1000000,
+                lg: Math.round(lng * 1000000) / 1000000,
+                d: desaCode,
+                dn: desaName,
+                s: namaSls,
+                ks: kodeSls,
+                u: parseInt(r.jumlah_usaha_ditemukan || 0) || 0,
+                nu: r.daftar_usaha_ditemukan && r.daftar_usaha_ditemukan !== '-' ? r.daftar_usaha_ditemukan : (r.daftar_usaha_tidak_ditemukan || ''),
+                kb: '',
+                st: r.status_keberadaan_keluarga || 'Ditemukan',
+                sk: 'MATCHING SE-ST',
+                m: 1,
+                mKat: r.kategori_status_usaha_keluarga || 'Sebagian Ditemukan',
+                mFound: r.daftar_usaha_ditemukan && r.daftar_usaha_ditemukan !== '-' ? r.daftar_usaha_ditemukan : '',
+                mNotFound: r.daftar_usaha_tidak_ditemukan && r.daftar_usaha_tidak_ditemukan !== '-' ? r.daftar_usaha_tidak_ditemukan : '',
+                mClosed: r.daftar_usaha_tutup && r.daftar_usaha_tutup !== '-' ? r.daftar_usaha_tutup : '',
+                mFCnt: parseInt(r.jumlah_usaha_ditemukan || 0) || 0,
+                mNFCnt: parseInt(r.jumlah_usaha_tidak_ditemukan || 0) || 0,
+                mCCnt: parseInt(r.jumlah_usaha_tutup || 0) || 0,
+                mNotes: r.catatan_lapangan && r.catatan_lapangan !== '-' ? r.catatan_lapangan : '',
+                pml: r.pml || '',
+                ppl: r.ppl || '',
+                telp: r.no_telp_responden && r.no_telp_responden !== '-' ? r.no_telp_responden : '',
+                resp: r.nama_responden_pemberi_informasi || '',
+                mSource: 'MATCHING_SE_ST',
+                mConf: 100
+              };
+              kecPoints.push(newPt);
+              kecData.total++;
+              totalSestNewAdded++;
+            }
+          }
+        });
+
+        console.log(`   ✨ ${kName}: Matched ${matchedRowIndices.size}, Added Unmatched ${kecMatchRows.length - matchedRowIndices.size}, Total Points in Kec: ${kecPoints.length}`);
+      });
+
+      console.log(`  ✔ Matching SE-ST Integration Complete: ${totalSestMatched} matched to existing, ${totalSestNewAdded} added as new points.`);
+    }
+
     console.log('\n[Step 4/5] Encrypting Data with AES-256-GCM & Saving per-Kecamatan Files...');
     if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     if (!fs.existsSync(DIST_OUTPUT_DIR)) fs.mkdirSync(DIST_OUTPUT_DIR, { recursive: true });

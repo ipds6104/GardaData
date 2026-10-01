@@ -154,6 +154,16 @@ export function getCoordinateSourceInfo(point: RespondenPoint) {
       description: 'Koordinat diperoleh dari meteran PLN dengan nama responden yang cocok di dalam batas wilayah desa yang sama.'
     };
   }
+  if (src === 'MATCHING_SE_ST' || point.m === 1 || point.mKat) {
+    return {
+      title: `Matching SE-ST (${point.mKat || 'Usaha Pra-Pencatatan'})`,
+      badge: 'ST2023 × SE2026',
+      badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
+      icon: '🟡',
+      sourceDb: 'Database Matching SE-ST (Sensus Pertanian 2023 × Sensus Ekonomi 2026)',
+      description: 'Titik koordinat keluarga/usaha hasil verifikasi matching SE-ST (AppSheet). Menampilkan rincian usaha ditemukan, tidak ditemukan, maupun tutup.'
+    };
+  }
   return {
     title: 'Geotagging Asli Lapangan (PCL/PML)',
     badge: '100% Tagging Lapangan',
