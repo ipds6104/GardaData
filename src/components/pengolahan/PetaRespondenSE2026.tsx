@@ -39,6 +39,8 @@ export interface RespondenPoint {
   kb: string;      // kbli
   st: string;      // status
   sk: string;      // skala
+  stKel?: string;  // status keberadaan keluarga (e.g. 1. Ditemukan, 0. Tidak Ditemukan (STOP), 2. Baru, 3. Meninggal, dll)
+  stUsaha?: string;// status keberadaan usaha (e.g. 1. Ditemukan, 0. Tidak Ditemukan, 2. Baru, 3. Tutup, 4. Ganda)
   // Deterministic Matching & Source Attributes
   mSource?: string; // 'MATCH_TIER1A_DIRECT_NIK' | 'MATCH_TIER1B_FAMILY_ART_NIK' | 'MATCH_TIER2_PHONE' | 'MATCH_TIER3_BUSINESS_ROSTER' | 'MATCH_TIER5_CLEAN_NAME' | 'GEOTAG_LAPANGAN'
   mConf?: number;   // 100, 99, 95, 90, 88
@@ -56,6 +58,246 @@ export interface RespondenPoint {
   ppl?: string;    // Nama PPL
   telp?: string;   // No Telp Responden
   resp?: string;   // Nama Responden Pemberi Informasi
+}
+
+export interface StatusCategory {
+  id: string;
+  name: string;
+  color: string;
+  borderColor: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  icon: string;
+  group: 'Keluarga' | 'Usaha';
+  description: string;
+  kriteria: string;
+}
+
+export const STATUS_CATEGORIES: StatusCategory[] = [
+  // 1. Kategori Keluarga
+  {
+    id: 'keluarga_ada_usaha',
+    name: 'Keluarga ada usaha',
+    color: '#059669', // Emerald green
+    borderColor: '#065f46',
+    badgeBg: 'bg-emerald-100',
+    badgeText: 'text-emerald-900',
+    badgeBorder: 'border-emerald-300',
+    icon: '🟢',
+    group: 'Keluarga',
+    description: 'Keluarga yang berhasil ditemukan dan memiliki sedikitnya satu anggota keluarga yang mengelola kegiatan usaha ekonomi produktif.',
+    kriteria: 'Status keluarga ditemukan (1. Ditemukan) dan Jumlah Usaha > 0.'
+  },
+  {
+    id: 'keluarga_non_usaha',
+    name: 'Keluarga tidak memiliki usaha',
+    color: '#2563eb', // Royal Blue
+    borderColor: '#1d4ed8',
+    badgeBg: 'bg-blue-100',
+    badgeText: 'text-blue-900',
+    badgeBorder: 'border-blue-300',
+    icon: '🔵',
+    group: 'Keluarga',
+    description: 'Keluarga yang berhasil ditemukan menetap namun tidak memiliki anggota keluarga yang menjalankan kegiatan usaha mandiri.',
+    kriteria: 'Status keluarga ditemukan (1. Ditemukan) dan Jumlah Usaha = 0.'
+  },
+  {
+    id: 'keluarga_tidak_ditemukan',
+    name: 'Keluarga tidak ditemukan',
+    color: '#ef4444', // Red
+    borderColor: '#b91c1c',
+    badgeBg: 'bg-rose-100',
+    badgeText: 'text-rose-900',
+    badgeBorder: 'border-rose-300',
+    icon: '🔴',
+    group: 'Keluarga',
+    description: 'Keluarga prelist yang tidak dapat dilacak / tidak ada di SLS dan tidak diketahui keberadaannya oleh warga lokal.',
+    kriteria: 'Status keluarga = 0. Tidak Ditemukan (STOP).'
+  },
+  {
+    id: 'keluarga_non_respon',
+    name: 'Keluarga Non Respon',
+    color: '#f97316', // Orange
+    borderColor: '#c2410c',
+    badgeBg: 'bg-orange-100',
+    badgeText: 'text-orange-900',
+    badgeBorder: 'border-orange-300',
+    icon: '🟠',
+    group: 'Keluarga',
+    description: 'Keluarga yang tidak dapat ditemui setelah kunjungan berulang kali atau menolak memberikan informasi hingga akhir periode sensus.',
+    kriteria: 'Status keluarga = 5. Tidak dapat ditemui sampai akhir pendataan.'
+  },
+  {
+    id: 'keluarga_meninggal',
+    name: 'Keluarga Meninggal',
+    color: '#475569', // Slate Dark
+    borderColor: '#1e293b',
+    badgeBg: 'bg-slate-200',
+    badgeText: 'text-slate-900',
+    badgeBorder: 'border-slate-400',
+    icon: '⚫',
+    group: 'Keluarga',
+    description: 'Responden tunggal pada keluarga prelist yang telah meninggal dunia dan tidak ada anggota keluarga lain dalam rumah tangga.',
+    kriteria: 'Status keluarga = 3. Meninggal.'
+  },
+  {
+    id: 'keluarga_khusus',
+    name: 'Keluarga Khusus',
+    color: '#a855f7', // Purple
+    borderColor: '#7e22ce',
+    badgeBg: 'bg-purple-100',
+    badgeText: 'text-purple-900',
+    badgeBorder: 'border-purple-300',
+    icon: '🟣',
+    group: 'Keluarga',
+    description: 'Tempat tinggal kelompok khusus seperti asrama, panti asuhan, barak militer, lapas, atau penampungan khusus.',
+    kriteria: 'Status keluarga = 6. Keluarga Khusus.'
+  },
+  {
+    id: 'keluarga_baru',
+    name: 'Keluarga ditemukan dan baru',
+    color: '#06b6d4', // Cyan
+    borderColor: '#0e7490',
+    badgeBg: 'bg-cyan-100',
+    badgeText: 'text-cyan-900',
+    badgeBorder: 'border-cyan-300',
+    icon: '🩵',
+    group: 'Keluarga',
+    description: 'Keluarga baru hasil sisiran lapangan (tidak ada di prelist) yang ditemukan tinggal menetap di wilayah sensus.',
+    kriteria: 'Status keluarga = 2. Baru.'
+  },
+  {
+    id: 'keluarga_tidak_eligible',
+    name: 'Keluarga tidak eligible',
+    color: '#b45309', // Amber Brown
+    borderColor: '#78350f',
+    badgeBg: 'bg-amber-100',
+    badgeText: 'text-amber-900',
+    badgeBorder: 'border-amber-400',
+    icon: '🟤',
+    group: 'Keluarga',
+    description: 'Bangunan atau responden yang tidak memenuhi kriteria cakupan sensus (misalnya bangunan kosong, diplomatik, dsb).',
+    kriteria: 'Status keluarga = 4. Tidak Eligible.'
+  },
+  // 2. Kategori Usaha
+  {
+    id: 'usaha_tidak_ditemukan',
+    name: 'Usaha Tidak ditemukan',
+    color: '#eab308', // Yellow
+    borderColor: '#ca8a04',
+    badgeBg: 'bg-yellow-100',
+    badgeText: 'text-yellow-900',
+    badgeBorder: 'border-yellow-300',
+    icon: '🟡',
+    group: 'Usaha',
+    description: 'Unit usaha prelist yang tidak dapat ditemukan atau tidak diketahui keberadaannya di SLS setelah konfirmasi ke aparatur / warga setempat.',
+    kriteria: 'Status usaha = 0. Tidak Ditemukan / Seluruh Usaha Prelist Tidak Ditemukan.'
+  },
+  {
+    id: 'usaha_tutup',
+    name: 'Usaha Tutup',
+    color: '#71717a', // Zinc Gray
+    borderColor: '#3f3f46',
+    badgeBg: 'bg-zinc-100',
+    badgeText: 'text-zinc-800',
+    badgeBorder: 'border-zinc-300',
+    icon: '⚪',
+    group: 'Usaha',
+    description: 'Unit usaha yang sebelumnya beroperasi namun saat pendataan lapangan telah tutup permanen, gulung tikar, atau berhenti beroperasi.',
+    kriteria: 'Status usaha = 3. Tutup / Seluruh Usaha Tutup.'
+  },
+  {
+    id: 'usaha_ganda',
+    name: 'Usaha Ganda',
+    color: '#ec4899', // Pink
+    borderColor: '#db2777',
+    badgeBg: 'bg-pink-100',
+    badgeText: 'text-pink-900',
+    badgeBorder: 'border-pink-300',
+    icon: '🌸',
+    group: 'Usaha',
+    description: 'Unit usaha yang tercatat lebih dari satu kali (duplikasi) dalam prelist pendataan.',
+    kriteria: 'Status usaha = 4. Ganda.'
+  },
+  {
+    id: 'usaha_ditemukan',
+    name: 'Usaha ditemukan',
+    color: '#10b981', // Emerald Bright
+    borderColor: '#047857',
+    badgeBg: 'bg-emerald-100',
+    badgeText: 'text-emerald-900',
+    badgeBorder: 'border-emerald-300',
+    icon: '🌿',
+    group: 'Usaha',
+    description: 'Unit usaha prelist yang berhasil ditemukan dan aktif beroperasi saat dikunjungi oleh petugas pendataan SE2026.',
+    kriteria: 'Status usaha = 1. Ditemukan. Isian operasional dan omzet lengkap.'
+  },
+  {
+    id: 'usaha_baru',
+    name: 'Usaha baru',
+    color: '#6366f1', // Indigo
+    borderColor: '#4338ca',
+    badgeBg: 'bg-indigo-100',
+    badgeText: 'text-indigo-900',
+    badgeBorder: 'border-indigo-300',
+    icon: '✨',
+    group: 'Usaha',
+    description: 'Unit usaha baru hasil penyisiran lapangan yang sebelumnya belum tercatat pada prelist sensus SE2026.',
+    kriteria: 'Status usaha = 2. Baru / Penambahan baru saat sensus.'
+  }
+];
+
+export function getPointStatusCategory(point: RespondenPoint): StatusCategory {
+  const sk = (point.stKel || '').toLowerCase();
+  const su = (point.stUsaha || '').toLowerCase();
+  const st = (point.st || '').toLowerCase();
+  const mKat = (point.mKat || '').toLowerCase();
+
+  // 1. Usaha specific statuses
+  if (su.includes('baru') || st.includes('usaha baru')) {
+    return STATUS_CATEGORIES.find(c => c.id === 'usaha_baru')!;
+  }
+  if (su.includes('tutup') || mKat.includes('tutup') || (point.mClosed && point.mClosed !== '-')) {
+    return STATUS_CATEGORIES.find(c => c.id === 'usaha_tutup')!;
+  }
+  if (su.includes('ganda')) {
+    return STATUS_CATEGORIES.find(c => c.id === 'usaha_ganda')!;
+  }
+  if (su.includes('tidak ditemukan') || mKat.includes('tidak ditemukan') || (point.mNotFound && point.mNotFound !== '-')) {
+    return STATUS_CATEGORIES.find(c => c.id === 'usaha_tidak_ditemukan')!;
+  }
+
+  // 2. Keluarga specific statuses
+  if (sk.includes('meninggal') || st.includes('meninggal')) {
+    return STATUS_CATEGORIES.find(c => c.id === 'keluarga_meninggal')!;
+  }
+  if (sk.includes('tidak eligible') || st.includes('tidak eligible')) {
+    return STATUS_CATEGORIES.find(c => c.id === 'keluarga_tidak_eligible')!;
+  }
+  if (sk.includes('tidak dapat ditemui') || sk.includes('non respon') || st.includes('non respon')) {
+    return STATUS_CATEGORIES.find(c => c.id === 'keluarga_non_respon')!;
+  }
+  if (sk.includes('khusus') || st.includes('khusus')) {
+    return STATUS_CATEGORIES.find(c => c.id === 'keluarga_khusus')!;
+  }
+  if (sk.includes('tidak ditemukan') || st.includes('keluarga tidak ditemukan')) {
+    return STATUS_CATEGORIES.find(c => c.id === 'keluarga_tidak_ditemukan')!;
+  }
+  if (sk.includes('baru') || st.includes('keluarga baru')) {
+    return STATUS_CATEGORIES.find(c => c.id === 'keluarga_baru')!;
+  }
+
+  // 3. Usaha ditemukan
+  if (su.includes('ditemukan') || (point.mFound && point.mFound !== '-')) {
+    return STATUS_CATEGORIES.find(c => c.id === 'usaha_ditemukan')!;
+  }
+
+  // 4. Default: Keluarga ada usaha vs tidak memiliki usaha
+  if (point.u > 0) {
+    return STATUS_CATEGORIES.find(c => c.id === 'keluarga_ada_usaha')!;
+  }
+  return STATUS_CATEGORIES.find(c => c.id === 'keluarga_non_usaha')!;
 }
 
 interface KecamatanMeta {
@@ -195,6 +437,13 @@ function toDMS(val: number, isLat: boolean): string {
   
   return `${deg}° ${min}' ${sec}" ${dir}`;
 }
+
+// Helper to sanitize and validate text fields (filter out "nan", "none", etc.)
+export const isValidText = (val?: string | null): boolean => {
+  if (!val) return false;
+  const s = String(val).trim().toLowerCase();
+  return s !== '' && s !== 'nan' && s !== 'none' && s !== '-' && s !== 'null' && s !== 'undefined';
+};
 
 // ==========================================
 // ELEGANT SEARCHABLE DROPDOWN (PENILAIAN MITRA STYLE)
@@ -339,6 +588,219 @@ const SearchableFilterDropdown: React.FC<SearchableFilterDropdownProps> = ({
               })}
               {filtered.length === 0 && (
                 <div className="px-3 py-4 text-center text-xs text-slate-400 italic">Tidak ditemukan</div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ==========================================
+// MULTI-SELECT STATUS & COLOR FILTER DROPDOWN
+// ==========================================
+interface MultiSelectStatusDropdownProps {
+  categories: StatusCategory[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  statusCounts?: Record<string, number>;
+  className?: string;
+}
+
+const MultiSelectStatusDropdown: React.FC<MultiSelectStatusDropdownProps> = ({
+  categories,
+  selectedIds,
+  onChange,
+  className = ''
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const isAllSelected = selectedIds.length === 0 || selectedIds.length === categories.length;
+
+  const toggleStatus = (id: string) => {
+    if (selectedIds.length === 0) {
+      // If currently all selected, clicking one unchecks that one (selects the other 12)
+      const allExceptThis = categories.map(c => c.id).filter(i => i !== id);
+      onChange(allExceptThis);
+    } else if (selectedIds.includes(id)) {
+      const next = selectedIds.filter(i => i !== id);
+      onChange(next.length === 0 ? ['__none__'] : next);
+    } else {
+      const next = [...selectedIds.filter(i => i !== '__none__'), id];
+      onChange(next.length === categories.length ? [] : next);
+    }
+  };
+
+  const selectAll = () => {
+    onChange([]);
+  };
+
+  const clearAll = () => {
+    onChange(['__none__']);
+  };
+
+  const filteredCategories = categories.filter(c => 
+    c.name.toLowerCase().includes(search.toLowerCase()) || 
+    c.group.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const displayLabel = isAllSelected 
+    ? 'Semua Status (13 Kategori)' 
+    : selectedIds.includes('__none__')
+      ? '0 Status Dipilih'
+      : `${selectedIds.length} Status Dipilih`;
+
+  return (
+    <div className={`relative ${isOpen ? 'z-[100]' : 'z-10'} ${className}`} ref={dropdownRef}>
+      <button 
+        type="button"
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!isOpen) setSearch('');
+        }}
+        className={`flex items-center justify-between gap-2 min-w-[160px] sm:min-w-[195px] bg-white border rounded-2xl px-3.5 py-2 text-xs font-bold transition-all duration-200 cursor-pointer select-none shadow-2xs ${
+          isOpen 
+            ? 'border-cyan-500 ring-2 ring-cyan-500/20 text-cyan-950 shadow-sm' 
+            : !isAllSelected
+              ? 'border-indigo-400 bg-indigo-50/50 text-indigo-950 hover:border-indigo-500'
+              : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50/80'
+        }`}
+      >
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Layers className={`w-3.5 h-3.5 shrink-0 ${!isAllSelected ? 'text-indigo-600' : 'text-slate-400'}`} />
+          <span className="truncate max-w-[150px]">{displayLabel}</span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {!isAllSelected && !selectedIds.includes('__none__') && (
+            <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] font-black flex items-center justify-center">
+              {selectedIds.length}
+            </span>
+          )}
+          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-cyan-600' : ''}`} />
+        </div>
+      </button>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.97 }}
+            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute z-[100] top-full left-0 mt-1.5 min-w-[280px] sm:min-w-[340px] max-w-[calc(100vw-32px)] bg-white border border-slate-200/90 rounded-2xl shadow-2xl shadow-slate-900/20 overflow-hidden flex flex-col"
+          >
+            {/* Header & Quick Action Buttons */}
+            <div className="p-2.5 border-b border-slate-100 bg-slate-50/90 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                  <SlidersHorizontal className="w-3 h-3 text-cyan-600" />
+                  Pilih Warna & Status Peta
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={selectAll}
+                    className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-cyan-100 text-cyan-800 hover:bg-cyan-200 cursor-pointer transition-colors"
+                  >
+                    Pilih Semua
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 cursor-pointer transition-colors"
+                  >
+                    Hapus Semua
+                  </button>
+                </div>
+              </div>
+
+              {/* Search input */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input 
+                  type="text" 
+                  placeholder="Cari kategori status..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl py-1 pl-8 pr-7 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                  autoFocus
+                />
+                {search && (
+                  <button 
+                    type="button" 
+                    onClick={() => setSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* List with Checkboxes and Color Dots */}
+            <div className="max-h-64 overflow-y-auto p-1.5 space-y-1.5 custom-scrollbar">
+              {['Usaha', 'Keluarga'].map(groupName => {
+                const groupItems = filteredCategories.filter(c => c.group === groupName);
+                if (groupItems.length === 0) return null;
+
+                return (
+                  <div key={groupName} className="space-y-0.5">
+                    <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-slate-500 bg-slate-100/70 rounded-md">
+                      {groupName === 'Usaha' ? '💼 Kategori Keberadaan Usaha' : '🏠 Kategori Keberadaan Keluarga'}
+                    </div>
+                    {groupItems.map(cat => {
+                      const isChecked = selectedIds.length === 0 
+                        ? true 
+                        : (selectedIds.includes(cat.id) && !selectedIds.includes('__none__'));
+
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => toggleStatus(cat.id)}
+                          className={`w-full flex items-center justify-between text-left px-2.5 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${
+                            isChecked 
+                              ? 'bg-slate-50/80 text-slate-900 font-bold hover:bg-slate-100' 
+                              : 'text-slate-400 opacity-60 hover:opacity-100 hover:bg-slate-50 font-normal'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              readOnly
+                              className="w-3.5 h-3.5 rounded text-cyan-600 focus:ring-0 cursor-pointer"
+                            />
+                            <span 
+                              className="w-3 h-3 rounded-full shrink-0 ring-1 ring-black/10" 
+                              style={{ backgroundColor: cat.color }} 
+                            />
+                            <span className="truncate">{cat.name}</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-400 shrink-0 ml-2">
+                            {cat.icon}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+              {filteredCategories.length === 0 && (
+                <div className="px-3 py-4 text-center text-xs text-slate-400 italic">Kategori tidak ditemukan</div>
               )}
             </div>
           </motion.div>
@@ -645,45 +1107,26 @@ function ViewportPointsLayer({
     );
   }
 
-  // Zoomed in mode: Crisp Canvas hardware-accelerated circle markers
+  // Zoomed in mode: Crisp Canvas hardware-accelerated circle markers with 13-category color system
   return (
     <>
       {visiblePoints.map((point) => {
         const isSelected = selectedPointId === point.i;
-        const isMatching = point.m === 1 || !!point.mKat;
+        const category = getPointStatusCategory(point);
 
-        // COLOR RULES:
-        // Yellow/Amber (#f59e0b) = Usaha Tidak/Sebagian Ditemukan / Tutup (Matching SE-ST)
-        // Green (#059669) = Ada Usaha SE2026
-        // Blue (#2563eb) = Tidak Ada Usaha SE2026
-        const fillColor = isMatching ? '#f59e0b' : point.u > 0 ? '#059669' : '#2563eb';
-        const strokeColor = isSelected ? '#ffffff' : isMatching ? '#d97706' : point.u > 0 ? '#047857' : '#1d4ed8';
-
-        const latDMS = toDMS(point.lt, true);
-        const lngDMS = toDMS(point.lg, false);
-        const decimalStr = `Long: ${point.lg.toFixed(6)}°, Lat: ${point.lt.toFixed(6)}°`;
-        const dmsStr = `${lngDMS}, ${latDMS}`;
-
-        // Helper to format itemized list of businesses
-        const renderBusinessList = (raw: string) => {
-          if (!raw || raw === '-') return [];
-          return raw.split(/[;\n]/).map(s => s.trim()).filter(Boolean);
-        };
-
-        const foundList = renderBusinessList(point.mFound || '');
-        const notFoundList = renderBusinessList(point.mNotFound || '');
-        const closedList = renderBusinessList(point.mClosed || '');
+        const fillColor = category.color;
+        const strokeColor = isSelected ? '#ffffff' : category.borderColor;
 
         return (
           <CircleMarker
             key={point.i}
             center={[point.lt, point.lg]}
-            radius={isSelected ? 11 : isMatching ? 7.5 : 6}
+            radius={isSelected ? 11 : 6.5}
             pathOptions={{
               fillColor: fillColor,
               color: strokeColor,
-              weight: isSelected ? 3.5 : isMatching ? 2 : 1,
-              fillOpacity: isSelected ? 1 : 0.88,
+              weight: isSelected ? 3.5 : 1.5,
+              fillOpacity: isSelected ? 1 : 0.9,
             }}
             eventHandlers={{
               click: () => {
@@ -724,6 +1167,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
   const [selectedDesa, setSelectedDesa] = useState<string>('all');
   const [selectedSls, setSelectedSls] = useState<string>('all');
   const [filterUsaha, setFilterUsaha] = useState<string>('all');
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showSearchDropdown, setShowSearchDropdown] = useState<boolean>(false);
 
@@ -735,6 +1179,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
   // UI Panels
   const [showDrawer, setShowDrawer] = useState<boolean>(false);
   const [showStatsModal, setShowStatsModal] = useState<boolean>(false);
+  const [showLegendModal, setShowLegendModal] = useState<boolean>(false);
   const [selectedPoint, setSelectedPoint] = useState<RespondenPoint | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -899,6 +1344,15 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
       result = result.filter(p => p.u === 0 && !p.m);
     }
 
+    // Filter Multi-Select Status Kategori (13 Kategori)
+    if (selectedStatuses.length > 0) {
+      if (selectedStatuses.includes('__none__')) {
+        result = [];
+      } else {
+        result = result.filter(p => selectedStatuses.includes(getPointStatusCategory(p).id));
+      }
+    }
+
     // Filter Query
     if (searchQuery.trim() !== '') {
       const q = searchQuery.trim().toLowerCase();
@@ -909,6 +1363,8 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
         (p.i && p.i.toLowerCase().includes(q)) ||
         (p.kb && p.kb.toLowerCase().includes(q)) ||
         (p.dn && p.dn.toLowerCase().includes(q)) ||
+        (p.stKel && p.stKel.toLowerCase().includes(q)) ||
+        (p.stUsaha && p.stUsaha.toLowerCase().includes(q)) ||
         (p.mKat && p.mKat.toLowerCase().includes(q)) ||
         (p.mFound && p.mFound.toLowerCase().includes(q)) ||
         (p.mNotFound && p.mNotFound.toLowerCase().includes(q)) ||
@@ -920,7 +1376,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
     }
 
     return result;
-  }, [allLoadedPoints, pointsByKec, selectedKec, selectedDesa, selectedSls, filterUsaha, searchQuery]);
+  }, [allLoadedPoints, pointsByKec, selectedKec, selectedDesa, selectedSls, filterUsaha, selectedStatuses, searchQuery]);
 
   // Instant Search Suggestions Dropdown (Top 8 Matches)
   const searchSuggestions = useMemo(() => {
@@ -1103,10 +1559,11 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
     if (selectedDesa !== 'all') count++;
     if (selectedSls !== 'all') count++;
     if (filterUsaha !== 'all') count++;
+    if (selectedStatuses.length > 0) count++;
     if (searchQuery.trim() !== '') count++;
     if (boundaryMode !== 'all') count++;
     return count;
-  }, [selectedKec, selectedDesa, selectedSls, filterUsaha, searchQuery, boundaryMode]);
+  }, [selectedKec, selectedDesa, selectedSls, filterUsaha, selectedStatuses, searchQuery, boundaryMode]);
 
   // Active Boundary Layer States based on boundaryMode
   const showKec = boundaryMode === 'all' || boundaryMode === 'kec_desa' || boundaryMode === 'kec';
@@ -1171,6 +1628,15 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
             ) : (
               <ChevronDown className="w-3 h-3 text-slate-400" />
             )}
+          </button>
+
+          <button
+            onClick={() => setShowLegendModal(true)}
+            className="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-cyan-50 hover:text-cyan-700 text-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-200/60 shadow-2xs"
+            title="Penjelasan & Panduan Legenda Peta"
+          >
+            <Info className="w-3.5 h-3.5 text-cyan-600" />
+            <span className="hidden sm:inline">Legenda</span>
           </button>
 
           <button
@@ -1270,15 +1736,11 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                 icon={Layers}
               />
 
-              {/* 5. Dropdown Status Usaha */}
-              <SearchableFilterDropdown
-                options={usahaOptions}
-                value={filterUsaha}
-                onChange={setFilterUsaha}
-                placeholder="Status Usaha"
-                prefix="Usaha: "
-                searchPlaceholder="Filter usaha..."
-                icon={Briefcase}
+              {/* 5. Multi-Select Status & Warna Responden (13 Kategori) */}
+              <MultiSelectStatusDropdown
+                categories={STATUS_CATEGORIES}
+                selectedIds={selectedStatuses}
+                onChange={setSelectedStatuses}
               />
             </div>
 
@@ -1517,30 +1979,6 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
           />
         </MapContainer>
 
-        {/* 4. SIMPLIFIED 3-ITEM MAP LEGEND */}
-        <div className="absolute bottom-6 left-6 z-[800] bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-slate-200/80 max-w-[260px] space-y-2 pointer-events-auto">
-          <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-            <span className="text-[11px] font-black text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-cyan-600" />
-              Legenda Peta
-            </span>
-          </div>
-          <div className="space-y-1.5 text-xs font-bold text-slate-700">
-            <div className="flex items-center gap-2">
-              <span className="w-3.5 h-3.5 rounded-full bg-emerald-600 shadow-2xs shrink-0 ring-2 ring-emerald-200"></span>
-              <span>🟢 Ada Usaha (SE2026)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3.5 h-3.5 rounded-full bg-amber-500 shadow-2xs shrink-0 ring-2 ring-amber-200"></span>
-              <span>🟡 Usaha Tidak/Sebagian Ditemukan (Matching SE-ST)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3.5 h-3.5 rounded-full bg-blue-600 shadow-2xs shrink-0 ring-2 ring-blue-200"></span>
-              <span>🔵 Tidak Ada Usaha (SE2026)</span>
-            </div>
-          </div>
-        </div>
-
         {/* 5. SLIDE-OUT DRAWER FOR RESPONDENTS LIST */}
         <AnimatePresence>
           {showDrawer && (
@@ -1610,11 +2048,11 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
 
                       {isMatching ? (
                         <div className="mt-1 space-y-0.5 text-[10px]">
-                          {pt.mFound && <p className="text-emerald-700 font-bold truncate">✅ Ditemukan: {pt.mFound}</p>}
-                          {pt.mNotFound && <p className="text-rose-700 font-bold truncate">❌ Tdk Ditemukan: {pt.mNotFound}</p>}
-                          {pt.mClosed && <p className="text-amber-700 font-bold truncate">⚠️ Tutup: {pt.mClosed}</p>}
+                          {isValidText(pt.mFound) && <p className="text-emerald-700 font-bold truncate">✅ Ditemukan: {pt.mFound}</p>}
+                          {isValidText(pt.mNotFound) && <p className="text-rose-700 font-bold truncate">❌ Tdk Ditemukan: {pt.mNotFound}</p>}
+                          {isValidText(pt.mClosed) && <p className="text-amber-700 font-bold truncate">⚠️ Tutup: {pt.mClosed}</p>}
                         </div>
-                      ) : pt.nu ? (
+                      ) : isValidText(pt.nu) ? (
                         <p className="text-[11px] font-bold text-emerald-700 truncate mt-1">
                           💼 {pt.nu}
                         </p>
@@ -1632,293 +2070,367 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
 
-        {/* 6. SWIPEABLE BOTTOM SHEET / MOBILE DRAWER FOR SELECTED RESPONDENT */}
-        <AnimatePresence>
-          {selectedPoint && (
-            <div className="fixed sm:absolute inset-x-0 bottom-0 z-[950] pointer-events-none flex justify-center p-0 sm:p-4">
-              <motion.div
-                initial={{ y: '100%', opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: '100%', opacity: 0 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                drag="y"
-                dragConstraints={{ top: 0, bottom: 0 }}
-                dragElastic={0.25}
-                onDragEnd={(e, info) => {
-                  if (info.offset.y > 80 || info.velocity.y > 400) {
-                    setSelectedPoint(null);
-                  }
-                }}
-                className="w-full sm:max-w-lg bg-white/95 backdrop-blur-xl border-t sm:border border-slate-200/90 sm:rounded-3xl shadow-2xl pointer-events-auto max-h-[82vh] flex flex-col rounded-t-3xl overflow-hidden touch-pan-y ring-1 ring-black/5"
+      {/* 6. RESPONDENT DETAIL MODAL / BOTTOM SHEET (ROOT LEVEL z-[1050]) */}
+      <AnimatePresence>
+        {selectedPoint && (
+          <div className="fixed inset-0 z-[1050] flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-none">
+            {/* Backdrop overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedPoint(null)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs pointer-events-auto"
+            />
+
+            {/* Modal Card / Bottom Sheet Container */}
+            <motion.div
+              initial={{ y: '100%', opacity: 0, scale: 0.96 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: '100%', opacity: 0, scale: 0.96 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(e, info) => {
+                if (info.offset.y > 80 || info.velocity.y > 400) {
+                  setSelectedPoint(null);
+                }
+              }}
+              className="relative w-full sm:max-w-lg bg-white border-t sm:border border-slate-200/90 rounded-t-3xl sm:rounded-3xl shadow-2xl z-10 pointer-events-auto max-h-[85vh] sm:max-h-[88vh] flex flex-col overflow-hidden touch-pan-y"
+            >
+              {/* Drag Handle Bar for Touch Gestures on Mobile/HP */}
+              <div 
+                onClick={() => setSelectedPoint(null)}
+                className="sm:hidden pt-3 pb-1.5 flex flex-col items-center justify-center cursor-pointer bg-slate-50 border-b border-slate-100 shrink-0"
               >
-                {/* Drag Handle Bar for Touch Gestures on Mobile/HP */}
-                <div className="pt-2.5 pb-1 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing bg-slate-50/80 border-b border-slate-100">
-                  <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 mb-1" />
-                  <span className="text-[10px] text-slate-400 font-bold tracking-tight">Geser ke bawah untuk menutup</span>
-                </div>
+                <div className="w-12 h-1.5 rounded-full bg-slate-300 mb-1" />
+                <span className="text-[10px] text-slate-400 font-bold tracking-tight">Geser ke bawah atau ketuk untuk menutup</span>
+              </div>
 
-                {/* Header */}
-                <div className="px-4 py-2.5 flex items-center justify-between border-b border-slate-100">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={`w-3 h-3 rounded-full shrink-0 ${
-                      (selectedPoint.m === 1 || selectedPoint.mKat)
-                        ? 'bg-amber-500 ring-2 ring-amber-200' 
-                        : selectedPoint.u > 0 
-                        ? 'bg-emerald-500 ring-2 ring-emerald-200' 
-                        : 'bg-blue-500 ring-2 ring-blue-200'
-                    }`} />
-                    <div className="min-w-0">
-                      <h4 className="text-xs sm:text-sm font-black text-slate-900 truncate">
-                        {selectedPoint.k || 'Responden'}
-                      </h4>
-                      <span className="text-[10px] font-mono text-slate-400 block truncate">ID: {selectedPoint.i}</span>
-                    </div>
+              {/* Header (Sticky, clearly visible & never cut off) */}
+              <div className="px-5 py-3.5 flex items-center justify-between border-b border-slate-100 bg-white shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+                    (selectedPoint.m === 1 || selectedPoint.mKat)
+                      ? 'bg-amber-500 ring-2 ring-amber-200' 
+                      : selectedPoint.u > 0 
+                      ? 'bg-emerald-500 ring-2 ring-emerald-200' 
+                      : 'bg-blue-500 ring-2 ring-blue-200'
+                  }`} />
+                  <div className="min-w-0">
+                    <h4 className="text-sm sm:text-base font-black text-slate-900 truncate">
+                      {selectedPoint.k || 'Responden SE2026'}
+                    </h4>
+                    <span className="text-[11px] font-mono text-slate-400 block truncate">ID: {selectedPoint.i}</span>
                   </div>
-                  <button
-                    onClick={() => setSelectedPoint(null)}
-                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer shrink-0"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
+                <button
+                  onClick={() => setSelectedPoint(null)}
+                  className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer shrink-0 transition-colors"
+                  title="Tutup Detail"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-                {/* Scrollable Content */}
-                <div className="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 text-slate-800">
-                  {/* Status Banner */}
-                  {(selectedPoint.m === 1 || selectedPoint.mKat) ? (
-                    <div className="p-2.5 bg-amber-50 rounded-2xl border border-amber-200/80 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base">🟡</span>
-                        <div>
-                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 block">Status Matching SE-ST:</span>
-                          <span className="text-xs font-extrabold text-amber-950">{selectedPoint.mKat || 'Sebagian Ditemukan'}</span>
+              {/* Scrollable Content */}
+              <div className="p-4 sm:p-5 space-y-3.5 overflow-y-auto custom-scrollbar flex-1 text-slate-800">
+                {/* Category Status Banner */}
+                {(() => {
+                  const cat = getPointStatusCategory(selectedPoint);
+                  return (
+                    <div 
+                      className="p-3.5 rounded-2xl border flex flex-col gap-1.5 shadow-2xs"
+                      style={{ backgroundColor: `${cat.color}14`, borderColor: `${cat.color}40` }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{cat.icon}</span>
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Kategori Status Responden:</span>
+                            <h5 className="text-xs sm:text-sm font-black text-slate-900 leading-tight">{cat.name}</h5>
+                          </div>
                         </div>
+                        <span 
+                          className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${cat.badgeBg} ${cat.badgeText} ${cat.badgeBorder}`}
+                        >
+                          {cat.group}
+                        </span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                        Matching
-                      </span>
+                      <p className="text-[11px] text-slate-600 bg-white/80 p-2.5 rounded-xl border border-slate-100/80 leading-relaxed">
+                        {cat.description}
+                      </p>
                     </div>
-                  ) : (
-                    <div className={`p-2.5 rounded-2xl border flex items-center justify-between ${
-                      selectedPoint.u > 0 
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-950' 
-                        : 'bg-blue-50 border-blue-200 text-blue-950'
-                    }`}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-base">{selectedPoint.u > 0 ? '🟢' : '🔵'}</span>
-                        <div>
-                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Status Responden SE2026:</span>
-                          <span className="text-xs font-extrabold">{selectedPoint.u > 0 ? `Ada Usaha (${selectedPoint.u})` : 'Tidak Ada Usaha'}</span>
-                        </div>
+                  );
+                })()}
+
+                {/* KHUSUS: INFORMASI STATUS & ALASAN TIDAK DITEMUKAN / NON-RESPON / TUTUP */}
+                {(() => {
+                  const cat = getPointStatusCategory(selectedPoint);
+                  const isNotFoundOrSpecial = [
+                    'keluarga_tidak_ditemukan', 'keluarga_non_respon', 'keluarga_meninggal', 
+                    'keluarga_tidak_eligible', 'keluarga_khusus', 'usaha_tidak_ditemukan', 
+                    'usaha_tutup', 'usaha_ganda'
+                  ].includes(cat.id) || (selectedPoint.m === 1 || !!selectedPoint.mKat);
+
+                  const hasValidStKel = isValidText(selectedPoint.stKel);
+                  const hasValidStUsaha = isValidText(selectedPoint.stUsaha);
+                  const hasValidMKat = isValidText(selectedPoint.mKat);
+                  const hasValidMNotes = isValidText(selectedPoint.mNotes);
+
+                  if (!isNotFoundOrSpecial && !hasValidStKel && !hasValidStUsaha) return null;
+
+                  return (
+                    <div className="p-3.5 bg-amber-50/80 rounded-2xl border border-amber-200/90 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          Informasi Status & Alasan Lapangan
+                        </span>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                          Verifikasi Sensus
+                        </span>
                       </div>
-                    </div>
-                  )}
 
-                  {/* Wilayah */}
-                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 text-xs">
-                    <div className="flex items-center gap-1.5 text-slate-700">
-                      <MapPin className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
-                      <span className="truncate"><b>SLS:</b> {selectedPoint.s || '-'}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 pl-5">
-                      <span><b>Desa/Kel:</b> {selectedPoint.dn || selectedPoint.d || '-'}</span>
-                      {selectedPoint.ks && <span><b>Kode SLS:</b> {selectedPoint.ks}</span>}
-                    </div>
-                  </div>
+                      <div className="space-y-1.5 text-xs text-slate-800">
+                        {hasValidStKel && (
+                          <div className="p-2 bg-white rounded-xl border border-amber-100 flex items-start justify-between gap-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Status Keluarga:</span>
+                            <span className="font-extrabold text-right text-slate-900">{selectedPoint.stKel}</span>
+                          </div>
+                        )}
 
-                  {/* DETAIL USAHA MATCHING SE-ST */}
-                  {(selectedPoint.m === 1 || selectedPoint.mKat) ? (
-                    <div className="space-y-2 text-xs">
-                      {/* 1. Usaha Ditemukan */}
-                      {selectedPoint.mFound && selectedPoint.mFound !== '-' && (
-                        <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              Daftar Usaha Ditemukan ({selectedPoint.mFCnt || 1})
-                            </span>
+                        {hasValidStUsaha && (
+                          <div className="p-2 bg-white rounded-xl border border-amber-100 flex items-start justify-between gap-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Status Usaha:</span>
+                            <span className="font-extrabold text-right text-slate-900">{selectedPoint.stUsaha}</span>
                           </div>
-                          <div className="space-y-1 pl-5">
-                            {selectedPoint.mFound.split(/[;\n]/).map((item, idx) => item.trim() && (
-                              <p key={idx} className="text-xs font-bold text-emerald-950 leading-relaxed">
-                                • {item.trim()}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* 2. Usaha Tidak Ditemukan */}
-                      {selectedPoint.mNotFound && selectedPoint.mNotFound !== '-' && (
-                        <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200 space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-rose-900 flex items-center gap-1.5">
-                              <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                              Daftar Usaha Tidak Ditemukan ({selectedPoint.mNFCnt || 1})
-                            </span>
+                        {hasValidMKat && (
+                          <div className="p-2 bg-white rounded-xl border border-amber-100 flex items-start justify-between gap-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Kategori Matching:</span>
+                            <span className="font-extrabold text-right text-amber-950">{selectedPoint.mKat}</span>
                           </div>
-                          <div className="space-y-1 pl-5">
-                            {selectedPoint.mNotFound.split(/[;\n]/).map((item, idx) => item.trim() && (
-                              <p key={idx} className="text-xs font-bold text-rose-950 leading-relaxed">
-                                • {item.trim()}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* 3. Usaha Tutup */}
-                      {selectedPoint.mClosed && selectedPoint.mClosed !== '-' && (
-                        <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                              Daftar Usaha Tutup ({selectedPoint.mCCnt || 1})
-                            </span>
-                          </div>
-                          <div className="space-y-1 pl-5">
-                            {selectedPoint.mClosed.split(/[;\n]/).map((item, idx) => item.trim() && (
-                              <p key={idx} className="text-xs font-bold text-amber-950 leading-relaxed">
-                                • {item.trim()}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Catatan Lapangan */}
-                      {selectedPoint.mNotes && (
-                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700 space-y-1">
-                          <span className="font-bold text-[10px] uppercase text-slate-500 flex items-center gap-1">
-                            <FileText className="w-3.5 h-3.5 text-slate-500" />
-                            Catatan Lapangan:
-                          </span>
-                          <p className="italic text-slate-800 leading-relaxed">{selectedPoint.mNotes}</p>
-                        </div>
-                      )}
-
-                      {/* Informasi Petugas Lapangan & Responden */}
-                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-[10px] text-slate-400 block font-bold uppercase">Petugas Pendataan (PPL):</span>
-                          <span className="font-bold text-slate-800">{selectedPoint.ppl || '-'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-slate-400 block font-bold uppercase">Petugas Pengawas (PML):</span>
-                          <span className="font-bold text-slate-800">{selectedPoint.pml || '-'}</span>
-                        </div>
-                        {selectedPoint.resp && (
-                          <div className="col-span-2 pt-1 border-t border-slate-100 flex items-center justify-between">
-                            <span className="text-slate-600">Pemberi Info: <b>{selectedPoint.resp}</b></span>
-                            {selectedPoint.telp && <span className="font-mono text-[11px] text-cyan-700">📞 {selectedPoint.telp}</span>}
+                        {hasValidMNotes && (
+                          <div className="p-2.5 bg-white rounded-xl border border-amber-200/60 text-xs">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase block mb-0.5">Catatan Petugas Lapangan:</span>
+                            <p className="italic text-slate-700 leading-relaxed font-medium">"{selectedPoint.mNotes}"</p>
                           </div>
                         )}
                       </div>
                     </div>
-                  ) : (
-                    /* Info Usaha Biasa (SE2026) */
-                    selectedPoint.nu && (
-                      <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-1">
-                        <p className="font-extrabold text-emerald-900 text-xs flex items-center gap-1.5">
-                          <Briefcase className="w-4 h-4 text-emerald-700" />
-                          {selectedPoint.nu}
-                        </p>
-                        {selectedPoint.kb && <p className="text-[11px] text-emerald-700">{selectedPoint.kb}</p>}
-                        {selectedPoint.sk && <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Skala: {selectedPoint.sk}</p>}
-                      </div>
-                    )
-                  )}
+                  );
+                })()}
 
-                  {/* METADATA SUMBER KOORDINAT & HASIL PADANAN (NIK / PLN / LAPANGAN) */}
-                  {(() => {
-                    const srcInfo = getCoordinateSourceInfo(selectedPoint);
-                    return (
-                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                            <span>{srcInfo.icon}</span>
-                            Sumber & Metode Koordinat
-                          </span>
-                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${srcInfo.badgeClass}`}>
-                            {srcInfo.badge}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1">
-                          <p className="text-xs font-black text-slate-900 leading-tight">
-                            {srcInfo.title}
-                          </p>
-                          <p className="text-[10px] text-slate-500 font-medium">
-                            <b>Basis Data:</b> {srcInfo.sourceDb}
-                          </p>
-                          <p className="text-[11px] text-slate-600 bg-white p-2 rounded-xl border border-slate-100 leading-relaxed">
-                            {srcInfo.description}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Geospasial Coordinates Card */}
-                  <div className="p-3 bg-cyan-50/60 rounded-2xl border border-cyan-100 space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-cyan-800 flex items-center gap-1">
-                      <Compass className="w-3.5 h-3.5 text-cyan-700" />
-                      Koordinat Geospasial
-                    </span>
-
-                    {/* Format Desimal */}
-                    <div className="space-y-0.5 text-xs">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase">Format Desimal (Long, Lat):</span>
-                      <div className="font-mono text-slate-800 font-bold bg-white px-2.5 py-1.5 rounded-xl border border-cyan-100 flex items-center justify-between">
-                        <span className="truncate">Long: {selectedPoint.lg.toFixed(6)}°, Lat: {selectedPoint.lt.toFixed(6)}°</span>
-                        <button
-                          onClick={() => handleCopy(`${selectedPoint.lg}, ${selectedPoint.lt}`, selectedPoint.i + '_dec_drawer')}
-                          className="text-cyan-600 hover:text-cyan-800 p-1 cursor-pointer ml-1"
-                          title="Salin Desimal"
-                        >
-                          {copiedId === selectedPoint.i + '_dec_drawer' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Format DMS */}
-                    <div className="space-y-0.5 text-xs pt-1 border-t border-cyan-100/80">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase">Format DMS:</span>
-                      <div className="font-mono text-slate-800 font-bold bg-white px-2.5 py-1.5 rounded-xl border border-cyan-100 flex items-center justify-between">
-                        <div className="space-y-0.5 text-[11px] truncate">
-                          <div><b>Long:</b> {toDMS(selectedPoint.lg, false)}</div>
-                          <div><b>Lat:</b> {toDMS(selectedPoint.lt, true)}</div>
-                        </div>
-                        <button
-                          onClick={() => handleCopy(`${toDMS(selectedPoint.lg, false)}, ${toDMS(selectedPoint.lt, true)}`, selectedPoint.i + '_dms_drawer')}
-                          className="text-cyan-600 hover:text-cyan-800 p-1 cursor-pointer ml-1 shrink-0"
-                          title="Salin DMS"
-                        >
-                          {copiedId === selectedPoint.i + '_dms_drawer' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Google Maps Link */}
-                    <div className="pt-1">
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${selectedPoint.lt},${selectedPoint.lg}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full py-2.5 px-3 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        <span>Buka Rute di Google Maps</span>
-                      </a>
-                    </div>
+                {/* Wilayah */}
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 text-xs">
+                  <div className="flex items-center gap-1.5 text-slate-700">
+                    <MapPin className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                    <span className="truncate"><b>SLS:</b> {selectedPoint.s || '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pl-5">
+                    <span><b>Desa/Kel:</b> {selectedPoint.dn || selectedPoint.d || '-'}</span>
+                    {selectedPoint.ks && <span><b>Kode SLS:</b> {selectedPoint.ks}</span>}
                   </div>
                 </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-      </div>
+
+                {/* DETAIL USAHA MATCHING SE-ST */}
+                {(selectedPoint.m === 1 || selectedPoint.mKat) ? (
+                  <div className="space-y-2 text-xs">
+                    {/* 1. Usaha Ditemukan */}
+                    {isValidText(selectedPoint.mFound) && (
+                      <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            Daftar Usaha Ditemukan ({selectedPoint.mFCnt || 1})
+                          </span>
+                        </div>
+                        <div className="space-y-1 pl-5">
+                          {selectedPoint.mFound!.split(/[;\n]/).map((item, idx) => isValidText(item) && (
+                            <p key={idx} className="text-xs font-bold text-emerald-950 leading-relaxed">
+                              • {item.trim()}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. Usaha Tidak Ditemukan */}
+                    {isValidText(selectedPoint.mNotFound) && (
+                      <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-rose-900 flex items-center gap-1.5">
+                            <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                            Daftar Usaha Tidak Ditemukan ({selectedPoint.mNFCnt || 1})
+                          </span>
+                        </div>
+                        <div className="space-y-1 pl-5">
+                          {selectedPoint.mNotFound!.split(/[;\n]/).map((item, idx) => isValidText(item) && (
+                            <p key={idx} className="text-xs font-bold text-rose-950 leading-relaxed">
+                              • {item.trim()}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Usaha Tutup */}
+                    {isValidText(selectedPoint.mClosed) && (
+                      <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            Daftar Usaha Tutup ({selectedPoint.mCCnt || 1})
+                          </span>
+                        </div>
+                        <div className="space-y-1 pl-5">
+                          {selectedPoint.mClosed!.split(/[;\n]/).map((item, idx) => isValidText(item) && (
+                            <p key={idx} className="text-xs font-bold text-amber-950 leading-relaxed">
+                              • {item.trim()}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Catatan Lapangan */}
+                    {isValidText(selectedPoint.mNotes) && (
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700 space-y-1">
+                        <span className="font-bold text-[10px] uppercase text-slate-500 flex items-center gap-1">
+                          <FileText className="w-3.5 h-3.5 text-slate-500" />
+                          Catatan Lapangan:
+                        </span>
+                        <p className="italic text-slate-800 leading-relaxed">{selectedPoint.mNotes}</p>
+                      </div>
+                    )}
+
+                    {/* Informasi Petugas Lapangan & Responden */}
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-bold uppercase">Petugas Pendataan (PPL):</span>
+                        <span className="font-bold text-slate-800">{isValidText(selectedPoint.ppl) ? selectedPoint.ppl : '-'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-bold uppercase">Petugas Pengawas (PML):</span>
+                        <span className="font-bold text-slate-800">{isValidText(selectedPoint.pml) ? selectedPoint.pml : '-'}</span>
+                      </div>
+                      {isValidText(selectedPoint.resp) && (
+                        <div className="col-span-2 pt-1 border-t border-slate-100 flex items-center justify-between">
+                          <span className="text-slate-600">Pemberi Info: <b>{selectedPoint.resp}</b></span>
+                          {isValidText(selectedPoint.telp) && <span className="font-mono text-[11px] text-cyan-700">📞 {selectedPoint.telp}</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* Info Usaha Biasa (SE2026) */
+                  isValidText(selectedPoint.nu) && (
+                    <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-1">
+                      <p className="font-extrabold text-emerald-900 text-xs flex items-center gap-1.5">
+                        <Briefcase className="w-4 h-4 text-emerald-700" />
+                        {selectedPoint.nu}
+                      </p>
+                      {isValidText(selectedPoint.kb) && <p className="text-[11px] text-emerald-700">{selectedPoint.kb}</p>}
+                      {isValidText(selectedPoint.sk) && <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Skala: {selectedPoint.sk}</p>}
+                    </div>
+                  )
+                )}
+
+                {/* METADATA SUMBER KOORDINAT & HASIL PADANAN (NIK / PLN / LAPANGAN) */}
+                {(() => {
+                  const srcInfo = getCoordinateSourceInfo(selectedPoint);
+                  return (
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                          <span>{srcInfo.icon}</span>
+                          Sumber & Metode Koordinat
+                        </span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${srcInfo.badgeClass}`}>
+                          {srcInfo.badge}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <p className="text-xs font-black text-slate-900 leading-tight">
+                          {srcInfo.title}
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-medium">
+                          <b>Basis Data:</b> {srcInfo.sourceDb}
+                        </p>
+                        <p className="text-[11px] text-slate-600 bg-white p-2 rounded-xl border border-slate-100 leading-relaxed">
+                          {srcInfo.description}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Geospasial Coordinates Card */}
+                <div className="p-3 bg-cyan-50/60 rounded-2xl border border-cyan-100 space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-cyan-800 flex items-center gap-1">
+                    <Compass className="w-3.5 h-3.5 text-cyan-700" />
+                    Koordinat Geospasial
+                  </span>
+
+                  {/* Format Desimal */}
+                  <div className="space-y-0.5 text-xs">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase">Format Desimal (Long, Lat):</span>
+                    <div className="font-mono text-slate-800 font-bold bg-white px-2.5 py-1.5 rounded-xl border border-cyan-100 flex items-center justify-between">
+                      <span className="truncate">Long: {selectedPoint.lg.toFixed(6)}°, Lat: {selectedPoint.lt.toFixed(6)}°</span>
+                      <button
+                        onClick={() => handleCopy(`${selectedPoint.lg}, ${selectedPoint.lt}`, selectedPoint.i + '_dec_drawer')}
+                        className="text-cyan-600 hover:text-cyan-800 p-1 cursor-pointer ml-1"
+                        title="Salin Desimal"
+                      >
+                        {copiedId === selectedPoint.i + '_dec_drawer' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Format DMS */}
+                  <div className="space-y-0.5 text-xs pt-1 border-t border-cyan-100/80">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase">Format DMS:</span>
+                    <div className="font-mono text-slate-800 font-bold bg-white px-2.5 py-1.5 rounded-xl border border-cyan-100 flex items-center justify-between">
+                      <div className="space-y-0.5 text-[11px] truncate">
+                        <div><b>Long:</b> {toDMS(selectedPoint.lg, false)}</div>
+                        <div><b>Lat:</b> {toDMS(selectedPoint.lt, true)}</div>
+                      </div>
+                      <button
+                        onClick={() => handleCopy(`${toDMS(selectedPoint.lg, false)}, ${toDMS(selectedPoint.lt, true)}`, selectedPoint.i + '_dms_drawer')}
+                        className="text-cyan-600 hover:text-cyan-800 p-1 cursor-pointer ml-1 shrink-0"
+                        title="Salin DMS"
+                      >
+                        {copiedId === selectedPoint.i + '_dms_drawer' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Google Maps Link */}
+                  <div className="pt-1">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${selectedPoint.lt},${selectedPoint.lg}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 px-3 bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Buka Rute di Google Maps</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* 7. STATS MODAL DIALOG */}
       <AnimatePresence>
@@ -2092,6 +2604,193 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-md"
                 >
                   Tutup
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 8. DEDICATED MODAL: PANDUAN & PENJELASAN LEGENDA PETA SE2026 */}
+      <AnimatePresence>
+        {showLegendModal && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowLegendModal(false)}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-3xl w-full max-h-[88vh] overflow-hidden z-10 flex flex-col"
+            >
+              {/* Modal Header */}
+              <div className="px-5 sm:px-7 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/70">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-cyan-600 text-white flex items-center justify-center shadow-md shadow-cyan-600/20 shrink-0">
+                    <Info className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">
+                      Panduan & Penjelasan Legenda Peta SE2026
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Rincian definisi, kriteria lapangan, dan arti warna dari seluruh 13 kategori responden.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowLegendModal(false)}
+                  className="p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-200/60 cursor-pointer transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Scrollable Category Cards */}
+              <div className="p-5 sm:p-7 overflow-y-auto space-y-6 custom-scrollbar flex-1 text-slate-800">
+                {/* 1. KELOMPOK USAHA */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 pb-1 border-b border-slate-200">
+                    <Briefcase className="w-4 h-4 text-emerald-600" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                      Kategori Keberadaan Usaha (5 Kategori)
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {STATUS_CATEGORIES.filter(c => c.group === 'Usaha').map(cat => (
+                      <div
+                        key={cat.id}
+                        className="p-4 rounded-2xl border transition-all hover:shadow-md flex flex-col justify-between space-y-2 bg-slate-50/50"
+                        style={{ borderColor: `${cat.color}50` }}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span 
+                                className="w-3.5 h-3.5 rounded-full shrink-0 ring-2 ring-white shadow-xs" 
+                                style={{ backgroundColor: cat.color }} 
+                              />
+                              <h5 className="font-black text-xs text-slate-900 leading-tight">
+                                {cat.name}
+                              </h5>
+                            </div>
+                            <span className="text-base shrink-0">{cat.icon}</span>
+                          </div>
+
+                          <p className="text-[11px] text-slate-600 leading-relaxed font-normal">
+                            {cat.description}
+                          </p>
+
+                          <div className="p-2 bg-white rounded-xl border border-slate-200/70 text-[10px] space-y-0.5">
+                            <span className="font-bold text-slate-500 uppercase block">Kriteria SOP Sensus:</span>
+                            <span className="text-slate-800 font-medium leading-relaxed block">{cat.kriteria}</span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 flex items-center justify-between border-t border-slate-200/60">
+                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${cat.badgeBg} ${cat.badgeText} ${cat.badgeBorder}`}>
+                            {cat.group}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedStatuses([cat.id]);
+                              setShowLegendModal(false);
+                            }}
+                            className="text-[10px] font-extrabold text-cyan-700 hover:text-cyan-900 hover:underline cursor-pointer"
+                          >
+                            Tampilkan Hanya Status Ini →
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. KELOMPOK KELUARGA */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 pb-1 border-b border-slate-200">
+                    <Home className="w-4 h-4 text-blue-600" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                      Kategori Keberadaan Keluarga (8 Kategori)
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {STATUS_CATEGORIES.filter(c => c.group === 'Keluarga').map(cat => (
+                      <div
+                        key={cat.id}
+                        className="p-4 rounded-2xl border transition-all hover:shadow-md flex flex-col justify-between space-y-2 bg-slate-50/50"
+                        style={{ borderColor: `${cat.color}50` }}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span 
+                                className="w-3.5 h-3.5 rounded-full shrink-0 ring-2 ring-white shadow-xs" 
+                                style={{ backgroundColor: cat.color }} 
+                              />
+                              <h5 className="font-black text-xs text-slate-900 leading-tight">
+                                {cat.name}
+                              </h5>
+                            </div>
+                            <span className="text-base shrink-0">{cat.icon}</span>
+                          </div>
+
+                          <p className="text-[11px] text-slate-600 leading-relaxed font-normal">
+                            {cat.description}
+                          </p>
+
+                          <div className="p-2 bg-white rounded-xl border border-slate-200/70 text-[10px] space-y-0.5">
+                            <span className="font-bold text-slate-500 uppercase block">Kriteria SOP Sensus:</span>
+                            <span className="text-slate-800 font-medium leading-relaxed block">{cat.kriteria}</span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 flex items-center justify-between border-t border-slate-200/60">
+                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${cat.badgeBg} ${cat.badgeText} ${cat.badgeBorder}`}>
+                            {cat.group}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedStatuses([cat.id]);
+                              setShowLegendModal(false);
+                            }}
+                            className="text-[10px] font-extrabold text-cyan-700 hover:text-cyan-900 hover:underline cursor-pointer"
+                          >
+                            Tampilkan Hanya Status Ini →
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-5 sm:px-7 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedStatuses([]);
+                    setShowLegendModal(false);
+                  }}
+                  className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+                >
+                  Tampilkan Semua 13 Status
+                </button>
+                <button
+                  onClick={() => setShowLegendModal(false)}
+                  className="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-md"
+                >
+                  Tutup Panduan
                 </button>
               </div>
             </motion.div>
