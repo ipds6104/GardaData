@@ -39,6 +39,9 @@ export interface RespondenPoint {
   kb: string;      // kbli
   st: string;      // status
   sk: string;      // skala
+  // Deterministic Matching & Source Attributes
+  mSource?: string; // 'MATCH_TIER1A_DIRECT_NIK' | 'MATCH_TIER1B_FAMILY_ART_NIK' | 'MATCH_TIER2_PHONE' | 'MATCH_TIER3_BUSINESS_ROSTER' | 'MATCH_TIER5_CLEAN_NAME' | 'GEOTAG_LAPANGAN'
+  mConf?: number;   // 100, 99, 95, 90, 88
   // Matching SE-ST attributes:
   m?: number;      // 1 if Matching SE-ST
   mKat?: string;   // Kategori: 'Sebagian Ditemukan' | 'Seluruh Usaha Prelist Tidak Ditemukan' | 'Seluruh Usaha Tutup'
@@ -75,9 +78,19 @@ interface KecamatanMeta {
 
 interface MetadataIndex {
   totalRawRows: number;
-  totalValidPoints: number;
+  totalValidPoints?: number;
+  totalValidOriginalGeotag?: number;
+  totalDeterministicMatched?: number;
+  totalFinalCoordinates?: number;
   totalBerusaha: number;
   totalNonUsaha: number;
+  matchingBreakdown?: {
+    tier1a_direct_nik_match?: number;
+    tier1b_family_art_nik_match?: number;
+    tier2_phone_fingerprint_match?: number;
+    tier3_business_roster_match?: number;
+    tier5_clean_name_match?: number;
+  };
   security?: {
     standard: string;
     dataProtection: string;
@@ -86,6 +99,69 @@ interface MetadataIndex {
   statusCounts: Record<string, number>;
   skalaCounts: Record<string, number>;
   generatedAt: string;
+}
+
+// Helper to get descriptive matching information and database provenance
+export function getCoordinateSourceInfo(point: RespondenPoint) {
+  const src = point.mSource || '';
+  if (src === 'MATCH_TIER1A_DIRECT_NIK') {
+    return {
+      title: 'Padanan Presisi NIK Langsung (Tier 1A)',
+      badge: '100% Eksak NIK',
+      badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+      icon: '⚡',
+      sourceDb: 'DIL EIS PLN Mempawah × NIK KRT/Pengusaha SE2026',
+      description: 'Koordinat rumah diperoleh dari titik meteran PLN yang terdaftar menggunakan NIK KRT / Pelaku Usaha SE2026 secara deterministik.'
+    };
+  }
+  if (src === 'MATCH_TIER1B_FAMILY_ART_NIK') {
+    return {
+      title: 'Padanan NIK Keluarga Inti (Tier 1B)',
+      badge: '100% Eksak Family NIK',
+      badgeClass: 'bg-teal-100 text-teal-900 border-teal-300',
+      icon: '👨‍👩‍👧‍👦',
+      sourceDb: 'DIL EIS PLN Mempawah × Regsosek 2022 (Master ART)',
+      description: 'Koordinat rumah diperoleh dari titik meteran PLN yang terdaftar atas nama salah satu anggota keluarga inti (istri/anak/orang tua) dalam 1 KK Regsosek.'
+    };
+  }
+  if (src === 'MATCH_TIER2_PHONE') {
+    return {
+      title: 'Padanan Kontak HP/Telepon (Tier 2)',
+      badge: '99% Phone Match',
+      badgeClass: 'bg-cyan-100 text-cyan-900 border-cyan-300',
+      icon: '📞',
+      sourceDb: 'DIL EIS PLN Mempawah × Kontak Telepon SE2026',
+      description: 'Koordinat diperoleh dari meteran PLN yang terdaftar dengan nomor HP/telepon identik pada kecamatan yang sama.'
+    };
+  }
+  if (src === 'MATCH_TIER3_BUSINESS_ROSTER') {
+    return {
+      title: 'Padanan Roster Usaha Komersial (Tier 3)',
+      badge: '95% Business Match',
+      badgeClass: 'bg-indigo-100 text-indigo-900 border-indigo-300',
+      icon: '💼',
+      sourceDb: 'DIL EIS PLN Mempawah (Tarif Bisnis) × Roster SE2026',
+      description: 'Koordinat tempat usaha diperoleh dari meteran PLN kategori bisnis/toko yang memiliki nama komersial persis sama di desa ini.'
+    };
+  }
+  if (src === 'MATCH_TIER5_CLEAN_NAME') {
+    return {
+      title: 'Padanan Nama & Batas Desa (Tier 5)',
+      badge: '88% Name Match',
+      badgeClass: 'bg-sky-100 text-sky-900 border-sky-300',
+      icon: '🏢',
+      sourceDb: 'DIL EIS PLN Mempawah × Master Desa SE2026',
+      description: 'Koordinat diperoleh dari meteran PLN dengan nama responden yang cocok di dalam batas wilayah desa yang sama.'
+    };
+  }
+  return {
+    title: 'Geotagging Asli Lapangan (PCL/PML)',
+    badge: '100% Tagging Lapangan',
+    badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+    icon: '🛰️',
+    sourceDb: 'Pendataan Lapangan SE2026 BPS (GPS Tagging)',
+    description: 'Koordinat titik diambil langsung dari geotagging GPS oleh petugas pencacah/pengawas lapangan saat sensus SE2026.'
+  };
 }
 
 // Mempawah Center Coordinates
@@ -275,10 +351,10 @@ function MapController({
   const map = useMap();
 
   useEffect(() => {
-    if (targetCenter) {
+    if (targetBounds) {
+      map.fitBounds(targetBounds, { padding: [40, 40], maxZoom: 18, animate: true, duration: 1.0 });
+    } else if (targetCenter) {
       map.flyTo(targetCenter, targetZoom || 18, { duration: 1.2 });
-    } else if (targetBounds) {
-      map.fitBounds(targetBounds, { padding: [30, 30], maxZoom: 18 });
     }
   }, [map, targetCenter, targetZoom, targetBounds]);
 
@@ -434,13 +510,15 @@ function ViewportPointsLayer({
   onSelectPoint,
   selectedPointId,
   onCopyCoord,
-  copiedId
+  copiedId,
+  isFiltered = false
 }: {
   points: RespondenPoint[];
   onSelectPoint: (p: RespondenPoint) => void;
   selectedPointId?: string;
   onCopyCoord?: (text: string, id: string) => void;
   copiedId?: string | null;
+  isFiltered?: boolean;
 }) {
   const map = useMap();
   const [currentZoom, setCurrentZoom] = useState(map.getZoom());
@@ -461,27 +539,32 @@ function ViewportPointsLayer({
   const visiblePoints = useMemo(() => {
     if (!bounds || points.length === 0) return [];
     
-    const south = bounds.getSouth() - 0.01;
-    const north = bounds.getNorth() + 0.01;
-    const west = bounds.getWest() - 0.01;
-    const east = bounds.getEast() + 0.01;
+    // When filtered, expand bounds buffer and allow higher cap so all points show
+    const pad = isFiltered ? 0.06 : 0.01;
+    const south = bounds.getSouth() - pad;
+    const north = bounds.getNorth() + pad;
+    const west = bounds.getWest() - pad;
+    const east = bounds.getEast() + pad;
 
     const visible: RespondenPoint[] = [];
     const len = points.length;
+    const maxCap = isFiltered ? 25000 : 4000;
 
     for (let i = 0; i < len; i++) {
       const p = points[i];
       if (p.lt >= south && p.lt <= north && p.lg >= west && p.lg <= east) {
         visible.push(p);
-        if (visible.length >= 3500) break;
+        if (visible.length >= maxCap) break;
       }
     }
     return visible;
-  }, [bounds, points]);
+  }, [bounds, points, isFiltered]);
 
-  // When zoomed out (< 12), group by desa clusters for lightning-fast summary rendering
+  // When zoomed out (< 12) AND NOT FILTERED, group by desa clusters for summary
+  const shouldCluster = !isFiltered && points.length > 3000 && currentZoom < 12;
+
   const desaClusters = useMemo(() => {
-    if (currentZoom >= 12 || points.length === 0) return [];
+    if (!shouldCluster || points.length === 0) return [];
     
     const groups: Record<string, { name: string; count: number; usaha: number; latSum: number; lngSum: number }> = {};
     for (let i = 0; i < points.length; i++) {
@@ -510,10 +593,10 @@ function ViewportPointsLayer({
       lat: g.latSum / g.count,
       lng: g.lngSum / g.count
     }));
-  }, [points, currentZoom]);
+  }, [points, shouldCluster]);
 
-  // Zoomed out mode: Render lightweight custom HTML cluster badges
-  if (currentZoom < 12) {
+  // Zoomed out mode: Render lightweight custom HTML cluster badges only when not filtered
+  if (shouldCluster) {
     return (
       <>
         {desaClusters.map((cluster) => {
@@ -852,9 +935,43 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
     return matches;
   }, [allLoadedPoints, searchQuery]);
 
+  // Auto-Focus & Fit Bounds to filtered wilayah
+  useEffect(() => {
+    if (displayedPoints.length === 0) return;
+
+    if (selectedSls !== 'all' || selectedDesa !== 'all' || selectedKec !== 'all') {
+      let minLat = Infinity;
+      let maxLat = -Infinity;
+      let minLng = Infinity;
+      let maxLng = -Infinity;
+
+      for (let i = 0; i < displayedPoints.length; i++) {
+        const pt = displayedPoints[i];
+        if (pt.lt < minLat) minLat = pt.lt;
+        if (pt.lt > maxLat) maxLat = pt.lt;
+        if (pt.lg < minLng) minLng = pt.lg;
+        if (pt.lg > maxLng) maxLng = pt.lg;
+      }
+
+      if (minLat !== Infinity && maxLat !== -Infinity && minLng !== Infinity && maxLng !== -Infinity) {
+        setTargetCenter(null);
+        if (minLat === maxLat && minLng === maxLng) {
+          setTargetCenter([minLat, minLng]);
+          setTargetZoom(18);
+        } else {
+          setTargetBounds([
+            [minLat, minLng],
+            [maxLat, maxLng]
+          ]);
+        }
+      }
+    }
+  }, [selectedKec, selectedDesa, selectedSls, displayedPoints.length]);
+
   // Fly to point on select & open popup
   const handleSelectAndZoomToPoint = (pt: RespondenPoint) => {
     setSelectedPoint(pt);
+    setTargetBounds(null);
     setTargetCenter([pt.lt, pt.lg]);
     setTargetZoom(19);
     setShowSearchDropdown(false);
@@ -897,10 +1014,14 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
 
   // Fly to Mempawah Reset
   const handleResetView = () => {
+    setTargetBounds(null);
     setTargetCenter(MEMPAWAH_CENTER);
     setTargetZoom(MEMPAWAH_DEFAULT_ZOOM);
+    setSelectedKec('all');
+    setSelectedDesa('all');
+    setSelectedSls('all');
+    setFilterUsaha('all');
     setSelectedPoint(null);
-    setSearchQuery('');
     setShowSearchDropdown(false);
   };
 
@@ -1382,6 +1503,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
             selectedPointId={selectedPoint?.i}
             onCopyCoord={handleCopy}
             copiedId={copiedId}
+            isFiltered={selectedKec !== 'all' || selectedDesa !== 'all' || selectedSls !== 'all' || filterUsaha !== 'all' || searchQuery.trim() !== ''}
           />
         </MapContainer>
 
@@ -1698,6 +1820,36 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                     )
                   )}
 
+                  {/* METADATA SUMBER KOORDINAT & HASIL PADANAN (NIK / PLN / LAPANGAN) */}
+                  {(() => {
+                    const srcInfo = getCoordinateSourceInfo(selectedPoint);
+                    return (
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                            <span>{srcInfo.icon}</span>
+                            Sumber & Metode Koordinat
+                          </span>
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${srcInfo.badgeClass}`}>
+                            {srcInfo.badge}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <p className="text-xs font-black text-slate-900 leading-tight">
+                            {srcInfo.title}
+                          </p>
+                          <p className="text-[10px] text-slate-500 font-medium">
+                            <b>Basis Data:</b> {srcInfo.sourceDb}
+                          </p>
+                          <p className="text-[11px] text-slate-600 bg-white p-2 rounded-xl border border-slate-100 leading-relaxed">
+                            {srcInfo.description}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Geospasial Coordinates Card */}
                   <div className="p-3 bg-cyan-50/60 rounded-2xl border border-cyan-100 space-y-2">
                     <span className="text-[10px] font-black uppercase tracking-wider text-cyan-800 flex items-center gap-1">
@@ -1838,6 +1990,37 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                     <span className="text-[10px] text-blue-700 font-medium mt-0.5">
                       Non-Usaha Rumah Tangga
                     </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Breakdown Hasil Pemadanan Presisi NIK & PLN */}
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
+                    Hasil Pemadanan Spasial Presisi NIK + PLN Mempawah
+                  </span>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                    +9.364 Titik Baru
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200">
+                    <span className="text-[9px] font-bold text-slate-500 block uppercase">NIK Langsung (100%):</span>
+                    <span className="text-xs font-black text-slate-900">3.233 Responden</span>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200">
+                    <span className="text-[9px] font-bold text-slate-500 block uppercase">NIK Keluarga/ART (100%):</span>
+                    <span className="text-xs font-black text-slate-900">3.614 Responden</span>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200">
+                    <span className="text-[9px] font-bold text-slate-500 block uppercase">Roster Usaha (95%):</span>
+                    <span className="text-xs font-black text-slate-900">2 Usaha</span>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200">
+                    <span className="text-[9px] font-bold text-slate-500 block uppercase">Nama & Batas Desa (88%):</span>
+                    <span className="text-xs font-black text-slate-900">2.515 Responden</span>
                   </div>
                 </div>
               </div>

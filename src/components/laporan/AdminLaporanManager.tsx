@@ -19,6 +19,17 @@ import {
 import { useTheme } from '../../lib/theme';
 import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES, getRecordVal, cleanText, normalizeKey, normalizeStringVal } from './laporanConstants';
 import { PetugasLaporanModule } from './PetugasLaporanModule';
+import { 
+  getCloudActivities, 
+  saveCloudActivity, 
+  deleteCloudActivity, 
+  getCloudForms, 
+  saveCloudForm, 
+  saveCloudFormsBatch, 
+  deleteCloudForm,
+  getCloudRecords,
+  saveCloudRecords
+} from '../../services/laporanCloudService';
 
 // Helper to sanitize and clean options array (strip brackets, empty tokens, stringified JSON)
 export function sanitizeOptions(raw: any): string[] {
@@ -291,7 +302,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   });
 
   // Move Form Order (Bottom Bar / Sidebar Navigation Order)
-  const handleMoveForm = (index: number, direction: 'up' | 'down') => {
+  const handleMoveForm = async (index: number, direction: 'up' | 'down') => {
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= forms.length) return;
     const updated = [...forms];
@@ -301,6 +312,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     setForms(updated);
     if (selectedActivity?.id) {
       localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updated));
+      await saveCloudFormsBatch(selectedActivity.id, updated);
     }
   };
 
@@ -493,8 +505,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
 
   const baseUrl = (import.meta as any).env.VITE_API_URL || '';
 
-  // 1. Fetch Activities with strong localStorage fallback
+  // 1. Fetch Activities from Cloud DB (Firestore) with local fallback
   const fetchActivities = async () => {
+    // 1. Read local cache for immediate display
     const cached = localStorage.getItem('garda_laporan_activities');
     if (cached) {
       try {
@@ -506,17 +519,28 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     }
 
     try {
+      // 2. Fetch from Firebase Firestore (Shared across all devices/browsers)
+      const cloudActs = await getCloudActivities();
+      if (cloudActs && cloudActs.length > 0) {
+        setActivities(cloudActs);
+        return;
+      }
+
+      // 3. Fallback to REST API if available
       const res = await fetch(`${baseUrl}/api/laporan/activities?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
         const actList = Array.isArray(data) ? data : [];
-        if (actList.length > 0 || !cached) {
+        if (actList.length > 0) {
           setActivities(actList);
           localStorage.setItem('garda_laporan_activities', JSON.stringify(actList));
+          for (const act of actList) {
+            await saveCloudActivity(act);
+          }
         }
       }
     } catch (err) {
-      // Network offline - cached version already active
+      // Offline fallback
     }
   };
 
@@ -524,33 +548,64 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     fetchActivities();
   }, []);
 
-  // 2. Fetch Forms for selected activity with strong localStorage fallback & safe merge
+  // 2. Fetch Forms for selected activity from Cloud DB (Firestore) with safe merge
   const fetchForms = async (actId: string) => {
     if (!actId) return;
     const cached = localStorage.getItem(`garda_laporan_forms_${actId}`);
-    let hasCached = false;
-    let cachedList: any[] = [];
+    let initialList: any[] = [];
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          cachedList = parsed;
+          initialList = parsed;
           setForms(parsed);
           setSelectedFormId(prev => prev || parsed[0].id);
-          hasCached = true;
+          const target = (selectedFormId && parsed.find((f: any) => f.id === selectedFormId)) || parsed[0];
+          if (target) {
+            setFormConfig({
+              title: target.title || '',
+              sheetUrl: target.sheetUrl || selectedActivity?.sheetUrl || '',
+              sheetName: target.sheetName || 'Sheet1',
+              groupingLevels: Array.isArray(target.groupingLevels) ? target.groupingLevels : ['', '', '', '']
+            });
+            if (Array.isArray(target.fields) && target.fields.length > 0) {
+              setFields(target.fields);
+            }
+          }
         }
       } catch (e) {}
     }
 
     try {
+      // 1. Fetch from Firestore Cloud DB
+      const cloudForms = await getCloudForms(actId);
+      if (cloudForms && cloudForms.length > 0) {
+        initialList = cloudForms;
+        setForms(cloudForms);
+        setSelectedFormId(prev => prev || cloudForms[0].id);
+        const target = (selectedFormId && cloudForms.find((f: any) => f.id === selectedFormId)) || cloudForms[0];
+        if (target) {
+          setFormConfig({
+            title: target.title || '',
+            sheetUrl: target.sheetUrl || selectedActivity?.sheetUrl || '',
+            sheetName: target.sheetName || 'Sheet1',
+            groupingLevels: Array.isArray(target.groupingLevels) ? target.groupingLevels : ['', '', '', '']
+          });
+          if (Array.isArray(target.fields) && target.fields.length > 0) {
+            setFields(target.fields);
+          }
+        }
+        return;
+      }
+
+      // 2. Fallback to REST API
       const res = await fetch(`${baseUrl}/api/laporan/activities/${actId}/forms?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
         const formArray = Array.isArray(data) ? data : [];
         if (formArray.length > 0) {
-          // If cached version exists, merge smartly to never lose locally configured schema
           const mergedForms = formArray.map((serverForm: any) => {
-            const matchedCache = cachedList.find((c: any) => c.id === serverForm.id);
+            const matchedCache = initialList.find((c: any) => c.id === serverForm.id);
             if (matchedCache) {
               const cacheHasCustom = Array.isArray(matchedCache.fields) && matchedCache.fields.length > 0;
               const serverHasCustom = Array.isArray(serverForm.fields) && serverForm.fields.length > 0;
@@ -563,7 +618,20 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
 
           setForms(mergedForms);
           localStorage.setItem(`garda_laporan_forms_${actId}`, JSON.stringify(mergedForms));
+          await saveCloudFormsBatch(actId, mergedForms);
           setSelectedFormId(prev => prev || mergedForms[0].id);
+          const target = (selectedFormId && mergedForms.find((f: any) => f.id === selectedFormId)) || mergedForms[0];
+          if (target) {
+            setFormConfig({
+              title: target.title || '',
+              sheetUrl: target.sheetUrl || selectedActivity?.sheetUrl || '',
+              sheetName: target.sheetName || 'Sheet1',
+              groupingLevels: Array.isArray(target.groupingLevels) ? target.groupingLevels : ['', '', '', '']
+            });
+            if (Array.isArray(target.fields) && target.fields.length > 0) {
+              setFields(target.fields);
+            }
+          }
           return;
         }
       }
@@ -571,7 +639,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       // Network error - keep cached
     }
 
-    if (!hasCached) {
+    if (initialList.length === 0) {
       createDefaultFormForActivity(actId);
     }
   };
@@ -607,6 +675,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     } catch (e) {}
 
     setForms([defaultFormObj]);
+    localStorage.setItem(`garda_laporan_forms_${actId}`, JSON.stringify([defaultFormObj]));
+    await saveCloudForm(defaultFormObj);
     setSelectedFormId(defaultFormObj.id);
     setFields(defaultFormObj.fields);
   };
@@ -735,6 +805,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     const updatedList = activities.map(a => a.id === act.id ? updatedAct : a);
     setActivities(updatedList);
     localStorage.setItem('garda_laporan_activities', JSON.stringify(updatedList));
+    await saveCloudActivity(updatedAct);
 
     setSyncAlert({
       type: 'success',
@@ -783,6 +854,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     const updated = [newAct, ...activities];
     setActivities(updated);
     localStorage.setItem('garda_laporan_activities', JSON.stringify(updated));
+    await saveCloudActivity(newAct);
 
     setIsNewActivityModalOpen(false);
     setNewActivityForm({
@@ -841,6 +913,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     const updatedForms = [...forms, newFormObj];
     setForms(updatedForms);
     localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
+    await saveCloudForm(newFormObj);
     setSelectedFormId(newFormObj.id);
     setIsNewFormModalOpen(false);
     setNewFormTitle('');
@@ -1271,11 +1344,16 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         }
       };
 
-      await fetch(`${baseUrl}/api/laporan/activities/${selectedActivity.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedActivityObj)
-      });
+      try {
+        await fetch(`${baseUrl}/api/laporan/activities/${selectedActivity.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedActivityObj)
+        });
+      } catch (e) {}
+
+      // Save Activity to Cloud DB
+      await saveCloudActivity(updatedActivityObj);
 
       setSelectedActivity(updatedActivityObj);
 
@@ -1302,10 +1380,23 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         setForms(updatedForms);
         localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
         setFields(sanitizedFields);
+
+        // Save Form Config & Schema to Firestore Cloud DB
+        const formToSave = updatedForms.find(f => f.id === selectedFormId);
+        if (formToSave) {
+          await saveCloudForm({
+            ...formToSave,
+            activityId: selectedActivity.id,
+            uxSettings,
+            autoSettings,
+            securitySettings,
+            reportSettings
+          });
+        }
       }
 
       setSimulatorKey(Date.now());
-      setSyncAlert({ type: 'success', message: 'Seluruh konfigurasi skema, UI, otomatisasi, dan keamanan berhasil disimpan!' });
+      setSyncAlert({ type: 'success', message: '☁️ Seluruh konfigurasi tersimpan ke Cloud Database dan tersinkronisasi di semua perangkat!' });
     } catch (err) {
       setSyncAlert({ type: 'success', message: 'Konfigurasi disimpan secara lokal.' });
     } finally {
@@ -1336,18 +1427,20 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         publishedAt: new Date().toISOString()
       };
 
-      // 1. Post to Backend Publish Endpoint
-      const res = await fetch(`${baseUrl}/api/laporan/forms/${selectedFormId}/publish`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(publishPayload)
-      });
-
+      // 1. Post to Backend Publish Endpoint if available
       let pubVersion = (selectedForm?.version || 1) + 1;
-      if (res.ok) {
-        const data = await res.json();
-        if (data.form && data.form.version) pubVersion = data.form.version;
-      }
+      try {
+        const res = await fetch(`${baseUrl}/api/laporan/forms/${selectedFormId}/publish`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(publishPayload)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.form && data.form.version) pubVersion = data.form.version;
+        }
+      } catch (e) {}
 
       // 2. Update Local State & Cache
       const updatedForms = forms.map(f => {
@@ -1357,7 +1450,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             ...publishPayload,
             version: pubVersion,
             publishedSchema: sanitizedFields,
-            publishedGroupings: cleanGroupings
+            publishedGroupings: cleanGroupings,
+            publishedFields: sanitizedFields,
+            publishedGroupingFields: cleanGroupings
           };
         }
         return f;
@@ -1378,15 +1473,25 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       setActivities(updatedActs);
       localStorage.setItem('garda_laporan_activities', JSON.stringify(updatedActs));
 
+      // 3. Save directly to Cloud DB (Firestore) for Instant Cross-Device Sync
+      const publishedFormObj = updatedForms.find(f => f.id === selectedFormId);
+      if (publishedFormObj) {
+        await saveCloudForm({
+          ...publishedFormObj,
+          activityId: selectedActivity.id
+        });
+      }
+      await saveCloudActivity(updatedActivityObj);
+
       setSimulatorKey(Date.now());
       setSyncAlert({
         type: 'success',
-        message: `🚀 Formulir Berhasil Dipublish (Versi ${pubVersion})! Seluruh Petugas kini dapat mengakses konfigurasi terbaru.`
+        message: `🚀 Formulir Berhasil Dipublish ke Cloud (Versi ${pubVersion})! Seluruh Petugas di semua perangkat kini dapat mengakses konfigurasi terbaru secara real-time.`
       });
     } catch (err: any) {
       setSyncAlert({
         type: 'error',
-        message: 'Gagal mempublish formulir ke server: ' + (err.message || 'Koneksi terputus')
+        message: 'Gagal mempublish formulir: ' + (err.message || 'Koneksi terputus')
       });
     } finally {
       setIsPublishing(false);
@@ -1462,19 +1567,27 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       setDeleteBackupModal(prev => prev ? { ...prev, isDeleting: true } : null);
 
       if (type === 'activity') {
-        await fetch(`${baseUrl}/api/laporan/activities/${item.id}`, { method: 'DELETE' });
+        try {
+          await fetch(`${baseUrl}/api/laporan/activities/${item.id}`, { method: 'DELETE' });
+        } catch (e) {}
+        await deleteCloudActivity(item.id);
         const remaining = activities.filter(a => a.id !== item.id);
         setActivities(remaining);
         localStorage.setItem('garda_laporan_activities', JSON.stringify(remaining));
         setAdminScreen('apps_home');
         setSelectedActivity(null);
       } else {
-        await fetch(`${baseUrl}/api/laporan/forms/${item.id}`, { method: 'DELETE' });
-        if (selectedActivity?.id) fetchForms(selectedActivity.id);
+        try {
+          await fetch(`${baseUrl}/api/laporan/forms/${item.id}`, { method: 'DELETE' });
+        } catch (e) {}
+        if (selectedActivity?.id) {
+          await deleteCloudForm(selectedActivity.id, item.id);
+          fetchForms(selectedActivity.id);
+        }
       }
 
       setDeleteBackupModal(null);
-      setSyncAlert({ type: 'success', message: 'Item berhasil dihapus dari database.' });
+      setSyncAlert({ type: 'success', message: 'Item berhasil dihapus dari database cloud.' });
       setTimeout(() => setSyncAlert(null), 3000);
     } catch (err) {
       alert('Gagal menghapus item.');
