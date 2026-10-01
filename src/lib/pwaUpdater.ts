@@ -7,6 +7,16 @@
 export function initPwaUpdater() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 
+  // Tangani saat Service Worker versi baru mengambil alih kendali halaman
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      console.log('[PWA] Versi baru terdeteksi. Memperbarui halaman secara otomatis...');
+      window.location.reload();
+    }
+  });
+
   const checkRegistrationUpdate = () => {
     if (!navigator.onLine) return;
     navigator.serviceWorker.getRegistration().then((reg) => {
@@ -19,11 +29,11 @@ export function initPwaUpdater() {
   };
 
   window.addEventListener('load', () => {
-    // 1. Cek update 1.5 detik setelah aplikasi selesai dimuat
-    setTimeout(checkRegistrationUpdate, 1500);
+    // 1. Cek update 1 detik setelah aplikasi selesai dimuat
+    setTimeout(checkRegistrationUpdate, 1000);
 
-    // 2. Cek update berkala setiap 5 menit saat user online
-    setInterval(checkRegistrationUpdate, 5 * 60 * 1000);
+    // 2. Cek update berkala setiap 3 menit saat user online
+    setInterval(checkRegistrationUpdate, 3 * 60 * 1000);
 
     // 3. Cek update saat tab aplikasi kembali dibuka/fokus (visibilitychange)
     document.addEventListener('visibilitychange', () => {

@@ -14,14 +14,28 @@
   </head>
   <body>
     <div id="root">
-      <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0b0f19; font-family: system-ui, -apple-system, sans-serif; color: #94a3b8;">
+      <div id="garda-splash-loading" style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0b0f19; font-family: system-ui, -apple-system, sans-serif; color: #94a3b8; padding: 20px; text-align: center;">
         <div style="position: relative; width: 64px; height: 64px; margin-bottom: 20px;">
           <img src="/logo.png" alt="Garda Data" style="width: 100%; height: 100%; object-fit: contain; animation: gardaPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;" onerror="this.style.display='none'" />
         </div>
-        <div style="font-size: 16px; font-weight: 700; color: #f8fafc; letter-spacing: 0.05em; margin-bottom: 6px;">
+        <div style="font-size: 18px; font-weight: 800; color: #f8fafc; letter-spacing: 0.05em; margin-bottom: 6px;">
           GARDA DATA
         </div>
-        <div style="font-size: 13px; color: #64748b;">Memuat aplikasi...</div>
+        <div style="font-size: 13px; color: #64748b; margin-bottom: 16px;">Memuat aplikasi...</div>
+        
+        <!-- Auto Recovery Button Container (Tampil jika loading memakan waktu lebih lama dari normal) -->
+        <div id="garda-recovery-action" style="display: none; max-width: 320px; margin-top: 10px; padding: 14px; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(71, 85, 105, 0.4); border-radius: 16px; backdrop-filter: blur(8px);">
+          <p style="font-size: 11px; color: #94a3b8; line-height: 1.5; margin: 0 0 10px 0;">
+            Terdeteksi pembaruan versi baru atau cache browser tertahan.
+          </p>
+          <button 
+            type="button" 
+            onclick="window.forceBypassCacheAndReload && window.forceBypassCacheAndReload('Tombol Muat Ulang Manual')"
+            style="background: #0891b2; hover: background: #0e7490; color: #ffffff; border: none; padding: 8px 16px; font-size: 12px; font-weight: 700; border-radius: 10px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);"
+          >
+            Muat Ulang Versi Terbaru ↻
+          </button>
+        </div>
       </div>
       <style>
         @keyframes gardaPulse {
@@ -30,12 +44,71 @@
         }
       </style>
     </div>
+
+    <!-- PWA & Stale Cache Auto-Recovery Watchdog -->
     <script>
-      // Tangani transisi deployment baru jika chunk hash lama tidak ditemukan di server
-      window.addEventListener('vite:preloadError', (event) => {
-        console.warn('[Vite] Preload error terdeteksi. Memuat ulang aplikasi...', event);
-        window.location.reload();
-      });
+      (function() {
+        function forceBypassCacheAndReload(reason) {
+          console.warn('[Garda Data Auto-Recovery] Membersihkan stale cache:', reason);
+          try {
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                return Promise.all(names.map(function(n) { return caches.delete(n); }));
+              }).catch(function(e) { console.warn(e); });
+            }
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(regs) {
+                return Promise.all(regs.map(function(r) { return r.unregister(); }));
+              }).catch(function(e) { console.warn(e); });
+            }
+            sessionStorage.clear();
+          } catch (e) {
+            console.warn(e);
+          }
+          setTimeout(function() {
+            var url = window.location.origin + window.location.pathname + '?_v=' + Date.now();
+            window.location.replace(url);
+          }, 350);
+        }
+
+        window.forceBypassCacheAndReload = forceBypassCacheAndReload;
+
+        // 1. Tangkap error loading chunk JS baru vs cache lama
+        window.addEventListener('vite:preloadError', function(event) {
+          event.preventDefault();
+          forceBypassCacheAndReload('Vite Chunk Preload Error');
+        });
+
+        window.addEventListener('error', function(e) {
+          var msg = (e && e.message) ? e.message.toLowerCase() : '';
+          if (msg.indexOf('failed to fetch dynamically imported module') !== -1 ||
+              msg.indexOf('loading chunk') !== -1 ||
+              msg.indexOf('unexpected token <') !== -1 ||
+              msg.indexOf('is not a valid javascript mime type') !== -1) {
+            forceBypassCacheAndReload('Script Chunk Mismatch Error: ' + msg);
+          }
+        });
+
+        // 2. Watchdog Timer: Jika 4 detik belum ter-mount, tampilkan tombol muat ulang
+        var watchdogTimer = setTimeout(function() {
+          var splash = document.getElementById('garda-splash-loading');
+          if (splash) {
+            var recoveryBox = document.getElementById('garda-recovery-action');
+            if (recoveryBox) recoveryBox.style.display = 'block';
+
+            // Jika dalam 8.5 detik masih belum ter-mount, jalankan reload otomatis
+            setTimeout(function() {
+              if (document.getElementById('garda-splash-loading')) {
+                forceBypassCacheAndReload('Watchdog Timeout (React Mount Hang)');
+              }
+            }, 4500);
+          }
+        }, 4000);
+
+        window.__gardaAppMounted = function() {
+          clearTimeout(watchdogTimer);
+        };
+      })();
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>

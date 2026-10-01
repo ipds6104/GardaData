@@ -13,3 +13,8 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 );
+
+// Tandai aplikasi sukses ter-mount dan batalkan watchdog splash timer
+if (typeof window !== 'undefined' && (window as any).__gardaAppMounted) {
+  (window as any).__gardaAppMounted();
+}
