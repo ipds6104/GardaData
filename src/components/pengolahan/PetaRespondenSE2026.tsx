@@ -57,9 +57,9 @@ export interface RespondenPoint {
   mCCnt?: number;  // Jml usaha tutup
   mNotes?: string; // Catatan lapangan
   pml?: string;    // Email / Kode PML
-  ppl?: string;    // Email / Kode PPL
   pmlName?: string;// Nama PML
   pplName?: string;// Nama PPL
+  pjKuda?: string; // Penanggung Jawab Kualitas Data (PJ KuDa BPS)
   telp?: string;   // No Telp Responden
   resp?: string;   // Nama Responden Pemberi Informasi
 }
@@ -577,7 +577,7 @@ const SearchableFilterDropdown: React.FC<SearchableFilterDropdownProps> = ({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.98 }}
               transition={{ duration: 0.16, ease: 'easeOut' }}
-              className="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-full sm:left-0 sm:mt-1.5 z-[1310] sm:z-[100] min-w-full sm:min-w-[280px] sm:max-w-[380px] sm:w-max bg-white border-t sm:border border-slate-200/90 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-96"
+              className="fixed inset-x-0 bottom-0 sm:absolute sm:inset-auto sm:top-full sm:left-0 sm:mt-1.5 z-[1310] sm:z-[100] min-w-full sm:min-w-[280px] sm:max-w-[380px] sm:w-max bg-white border-t sm:border border-slate-200/90 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-96"
             >
               {/* Mobile Header with Drag Handle */}
               <div className="sm:hidden pt-3 pb-2 px-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
@@ -871,7 +871,7 @@ const MultiSelectStatusDropdown: React.FC<MultiSelectStatusDropdownProps> = ({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.98 }}
               transition={{ duration: 0.16, ease: 'easeOut' }}
-              className="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-full sm:left-0 sm:mt-1.5 z-[1310] sm:z-[100] min-w-full sm:min-w-[280px] sm:max-w-[340px] bg-white border-t sm:border border-slate-200/90 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-96"
+              className="fixed inset-x-0 bottom-0 sm:absolute sm:inset-auto sm:top-full sm:left-0 sm:mt-1.5 z-[1310] sm:z-[100] min-w-full sm:min-w-[280px] sm:max-w-[340px] bg-white border-t sm:border border-slate-200/90 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-96"
             >
               {/* Header & Quick Action Buttons */}
               <div className="p-3 sm:p-2.5 border-b border-slate-100 bg-slate-50/90 space-y-2">
@@ -1130,7 +1130,7 @@ const MultiSelectSlsDropdown: React.FC<MultiSelectSlsDropdownProps> = ({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.98 }}
               transition={{ duration: 0.16, ease: 'easeOut' }}
-              className="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-full sm:left-0 sm:mt-1.5 z-[1310] sm:z-[100] min-w-full sm:min-w-[280px] sm:max-w-[340px] bg-white border-t sm:border border-slate-200/90 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-96"
+              className="fixed inset-x-0 bottom-0 sm:absolute sm:inset-auto sm:top-full sm:left-0 sm:mt-1.5 z-[1310] sm:z-[100] min-w-full sm:min-w-[280px] sm:max-w-[340px] bg-white border-t sm:border border-slate-200/90 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-96"
             >
               {/* Header & Quick Action Buttons */}
               <div className="p-3 sm:p-2.5 border-b border-slate-100 bg-slate-50/90 space-y-2">
@@ -3287,7 +3287,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   )
                 )}
 
-                {/* INFORMASI PETUGAS LAPANGAN SE2026 (PPL & PML) */}
+                {/* INFORMASI PETUGAS LAPANGAN SE2026 (PPL, PML & PJ KUDA) */}
                 {(() => {
                   const rawPpl = (selectedPoint.ppl || '').trim();
                   const rawPplName = (selectedPoint.pplName || '').trim();
@@ -3300,14 +3300,15 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   const canonicalPml = (rawPml ? pmlCanonicalByName.get(rawPml.toUpperCase()) : undefined) || (rawPmlName ? pmlCanonicalByName.get(rawPmlName.toUpperCase()) : undefined);
                   const displayPmlName = canonicalPml?.name || rawPmlName || rawPml;
                   const displayPmlEmail = canonicalPml?.email || (rawPml.includes('@') ? rawPml : '');
+                  const rawPjKuda = (selectedPoint.pjKuda || '').trim();
 
-                  if (!displayPplName && !displayPplEmail && !displayPmlName && !displayPmlEmail) return null;
+                  if (!displayPplName && !displayPplEmail && !displayPmlName && !displayPmlEmail && !rawPjKuda) return null;
 
                   return (
                     <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2 text-xs">
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <UserCheck className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
-                        Petugas Lapangan SE2026
+                        Petugas & Penanggung Jawab Sensus SE2026
                       </span>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {/* PPL */}
@@ -3325,7 +3326,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
 
                         {/* PML */}
                         <div className="p-2.5 bg-white rounded-xl border border-slate-200/70 space-y-0.5">
-                          <span className="text-[9px] text-slate-400 block font-black uppercase tracking-wider">Petugas Pengawas (PML):</span>
+                          <span className="text-[9px] text-slate-400 block font-black uppercase tracking-wider">Petugas Pemeriksa (PML):</span>
                           <div className="font-extrabold text-slate-900 leading-snug">
                             {displayPmlName || '-'}
                           </div>
@@ -3335,6 +3336,17 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                             </div>
                           )}
                         </div>
+
+                        {/* PJ KuDa */}
+                        {rawPjKuda && (
+                          <div className="p-2.5 bg-white rounded-xl border border-slate-200/70 space-y-0.5 sm:col-span-2">
+                            <span className="text-[9px] text-slate-400 block font-black uppercase tracking-wider">PJ Kualitas Data (PJ KuDa):</span>
+                            <div className="font-extrabold text-slate-900 leading-snug flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.2 rounded bg-cyan-100 text-cyan-800 text-[9px] font-black uppercase">Organik BPS</span>
+                              <span>{rawPjKuda}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

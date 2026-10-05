@@ -659,8 +659,8 @@ def main():
                         if not p.get('pmlName'): p['pmlName'] = n_pml or best_row.get('pml')
                     p['telp'] = best_row.get('no_telp_responden', '') if best_row.get('no_telp_responden', '') != '-' else ''
                     p['resp'] = best_row.get('nama_responden_pemberi_informasi', '')
-                    if not p.get('peng'):
-                        p['peng'] = clean_str(best_row.get('pj_kuda', ''))
+                    if best_row.get('pj_kuda'):
+                        p['pjKuda'] = clean_str(best_row.get('pj_kuda', ''))
                     total_sest_matched += 1
 
             # Pass 2: Fast Name Lookup in same Kecamatan
@@ -692,8 +692,8 @@ def main():
                             if not p.get('pmlName'): p['pmlName'] = n_pml or r.get('pml')
                         p['telp'] = r.get('no_telp_responden', '') if r.get('no_telp_responden', '') != '-' else ''
                         p['resp'] = r.get('nama_responden_pemberi_informasi', '')
-                        if not p.get('peng'):
-                            p['peng'] = clean_str(r.get('pj_kuda', ''))
+                        if r.get('pj_kuda'):
+                            p['pjKuda'] = clean_str(r.get('pj_kuda', ''))
                         total_sest_matched += 1
                         break
 
@@ -708,7 +708,7 @@ def main():
                                 d_name = clean_str(r.get('desa_kelurahan', 'DESA'))
                                 s_name = str(r.get('nama_sls', 'SLS')).strip()
                                 s_code = str(r.get('kode_sls', '')).strip()
-                                pj_usaha = clean_str(r.get('pj_kuda', '') or r.get('nama_responden_pemberi_informasi', ''))
+                                pj_kuda_val = clean_str(r.get('pj_kuda', ''))
                                 e_ppl, n_ppl = resolve_officer_ppl(r.get('ppl', ''))
                                 e_pml, n_pml = resolve_officer_pml(r.get('pml', ''))
                                 new_pt = {
@@ -723,6 +723,7 @@ def main():
                                     'u': int(float(r.get('jumlah_usaha_ditemukan', 0))) if str(r.get('jumlah_usaha_ditemukan', '')).isdigit() else 0,
                                     'nu': r.get('daftar_usaha_ditemukan', '') or r.get('daftar_usaha_tidak_ditemukan', ''),
                                     'kb': '',
+                                    'pjKuda': pj_kuda_val,
                                     'st': r.get('status_keberadaan_keluarga', 'Ditemukan'),
                                     'sk': 'MATCHING SE-ST',
                                     'stKel': r.get('status_keberadaan_keluarga', 'Ditemukan'),
