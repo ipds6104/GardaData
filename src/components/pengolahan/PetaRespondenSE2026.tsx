@@ -3093,14 +3093,38 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                       <span className="font-black text-right text-slate-900">{selectedPoint.k || '-'}</span>
                     </div>
 
-                    {/* 2. Nama Pemilik / Pengelola Usaha */}
-                    {isValidText(selectedPoint.peng) && (
+                    {/* 2. Nama Usaha (Jika Keluarga Memiliki Usaha) */}
+                    {(selectedPoint.u > 0 || isValidText(selectedPoint.nu) || isValidText(selectedPoint.mFound)) && (
                       <div className="p-2 bg-emerald-50/90 rounded-xl border border-emerald-200/80 flex items-start justify-between gap-2">
                         <span className="text-[10px] font-black uppercase text-emerald-900 flex items-center gap-1 shrink-0">
-                          <UserCheck className="w-3 h-3 text-emerald-700" />
+                          <Briefcase className="w-3 h-3 text-emerald-700" />
+                          Nama Usaha:
+                        </span>
+                        <div className="text-right">
+                          <span className="font-black text-emerald-950 block">
+                            {isValidText(selectedPoint.nu)
+                              ? selectedPoint.nu
+                              : isValidText(selectedPoint.mFound)
+                              ? selectedPoint.mFound
+                              : 'Usaha Keluarga (Tanpa Nama Komersial)'}
+                          </span>
+                          {selectedPoint.u > 0 && (
+                            <span className="text-[10px] font-bold text-emerald-700 inline-block mt-0.5">
+                              Jumlah: {selectedPoint.u} Usaha
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Nama Pemilik / Pengelola Usaha */}
+                    {isValidText(selectedPoint.peng) && (
+                      <div className="p-2 bg-slate-100/90 rounded-xl border border-slate-200/80 flex items-start justify-between gap-2">
+                        <span className="text-[10px] font-bold uppercase text-slate-600 flex items-center gap-1 shrink-0">
+                          <UserCheck className="w-3 h-3 text-slate-600" />
                           Pemilik / Pengelola:
                         </span>
-                        <span className="font-black text-right text-emerald-950">{selectedPoint.peng}</span>
+                        <span className="font-extrabold text-right text-slate-900">{selectedPoint.peng}</span>
                       </div>
                     )}
                   </div>
@@ -3260,29 +3284,55 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   </div>
                 ) : (
                   /* Info Usaha Biasa (SE2026) */
-                  (isValidText(selectedPoint.nu) || isValidText(selectedPoint.peng)) && (
-                    <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className="font-extrabold text-emerald-900 text-xs flex items-center gap-1.5">
-                          <Briefcase className="w-4 h-4 text-emerald-700" />
-                          {isValidText(selectedPoint.nu) ? selectedPoint.nu : 'Kegiatan Usaha Responden'}
+                  (selectedPoint.u > 0 || isValidText(selectedPoint.nu) || isValidText(selectedPoint.peng) || isValidText(selectedPoint.kb)) && (
+                    <div className="p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200/90 space-y-2.5">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-emerald-200/60">
+                        <p className="font-extrabold text-emerald-950 text-xs flex items-center gap-1.5">
+                          <Briefcase className="w-4 h-4 text-emerald-700 shrink-0" />
+                          Profil Kegiatan Usaha Keluarga
                         </p>
                         {selectedPoint.u > 0 && (
-                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
                             {selectedPoint.u} Usaha
                           </span>
                         )}
                       </div>
-                      
-                      {isValidText(selectedPoint.peng) && (
-                        <div className="p-2 bg-white/80 rounded-xl border border-emerald-200/60 flex items-center justify-between gap-2 text-xs">
-                          <span className="text-[10px] font-bold text-emerald-800 uppercase">Pemilik/Pengelola:</span>
-                          <span className="font-black text-emerald-950">{selectedPoint.peng}</span>
+
+                      <div className="space-y-1.5 text-xs">
+                        {/* Nama Usaha */}
+                        <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Nama Usaha:</span>
+                          <span className="font-black text-right text-emerald-950">
+                            {isValidText(selectedPoint.nu)
+                              ? selectedPoint.nu
+                              : 'Usaha Keluarga (Tanpa Nama Komersial)'}
+                          </span>
                         </div>
-                      )}
-                      
-                      {isValidText(selectedPoint.kb) && <p className="text-[11px] text-emerald-800 font-medium">{selectedPoint.kb}</p>}
-                      {isValidText(selectedPoint.sk) && <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Skala: {selectedPoint.sk}</p>}
+
+                        {/* Pemilik / Pengelola */}
+                        {isValidText(selectedPoint.peng) && (
+                          <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Pemilik / Pengelola:</span>
+                            <span className="font-black text-right text-emerald-950">{selectedPoint.peng}</span>
+                          </div>
+                        )}
+
+                        {/* Deskripsi KBLI */}
+                        {isValidText(selectedPoint.kb) && (
+                          <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Kategori KBLI:</span>
+                            <span className="font-medium text-right text-emerald-900">{selectedPoint.kb}</span>
+                          </div>
+                        )}
+
+                        {/* Skala Usaha */}
+                        {isValidText(selectedPoint.sk) && (
+                          <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Skala Usaha:</span>
+                            <span className="font-bold text-right text-emerald-900 uppercase tracking-wide">{selectedPoint.sk}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )
                 )}

@@ -223,7 +223,7 @@ def main():
     se_by_ass = {}
     for r in se_df.to_dict('records'):
         a_id = str(r.get('assignment_id', '')).strip()
-        n_usaha = clean_str(r.get('nama_usaha', ''))
+        n_usaha = clean_str(r.get('nama_usaha', '') or r.get('nama_usaha_edit', '') or r.get('nama_komersial', '') or r.get('keg_utama', ''))
         n_kom = clean_str(r.get('nama_komersial', ''))
         kbli = str(r.get('kbli_label', '') or r.get('kbli_akhir', '')).strip()
         skala = str(r.get('skala_usaha', '')).strip()
@@ -487,8 +487,24 @@ def main():
                 nama_kk = 'Responden SE2026'
                 
             raw_nama_usaha = str(r.get('se2026_nama_usaha', '') or r.get('se2026_nama_komersial', '') or r.get('root_label_usaha', '')).strip()
-            safe_nama_usaha = raw_nama_usaha[:60] if len(raw_nama_usaha) > 60 else raw_nama_usaha
+            if not raw_nama_usaha and a_id in se_by_ass:
+                biz_names = [b['nama_usaha'] or b['nama_komersial'] for b in se_by_ass[a_id] if b.get('nama_usaha') or b.get('nama_komersial')]
+                if biz_names:
+                    raw_nama_usaha = '; '.join(dict.fromkeys(biz_names))
+            if not raw_nama_usaha and a_id in se_by_ass:
+                keg_list = [b['kbli'] for b in se_by_ass[a_id] if b.get('kbli')]
+                if keg_list:
+                    raw_nama_usaha = '; '.join(dict.fromkeys(keg_list))
+            if raw_nama_usaha.lower() in ['none', 'nan', 'null', '-']:
+                raw_nama_usaha = ''
+
+            safe_nama_usaha = raw_nama_usaha[:100] if len(raw_nama_usaha) > 100 else raw_nama_usaha
+            
             kbli_desc = str(r.get('se2026_kbli_label', '') or r.get('se2026_kbli_akhir', '')).strip()
+            if not kbli_desc and a_id in se_by_ass:
+                kblis = [b['kbli'] for b in se_by_ass[a_id] if b.get('kbli')]
+                if kblis:
+                    kbli_desc = '; '.join(dict.fromkeys(kblis))
 
             # Nama Pemilik / Pengelola Usaha
             pengusaha = clean_str(r.get('se2026_pengusaha', '')) or clean_str(r.get('se2026_pengusaha_var_label', '')) or clean_str(parse_prelist_label(r.get('se2026_pengusaha_var_prelist', '')))

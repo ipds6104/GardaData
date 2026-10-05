@@ -1,5 +1,5 @@
 {
-  "totalResponden": 89128,
+  "totalResponden": 89111,
   "totalBerusaha": 45790,
   "totalNonUsaha": 43321,
   "security": {
@@ -11,7 +11,7 @@
       "kecCode": "080",
       "kecName": "JONGKAT",
       "rawKec": "[080] JONGKAT",
-      "total": 14647,
+      "total": 14646,
       "totalBerusaha": 6594,
       "totalNonUsaha": 8052,
       "desaList": [
@@ -1201,7 +1201,7 @@
       "kecCode": "081",
       "kecName": "SEGEDONG",
       "rawKec": "[081] SEGEDONG",
-      "total": 7342,
+      "total": 7340,
       "totalBerusaha": 4222,
       "totalNonUsaha": 3118,
       "desaList": [
@@ -1901,7 +1901,7 @@
       "kecCode": "090",
       "kecName": "SUNGAI PINYUH",
       "rawKec": "[090] SUNGAI PINYUH",
-      "total": 17602,
+      "total": 17600,
       "totalBerusaha": 8235,
       "totalNonUsaha": 9365,
       "desaList": [
@@ -2991,7 +2991,7 @@
       "kecCode": "091",
       "kecName": "ANJONGAN",
       "rawKec": "[091] ANJONGAN",
-      "total": 6314,
+      "total": 6312,
       "totalBerusaha": 3470,
       "totalNonUsaha": 2842,
       "desaList": [
@@ -4411,7 +4411,7 @@
       "kecCode": "101",
       "kecName": "MEMPAWAH TIMUR",
       "rawKec": "[101] MEMPAWAH TIMUR",
-      "total": 10394,
+      "total": 10392,
       "totalBerusaha": 4989,
       "totalNonUsaha": 5403,
       "desaList": [
@@ -5291,7 +5291,7 @@
       "kecCode": "110",
       "kecName": "SUNGAI KUNYIT",
       "rawKec": "[110] SUNGAI KUNYIT",
-      "total": 9903,
+      "total": 9901,
       "totalBerusaha": 5768,
       "totalNonUsaha": 4133,
       "desaList": [
@@ -6081,7 +6081,7 @@
       "kecCode": "120",
       "kecName": "TOHO",
       "rawKec": "[120] TOHO",
-      "total": 6339,
+      "total": 6336,
       "totalBerusaha": 4306,
       "totalNonUsaha": 2030,
       "desaList": [
@@ -6626,7 +6626,7 @@
       "kecCode": "121",
       "kecName": "SADANIANG",
       "rawKec": "[121] SADANIANG",
-      "total": 3292,
+      "total": 3289,
       "totalBerusaha": 2428,
       "totalNonUsaha": 861,
       "desaList": [
@@ -7024,11 +7024,11 @@
     }
   ],
   "statusCounts": {
-    "APPROVED BY Pengawas": 89128
+    "APPROVED BY Pengawas": 89111
   },
   "skalaCounts": {
     "Usaha Mikro Kecil (UMK)": 45790,
     "Non Usaha / Keluarga": 43321
   },
-  "generatedAt": "2026-10-05T17:36:59.841818"
+  "generatedAt": "2026-10-05T18:57:44.059425"
 }
