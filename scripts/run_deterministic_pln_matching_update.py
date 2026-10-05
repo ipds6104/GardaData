@@ -68,6 +68,12 @@ def is_val_filled(val):
     s = str(val).strip()
     return s not in ['', 'None', 'nan', 'NaN', 'null', 'NULL', '-']
 
+def parse_prelist_label(val):
+    if not val or pd.isna(val):
+        return ''
+    m = re.search(r'label=([^,\}\]]+)', str(val))
+    return m.group(1).strip() if m else ''
+
 def main():
     print("=" * 90)
     print("🚀 HIGH-ACCURACY DETERMINISTIC NIK + PLN SPATIAL MATCHING PIPELINE (UPDATE 01-10-2026)")
@@ -221,6 +227,9 @@ def main():
         kbli = str(r.get('kbli_label', '') or r.get('kbli_akhir', '')).strip()
         skala = str(r.get('skala_usaha', '')).strip()
         has_cost_sales = is_val_filled(r.get('total_pendapatan')) or is_val_filled(r.get('biaya_produksi')) or is_val_filled(r.get('total_pengeluaran'))
+        p_name = clean_str(r.get('pengusaha', '')) or clean_str(r.get('pengusaha_var_label', '')) or clean_str(parse_prelist_label(r.get('pengusaha_var_prelist', '')))
+        no_bang = str(r.get('no_bang_l', '') or '').strip()
+        if no_bang in ['None', 'nan', 'NaN', 'null']: no_bang = ''
         
         if a_id not in se_by_ass:
             se_by_ass[a_id] = []
@@ -229,7 +238,9 @@ def main():
             'nama_komersial': n_kom,
             'kbli': kbli,
             'skala': skala,
-            'has_cost_sales': has_cost_sales
+            'has_cost_sales': has_cost_sales,
+            'pengusaha': p_name,
+            'no_bang': no_bang
         })
 
     kec_name_to_code = {
@@ -410,15 +421,35 @@ def main():
         if lat is not None and lng is not None and -1.0 <= lat <= 1.5 and 108.0 <= lng <= 110.5:
             stats['totalFinalCoordinates'] += 1
             
-            nama_kk = str(r.get('root_nama_principal', '') or r.get('root_nama_kk', '') or r.get('se2026_pengusaha', 'Responden SE2026')).strip()
+            nama_kk = str(r.get('root_nama_kk', '') or r.get('root_dtsen_nama_kk', '') or r.get('root_nama_principal', '') or r.get('se2026_pengusaha', 'Responden SE2026')).strip()
             if ' / ' in nama_kk:
                 nama_kk = nama_kk.split(' / ')[0].strip()
+            if not nama_kk or nama_kk.lower() in ['none', 'nan', 'null', '-']:
+                nama_kk = str(r.get('root_nama_principal', '') or 'Responden SE2026').strip()
             if not nama_kk:
                 nama_kk = 'Responden SE2026'
                 
             raw_nama_usaha = str(r.get('se2026_nama_usaha', '') or r.get('se2026_nama_komersial', '') or r.get('root_label_usaha', '')).strip()
             safe_nama_usaha = raw_nama_usaha[:60] if len(raw_nama_usaha) > 60 else raw_nama_usaha
             kbli_desc = str(r.get('se2026_kbli_label', '') or r.get('se2026_kbli_akhir', '')).strip()
+
+            # Nama Pemilik / Pengelola Usaha
+            pengusaha = clean_str(r.get('se2026_pengusaha', '')) or clean_str(r.get('se2026_pengusaha_var_label', '')) or clean_str(parse_prelist_label(r.get('se2026_pengusaha_var_prelist', '')))
+            if not pengusaha and a_id in se_by_ass:
+                biz_pengs = [b['pengusaha'] for b in se_by_ass[a_id] if b.get('pengusaha')]
+                if biz_pengs:
+                    pengusaha = ', '.join(dict.fromkeys(biz_pengs))
+            if pengusaha.lower() in ['none', 'nan', 'null', '-']:
+                pengusaha = ''
+
+            # Nomor Urut Bangunan
+            no_bang = str(r.get('root_no_bang', '') or r.get('se2026_no_bang_l', '')).strip()
+            if (not no_bang or no_bang.lower() in ['none', 'nan', '-', 'null']) and a_id in se_by_ass:
+                biz_nbs = [b['no_bang'] for b in se_by_ass[a_id] if b.get('no_bang')]
+                if biz_nbs:
+                    no_bang = ', '.join(dict.fromkeys(biz_nbs))
+            if no_bang.lower() in ['none', 'nan', '-', 'null']:
+                no_bang = ''
             
             pt = {
                 'i': safe_id,
@@ -436,6 +467,8 @@ def main():
                 'sk': raw_skala,
                 'stKel': raw_kel_status,
                 'stUsaha': raw_usaha_status,
+                'peng': pengusaha,
+                'nb': no_bang,
                 'mSource': match_source or 'GEOTAG_LAPANGAN',
                 'mConf': match_conf or 100
             }
@@ -547,6 +580,8 @@ def main():
                     p['ppl'] = best_row.get('ppl', '')
                     p['telp'] = best_row.get('no_telp_responden', '') if best_row.get('no_telp_responden', '') != '-' else ''
                     p['resp'] = best_row.get('nama_responden_pemberi_informasi', '')
+                    if not p.get('peng'):
+                        p['peng'] = clean_str(best_row.get('pj_kuda', ''))
                     total_sest_matched += 1
 
             # Pass 2: Fast Name Lookup in same Kecamatan
@@ -572,6 +607,8 @@ def main():
                         p['ppl'] = r.get('ppl', '')
                         p['telp'] = r.get('no_telp_responden', '') if r.get('no_telp_responden', '') != '-' else ''
                         p['resp'] = r.get('nama_responden_pemberi_informasi', '')
+                        if not p.get('peng'):
+                            p['peng'] = clean_str(r.get('pj_kuda', ''))
                         total_sest_matched += 1
                         break
 
@@ -586,6 +623,7 @@ def main():
                                 d_name = clean_str(r.get('desa_kelurahan', 'DESA'))
                                 s_name = str(r.get('nama_sls', 'SLS')).strip()
                                 s_code = str(r.get('kode_sls', '')).strip()
+                                pj_usaha = clean_str(r.get('pj_kuda', '') or r.get('nama_responden_pemberi_informasi', ''))
                                 new_pt = {
                                     'i': f"MST-{str(r.get('id_assignment', idx)).replace('assignment:', '')[:10]}",
                                     'k': clean_str(r.get('nama_kepala_keluarga', 'Responden Matching')),
@@ -602,6 +640,8 @@ def main():
                                     'sk': 'MATCHING SE-ST',
                                     'stKel': r.get('status_keberadaan_keluarga', 'Ditemukan'),
                                     'stUsaha': r.get('kategori_status_usaha_keluarga', 'Sebagian Ditemukan'),
+                                    'peng': pj_usaha,
+                                    'nb': '',
                                     'm': 1,
                                     'mKat': r.get('kategori_status_usaha_keluarga', 'Sebagian Ditemukan'),
                                     'mFound': r.get('daftar_usaha_ditemukan', '') if r.get('daftar_usaha_ditemukan', '') != '-' else '',
@@ -615,8 +655,8 @@ def main():
                                     'ppl': r.get('ppl', ''),
                                     'telp': r.get('no_telp_responden', '') if r.get('no_telp_responden', '') != '-' else '',
                                     'resp': r.get('nama_responden_pemberi_informasi', ''),
-                                    'mSource': 'MATCHING_SE_ST',
-                                    'mConf': 100
+                                    'mSource': 'MATCHING_SEST_APPSHEET',
+                                    'mConf': 95
                                 }
                                 kec_points.append(new_pt)
                                 kec_data['total'] += 1

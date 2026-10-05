@@ -8,7 +8,7 @@ import {
   RotateCcw, Filter, ChevronRight, Info, LocateFixed, Eye, EyeOff,
   Building2, Home, Briefcase, Users, ShieldCheck, Sparkles,
   SlidersHorizontal, CheckCircle2, Clock, AlertCircle, Compass, Lock,
-  Maximize2, Minimize2, ChevronDown, ChevronUp, AlertTriangle, XCircle, FileText, Phone, UserCheck
+  Maximize2, Minimize2, ChevronDown, ChevronUp, AlertTriangle, XCircle, FileText, Phone, UserCheck, Tag
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { decryptMilitaryPayload } from '../../utils/cryptoSecurity';
@@ -41,6 +41,8 @@ export interface RespondenPoint {
   sk: string;      // skala
   stKel?: string;  // status keberadaan keluarga (e.g. 1. Ditemukan, 0. Tidak Ditemukan (STOP), 2. Baru, 3. Meninggal, dll)
   stUsaha?: string;// status keberadaan usaha (e.g. 1. Ditemukan, 0. Tidak Ditemukan, 2. Baru, 3. Tutup, 4. Ganda)
+  peng?: string;   // Nama Pemilik / Pengelola Usaha
+  nb?: string;     // Nomor Urut Bangunan (Bangunan Fisik / Tempat Tinggal)
   // Deterministic Matching & Source Attributes
   mSource?: string; // 'MATCH_TIER1A_DIRECT_NIK' | 'MATCH_TIER1B_FAMILY_ART_NIK' | 'MATCH_TIER2_PHONE' | 'MATCH_TIER3_BUSINESS_ROSTER' | 'MATCH_TIER5_CLEAN_NAME' | 'GEOTAG_LAPANGAN'
   mConf?: number;   // 100, 99, 95, 90, 88
@@ -810,6 +812,222 @@ const MultiSelectStatusDropdown: React.FC<MultiSelectStatusDropdownProps> = ({
   );
 };
 
+// ==========================================
+// MULTI-SELECT SLS FILTER DROPDOWN
+// ==========================================
+interface SlsOption {
+  kodeSls: string;
+  namaSls: string;
+  total: number;
+}
+
+interface MultiSelectSlsDropdownProps {
+  options: SlsOption[];
+  selectedKeys: string[];
+  onChange: (keys: string[]) => void;
+  disabled?: boolean;
+  className?: string;
+}
+
+const MultiSelectSlsDropdown: React.FC<MultiSelectSlsDropdownProps> = ({
+  options,
+  selectedKeys,
+  onChange,
+  disabled = false,
+  className = ''
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const isAllSelected = selectedKeys.length === 0 || (options.length > 0 && selectedKeys.length === options.length);
+
+  const toggleSls = (key: string) => {
+    if (selectedKeys.length === 0) {
+      const allExceptThis = options.map(o => o.kodeSls || o.namaSls).filter(k => k !== key);
+      onChange(allExceptThis);
+    } else if (selectedKeys.includes(key)) {
+      const next = selectedKeys.filter(k => k !== key);
+      onChange(next.length === 0 ? ['__none__'] : next);
+    } else {
+      const next = [...selectedKeys.filter(k => k !== '__none__'), key];
+      onChange(options.length > 0 && next.length === options.length ? [] : next);
+    }
+  };
+
+  const selectAll = () => {
+    onChange([]);
+  };
+
+  const clearAll = () => {
+    onChange(['__none__']);
+  };
+
+  const filtered = options.filter(o => 
+    o.namaSls.toLowerCase().includes(search.toLowerCase()) || 
+    o.kodeSls.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const displayLabel = disabled
+    ? 'Semua SLS (Pilih Desa Dahulu)'
+    : options.length === 0
+      ? 'Tidak Ada SLS'
+      : isAllSelected
+        ? `Semua SLS (${options.length})`
+        : selectedKeys.includes('__none__')
+          ? '0 SLS Dipilih'
+          : `${selectedKeys.length} SLS Dipilih`;
+
+  return (
+    <div className={`relative ${isOpen ? 'z-[100]' : 'z-10'} ${className}`} ref={dropdownRef}>
+      <button 
+        type="button"
+        disabled={disabled || options.length === 0}
+        onClick={() => {
+          if (disabled || options.length === 0) return;
+          setIsOpen(!isOpen);
+          if (!isOpen) setSearch('');
+        }}
+        className={`flex items-center justify-between gap-2 min-w-[155px] sm:min-w-[185px] bg-white border rounded-2xl px-3.5 py-2 text-xs font-bold transition-all duration-200 cursor-pointer select-none shadow-2xs ${
+          disabled || options.length === 0
+            ? 'opacity-50 cursor-not-allowed border-slate-200 text-slate-400'
+            : isOpen 
+              ? 'border-cyan-500 ring-2 ring-cyan-500/20 text-cyan-950 shadow-sm' 
+              : !isAllSelected
+                ? 'border-cyan-400 bg-cyan-50/60 text-cyan-950 hover:border-cyan-500'
+                : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50/80'
+        }`}
+      >
+        <div className="flex items-center gap-1.5 min-w-0">
+          <MapPin className={`w-3.5 h-3.5 shrink-0 ${!isAllSelected && !disabled ? 'text-cyan-600' : 'text-slate-400'}`} />
+          <span className="truncate max-w-[145px]">{displayLabel}</span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {!isAllSelected && !selectedKeys.includes('__none__') && !disabled && (
+            <span className="w-4 h-4 rounded-full bg-cyan-600 text-white text-[9px] font-black flex items-center justify-center">
+              {selectedKeys.length}
+            </span>
+          )}
+          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-cyan-600' : ''}`} />
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {isOpen && !disabled && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.97 }}
+            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute z-[100] top-full left-0 mt-1.5 min-w-[280px] sm:min-w-[340px] max-w-[calc(100vw-32px)] bg-white border border-slate-200/90 rounded-2xl shadow-2xl shadow-slate-900/20 overflow-hidden flex flex-col"
+          >
+            {/* Header & Quick Action Buttons */}
+            <div className="p-2.5 border-b border-slate-100 bg-slate-50/90 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-cyan-600" />
+                  Filter Beberapa SLS ({options.length})
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={selectAll}
+                    className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-cyan-100 text-cyan-800 hover:bg-cyan-200 cursor-pointer transition-colors"
+                  >
+                    Pilih Semua
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 cursor-pointer transition-colors"
+                  >
+                    Hapus Semua
+                  </button>
+                </div>
+              </div>
+
+              {/* Search input */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input 
+                  type="text" 
+                  placeholder="Cari nama atau kode SLS..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl py-1 pl-8 pr-7 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                  autoFocus
+                />
+                {search && (
+                  <button 
+                    type="button" 
+                    onClick={() => setSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* SLS Options List */}
+            <div className="max-h-64 overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
+              {filtered.map(sls => {
+                const slsKey = sls.kodeSls || sls.namaSls;
+                const isChecked = isAllSelected || (selectedKeys.includes(slsKey) && !selectedKeys.includes('__none__'));
+                return (
+                  <button
+                    key={slsKey}
+                    type="button"
+                    onClick={() => toggleSls(slsKey)}
+                    className={`w-full flex items-center justify-between text-left p-2 rounded-xl transition-all cursor-pointer ${
+                      isChecked 
+                        ? 'bg-cyan-50/90 text-cyan-950 font-bold border border-cyan-200/80 shadow-2xs' 
+                        : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 border border-transparent font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0 mr-2">
+                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-all ${
+                        isChecked 
+                          ? 'bg-cyan-600 border-cyan-600 text-white' 
+                          : 'border-slate-300 bg-white'
+                      }`}>
+                        {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs truncate block">{sls.namaSls}</span>
+                        {sls.kodeSls && (
+                          <span className="text-[10px] text-slate-400 font-mono block">Kode: {sls.kodeSls}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 shrink-0 border border-slate-200/70">
+                      {sls.total.toLocaleString('id-ID')}
+                    </span>
+                  </button>
+                );
+              })}
+              {filtered.length === 0 && (
+                <div className="px-3 py-4 text-center text-xs text-slate-400 italic">SLS tidak ditemukan</div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 // Map Movement Controller Helper
 function MapController({
   targetCenter,
@@ -976,6 +1194,48 @@ function LocateUserControl({ accentColor = '#0ea5e9', markerText = 'Lokasi Anda 
   );
 }
 
+// Helper to generate custom SVG Pin with Building Number Label (like mobile FASIH / Wilkerstat CAPI)
+const createBuildingPinIcon = (point: RespondenPoint, isSelected: boolean) => {
+  const category = getPointStatusCategory(point);
+  const rawNb = (point.nb || '').trim();
+  let labelText = '';
+  if (rawNb && !['NONE', 'NAN', 'NULL', '-', '0'].includes(rawNb.toUpperCase())) {
+    labelText = rawNb.toUpperCase().startsWith('B') ? rawNb.toUpperCase() : `B${rawNb}`;
+  }
+
+  const fillColor = category.color;
+  const strokeColor = isSelected ? '#ffffff' : category.borderColor;
+  const isUsaha = point.u > 0;
+
+  // Badge background & text styling matching high-readability satellite layer
+  const badgeBg = isUsaha ? '#f0fdf4' : '#ffffff';
+  const badgeBorder = isUsaha ? '#4ade80' : '#94a3b8';
+  const badgeText = isUsaha ? '#15803d' : '#1e293b';
+
+  const html = `
+    <div style="display:inline-flex;align-items:center;transform:translate(-10px, -24px);cursor:pointer;white-space:nowrap;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6));pointer-events:auto;">
+      <div style="position:relative;width:20px;height:24px;flex-shrink:0;">
+        <svg width="20" height="24" viewBox="0 0 24 30" fill="${fillColor}" stroke="${isSelected ? '#ffffff' : strokeColor}" stroke-width="${isSelected ? '2.5' : '1.5'}">
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 8.5 12 18 12 18s12-9.5 12-18c0-6.627-5.373-12-12-12z"/>
+        </svg>
+        <div style="position:absolute;top:6px;left:7px;width:6px;height:6px;border-radius:50%;background:#ffffff;box-shadow:inset 0 1px 2px rgba(0,0,0,0.4);"></div>
+      </div>
+      ${labelText ? `
+        <div style="margin-left:2px;background:${badgeBg};color:${badgeText};border:1.5px solid ${badgeBorder};font-size:10px;font-weight:900;line-height:1;padding:2px 4.5px;border-radius:5px;box-shadow:0 1.5px 4px rgba(0,0,0,0.4);letter-spacing:0.2px;">
+          ${labelText}
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  return L.divIcon({
+    className: 'leaflet-custom-building-pin',
+    html: html,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+};
+
 // Super-Fast Viewport Spatial Culling & Dynamic LOD
 function ViewportPointsLayer({
   points,
@@ -983,7 +1243,8 @@ function ViewportPointsLayer({
   selectedPointId,
   onCopyCoord,
   copiedId,
-  isFiltered = false
+  isFiltered = false,
+  showBuildingLabels = false
 }: {
   points: RespondenPoint[];
   onSelectPoint: (p: RespondenPoint) => void;
@@ -991,6 +1252,7 @@ function ViewportPointsLayer({
   onCopyCoord?: (text: string, id: string) => void;
   copiedId?: string | null;
   isFiltered?: boolean;
+  showBuildingLabels?: boolean;
 }) {
   const map = useMap();
   const [currentZoom, setCurrentZoom] = useState(map.getZoom());
@@ -1107,7 +1369,32 @@ function ViewportPointsLayer({
     );
   }
 
-  // Zoomed in mode: Crisp Canvas hardware-accelerated circle markers with 13-category color system
+  // If showBuildingLabels is enabled (e.g. filtered by 1-3 SLS or toggled ON), render SVG Pins with B1, B2... labels
+  if (showBuildingLabels) {
+    return (
+      <>
+        {visiblePoints.map((point) => {
+          const isSelected = selectedPointId === point.i;
+          const pinIcon = createBuildingPinIcon(point, isSelected);
+
+          return (
+            <Marker
+              key={point.i}
+              position={[point.lt, point.lg]}
+              icon={pinIcon}
+              eventHandlers={{
+                click: () => {
+                  onSelectPoint(point);
+                },
+              }}
+            />
+          );
+        })}
+      </>
+    );
+  }
+
+  // Zoomed in default mode: Crisp Canvas hardware-accelerated circle markers with 13-category color system
   return (
     <>
       {visiblePoints.map((point) => {
@@ -1165,11 +1452,16 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
   // Filters State
   const [selectedKec, setSelectedKec] = useState<string>('all');
   const [selectedDesa, setSelectedDesa] = useState<string>('all');
-  const [selectedSls, setSelectedSls] = useState<string>('all');
+  const [selectedSls, setSelectedSls] = useState<string[]>([]);
   const [filterUsaha, setFilterUsaha] = useState<string>('all');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showSearchDropdown, setShowSearchDropdown] = useState<boolean>(false);
+
+  // Building Number Label Visibility (Auto on for 1-3 SLS, or manually toggleable)
+  const [showBuildingLabelsManual, setShowBuildingLabelsManual] = useState<boolean | null>(null);
+  const isAutoBuildingLabels = selectedSls.length >= 1 && selectedSls.length <= 3;
+  const effectiveShowBuildingLabels = showBuildingLabelsManual !== null ? showBuildingLabelsManual : isAutoBuildingLabels;
 
   // Filter Toolbar Collapsible State (Allows hiding filters on Mobile / Desktop to expand map view)
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(() => {
@@ -1330,9 +1622,13 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
       result = result.filter(p => p.d === selectedDesa);
     }
 
-    // Filter SLS
-    if (selectedSls !== 'all') {
-      result = result.filter(p => p.ks === selectedSls || p.s === selectedSls);
+    // Filter SLS (Multi-Select)
+    if (selectedSls.length > 0) {
+      if (selectedSls.includes('__none__')) {
+        result = [];
+      } else {
+        result = result.filter(p => (p.ks && selectedSls.includes(p.ks)) || (p.s && selectedSls.includes(p.s)));
+      }
     }
 
     // Filter Usaha & Matching SE-ST
@@ -1353,12 +1649,14 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
       }
     }
 
-    // Filter Query
+    // Filter Query (Mencakup Nama KK, Nama Usaha, Pemilik/Pengelola, No Urut Bangunan, SLS, dll)
     if (searchQuery.trim() !== '') {
       const q = searchQuery.trim().toLowerCase();
       result = result.filter(p => 
         (p.k && p.k.toLowerCase().includes(q)) ||
         (p.nu && p.nu.toLowerCase().includes(q)) ||
+        (p.peng && p.peng.toLowerCase().includes(q)) ||
+        (p.nb && p.nb.toLowerCase().includes(q)) ||
         (p.s && p.s.toLowerCase().includes(q)) ||
         (p.i && p.i.toLowerCase().includes(q)) ||
         (p.kb && p.kb.toLowerCase().includes(q)) ||
@@ -1389,6 +1687,8 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
       if (
         (p.k && p.k.toLowerCase().includes(q)) ||
         (p.nu && p.nu.toLowerCase().includes(q)) ||
+        (p.peng && p.peng.toLowerCase().includes(q)) ||
+        (p.nb && p.nb.toLowerCase().includes(q)) ||
         (p.s && p.s.toLowerCase().includes(q)) ||
         (p.i && p.i.toLowerCase().includes(q)) ||
         (p.mKat && p.mKat.toLowerCase().includes(q)) ||
@@ -1405,7 +1705,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
   useEffect(() => {
     if (displayedPoints.length === 0) return;
 
-    if (selectedSls !== 'all' || selectedDesa !== 'all' || selectedKec !== 'all') {
+    if (selectedSls.length > 0 || selectedDesa !== 'all' || selectedKec !== 'all') {
       let minLat = Infinity;
       let maxLat = -Infinity;
       let minLng = Infinity;
@@ -1485,10 +1785,11 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
     setTargetZoom(MEMPAWAH_DEFAULT_ZOOM);
     setSelectedKec('all');
     setSelectedDesa('all');
-    setSelectedSls('all');
+    setSelectedSls([]);
     setFilterUsaha('all');
     setSelectedPoint(null);
     setShowSearchDropdown(false);
+    setShowBuildingLabelsManual(null);
   };
 
   // Options for Dropdowns
@@ -1557,7 +1858,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
     let count = 0;
     if (selectedKec !== 'all') count++;
     if (selectedDesa !== 'all') count++;
-    if (selectedSls !== 'all') count++;
+    if (selectedSls.length > 0) count++;
     if (filterUsaha !== 'all') count++;
     if (selectedStatuses.length > 0) count++;
     if (searchQuery.trim() !== '') count++;
@@ -1630,6 +1931,23 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
             )}
           </button>
 
+          {/* Toggle Nomor Bangunan (B1, B2...) */}
+          <button
+            onClick={() => setShowBuildingLabelsManual(prev => prev === null ? !isAutoBuildingLabels : !prev)}
+            className={`px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border shadow-2xs ${
+              effectiveShowBuildingLabels
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
+                : 'bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 border-slate-200/60'
+            }`}
+            title={effectiveShowBuildingLabels ? 'Sembunyikan Label Nomor Bangunan' : 'Tampilkan Label Nomor Bangunan (B1, B2...)'}
+          >
+            <Tag className={`w-3.5 h-3.5 ${effectiveShowBuildingLabels ? 'text-white' : 'text-emerald-600'}`} />
+            <span className="hidden sm:inline">No. Bangunan</span>
+            {effectiveShowBuildingLabels && (
+              <span className="w-2 h-2 rounded-full bg-emerald-200 animate-pulse" />
+            )}
+          </button>
+
           <button
             onClick={() => setShowLegendModal(true)}
             className="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-cyan-50 hover:text-cyan-700 text-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-200/60 shadow-2xs"
@@ -1690,7 +2008,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                 onChange={(val) => {
                   setSelectedKec(val);
                   setSelectedDesa('all');
-                  setSelectedSls('all');
+                  setSelectedSls([]);
                 }}
                 placeholder="Pilih Kecamatan"
                 prefix="Kec: "
@@ -1704,7 +2022,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                 value={selectedDesa}
                 onChange={(val) => {
                   setSelectedDesa(val);
-                  setSelectedSls('all');
+                  setSelectedSls([]);
                 }}
                 placeholder="Pilih Desa"
                 prefix="Desa: "
@@ -1712,18 +2030,13 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                 icon={Home}
               />
 
-              {/* 3. SLS Dropdown (jika desa terpilih) */}
-              {selectedDesa !== 'all' && availableSlsList.length > 0 && (
-                <SearchableFilterDropdown
-                  options={slsOptions}
-                  value={selectedSls}
-                  onChange={setSelectedSls}
-                  placeholder="Pilih SLS"
-                  prefix="SLS: "
-                  searchPlaceholder="Cari SLS..."
-                  icon={MapPin}
-                />
-              )}
+              {/* 3. Multi-Select SLS Dropdown */}
+              <MultiSelectSlsDropdown
+                options={availableSlsList}
+                selectedKeys={selectedSls}
+                onChange={setSelectedSls}
+                disabled={selectedDesa === 'all'}
+              />
 
               {/* 4. Dropdown Batas Wilayah */}
               <SearchableFilterDropdown
@@ -1975,7 +2288,8 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
             selectedPointId={selectedPoint?.i}
             onCopyCoord={handleCopy}
             copiedId={copiedId}
-            isFiltered={selectedKec !== 'all' || selectedDesa !== 'all' || selectedSls !== 'all' || filterUsaha !== 'all' || searchQuery.trim() !== ''}
+            isFiltered={selectedKec !== 'all' || selectedDesa !== 'all' || selectedSls.length > 0 || filterUsaha !== 'all' || selectedStatuses.length > 0 || searchQuery.trim() !== ''}
+            showBuildingLabels={effectiveShowBuildingLabels}
           />
         </MapContainer>
 
@@ -2167,6 +2481,44 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   );
                 })()}
 
+                {/* IDENTITAS KELUARGA, PEMILIK/PENGELOLA USAHA & NO. URUT BANGUNAN */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2 text-xs">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/60">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                      Identitas Responden & Bangunan
+                    </span>
+                    {isValidText(selectedPoint.nb) && (
+                      <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
+                        <Building2 className="w-3 h-3 text-blue-600" />
+                        No. Bangunan: #{selectedPoint.nb}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {/* 1. Nama Kepala Keluarga */}
+                    <div className="p-2 bg-white rounded-xl border border-slate-200/70 flex items-start justify-between gap-2">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0 flex items-center gap-1">
+                        <Home className="w-3 h-3 text-blue-500" />
+                        Kepala Keluarga:
+                      </span>
+                      <span className="font-black text-right text-slate-900">{selectedPoint.k || '-'}</span>
+                    </div>
+
+                    {/* 2. Nama Pemilik / Pengelola Usaha */}
+                    {isValidText(selectedPoint.peng) && (
+                      <div className="p-2 bg-emerald-50/90 rounded-xl border border-emerald-200/80 flex items-start justify-between gap-2">
+                        <span className="text-[10px] font-black uppercase text-emerald-900 flex items-center gap-1 shrink-0">
+                          <UserCheck className="w-3 h-3 text-emerald-700" />
+                          Pemilik / Pengelola:
+                        </span>
+                        <span className="font-black text-right text-emerald-950">{selectedPoint.peng}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* KHUSUS: INFORMASI STATUS & ALASAN TIDAK DITEMUKAN / NON-RESPON / TUTUP */}
                 {(() => {
                   const cat = getPointStatusCategory(selectedPoint);
@@ -2331,13 +2683,28 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   </div>
                 ) : (
                   /* Info Usaha Biasa (SE2026) */
-                  isValidText(selectedPoint.nu) && (
-                    <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-1">
-                      <p className="font-extrabold text-emerald-900 text-xs flex items-center gap-1.5">
-                        <Briefcase className="w-4 h-4 text-emerald-700" />
-                        {selectedPoint.nu}
-                      </p>
-                      {isValidText(selectedPoint.kb) && <p className="text-[11px] text-emerald-700">{selectedPoint.kb}</p>}
+                  (isValidText(selectedPoint.nu) || isValidText(selectedPoint.peng)) && (
+                    <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="font-extrabold text-emerald-900 text-xs flex items-center gap-1.5">
+                          <Briefcase className="w-4 h-4 text-emerald-700" />
+                          {isValidText(selectedPoint.nu) ? selectedPoint.nu : 'Kegiatan Usaha Responden'}
+                        </p>
+                        {selectedPoint.u > 0 && (
+                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                            {selectedPoint.u} Usaha
+                          </span>
+                        )}
+                      </div>
+                      
+                      {isValidText(selectedPoint.peng) && (
+                        <div className="p-2 bg-white/80 rounded-xl border border-emerald-200/60 flex items-center justify-between gap-2 text-xs">
+                          <span className="text-[10px] font-bold text-emerald-800 uppercase">Pemilik/Pengelola:</span>
+                          <span className="font-black text-emerald-950">{selectedPoint.peng}</span>
+                        </div>
+                      )}
+                      
+                      {isValidText(selectedPoint.kb) && <p className="text-[11px] text-emerald-800 font-medium">{selectedPoint.kb}</p>}
                       {isValidText(selectedPoint.sk) && <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Skala: {selectedPoint.sk}</p>}
                     </div>
                   )

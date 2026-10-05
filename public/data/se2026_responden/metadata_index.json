@@ -1,7 +1,7 @@
 {
-  "totalResponden": 89253,
-  "totalBerusaha": 45799,
-  "totalNonUsaha": 43437,
+  "totalResponden": 89128,
+  "totalBerusaha": 45790,
+  "totalNonUsaha": 43321,
   "security": {
     "standard": "AES-256-GCM",
     "dataProtection": "UU No. 16 Tahun 1997 tentang Statistik & Protokol Kriptografi Militer NIST SP 800-38D"
@@ -1201,8 +1201,8 @@
       "kecCode": "081",
       "kecName": "SEGEDONG",
       "rawKec": "[081] SEGEDONG",
-      "total": 7343,
-      "totalBerusaha": 4223,
+      "total": 7342,
+      "totalBerusaha": 4222,
       "totalNonUsaha": 3118,
       "desaList": [
         {
@@ -1764,8 +1764,8 @@
           "desaCode": "006",
           "desaName": "PENITI DALAM II",
           "rawDesa": "[006] PENITI DALAM II",
-          "total": 1126,
-          "totalBerusaha": 772,
+          "total": 1125,
+          "totalBerusaha": 771,
           "totalNonUsaha": 354,
           "slsList": [
             {
@@ -1856,7 +1856,7 @@
             {
               "kodeSls": "0008",
               "namaSls": "RT 005 RW 002 DUSUN KARYA UTAMA",
-              "total": 38
+              "total": 37
             },
             {
               "kodeSls": "0011",
@@ -1901,8 +1901,8 @@
       "kecCode": "090",
       "kecName": "SUNGAI PINYUH",
       "rawKec": "[090] SUNGAI PINYUH",
-      "total": 17605,
-      "totalBerusaha": 8238,
+      "total": 17602,
+      "totalBerusaha": 8235,
       "totalNonUsaha": 9365,
       "desaList": [
         {
@@ -2029,8 +2029,8 @@
           "desaCode": "003",
           "desaName": "PENIRAMAN",
           "rawDesa": "[003] PENIRAMAN",
-          "total": 2623,
-          "totalBerusaha": 1422,
+          "total": 2622,
+          "totalBerusaha": 1421,
           "totalNonUsaha": 1201,
           "slsList": [
             {
@@ -2061,7 +2061,7 @@
             {
               "kodeSls": "0006",
               "namaSls": "RT 006 RW 03 DUSUN BABUSSALAM",
-              "total": 129
+              "total": 128
             },
             {
               "kodeSls": "0020",
@@ -2424,8 +2424,8 @@
           "desaCode": "009",
           "desaName": "SUNGAI PINYUH",
           "rawDesa": "[009] SUNGAI PINYUH",
-          "total": 5708,
-          "totalBerusaha": 2569,
+          "total": 5706,
+          "totalBerusaha": 2567,
           "totalNonUsaha": 3139,
           "slsList": [
             {
@@ -2446,7 +2446,7 @@
             {
               "kodeSls": "0007",
               "namaSls": "RT 001 RW 002",
-              "total": 102
+              "total": 101
             },
             {
               "kodeSls": "0057",
@@ -2466,7 +2466,7 @@
             {
               "kodeSls": "0008",
               "namaSls": "RT 002 RW 002",
-              "total": 126
+              "total": 125
             },
             {
               "kodeSls": "0023",
@@ -2991,16 +2991,16 @@
       "kecCode": "091",
       "kecName": "ANJONGAN",
       "rawKec": "[091] ANJONGAN",
-      "total": 6316,
-      "totalBerusaha": 3472,
+      "total": 6314,
+      "totalBerusaha": 3470,
       "totalNonUsaha": 2842,
       "desaList": [
         {
           "desaCode": "002",
           "desaName": "ANJUNGAN MELANCAR",
           "rawDesa": "[002] ANJUNGAN MELANCAR",
-          "total": 2542,
-          "totalBerusaha": 1229,
+          "total": 2541,
+          "totalBerusaha": 1228,
           "totalNonUsaha": 1313,
           "slsList": [
             {
@@ -3021,7 +3021,7 @@
             {
               "kodeSls": "0015",
               "namaSls": "RT 007 RW 03",
-              "total": 153
+              "total": 152
             },
             {
               "kodeSls": "0001",
@@ -3129,14 +3129,14 @@
           "desaCode": "003",
           "desaName": "ANJUNGAN DALAM",
           "rawDesa": "[003] ANJUNGAN DALAM",
-          "total": 879,
-          "totalBerusaha": 422,
+          "total": 878,
+          "totalBerusaha": 421,
           "totalNonUsaha": 457,
           "slsList": [
             {
               "kodeSls": "0007",
               "namaSls": "RT 006 RW 01 DUSUN TERDU",
-              "total": 80
+              "total": 79
             },
             {
               "kodeSls": "0005",
@@ -3421,25 +3421,10 @@
       "kecCode": "100",
       "kecName": "MEMPAWAH HILIR",
       "rawKec": "[100] MEMPAWAH HILIR",
-      "total": 13413,
-      "totalBerusaha": 5780,
-      "totalNonUsaha": 7633,
+      "total": 13295,
+      "totalBerusaha": 5778,
+      "totalNonUsaha": 7517,
       "desaList": [
-        {
-          "desaCode": "000",
-          "desaName": "-",
-          "rawDesa": "[000] -",
-          "total": 2,
-          "totalBerusaha": 2,
-          "totalNonUsaha": 0,
-          "slsList": [
-            {
-              "kodeSls": "0000",
-              "namaSls": "-",
-              "total": 2
-            }
-          ]
-        },
         {
           "desaCode": "001",
           "desaName": "TANJUNG",
@@ -4417,21 +4402,6 @@
               "kodeSls": "0009",
               "namaSls": "RT 09 RW 03 DUSUN ABRASI",
               "total": 31
-            }
-          ]
-        },
-        {
-          "desaCode": "nan",
-          "desaName": "",
-          "rawDesa": "[nan] ",
-          "total": 116,
-          "totalBerusaha": 0,
-          "totalNonUsaha": 116,
-          "slsList": [
-            {
-              "kodeSls": "nan",
-              "namaSls": "nan",
-              "total": 116
             }
           ]
         }
@@ -6111,8 +6081,8 @@
       "kecCode": "120",
       "kecName": "TOHO",
       "rawKec": "[120] TOHO",
-      "total": 6340,
-      "totalBerusaha": 4307,
+      "total": 6339,
+      "totalBerusaha": 4306,
       "totalNonUsaha": 2030,
       "desaList": [
         {
@@ -6579,8 +6549,8 @@
           "desaCode": "009",
           "desaName": "TOHO ILIR",
           "rawDesa": "[009] TOHO ILIR",
-          "total": 803,
-          "totalBerusaha": 554,
+          "total": 802,
+          "totalBerusaha": 553,
           "totalNonUsaha": 249,
           "slsList": [
             {
@@ -6631,7 +6601,7 @@
             {
               "kodeSls": "0011",
               "namaSls": "RT 011 RW 04 DUSUN PROMPONG",
-              "total": 37
+              "total": 36
             },
             {
               "kodeSls": "0013",
@@ -7054,11 +7024,11 @@
     }
   ],
   "statusCounts": {
-    "APPROVED BY Pengawas": 89253
+    "APPROVED BY Pengawas": 89128
   },
   "skalaCounts": {
-    "Usaha Mikro Kecil (UMK)": 45799,
-    "Non Usaha / Keluarga": 43437
+    "Usaha Mikro Kecil (UMK)": 45790,
+    "Non Usaha / Keluarga": 43321
   },
-  "generatedAt": "2026-10-01T16:39:45.016949"
+  "generatedAt": "2026-10-05T15:04:41.506632"
 }

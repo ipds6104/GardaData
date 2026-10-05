@@ -79,14 +79,19 @@ const initDb = async () => {
         const salt = await bcrypt.genSalt(10);
 
         const [adminRows] = await pool.query('SELECT * FROM users WHERE username = ?', ['admin']);
+        const hashedAdminPassword = await bcrypt.hash('adminjosjis', salt);
         if (adminRows.length === 0) {
             console.log('Seeding default administrator into users table...');
-            const hashedPassword = await bcrypt.hash('admin6104', salt);
             await pool.query(
                 'INSERT INTO users (id, username, password_hash, name, role) VALUES (?, ?, ?, ?, ?)',
-                ['user_admin', 'admin', hashedPassword, 'Administrator BPS', 'admin']
+                ['user_admin', 'admin', hashedAdminPassword, 'Administrator BPS', 'admin']
             );
-            console.log('Default admin seeded (username: admin, password: admin6104)');
+            console.log('Default admin seeded (username: admin, password: adminjosjis)');
+        } else {
+            await pool.query(
+                'UPDATE users SET password_hash = ? WHERE username = ?',
+                [hashedAdminPassword, 'admin']
+            );
         }
 
         const [petugasRows] = await pool.query('SELECT * FROM users WHERE username = ?', ['petugas']);

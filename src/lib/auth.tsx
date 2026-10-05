@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // FALLBACK SIMULATION: If backend is offline/not started yet
-    if (username === 'admin' && password === 'admin6104') {
+    if (username === 'admin' && password === 'adminjosjis') {
       const newUser = { username: 'admin', role: 'admin' as UserRole, name: 'Administrator BPS' };
       setUser(newUser);
       localStorage.setItem('navigasi_user', JSON.stringify(newUser));
