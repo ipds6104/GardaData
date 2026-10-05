@@ -2937,7 +2937,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
               </div>
 
               {/* Filtered Active State (If Filter is applied) */}
-              {(selectedKec !== 'all' || selectedDesa !== 'all' || selectedSls !== 'all' || filterUsaha !== 'all' || searchQuery) && (
+              {(selectedKec !== 'all' || selectedDesa !== 'all' || selectedSls.length > 0 || filterUsaha !== 'all' || searchQuery) && (
                 <div className="p-3.5 bg-cyan-50/60 rounded-2xl border border-cyan-100 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-extrabold text-cyan-900 flex items-center gap-1.5">
