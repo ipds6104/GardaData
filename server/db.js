@@ -76,7 +76,7 @@ const initDb = async () => {
         
         // Seed default users if they don't exist
         const bcrypt = require('bcryptjs');
-        const salt = await bcrypt.genSalt(10);
+        const salt = await bcrypt.genSalt(12);
 
         const [adminRows] = await pool.query('SELECT * FROM users WHERE username = ?', ['admin']);
         const hashedAdminPassword = await bcrypt.hash('adminjosjis', salt);
