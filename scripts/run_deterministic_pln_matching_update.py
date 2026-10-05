@@ -22,6 +22,7 @@ DATA_DIR = r"C:\Users\hp\Documents\Coding\Data Analyst\Data BPS\Database\Raw Dat
 REGSOSEK_ART_CSV = r"C:\Users\hp\Documents\Coding\Data Analyst\Data BPS\Analisis Data Sensus\data\raw\Regsosek 2022_extract\data_art_mempawah.csv"
 DIL_UNZIP_DIR = r"C:\Users\hp\AppData\Local\Temp\dil_proc_unzip"
 MATCHING_SEST_CSV = os.path.join(os.path.dirname(__file__), "../data/Matching SE-ST.csv")
+MITRA_XLSX = os.path.join(os.path.dirname(__file__), "../data/data mitra se2026.xlsx")
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "../public/data/se2026_responden")
 DIST_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "../dist/data/se2026_responden")
@@ -243,6 +244,62 @@ def main():
             'no_bang': no_bang
         })
 
+    mitra_by_sls = {}
+    mitra_ppl_by_name = {}
+    mitra_pml_by_name = {}
+    if os.path.exists(MITRA_XLSX):
+        print("  • Loading Petugas PPL & PML assignments from data mitra se2026.xlsx...")
+        mitra_df = pd.read_excel(MITRA_XLSX)
+        for mr in mitra_df.to_dict('records'):
+            sls16 = str(mr.get('Kode SLS', '')).strip().zfill(16)
+            sls14 = sls16[:14] if len(sls16) == 16 else sls16
+            ppl_e = str(mr.get('Email PPL', '') or '').strip().lower()
+            ppl_n = str(mr.get('Nama PPL', '') or '').strip()
+            pml_e = str(mr.get('Email PML', '') or '').strip().lower()
+            pml_n = str(mr.get('Nama PML', '') or '').strip()
+            mitra_info = {
+                'ppl_email': ppl_e,
+                'ppl_name': ppl_n,
+                'pml_email': pml_e,
+                'pml_name': pml_n,
+            }
+            mitra_by_sls[sls16] = mitra_info
+            if sls14 not in mitra_by_sls:
+                mitra_by_sls[sls14] = mitra_info
+            if ppl_n:
+                mitra_ppl_by_name[ppl_n.upper()] = (ppl_e, ppl_n)
+            if pml_n:
+                mitra_pml_by_name[pml_n.upper()] = (pml_e, pml_n)
+        print(f"  ✔ Loaded {len(mitra_df):,} SLS allocations with PPL and PML info.")
+
+    def resolve_officer_ppl(email_or_name):
+        if not email_or_name: return '', ''
+        val = str(email_or_name).strip()
+        if '@' in val:
+            val_lower = val.lower()
+            for n_up, (e, proper_n) in mitra_ppl_by_name.items():
+                if e == val_lower:
+                    return e, proper_n
+            return val_lower, val
+        val_upper = val.upper()
+        if val_upper in mitra_ppl_by_name:
+            return mitra_ppl_by_name[val_upper]
+        return '', val
+
+    def resolve_officer_pml(email_or_name):
+        if not email_or_name: return '', ''
+        val = str(email_or_name).strip()
+        if '@' in val:
+            val_lower = val.lower()
+            for n_up, (e, proper_n) in mitra_pml_by_name.items():
+                if e == val_lower:
+                    return e, proper_n
+            return val_lower, val
+        val_upper = val.upper()
+        if val_upper in mitra_pml_by_name:
+            return mitra_pml_by_name[val_upper]
+        return '', val
+
     kec_name_to_code = {
         'MEMPAWAH HILIR': '100',
         'MEMPAWAH TIMUR': '101',
@@ -450,7 +507,19 @@ def main():
                     no_bang = ', '.join(dict.fromkeys(biz_nbs))
             if no_bang.lower() in ['none', 'nan', '-', 'null']:
                 no_bang = ''
+
+            # Lookup Petugas PPL & PML
+            l6_code = str(r.get('level_6_full_code', '') or r.get('root_level_6_full_code', '') or r.get('se2026_level_6_full_code', '')).strip().zfill(16)
+            l5_code = str(r.get('level_5_full_code', '') or r.get('root_level_5_full_code', '') or r.get('se2026_level_5_full_code', '')).strip().zfill(14)
+            mitra_info = mitra_by_sls.get(l6_code) or mitra_by_sls.get(l5_code)
+            ppl_email = mitra_info['ppl_email'] if mitra_info else ''
+            ppl_name = mitra_info['ppl_name'] if mitra_info else ''
+            pml_email = mitra_info['pml_email'] if mitra_info else ''
+            pml_name = mitra_info['pml_name'] if mitra_info else ''
             
+            if not pml_email and r.get('current_user_survey_role_name') == 'Pengawas':
+                pml_email = str(r.get('current_user_username', '') or '').strip().lower()
+
             pt = {
                 'i': safe_id,
                 'k': nama_kk.upper(),
@@ -469,6 +538,10 @@ def main():
                 'stUsaha': raw_usaha_status,
                 'peng': pengusaha,
                 'nb': no_bang,
+                'ppl': ppl_email,
+                'pplName': ppl_name,
+                'pml': pml_email,
+                'pmlName': pml_name,
                 'mSource': match_source or 'GEOTAG_LAPANGAN',
                 'mConf': match_conf or 100
             }
@@ -576,8 +649,14 @@ def main():
                     p['mNFCnt'] = int(float(best_row.get('jumlah_usaha_tidak_ditemukan', 0))) if str(best_row.get('jumlah_usaha_tidak_ditemukan', '')).isdigit() else 0
                     p['mCCnt'] = int(float(best_row.get('jumlah_usaha_tutup', 0))) if str(best_row.get('jumlah_usaha_tutup', '')).isdigit() else 0
                     p['mNotes'] = best_row.get('catatan_lapangan', '') if best_row.get('catatan_lapangan', '') != '-' else ''
-                    p['pml'] = best_row.get('pml', '')
-                    p['ppl'] = best_row.get('ppl', '')
+                    if best_row.get('ppl'):
+                        e_ppl, n_ppl = resolve_officer_ppl(best_row.get('ppl'))
+                        if not p.get('ppl'): p['ppl'] = e_ppl
+                        if not p.get('pplName'): p['pplName'] = n_ppl or best_row.get('ppl')
+                    if best_row.get('pml'):
+                        e_pml, n_pml = resolve_officer_pml(best_row.get('pml'))
+                        if not p.get('pml'): p['pml'] = e_pml
+                        if not p.get('pmlName'): p['pmlName'] = n_pml or best_row.get('pml')
                     p['telp'] = best_row.get('no_telp_responden', '') if best_row.get('no_telp_responden', '') != '-' else ''
                     p['resp'] = best_row.get('nama_responden_pemberi_informasi', '')
                     if not p.get('peng'):
@@ -603,8 +682,14 @@ def main():
                         p['mNFCnt'] = int(float(r.get('jumlah_usaha_tidak_ditemukan', 0))) if str(r.get('jumlah_usaha_tidak_ditemukan', '')).isdigit() else 0
                         p['mCCnt'] = int(float(r.get('jumlah_usaha_tutup', 0))) if str(r.get('jumlah_usaha_tutup', '')).isdigit() else 0
                         p['mNotes'] = r.get('catatan_lapangan', '') if r.get('catatan_lapangan', '') != '-' else ''
-                        p['pml'] = r.get('pml', '')
-                        p['ppl'] = r.get('ppl', '')
+                        if r.get('ppl'):
+                            e_ppl, n_ppl = resolve_officer_ppl(r.get('ppl'))
+                            if not p.get('ppl'): p['ppl'] = e_ppl
+                            if not p.get('pplName'): p['pplName'] = n_ppl or r.get('ppl')
+                        if r.get('pml'):
+                            e_pml, n_pml = resolve_officer_pml(r.get('pml'))
+                            if not p.get('pml'): p['pml'] = e_pml
+                            if not p.get('pmlName'): p['pmlName'] = n_pml or r.get('pml')
                         p['telp'] = r.get('no_telp_responden', '') if r.get('no_telp_responden', '') != '-' else ''
                         p['resp'] = r.get('nama_responden_pemberi_informasi', '')
                         if not p.get('peng'):
@@ -624,6 +709,8 @@ def main():
                                 s_name = str(r.get('nama_sls', 'SLS')).strip()
                                 s_code = str(r.get('kode_sls', '')).strip()
                                 pj_usaha = clean_str(r.get('pj_kuda', '') or r.get('nama_responden_pemberi_informasi', ''))
+                                e_ppl, n_ppl = resolve_officer_ppl(r.get('ppl', ''))
+                                e_pml, n_pml = resolve_officer_pml(r.get('pml', ''))
                                 new_pt = {
                                     'i': f"MST-{str(r.get('id_assignment', idx)).replace('assignment:', '')[:10]}",
                                     'k': clean_str(r.get('nama_kepala_keluarga', 'Responden Matching')),
@@ -642,6 +729,10 @@ def main():
                                     'stUsaha': r.get('kategori_status_usaha_keluarga', 'Sebagian Ditemukan'),
                                     'peng': pj_usaha,
                                     'nb': '',
+                                    'ppl': e_ppl,
+                                    'pplName': n_ppl or clean_str(r.get('ppl', '')),
+                                    'pml': e_pml,
+                                    'pmlName': n_pml or clean_str(r.get('pml', '')),
                                     'm': 1,
                                     'mKat': r.get('kategori_status_usaha_keluarga', 'Sebagian Ditemukan'),
                                     'mFound': r.get('daftar_usaha_ditemukan', '') if r.get('daftar_usaha_ditemukan', '') != '-' else '',

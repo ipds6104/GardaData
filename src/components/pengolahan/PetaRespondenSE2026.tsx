@@ -56,8 +56,10 @@ export interface RespondenPoint {
   mNFCnt?: number; // Jml usaha tidak ditemukan
   mCCnt?: number;  // Jml usaha tutup
   mNotes?: string; // Catatan lapangan
-  pml?: string;    // Nama PML
-  ppl?: string;    // Nama PPL
+  pml?: string;    // Email / Kode PML
+  ppl?: string;    // Email / Kode PPL
+  pmlName?: string;// Nama PML
+  pplName?: string;// Nama PPL
   telp?: string;   // No Telp Responden
   resp?: string;   // Nama Responden Pemberi Informasi
 }
@@ -454,6 +456,10 @@ interface DropdownOption {
   value: string;
   label: string;
   badge?: string | number;
+  roleType?: 'PPL' | 'PML';
+  roleBadge?: string;
+  group?: string;
+  subLabel?: string;
 }
 
 interface SearchableFilterDropdownProps {
@@ -471,14 +477,15 @@ const SearchableFilterDropdown: React.FC<SearchableFilterDropdownProps> = ({
   options,
   value,
   onChange,
-  placeholder = 'Pilih...',
+  placeholder,
   prefix = '',
-  searchPlaceholder = 'Cari opsi...',
-  className = '',
-  icon: Icon
+  searchPlaceholder = 'Cari...',
+  icon: Icon,
+  className = ''
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [activeRoleTab, setActiveRoleTab] = useState<'all' | 'PPL' | 'PML'>('all');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -491,108 +498,258 @@ const SearchableFilterDropdown: React.FC<SearchableFilterDropdownProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const hasPplAndPml = useMemo(() => {
+    return options.some(o => o.roleType === 'PPL') && options.some(o => o.roleType === 'PML');
+  }, [options]);
+
   const selectedOpt = options.find(o => o.value === value);
   const isDefaultOrAll = value === 'all' || value === 'ALL' || value === 'none' || !value;
+  
   const displayLabel = selectedOpt 
     ? (isDefaultOrAll ? selectedOpt.label : `${prefix}${selectedOpt.label}`) 
     : placeholder;
 
-  const filtered = options.filter(o => 
-    o.label.toLowerCase().includes(search.toLowerCase()) || 
-    o.value.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = options.filter(o => {
+    if (hasPplAndPml && activeRoleTab !== 'all') {
+      if (o.value !== 'all' && o.roleType !== activeRoleTab) return false;
+    }
+    const q = search.toLowerCase();
+    return (
+      o.label.toLowerCase().includes(q) || 
+      o.value.toLowerCase().includes(q) ||
+      (o.subLabel && o.subLabel.toLowerCase().includes(q))
+    );
+  });
+
+  const isFullWidth = className.includes('w-full');
 
   return (
-    <div className={`relative ${isOpen ? 'z-[100]' : 'z-10'} ${className}`} ref={dropdownRef}>
+    <div className={`relative ${isFullWidth ? 'w-full' : 'shrink-0'} ${isOpen ? 'z-[100]' : 'z-10'} ${className}`} ref={dropdownRef}>
       <button 
         type="button"
         onClick={() => {
           setIsOpen(!isOpen);
           if (!isOpen) setSearch('');
         }}
-        className={`flex items-center justify-between gap-2 min-w-[145px] sm:min-w-[170px] bg-white border rounded-2xl px-3.5 py-2 text-xs font-bold transition-all duration-200 cursor-pointer select-none shadow-2xs ${
+        className={`flex items-center justify-between gap-1.5 ${isFullWidth ? 'w-full' : 'shrink-0 min-w-[125px] sm:min-w-[170px]'} whitespace-nowrap bg-white border rounded-2xl px-3 py-2 sm:px-3.5 sm:py-2 text-xs font-bold transition-all duration-200 cursor-pointer select-none shadow-2xs ${
           isOpen 
             ? 'border-cyan-500 ring-2 ring-cyan-500/20 text-cyan-950 shadow-sm' 
             : !isDefaultOrAll
-              ? 'border-cyan-300 bg-cyan-50/40 text-cyan-900 hover:border-cyan-400'
+              ? selectedOpt?.roleType === 'PPL'
+                ? 'border-emerald-300 bg-emerald-50/50 text-emerald-950 hover:border-emerald-400'
+                : selectedOpt?.roleType === 'PML'
+                  ? 'border-purple-300 bg-purple-50/50 text-purple-950 hover:border-purple-400'
+                  : 'border-cyan-300 bg-cyan-50/40 text-cyan-900 hover:border-cyan-400'
               : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50/80'
         }`}
       >
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
           {Icon && <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
-          <span className="truncate max-w-[160px]">{displayLabel}</span>
+          {selectedOpt?.roleType && !isDefaultOrAll && (
+            <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider shrink-0 ${
+              selectedOpt.roleType === 'PPL' 
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                : 'bg-purple-100 text-purple-800 border border-purple-300'
+            }`}>
+              {selectedOpt.roleType}
+            </span>
+          )}
+          <span className="truncate">{displayLabel}</span>
         </div>
         <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-cyan-600' : ''}`} />
       </button>
       
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.97 }}
-            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute z-[100] top-full left-0 mt-1.5 min-w-[220px] max-w-[calc(100vw-32px)] sm:max-w-[320px] w-max bg-white border border-slate-200/90 rounded-2xl shadow-2xl shadow-slate-900/20 overflow-hidden flex flex-col"
-          >
-            {options.length > 5 && (
-              <div className="p-2 border-b border-slate-100 bg-slate-50/80">
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input 
-                    type="text" 
-                    placeholder={searchPlaceholder}
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl py-1.5 pl-8 pr-7 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                    autoFocus
-                  />
-                  {search && (
-                    <button 
-                      type="button" 
-                      onClick={() => setSearch('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
+          <>
+            {/* Mobile Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="sm:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[1300]"
+            />
+
+            {/* Dropdown Container (Mobile Bottom Sheet / Desktop Anchored Popover) */}
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+              className="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-full sm:left-0 sm:mt-1.5 z-[1310] sm:z-[100] min-w-full sm:min-w-[280px] sm:max-w-[380px] sm:w-max bg-white border-t sm:border border-slate-200/90 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-96"
+            >
+              {/* Mobile Header with Drag Handle */}
+              <div className="sm:hidden pt-3 pb-2 px-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-1 rounded-full bg-slate-300" />
+                  <span className="font-extrabold text-xs text-slate-800">{placeholder}</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-200/60 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            )}
-            <div className="max-h-56 overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar">
-              {filtered.map(opt => {
-                const isSelected = value === opt.value;
-                return (
+
+              {/* Role Switcher Tabs (Only when both PPL and PML are present) */}
+              {hasPplAndPml && (
+                <div className="p-2 border-b border-slate-100 bg-slate-50/90 flex items-center gap-1.5">
                   <button
-                    key={opt.value}
                     type="button"
-                    onClick={() => { 
-                      onChange(opt.value); 
-                      setIsOpen(false); 
-                      setSearch(''); 
-                    }}
-                    className={`w-full flex items-center justify-between text-left px-3 py-2 text-xs rounded-xl transition-all cursor-pointer ${
-                      isSelected 
-                        ? 'bg-cyan-50 text-cyan-800 font-extrabold' 
-                        : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 font-medium'
+                    onClick={() => setActiveRoleTab('all')}
+                    className={`flex-1 py-1.5 px-2 text-[11px] sm:text-[10px] font-bold rounded-xl transition-all cursor-pointer text-center ${
+                      activeRoleTab === 'all'
+                        ? 'bg-slate-800 text-white shadow-xs'
+                        : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200/80'
                     }`}
                   >
-                    <span className="truncate mr-2">{opt.label}</span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {opt.badge !== undefined && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          {opt.badge}
-                        </span>
-                      )}
-                      {isSelected && <Check className="w-3.5 h-3.5 text-cyan-600 shrink-0" />}
-                    </div>
+                    Semua
                   </button>
-                );
-              })}
-              {filtered.length === 0 && (
-                <div className="px-3 py-4 text-center text-xs text-slate-400 italic">Tidak ditemukan</div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveRoleTab('PPL')}
+                    className={`flex-1 py-1.5 px-2 text-[11px] sm:text-[10px] font-black rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1 ${
+                      activeRoleTab === 'PPL'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
+                    }`}
+                  >
+                    <span>🟢 PPL</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveRoleTab('PML')}
+                    className={`flex-1 py-1.5 px-2 text-[11px] sm:text-[10px] font-black rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1 ${
+                      activeRoleTab === 'PML'
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'bg-white text-purple-700 hover:bg-purple-50 border border-purple-200'
+                    }`}
+                  >
+                    <span>🟣 PML</span>
+                  </button>
+                </div>
               )}
-            </div>
-          </motion.div>
+
+              {options.length > 5 && (
+                <div className="p-2.5 sm:p-2 border-b border-slate-100 bg-slate-50/80">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input 
+                      type="text" 
+                      placeholder={searchPlaceholder}
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl py-2 sm:py-1.5 pl-8 pr-7 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                      autoFocus
+                    />
+                    {search && (
+                      <button 
+                        type="button" 
+                        onClick={() => setSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex-1 overflow-y-auto p-2 sm:p-1.5 space-y-1 sm:space-y-0.5 custom-scrollbar max-h-[55vh] sm:max-h-60">
+                {filtered.map(opt => {
+                  const isSelected = value === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => { 
+                        onChange(opt.value); 
+                        setIsOpen(false); 
+                        setSearch(''); 
+                      }}
+                      className={`w-full flex items-start justify-between text-left p-3 sm:p-2 text-xs rounded-2xl sm:rounded-xl transition-all cursor-pointer ${
+                        isSelected 
+                          ? opt.roleType === 'PPL'
+                            ? 'bg-emerald-50 text-emerald-950 font-extrabold border border-emerald-200 shadow-2xs'
+                            : opt.roleType === 'PML'
+                              ? 'bg-purple-50 text-purple-950 font-extrabold border border-purple-200 shadow-2xs'
+                              : 'bg-cyan-50 text-cyan-800 font-extrabold border border-cyan-200 shadow-2xs' 
+                          : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 font-medium'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2 sm:gap-1.5 min-w-0 mr-2">
+                        {opt.roleType && (
+                          <span className={`mt-0.5 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 ${
+                            opt.roleType === 'PPL'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-purple-100 text-purple-800 border border-purple-300'
+                          }`}>
+                            {opt.roleType}
+                          </span>
+                        )}
+                        <div className="min-w-0">
+                          <span className="truncate block font-bold leading-tight text-xs">
+                            {opt.label.replace(/^\[(PPL|PML)\]\s*/, '')}
+                          </span>
+                          {opt.subLabel && (
+                            <span className={`text-[11px] sm:text-[10px] block mt-0.5 ${
+                              opt.roleType === 'PPL' 
+                                ? 'text-emerald-700 font-semibold' 
+                                : opt.roleType === 'PML' 
+                                  ? 'text-purple-700 font-semibold' 
+                                  : 'text-slate-400'
+                            }`}>
+                              {opt.subLabel}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+                        {opt.badge !== undefined && (
+                          <span className={`text-[11px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            opt.roleType === 'PPL'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : opt.roleType === 'PML'
+                                ? 'bg-purple-100 text-purple-800'
+                                : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {opt.badge}
+                          </span>
+                        )}
+                        {isSelected && (
+                          <Check className={`w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0 ${
+                            opt.roleType === 'PPL'
+                              ? 'text-emerald-600'
+                              : opt.roleType === 'PML'
+                                ? 'text-purple-600'
+                                : 'text-cyan-600'
+                          }`} />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <div className="px-3 py-6 text-center text-xs text-slate-400 italic">Data tidak ditemukan</div>
+                )}
+              </div>
+
+              {/* Mobile Bottom Close Button */}
+              <div className="sm:hidden p-3 bg-slate-50 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold shadow-md cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
@@ -634,7 +791,6 @@ const MultiSelectStatusDropdown: React.FC<MultiSelectStatusDropdownProps> = ({
 
   const toggleStatus = (id: string) => {
     if (selectedIds.length === 0) {
-      // If currently all selected, clicking one unchecks that one (selects the other 12)
       const allExceptThis = categories.map(c => c.id).filter(i => i !== id);
       onChange(allExceptThis);
     } else if (selectedIds.includes(id)) {
@@ -665,15 +821,17 @@ const MultiSelectStatusDropdown: React.FC<MultiSelectStatusDropdownProps> = ({
       ? '0 Status Dipilih'
       : `${selectedIds.length} Status Dipilih`;
 
+  const isFullWidth = className.includes('w-full');
+
   return (
-    <div className={`relative ${isOpen ? 'z-[100]' : 'z-10'} ${className}`} ref={dropdownRef}>
+    <div className={`relative ${isFullWidth ? 'w-full' : 'shrink-0'} ${isOpen ? 'z-[100]' : 'z-10'} ${className}`} ref={dropdownRef}>
       <button 
         type="button"
         onClick={() => {
           setIsOpen(!isOpen);
           if (!isOpen) setSearch('');
         }}
-        className={`flex items-center justify-between gap-2 min-w-[160px] sm:min-w-[195px] bg-white border rounded-2xl px-3.5 py-2 text-xs font-bold transition-all duration-200 cursor-pointer select-none shadow-2xs ${
+        className={`flex items-center justify-between gap-1.5 ${isFullWidth ? 'w-full' : 'shrink-0 min-w-[130px] sm:min-w-[195px]'} whitespace-nowrap bg-white border rounded-2xl px-3 py-2 sm:px-3.5 sm:py-2 text-xs font-bold transition-all duration-200 cursor-pointer select-none shadow-2xs ${
           isOpen 
             ? 'border-cyan-500 ring-2 ring-cyan-500/20 text-cyan-950 shadow-sm' 
             : !isAllSelected
@@ -681,9 +839,9 @@ const MultiSelectStatusDropdown: React.FC<MultiSelectStatusDropdownProps> = ({
               : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50/80'
         }`}
       >
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <Layers className={`w-3.5 h-3.5 shrink-0 ${!isAllSelected ? 'text-indigo-600' : 'text-slate-400'}`} />
-          <span className="truncate max-w-[150px]">{displayLabel}</span>
+          <span className="truncate">{displayLabel}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {!isAllSelected && !selectedIds.includes('__none__') && (
@@ -697,115 +855,145 @@ const MultiSelectStatusDropdown: React.FC<MultiSelectStatusDropdownProps> = ({
       
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.97 }}
-            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute z-[100] top-full left-0 mt-1.5 min-w-[280px] sm:min-w-[340px] max-w-[calc(100vw-32px)] bg-white border border-slate-200/90 rounded-2xl shadow-2xl shadow-slate-900/20 overflow-hidden flex flex-col"
-          >
-            {/* Header & Quick Action Buttons */}
-            <div className="p-2.5 border-b border-slate-100 bg-slate-50/90 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                  <SlidersHorizontal className="w-3 h-3 text-cyan-600" />
-                  Pilih Warna & Status Peta
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={selectAll}
-                    className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-cyan-100 text-cyan-800 hover:bg-cyan-200 cursor-pointer transition-colors"
-                  >
-                    Pilih Semua
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearAll}
-                    className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 cursor-pointer transition-colors"
-                  >
-                    Hapus Semua
-                  </button>
+          <>
+            {/* Mobile Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="sm:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[1300]"
+            />
+
+            {/* Dropdown Container */}
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+              className="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-full sm:left-0 sm:mt-1.5 z-[1310] sm:z-[100] min-w-full sm:min-w-[280px] sm:max-w-[340px] bg-white border-t sm:border border-slate-200/90 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-96"
+            >
+              {/* Header & Quick Action Buttons */}
+              <div className="p-3 sm:p-2.5 border-b border-slate-100 bg-slate-50/90 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                    <SlidersHorizontal className="w-3 h-3 text-cyan-600" />
+                    Warna & Status Responden
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={selectAll}
+                      className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-cyan-100 text-cyan-800 hover:bg-cyan-200 cursor-pointer transition-colors"
+                    >
+                      Pilih Semua
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearAll}
+                      className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 cursor-pointer transition-colors"
+                    >
+                      Hapus
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsOpen(false)}
+                      className="sm:hidden p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search input */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input 
+                    type="text" 
+                    placeholder="Cari kategori status..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl py-2 sm:py-1 pl-8 pr-7 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                    autoFocus
+                  />
+                  {search && (
+                    <button 
+                      type="button" 
+                      onClick={() => setSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Search input */}
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input 
-                  type="text" 
-                  placeholder="Cari kategori status..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl py-1 pl-8 pr-7 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                  autoFocus
-                />
-                {search && (
-                  <button 
-                    type="button" 
-                    onClick={() => setSearch('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+              {/* List with Checkboxes and Color Dots */}
+              <div className="flex-1 overflow-y-auto p-2 sm:p-1.5 space-y-2 sm:space-y-1.5 custom-scrollbar max-h-[55vh] sm:max-h-64">
+                {['Usaha', 'Keluarga'].map(groupName => {
+                  const groupItems = filteredCategories.filter(c => c.group === groupName);
+                  if (groupItems.length === 0) return null;
+
+                  return (
+                    <div key={groupName} className="space-y-1 sm:space-y-0.5">
+                      <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-slate-500 bg-slate-100/80 rounded-md">
+                        {groupName === 'Usaha' ? '💼 Kategori Keberadaan Usaha' : '🏠 Kategori Keberadaan Keluarga'}
+                      </div>
+                      {groupItems.map(cat => {
+                        const isChecked = selectedIds.length === 0 
+                          ? true 
+                          : (selectedIds.includes(cat.id) && !selectedIds.includes('__none__'));
+
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => toggleStatus(cat.id)}
+                            className={`w-full flex items-center justify-between text-left px-3 py-2.5 sm:px-2.5 sm:py-1.5 text-xs rounded-xl transition-all cursor-pointer ${
+                              isChecked 
+                                ? 'bg-slate-50/80 text-slate-900 font-bold hover:bg-slate-100' 
+                                : 'text-slate-400 opacity-60 hover:opacity-100 hover:bg-slate-50 font-normal'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                readOnly
+                                className="w-4 h-4 sm:w-3.5 sm:h-3.5 rounded text-cyan-600 focus:ring-0 cursor-pointer"
+                              />
+                              <span 
+                                className="w-3.5 h-3.5 rounded-full shrink-0 ring-1 ring-black/10" 
+                                style={{ backgroundColor: cat.color }} 
+                              />
+                              <span className="truncate text-xs">{cat.name}</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-400 shrink-0 ml-2">
+                              {cat.icon}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+                {filteredCategories.length === 0 && (
+                  <div className="px-3 py-6 text-center text-xs text-slate-400 italic">Kategori tidak ditemukan</div>
                 )}
               </div>
-            </div>
 
-            {/* List with Checkboxes and Color Dots */}
-            <div className="max-h-64 overflow-y-auto p-1.5 space-y-1.5 custom-scrollbar">
-              {['Usaha', 'Keluarga'].map(groupName => {
-                const groupItems = filteredCategories.filter(c => c.group === groupName);
-                if (groupItems.length === 0) return null;
-
-                return (
-                  <div key={groupName} className="space-y-0.5">
-                    <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-slate-500 bg-slate-100/70 rounded-md">
-                      {groupName === 'Usaha' ? '💼 Kategori Keberadaan Usaha' : '🏠 Kategori Keberadaan Keluarga'}
-                    </div>
-                    {groupItems.map(cat => {
-                      const isChecked = selectedIds.length === 0 
-                        ? true 
-                        : (selectedIds.includes(cat.id) && !selectedIds.includes('__none__'));
-
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => toggleStatus(cat.id)}
-                          className={`w-full flex items-center justify-between text-left px-2.5 py-1.5 text-xs rounded-xl transition-all cursor-pointer ${
-                            isChecked 
-                              ? 'bg-slate-50/80 text-slate-900 font-bold hover:bg-slate-100' 
-                              : 'text-slate-400 opacity-60 hover:opacity-100 hover:bg-slate-50 font-normal'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              readOnly
-                              className="w-3.5 h-3.5 rounded text-cyan-600 focus:ring-0 cursor-pointer"
-                            />
-                            <span 
-                              className="w-3 h-3 rounded-full shrink-0 ring-1 ring-black/10" 
-                              style={{ backgroundColor: cat.color }} 
-                            />
-                            <span className="truncate">{cat.name}</span>
-                          </div>
-                          <span className="text-[10px] font-bold text-slate-400 shrink-0 ml-2">
-                            {cat.icon}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-              {filteredCategories.length === 0 && (
-                <div className="px-3 py-4 text-center text-xs text-slate-400 italic">Kategori tidak ditemukan</div>
-              )}
-            </div>
-          </motion.div>
+              {/* Mobile Bottom Close Button */}
+              <div className="sm:hidden p-3 bg-slate-50 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold shadow-md cursor-pointer"
+                >
+                  Terapkan Status
+                </button>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
@@ -888,8 +1076,10 @@ const MultiSelectSlsDropdown: React.FC<MultiSelectSlsDropdownProps> = ({
           ? '0 SLS Dipilih'
           : `${selectedKeys.length} SLS Dipilih`;
 
+  const isFullWidth = className.includes('w-full');
+
   return (
-    <div className={`relative ${isOpen ? 'z-[100]' : 'z-10'} ${className}`} ref={dropdownRef}>
+    <div className={`relative ${isFullWidth ? 'w-full' : 'shrink-0'} ${isOpen ? 'z-[100]' : 'z-10'} ${className}`} ref={dropdownRef}>
       <button 
         type="button"
         disabled={disabled || options.length === 0}
@@ -898,7 +1088,7 @@ const MultiSelectSlsDropdown: React.FC<MultiSelectSlsDropdownProps> = ({
           setIsOpen(!isOpen);
           if (!isOpen) setSearch('');
         }}
-        className={`flex items-center justify-between gap-2 min-w-[155px] sm:min-w-[185px] bg-white border rounded-2xl px-3.5 py-2 text-xs font-bold transition-all duration-200 cursor-pointer select-none shadow-2xs ${
+        className={`flex items-center justify-between gap-1.5 ${isFullWidth ? 'w-full' : 'shrink-0 min-w-[130px] sm:min-w-[185px]'} whitespace-nowrap bg-white border rounded-2xl px-3 py-2 sm:px-3.5 sm:py-2 text-xs font-bold transition-all duration-200 cursor-pointer select-none shadow-2xs ${
           disabled || options.length === 0
             ? 'opacity-50 cursor-not-allowed border-slate-200 text-slate-400'
             : isOpen 
@@ -908,9 +1098,9 @@ const MultiSelectSlsDropdown: React.FC<MultiSelectSlsDropdownProps> = ({
                 : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50/80'
         }`}
       >
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <MapPin className={`w-3.5 h-3.5 shrink-0 ${!isAllSelected && !disabled ? 'text-cyan-600' : 'text-slate-400'}`} />
-          <span className="truncate max-w-[145px]">{displayLabel}</span>
+          <span className="truncate">{displayLabel}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {!isAllSelected && !selectedKeys.includes('__none__') && !disabled && (
@@ -924,104 +1114,134 @@ const MultiSelectSlsDropdown: React.FC<MultiSelectSlsDropdownProps> = ({
 
       <AnimatePresence>
         {isOpen && !disabled && (
-          <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.97 }}
-            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute z-[100] top-full left-0 mt-1.5 min-w-[280px] sm:min-w-[340px] max-w-[calc(100vw-32px)] bg-white border border-slate-200/90 rounded-2xl shadow-2xl shadow-slate-900/20 overflow-hidden flex flex-col"
-          >
-            {/* Header & Quick Action Buttons */}
-            <div className="p-2.5 border-b border-slate-100 bg-slate-50/90 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-cyan-600" />
-                  Filter Beberapa SLS ({options.length})
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={selectAll}
-                    className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-cyan-100 text-cyan-800 hover:bg-cyan-200 cursor-pointer transition-colors"
-                  >
-                    Pilih Semua
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearAll}
-                    className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 cursor-pointer transition-colors"
-                  >
-                    Hapus Semua
-                  </button>
+          <>
+            {/* Mobile Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="sm:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[1300]"
+            />
+
+            {/* Dropdown Container */}
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+              className="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-full sm:left-0 sm:mt-1.5 z-[1310] sm:z-[100] min-w-full sm:min-w-[280px] sm:max-w-[340px] bg-white border-t sm:border border-slate-200/90 rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-96"
+            >
+              {/* Header & Quick Action Buttons */}
+              <div className="p-3 sm:p-2.5 border-b border-slate-100 bg-slate-50/90 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-cyan-600" />
+                    Pilih SLS ({options.length})
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={selectAll}
+                      className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-cyan-100 text-cyan-800 hover:bg-cyan-200 cursor-pointer transition-colors"
+                    >
+                      Pilih Semua
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearAll}
+                      className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 cursor-pointer transition-colors"
+                    >
+                      Hapus
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsOpen(false)}
+                      className="sm:hidden p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search input */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input 
+                    type="text" 
+                    placeholder="Cari nama atau kode SLS..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl py-2 sm:py-1 pl-8 pr-7 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                    autoFocus
+                  />
+                  {search && (
+                    <button 
+                      type="button" 
+                      onClick={() => setSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Search input */}
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input 
-                  type="text" 
-                  placeholder="Cari nama atau kode SLS..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl py-1 pl-8 pr-7 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                  autoFocus
-                />
-                {search && (
-                  <button 
-                    type="button" 
-                    onClick={() => setSearch('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+              {/* SLS Options List */}
+              <div className="flex-1 overflow-y-auto p-2 sm:p-1.5 space-y-1 custom-scrollbar max-h-[55vh] sm:max-h-64">
+                {filtered.map(sls => {
+                  const slsKey = sls.kodeSls || sls.namaSls;
+                  const isChecked = isAllSelected || (selectedKeys.includes(slsKey) && !selectedKeys.includes('__none__'));
+                  return (
+                    <button
+                      key={slsKey}
+                      type="button"
+                      onClick={() => toggleSls(slsKey)}
+                      className={`w-full flex items-center justify-between text-left p-3 sm:p-2 rounded-2xl sm:rounded-xl transition-all cursor-pointer ${
+                        isChecked 
+                          ? 'bg-cyan-50/90 text-cyan-950 font-bold border border-cyan-200/80 shadow-2xs' 
+                          : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 border border-transparent font-medium'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                        <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-all ${
+                          isChecked 
+                            ? 'bg-cyan-600 border-cyan-600 text-white' 
+                            : 'border-slate-300 bg-white'
+                        }`}>
+                          {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-xs truncate block">{sls.namaSls}</span>
+                          {sls.kodeSls && (
+                            <span className="text-[10px] text-slate-400 font-mono block">Kode: {sls.kodeSls}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 shrink-0 border border-slate-200/70">
+                        {sls.total.toLocaleString('id-ID')}
+                      </span>
+                    </button>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <div className="px-3 py-6 text-center text-xs text-slate-400 italic">SLS tidak ditemukan</div>
                 )}
               </div>
-            </div>
 
-            {/* SLS Options List */}
-            <div className="max-h-64 overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
-              {filtered.map(sls => {
-                const slsKey = sls.kodeSls || sls.namaSls;
-                const isChecked = isAllSelected || (selectedKeys.includes(slsKey) && !selectedKeys.includes('__none__'));
-                return (
-                  <button
-                    key={slsKey}
-                    type="button"
-                    onClick={() => toggleSls(slsKey)}
-                    className={`w-full flex items-center justify-between text-left p-2 rounded-xl transition-all cursor-pointer ${
-                      isChecked 
-                        ? 'bg-cyan-50/90 text-cyan-950 font-bold border border-cyan-200/80 shadow-2xs' 
-                        : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 border border-transparent font-medium'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0 mr-2">
-                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-all ${
-                        isChecked 
-                          ? 'bg-cyan-600 border-cyan-600 text-white' 
-                          : 'border-slate-300 bg-white'
-                      }`}>
-                        {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-xs truncate block">{sls.namaSls}</span>
-                        {sls.kodeSls && (
-                          <span className="text-[10px] text-slate-400 font-mono block">Kode: {sls.kodeSls}</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 shrink-0 border border-slate-200/70">
-                      {sls.total.toLocaleString('id-ID')}
-                    </span>
-                  </button>
-                );
-              })}
-              {filtered.length === 0 && (
-                <div className="px-3 py-4 text-center text-xs text-slate-400 italic">SLS tidak ditemukan</div>
-              )}
-            </div>
-          </motion.div>
+              {/* Mobile Bottom Close Button */}
+              <div className="sm:hidden p-3 bg-slate-50 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold shadow-md cursor-pointer"
+                >
+                  Terapkan SLS
+                </button>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
@@ -1453,6 +1673,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
   const [selectedKec, setSelectedKec] = useState<string>('all');
   const [selectedDesa, setSelectedDesa] = useState<string>('all');
   const [selectedSls, setSelectedSls] = useState<string[]>([]);
+  const [selectedOfficer, setSelectedOfficer] = useState<string>('all');
   const [filterUsaha, setFilterUsaha] = useState<string>('all');
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -1472,6 +1693,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
   const [showDrawer, setShowDrawer] = useState<boolean>(false);
   const [showStatsModal, setShowStatsModal] = useState<boolean>(false);
   const [showLegendModal, setShowLegendModal] = useState<boolean>(false);
+  const [showMobileFilterSheet, setShowMobileFilterSheet] = useState<boolean>(false);
   const [selectedPoint, setSelectedPoint] = useState<RespondenPoint | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -1480,9 +1702,59 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
   const [targetZoom, setTargetZoom] = useState<number>(11);
   const [targetBounds, setTargetBounds] = useState<L.LatLngBoundsExpression | null>(null);
 
-  // 1. Load Metadata Index on Mount
+  // In-Memory Cache & Loading Promise Map for Instant 0ms Access
+  const pointsCacheRef = useRef<Record<string, RespondenPoint[]>>({});
+  const inFlightLoadsRef = useRef<Record<string, Promise<RespondenPoint[]>>>({});
+
+  // 3. Helper to Load & Decrypt Points for a specific Kecamatan (AES-256-GCM)
+  const loadKecamatanPoints = useCallback(async (kecCode: string, isSilentBackground = false): Promise<RespondenPoint[]> => {
+    // 1. Return from memory cache if already loaded
+    if (pointsCacheRef.current[kecCode]) {
+      const cached = pointsCacheRef.current[kecCode];
+      setPointsByKec(prev => prev[kecCode] ? prev : { ...prev, [kecCode]: cached });
+      return cached;
+    }
+
+    // 2. Return in-flight promise if already loading
+    if (inFlightLoadsRef.current[kecCode]) {
+      return inFlightLoadsRef.current[kecCode];
+    }
+
+    // 3. Initiate fetch & Web Crypto AES-256 decryption
+    const loadPromise = (async () => {
+      try {
+        if (!isSilentBackground) setLoadingPoints(true);
+        const res = await fetch(`/data/se2026_responden/responden_kec_${kecCode}.json`);
+        if (!res.ok) throw new Error(`Gagal memuat data responden kecamatan ${kecCode}`);
+        const rawEncrypted = await res.json();
+        
+        const decryptedData = await decryptMilitaryPayload(rawEncrypted);
+        const loadedPoints: RespondenPoint[] = decryptedData.points || [];
+
+        // Save in memory cache
+        pointsCacheRef.current[kecCode] = loadedPoints;
+
+        setPointsByKec(prev => ({
+          ...prev,
+          [kecCode]: loadedPoints
+        }));
+        return loadedPoints;
+      } catch (err: any) {
+        console.error(`Error decrypting points for kec ${kecCode}:`, err);
+        return [];
+      } finally {
+        delete inFlightLoadsRef.current[kecCode];
+        if (!isSilentBackground) setLoadingPoints(false);
+      }
+    })();
+
+    inFlightLoadsRef.current[kecCode] = loadPromise;
+    return loadPromise;
+  }, []);
+
+  // 1. Load Metadata Index on Mount and Immediately Preload All Kecamatan in Background
   useEffect(() => {
-    const fetchMetadata = async () => {
+    const fetchMetadataAndPreload = async () => {
       try {
         setLoadingMeta(true);
         setLoadError(null);
@@ -1492,10 +1764,15 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
         const data: MetadataIndex = await decryptMilitaryPayload<MetadataIndex>(rawData);
         setMetadata(data);
 
-        // Preload default selected kecamatan data (e.g. 100 Mempawah Hilir)
+        // Instant priority load for default kecamatan + parallel background prefetch for all other kecamatans
         if (data.kecamatanList && data.kecamatanList.length > 0) {
           const defaultKec = data.kecamatanList[0].kecCode;
-          loadKecamatanPoints(defaultKec);
+          // Priority load active
+          await loadKecamatanPoints(defaultKec, false);
+
+          // Background prefetch remaining kecamatans concurrently so all switches are 0ms instant
+          const remainingKecs = data.kecamatanList.slice(1).map(k => k.kecCode);
+          Promise.allSettled(remainingKecs.map(kCode => loadKecamatanPoints(kCode, true)));
         }
       } catch (err: any) {
         console.error('Metadata load error:', err);
@@ -1505,8 +1782,8 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
       }
     };
 
-    fetchMetadata();
-  }, []);
+    fetchMetadataAndPreload();
+  }, [loadKecamatanPoints]);
 
   // 2. Load Boundary GeoJSONs in Background
   useEffect(() => {
@@ -1529,44 +1806,16 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
     fetchGeoData();
   }, []);
 
-  // 3. Helper to Load & Decrypt Points for a specific Kecamatan (AES-256-GCM)
-  const loadKecamatanPoints = async (kecCode: string) => {
-    if (pointsByKec[kecCode]) return pointsByKec[kecCode];
-
-    try {
-      setLoadingPoints(true);
-      const res = await fetch(`/data/se2026_responden/responden_kec_${kecCode}.json`);
-      if (!res.ok) throw new Error(`Gagal memuat data responden kecamatan ${kecCode}`);
-      const rawEncrypted = await res.json();
-      
-      const decryptedData = await decryptMilitaryPayload(rawEncrypted);
-      const loadedPoints: RespondenPoint[] = decryptedData.points || [];
-
-      setPointsByKec(prev => ({
-        ...prev,
-        [kecCode]: loadedPoints
-      }));
-      return loadedPoints;
-    } catch (err: any) {
-      console.error(`Error decrypting points for kec ${kecCode}:`, err);
-      return [];
-    } finally {
-      setLoadingPoints(false);
-    }
-  };
-
   // 4. Load points when selectedKec changes
   useEffect(() => {
     if (selectedKec !== 'all') {
-      loadKecamatanPoints(selectedKec);
+      loadKecamatanPoints(selectedKec, false);
     } else if (metadata?.kecamatanList) {
       metadata.kecamatanList.forEach(k => {
-        if (!pointsByKec[k.kecCode]) {
-          loadKecamatanPoints(k.kecCode);
-        }
+        loadKecamatanPoints(k.kecCode, true);
       });
     }
-  }, [selectedKec, metadata]);
+  }, [selectedKec, metadata, loadKecamatanPoints]);
 
   // 5. Active Kecamatan Info & Available Desas
   const activeKecMeta = useMemo(() => {
@@ -1603,6 +1852,217 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
     return list;
   }, [pointsByKec]);
 
+  // Canonical identity maps (resolves standalone names like "AGNES" to canonical email "mamatian494@gmail.com" & proper name "Agnes")
+  const { pplCanonicalByName, pmlCanonicalByName } = useMemo(() => {
+    const pplByName = new Map<string, { email: string; name: string }>();
+    const pmlByName = new Map<string, { email: string; name: string }>();
+
+    for (let i = 0; i < allLoadedPoints.length; i++) {
+      const p = allLoadedPoints[i];
+      if (p.ppl && p.ppl.includes('@')) {
+        const email = p.ppl.trim().toLowerCase();
+        const name = (p.pplName || '').trim();
+        if (name) {
+          pplByName.set(name.toUpperCase(), { email, name });
+        }
+        pplByName.set(email, { email, name: name || email });
+      } else if (p.pplName && p.ppl && !p.ppl.includes('@')) {
+        const name = p.pplName.trim();
+        if (!pplByName.has(name.toUpperCase())) {
+          pplByName.set(name.toUpperCase(), { email: '', name });
+        }
+      }
+
+      if (p.pml && p.pml.includes('@')) {
+        const email = p.pml.trim().toLowerCase();
+        const name = (p.pmlName || '').trim();
+        if (name) {
+          pmlByName.set(name.toUpperCase(), { email, name });
+        }
+        pmlByName.set(email, { email, name: name || email });
+      } else if (p.pmlName && p.pml && !p.pml.includes('@')) {
+        const name = p.pmlName.trim();
+        if (!pmlByName.has(name.toUpperCase())) {
+          pmlByName.set(name.toUpperCase(), { email: '', name });
+        }
+      }
+    }
+    return { pplCanonicalByName: pplByName, pmlCanonicalByName: pmlByName };
+  }, [allLoadedPoints]);
+
+  // Dynamic list of PPL & PML officers linked to selected wilayah (Kecamatan, Desa, SLS) with smart deduplication & role metadata
+  const availableOfficerOptions: DropdownOption[] = useMemo(() => {
+    let pts: RespondenPoint[] = selectedKec === 'all' ? allLoadedPoints : (pointsByKec[selectedKec] || []);
+    if (selectedDesa !== 'all') {
+      pts = pts.filter(p => p.d === selectedDesa);
+    }
+    if (selectedSls.length > 0 && !selectedSls.includes('__none__')) {
+      pts = pts.filter(p => (p.ks && selectedSls.includes(p.ks)) || (p.s && selectedSls.includes(p.s)));
+    }
+
+    const pplMap = new Map<string, { name: string; email: string; aliases: Set<string>; count: number }>();
+    const pmlMap = new Map<string, { name: string; email: string; aliases: Set<string>; count: number }>();
+
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+
+      // 1. Process PPL (Petugas Pendataan Lapangan)
+      if (p.ppl || p.pplName) {
+        const rawPpl = (p.ppl || '').trim();
+        const rawName = (p.pplName || '').trim();
+        let resolvedEmail = '';
+        let resolvedName = '';
+
+        if (rawPpl.includes('@')) {
+          resolvedEmail = rawPpl.toLowerCase();
+          resolvedName = rawName || pplCanonicalByName.get(resolvedEmail)?.name || rawPpl;
+        } else if (rawName && pplCanonicalByName.has(rawName.toUpperCase())) {
+          const match = pplCanonicalByName.get(rawName.toUpperCase())!;
+          resolvedEmail = match.email;
+          resolvedName = match.name;
+        } else if (rawPpl && pplCanonicalByName.has(rawPpl.toUpperCase())) {
+          const match = pplCanonicalByName.get(rawPpl.toUpperCase())!;
+          resolvedEmail = match.email;
+          resolvedName = match.name;
+        } else {
+          resolvedEmail = rawPpl.toLowerCase();
+          resolvedName = rawName || rawPpl;
+        }
+
+        const key = (resolvedEmail && resolvedEmail.includes('@')) 
+          ? resolvedEmail 
+          : resolvedName.toUpperCase();
+
+        if (key) {
+          if (!pplMap.has(key)) {
+            pplMap.set(key, { 
+              name: resolvedName, 
+              email: resolvedEmail, 
+              aliases: new Set<string>(), 
+              count: 0 
+            });
+          }
+          const entry = pplMap.get(key)!;
+          entry.count++;
+          if (rawPpl) entry.aliases.add(rawPpl.toLowerCase());
+          if (rawName) entry.aliases.add(rawName.toLowerCase());
+          if (resolvedEmail) entry.aliases.add(resolvedEmail.toLowerCase());
+          if (resolvedName) entry.aliases.add(resolvedName.toLowerCase());
+        }
+      }
+
+      // 2. Process PML (Petugas Pemeriksa Lapangan)
+      if (p.pml || p.pmlName) {
+        const rawPml = (p.pml || '').trim();
+        const rawName = (p.pmlName || '').trim();
+        let resolvedEmail = '';
+        let resolvedName = '';
+
+        if (rawPml.includes('@')) {
+          resolvedEmail = rawPml.toLowerCase();
+          resolvedName = rawName || pmlCanonicalByName.get(resolvedEmail)?.name || rawPml;
+        } else if (rawName && pmlCanonicalByName.has(rawName.toUpperCase())) {
+          const match = pmlCanonicalByName.get(rawName.toUpperCase())!;
+          resolvedEmail = match.email;
+          resolvedName = match.name;
+        } else if (rawPml && pmlCanonicalByName.has(rawPml.toUpperCase())) {
+          const match = pmlCanonicalByName.get(rawPml.toUpperCase())!;
+          resolvedEmail = match.email;
+          resolvedName = match.name;
+        } else {
+          resolvedEmail = rawPml.toLowerCase();
+          resolvedName = rawName || rawPml;
+        }
+
+        const key = (resolvedEmail && resolvedEmail.includes('@')) 
+          ? resolvedEmail 
+          : resolvedName.toUpperCase();
+
+        if (key) {
+          if (!pmlMap.has(key)) {
+            pmlMap.set(key, { 
+              name: resolvedName, 
+              email: resolvedEmail, 
+              aliases: new Set<string>(), 
+              count: 0 
+            });
+          }
+          const entry = pmlMap.get(key)!;
+          entry.count++;
+          if (rawPml) entry.aliases.add(rawPml.toLowerCase());
+          if (rawName) entry.aliases.add(rawName.toLowerCase());
+          if (resolvedEmail) entry.aliases.add(resolvedEmail.toLowerCase());
+          if (resolvedName) entry.aliases.add(resolvedName.toLowerCase());
+        }
+      }
+    }
+
+    const list: DropdownOption[] = [
+      { value: 'all', label: 'Semua Petugas (PPL & PML)', badge: pts.length }
+    ];
+
+    // Sorted PPL options
+    const sortedPpl = Array.from(pplMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'id'));
+    sortedPpl.forEach(off => {
+      const label = off.name && off.email && off.email.includes('@') && off.name.toLowerCase() !== off.email.toLowerCase()
+        ? `[PPL] ${off.name} (${off.email})`
+        : `[PPL] ${off.name || off.email}`;
+      list.push({
+        value: `ppl:${off.email || off.name}`,
+        label: label,
+        badge: off.count,
+        roleType: 'PPL',
+        roleBadge: 'PPL',
+        subLabel: 'Beban tugas langsung'
+      });
+    });
+
+    // Sorted PML options
+    const sortedPml = Array.from(pmlMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'id'));
+    sortedPml.forEach(off => {
+      const label = off.name && off.email && off.email.includes('@') && off.name.toLowerCase() !== off.email.toLowerCase()
+        ? `[PML] ${off.name} (${off.email})`
+        : `[PML] ${off.name || off.email}`;
+      list.push({
+        value: `pml:${off.email || off.name}`,
+        label: label,
+        badge: off.count,
+        roleType: 'PML',
+        roleBadge: 'PML',
+        subLabel: 'Wilayah pengawasan SLS'
+      });
+    });
+
+    return list;
+  }, [allLoadedPoints, pointsByKec, selectedKec, selectedDesa, selectedSls, pplCanonicalByName, pmlCanonicalByName]);
+
+  // Information about currently selected officer for banner indicator
+  const selectedOfficerInfo = useMemo(() => {
+    if (selectedOfficer === 'all') return null;
+    const isPpl = selectedOfficer.startsWith('ppl:');
+    const isPml = selectedOfficer.startsWith('pml:');
+    const rawKey = selectedOfficer.replace(/^(ppl|pml):/, '');
+
+    const canonicalMap = isPpl ? pplCanonicalByName : pmlCanonicalByName;
+    const canonical = canonicalMap.get(rawKey.toUpperCase()) || canonicalMap.get(rawKey.toLowerCase());
+    const name = canonical?.name || rawKey;
+    const email = canonical?.email || (rawKey.includes('@') ? rawKey : '');
+
+    return {
+      isPpl,
+      isPml,
+      role: isPpl ? ('PPL' as const) : ('PML' as const),
+      roleLabel: isPpl ? 'Petugas Pendataan Lapangan (PPL)' : 'Petugas Pemeriksa Lapangan (PML)',
+      scopeTitle: isPpl ? 'Beban Tugas Langsung' : 'Wilayah Pengawasan SLS',
+      scopeDescription: isPpl
+        ? 'Hanya menampilkan responden yang menjadi beban tugas pendataan langsung (assignment) petugas ini.'
+        : 'Menampilkan seluruh responden di dalam SLS/wilayah yang diawasi oleh petugas pemeriksa ini.',
+      name,
+      email,
+      rawKey
+    };
+  }, [selectedOfficer, pplCanonicalByName, pmlCanonicalByName]);
+
   // 6. Filtered Points Calculation
   const displayedPoints = useMemo(() => {
     let sourcePoints: RespondenPoint[] = [];
@@ -1631,6 +2091,49 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
       }
     }
 
+    // Filter Petugas (PPL: Direct Assignment | PML: Supervised SLS Territory)
+    if (selectedOfficer !== 'all') {
+      if (selectedOfficer.startsWith('ppl:')) {
+        const rawKey = selectedOfficer.substring(4).toLowerCase();
+        const canonical = pplCanonicalByName.get(rawKey.toUpperCase()) || pplCanonicalByName.get(rawKey);
+        const targetEmail = canonical?.email ? canonical.email.toLowerCase() : rawKey;
+        const targetName = canonical?.name ? canonical.name.toLowerCase() : rawKey;
+
+        result = result.filter(p => {
+          const pEmail = (p.ppl || '').toLowerCase();
+          const pName = (p.pplName || '').toLowerCase();
+          return (
+            pEmail === targetEmail || 
+            pEmail === rawKey ||
+            pName === targetName ||
+            pName === rawKey ||
+            (targetEmail && pName && targetEmail.includes(pName)) ||
+            (canonical?.name && pEmail === canonical.name.toLowerCase()) ||
+            (canonical?.name && pName === canonical.name.toLowerCase())
+          );
+        });
+      } else if (selectedOfficer.startsWith('pml:')) {
+        const rawKey = selectedOfficer.substring(4).toLowerCase();
+        const canonical = pmlCanonicalByName.get(rawKey.toUpperCase()) || pmlCanonicalByName.get(rawKey);
+        const targetEmail = canonical?.email ? canonical.email.toLowerCase() : rawKey;
+        const targetName = canonical?.name ? canonical.name.toLowerCase() : rawKey;
+
+        result = result.filter(p => {
+          const pEmail = (p.pml || '').toLowerCase();
+          const pName = (p.pmlName || '').toLowerCase();
+          return (
+            pEmail === targetEmail || 
+            pEmail === rawKey ||
+            pName === targetName ||
+            pName === rawKey ||
+            (targetEmail && pName && targetEmail.includes(pName)) ||
+            (canonical?.name && pEmail === canonical.name.toLowerCase()) ||
+            (canonical?.name && pName === canonical.name.toLowerCase())
+          );
+        });
+      }
+    }
+
     // Filter Usaha & Matching SE-ST
     if (filterUsaha === 'ada_usaha') {
       result = result.filter(p => p.u > 0 && !p.m);
@@ -1649,7 +2152,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
       }
     }
 
-    // Filter Query (Mencakup Nama KK, Nama Usaha, Pemilik/Pengelola, No Urut Bangunan, SLS, dll)
+    // Filter Query (Mencakup Nama KK, Nama Usaha, Pemilik/Pengelola, No Urut Bangunan, SLS, PPL, PML, dll)
     if (searchQuery.trim() !== '') {
       const q = searchQuery.trim().toLowerCase();
       result = result.filter(p => 
@@ -1668,13 +2171,15 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
         (p.mNotFound && p.mNotFound.toLowerCase().includes(q)) ||
         (p.mClosed && p.mClosed.toLowerCase().includes(q)) ||
         (p.ppl && p.ppl.toLowerCase().includes(q)) ||
+        (p.pplName && p.pplName.toLowerCase().includes(q)) ||
         (p.pml && p.pml.toLowerCase().includes(q)) ||
+        (p.pmlName && p.pmlName.toLowerCase().includes(q)) ||
         (p.resp && p.resp.toLowerCase().includes(q))
       );
     }
 
     return result;
-  }, [allLoadedPoints, pointsByKec, selectedKec, selectedDesa, selectedSls, filterUsaha, selectedStatuses, searchQuery]);
+  }, [allLoadedPoints, pointsByKec, selectedKec, selectedDesa, selectedSls, selectedOfficer, pplCanonicalByName, pmlCanonicalByName, filterUsaha, selectedStatuses, searchQuery]);
 
   // Instant Search Suggestions Dropdown (Top 8 Matches)
   const searchSuggestions = useMemo(() => {
@@ -1786,7 +2291,9 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
     setSelectedKec('all');
     setSelectedDesa('all');
     setSelectedSls([]);
+    setSelectedOfficer('all');
     setFilterUsaha('all');
+    setSelectedStatuses([]);
     setSelectedPoint(null);
     setShowSearchDropdown(false);
     setShowBuildingLabelsManual(null);
@@ -1859,12 +2366,13 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
     if (selectedKec !== 'all') count++;
     if (selectedDesa !== 'all') count++;
     if (selectedSls.length > 0) count++;
+    if (selectedOfficer !== 'all') count++;
     if (filterUsaha !== 'all') count++;
     if (selectedStatuses.length > 0) count++;
     if (searchQuery.trim() !== '') count++;
     if (boundaryMode !== 'all') count++;
     return count;
-  }, [selectedKec, selectedDesa, selectedSls, filterUsaha, selectedStatuses, searchQuery, boundaryMode]);
+  }, [selectedKec, selectedDesa, selectedSls, selectedOfficer, filterUsaha, selectedStatuses, searchQuery, boundaryMode]);
 
   // Active Boundary Layer States based on boundaryMode
   const showKec = boundaryMode === 'all' || boundaryMode === 'kec_desa' || boundaryMode === 'kec';
@@ -1878,25 +2386,25 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
         : 'h-[calc(100vh-5.5rem)] min-h-[620px] rounded-3xl border border-slate-200/80 shadow-lg relative'
     }`}>
       {/* 1. TOP HEADER & STREAMLINED TOOLBAR */}
-      <div className="bg-white/95 backdrop-blur-md px-3.5 sm:px-5 py-2.5 border-b border-slate-200/80 flex items-center justify-between gap-2.5 shrink-0 z-30">
-        <div className="flex items-center gap-2.5">
+      <div className="bg-white/95 backdrop-blur-md px-2.5 sm:px-5 py-2 sm:py-2.5 border-b border-slate-200/80 flex items-center justify-between gap-1.5 sm:gap-2.5 shrink-0 z-30">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           <button
             onClick={onBack}
-            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all cursor-pointer shrink-0"
             title="Kembali ke Beranda"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-cyan-600 text-white flex items-center justify-center shadow-md shadow-cyan-600/20 shrink-0">
-              <MapPin className="w-4 h-4" />
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-cyan-600 text-white flex items-center justify-center shadow-md shadow-cyan-600/20 shrink-0">
+              <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-sm sm:text-base font-black text-slate-800 tracking-tight leading-none">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h1 className="text-xs sm:text-base font-black text-slate-800 tracking-tight leading-tight truncate">
                   Peta Responden SE2026
                 </h1>
-                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 border border-cyan-200 flex items-center gap-1">
+                <span className="hidden md:inline-flex text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 border border-cyan-200 items-center gap-1 shrink-0">
                   <Lock className="w-2.5 h-2.5 text-cyan-700" />
                   AES-256
                 </span>
@@ -1906,35 +2414,36 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
         </div>
 
         {/* Action Controls & Fullscreen Button */}
-        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto shrink-0">
-          {/* Toggle Filter Button (Collapsible / Expandable for Mobile / Desktop) */}
+        <div className="flex items-center gap-1 sm:gap-1.5 ml-auto shrink-0">
+          {/* Toggle Filter Button (Mobile opens Bottom Sheet, Desktop toggles toolbar) */}
           <button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className={`px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border shadow-2xs ${
-              isFilterOpen
-                ? 'bg-cyan-50 border-cyan-300 text-cyan-800'
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.innerWidth < 640) {
+                setShowMobileFilterSheet(true);
+              } else {
+                setIsFilterOpen(!isFilterOpen);
+              }
+            }}
+            className={`px-2 sm:px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border shadow-2xs ${
+              isFilterOpen || showMobileFilterSheet
+                ? 'bg-cyan-600 text-white border-cyan-600 shadow-md' 
                 : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200/80'
             }`}
-            title={isFilterOpen ? 'Sembunyikan Filter & Perluas Peta' : 'Buka Panel Filter'}
+            title="Buka Filter Wilayah & Petugas"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-600" />
-            <span className="hidden xs:inline">Filter</span>
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span className="inline">Filter</span>
             {activeFilterCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-cyan-600 text-white text-[9px] font-black flex items-center justify-center">
+              <span className="w-4 h-4 rounded-full bg-white text-cyan-900 text-[9px] font-black flex items-center justify-center">
                 {activeFilterCount}
               </span>
-            )}
-            {isFilterOpen ? (
-              <ChevronUp className="w-3 h-3 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-3 h-3 text-slate-400" />
             )}
           </button>
 
           {/* Toggle Nomor Bangunan (B1, B2...) */}
           <button
             onClick={() => setShowBuildingLabelsManual(prev => prev === null ? !isAutoBuildingLabels : !prev)}
-            className={`px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border shadow-2xs ${
+            className={`p-1.5 sm:px-3 sm:py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border shadow-2xs ${
               effectiveShowBuildingLabels
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
                 : 'bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 border-slate-200/60'
@@ -1944,22 +2453,22 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
             <Tag className={`w-3.5 h-3.5 ${effectiveShowBuildingLabels ? 'text-white' : 'text-emerald-600'}`} />
             <span className="hidden sm:inline">No. Bangunan</span>
             {effectiveShowBuildingLabels && (
-              <span className="w-2 h-2 rounded-full bg-emerald-200 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-200 animate-pulse hidden sm:inline-block" />
             )}
           </button>
 
           <button
             onClick={() => setShowLegendModal(true)}
-            className="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-cyan-50 hover:text-cyan-700 text-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-200/60 shadow-2xs"
+            className="hidden sm:flex px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-cyan-50 hover:text-cyan-700 text-slate-700 text-xs font-bold rounded-xl transition-colors items-center gap-1.5 cursor-pointer border border-slate-200/60 shadow-2xs"
             title="Penjelasan & Panduan Legenda Peta"
           >
             <Info className="w-3.5 h-3.5 text-cyan-600" />
-            <span className="hidden sm:inline">Legenda</span>
+            <span>Legenda</span>
           </button>
 
           <button
             onClick={() => setShowStatsModal(true)}
-            className="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-cyan-50 hover:text-cyan-700 text-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-200/60 shadow-2xs"
+            className="p-1.5 sm:px-3 sm:py-1.5 bg-slate-100 hover:bg-cyan-50 hover:text-cyan-700 text-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-200/60 shadow-2xs"
             title="Statistik Sebaran Responden"
           >
             <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
@@ -1968,7 +2477,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
 
           <button
             onClick={() => setShowDrawer(!showDrawer)}
-            className={`px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border ${
+            className={`p-1.5 sm:px-3 sm:py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border ${
               showDrawer 
                 ? 'bg-cyan-600 text-white border-cyan-600 shadow-md' 
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200/60'
@@ -1982,7 +2491,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
           {/* Fullscreen Toggle Button */}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 bg-slate-100 hover:bg-cyan-50 hover:text-cyan-700 text-slate-700 rounded-xl transition-all border border-slate-200/80 cursor-pointer shadow-2xs"
+            className="p-1.5 bg-slate-100 hover:bg-cyan-50 hover:text-cyan-700 text-slate-700 rounded-xl transition-all border border-slate-200/80 cursor-pointer shadow-2xs shrink-0"
             title={isFullscreen ? 'Keluar dari Layar Penuh' : 'Perbesar / Layar Penuh (Fullscreen)'}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4 text-cyan-700" /> : <Maximize2 className="w-4 h-4" />}
@@ -1990,7 +2499,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
         </div>
       </div>
 
-      {/* 2. NEAT SEARCHABLE FILTER TOOLBAR (Collapsible / Expandable for Full Map View) */}
+      {/* 2. NEAT SEARCHABLE FILTER TOOLBAR */}
       <AnimatePresence initial={false}>
         {isFilterOpen && (
           <motion.div
@@ -1998,9 +2507,10 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: 'easeInOut' }}
-            className="bg-slate-50/95 px-3.5 sm:px-5 py-2 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-2 z-40 relative shrink-0"
+            className="bg-slate-50/95 px-2.5 sm:px-5 py-2 border-b border-slate-200/80 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-2 z-40 relative shrink-0"
           >
-            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+            {/* Desktop Horizontal Filter Bar */}
+            <div className="hidden sm:flex items-center gap-2 flex-wrap flex-1 min-w-0">
               {/* 1. Kecamatan Dropdown */}
               <SearchableFilterDropdown
                 options={kecamatanOptions}
@@ -2009,6 +2519,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   setSelectedKec(val);
                   setSelectedDesa('all');
                   setSelectedSls([]);
+                  setSelectedOfficer('all');
                 }}
                 placeholder="Pilih Kecamatan"
                 prefix="Kec: "
@@ -2023,6 +2534,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                 onChange={(val) => {
                   setSelectedDesa(val);
                   setSelectedSls([]);
+                  setSelectedOfficer('all');
                 }}
                 placeholder="Pilih Desa"
                 prefix="Desa: "
@@ -2034,11 +2546,25 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
               <MultiSelectSlsDropdown
                 options={availableSlsList}
                 selectedKeys={selectedSls}
-                onChange={setSelectedSls}
+                onChange={(keys) => {
+                  setSelectedSls(keys);
+                  setSelectedOfficer('all');
+                }}
                 disabled={selectedDesa === 'all'}
               />
 
-              {/* 4. Dropdown Batas Wilayah */}
+              {/* 4. Dropdown Petugas Lapangan (PPL & PML) */}
+              <SearchableFilterDropdown
+                options={availableOfficerOptions}
+                value={selectedOfficer}
+                onChange={setSelectedOfficer}
+                placeholder="Pilih Petugas (PPL / PML)"
+                prefix="Petugas: "
+                searchPlaceholder="Cari Nama/Email PPL atau PML..."
+                icon={UserCheck}
+              />
+
+              {/* 6. Dropdown Batas Wilayah */}
               <SearchableFilterDropdown
                 options={boundaryOptions}
                 value={boundaryMode}
@@ -2049,7 +2575,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                 icon={Layers}
               />
 
-              {/* 5. Multi-Select Status & Warna Responden (13 Kategori) */}
+              {/* 7. Multi-Select Status & Warna Responden (13 Kategori) */}
               <MultiSelectStatusDropdown
                 categories={STATUS_CATEGORIES}
                 selectedIds={selectedStatuses}
@@ -2057,9 +2583,11 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
               />
             </div>
 
+
+
             {/* INSTANT SEARCH & AUTO-ZOOM TO COORDINATE */}
-            <div className="flex items-center gap-1.5 w-full sm:w-auto relative">
-              <div className="relative w-full sm:w-72">
+            <div className="flex items-center gap-1.5 w-full sm:w-auto relative shrink-0">
+              <div className="relative flex-1 sm:w-72">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
@@ -2149,14 +2677,14 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
 
       {/* 3. MAIN MAP WORKSPACE (Large & Immersion Mode) */}
       <div className="flex-1 w-full h-full relative z-0">
-        {/* Floating Quick Open Filter Pill when filter toolbar is hidden */}
+        {/* Floating Quick Open Filter Pill on Desktop when filter toolbar is hidden */}
         {!isFilterOpen && (
           <motion.button
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             onClick={() => setIsFilterOpen(true)}
-            className="absolute top-3 left-1/2 -translate-x-1/2 z-[990] bg-white/95 hover:bg-white backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-lg border border-slate-200/90 flex items-center gap-2 text-xs font-bold text-slate-800 hover:text-cyan-700 transition-all cursor-pointer group"
+            className="hidden sm:flex absolute top-3 left-1/2 -translate-x-1/2 z-[990] bg-white/95 hover:bg-white backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-lg border border-slate-200/90 items-center gap-2 text-xs font-bold text-slate-800 hover:text-cyan-700 transition-all cursor-pointer group"
           >
             <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-600 group-hover:rotate-45 transition-transform" />
             <span>Buka Filter</span>
@@ -2167,6 +2695,65 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
             )}
           </motion.button>
         )}
+
+
+        {/* Floating Active Officer Scope Information Banner */}
+        <AnimatePresence>
+          {selectedOfficerInfo && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              className="absolute top-3 left-3 sm:left-4 z-[900] max-w-[calc(100vw-32px)] sm:max-w-md bg-white/95 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl shadow-xl border border-slate-200/90 flex flex-col gap-1.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                    selectedOfficerInfo.isPpl 
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                      : 'bg-purple-100 text-purple-800 border border-purple-300'
+                  }`}>
+                    {selectedOfficerInfo.role} • {selectedOfficerInfo.isPpl ? 'Pendataan' : 'Pemeriksa'}
+                  </span>
+                  <span className="font-extrabold text-xs text-slate-900 truncate">
+                    {selectedOfficerInfo.name}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedOfficer('all')}
+                  className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors"
+                  title="Hapus Filter Petugas"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="text-[11px] font-bold leading-tight">
+                {selectedOfficerInfo.isPpl ? (
+                  <span className="text-emerald-700 flex items-center gap-1.5">
+                    <span>📌</span>
+                    <span>Beban Tugas Langsung: <b className="font-black text-slate-900">{displayedPoints.length.toLocaleString('id-ID')} responden</b></span>
+                  </span>
+                ) : (
+                  <span className="text-purple-700 flex items-center gap-1.5">
+                    <span>🛡️</span>
+                    <span>Wilayah Pengawasan SLS: <b className="font-black text-slate-900">{displayedPoints.length.toLocaleString('id-ID')} responden</b></span>
+                  </span>
+                )}
+              </div>
+
+              <p className="text-[10px] text-slate-500 leading-snug">
+                {selectedOfficerInfo.scopeDescription}
+                {selectedOfficerInfo.email && (
+                  <span className="block text-slate-400 font-mono mt-0.5 truncate">
+                    📧 {selectedOfficerInfo.email}
+                  </span>
+                )}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Decryption status indicator */}
         {(loadingMeta || loadingPoints) && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl shadow-xl border border-slate-200 flex items-center gap-2.5 text-xs font-bold text-slate-700">
@@ -2663,23 +3250,13 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                       </div>
                     )}
 
-                    {/* Informasi Petugas Lapangan & Responden */}
-                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-[10px] text-slate-400 block font-bold uppercase">Petugas Pendataan (PPL):</span>
-                        <span className="font-bold text-slate-800">{isValidText(selectedPoint.ppl) ? selectedPoint.ppl : '-'}</span>
+                    {/* Informasi Pemberi Informasi (Khusus Matching SE-ST) */}
+                    {isValidText(selectedPoint.resp) && (
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between text-xs">
+                        <span className="text-slate-600">Pemberi Info: <b className="text-slate-800">{selectedPoint.resp}</b></span>
+                        {isValidText(selectedPoint.telp) && <span className="font-mono text-[11px] text-cyan-700">📞 {selectedPoint.telp}</span>}
                       </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 block font-bold uppercase">Petugas Pengawas (PML):</span>
-                        <span className="font-bold text-slate-800">{isValidText(selectedPoint.pml) ? selectedPoint.pml : '-'}</span>
-                      </div>
-                      {isValidText(selectedPoint.resp) && (
-                        <div className="col-span-2 pt-1 border-t border-slate-100 flex items-center justify-between">
-                          <span className="text-slate-600">Pemberi Info: <b>{selectedPoint.resp}</b></span>
-                          {isValidText(selectedPoint.telp) && <span className="font-mono text-[11px] text-cyan-700">📞 {selectedPoint.telp}</span>}
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 ) : (
                   /* Info Usaha Biasa (SE2026) */
@@ -2709,6 +3286,59 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                     </div>
                   )
                 )}
+
+                {/* INFORMASI PETUGAS LAPANGAN SE2026 (PPL & PML) */}
+                {(() => {
+                  const rawPpl = (selectedPoint.ppl || '').trim();
+                  const rawPplName = (selectedPoint.pplName || '').trim();
+                  const canonicalPpl = (rawPpl ? pplCanonicalByName.get(rawPpl.toUpperCase()) : undefined) || (rawPplName ? pplCanonicalByName.get(rawPplName.toUpperCase()) : undefined);
+                  const displayPplName = canonicalPpl?.name || rawPplName || rawPpl;
+                  const displayPplEmail = canonicalPpl?.email || (rawPpl.includes('@') ? rawPpl : '');
+
+                  const rawPml = (selectedPoint.pml || '').trim();
+                  const rawPmlName = (selectedPoint.pmlName || '').trim();
+                  const canonicalPml = (rawPml ? pmlCanonicalByName.get(rawPml.toUpperCase()) : undefined) || (rawPmlName ? pmlCanonicalByName.get(rawPmlName.toUpperCase()) : undefined);
+                  const displayPmlName = canonicalPml?.name || rawPmlName || rawPml;
+                  const displayPmlEmail = canonicalPml?.email || (rawPml.includes('@') ? rawPml : '');
+
+                  if (!displayPplName && !displayPplEmail && !displayPmlName && !displayPmlEmail) return null;
+
+                  return (
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2 text-xs">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <UserCheck className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                        Petugas Lapangan SE2026
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {/* PPL */}
+                        <div className="p-2.5 bg-white rounded-xl border border-slate-200/70 space-y-0.5">
+                          <span className="text-[9px] text-slate-400 block font-black uppercase tracking-wider">Petugas Pendataan (PPL):</span>
+                          <div className="font-extrabold text-slate-900 leading-snug">
+                            {displayPplName || '-'}
+                          </div>
+                          {displayPplEmail && (
+                            <div className="text-[10px] text-cyan-800 font-mono flex items-center gap-1 truncate pt-0.5">
+                              <span>📧 {displayPplEmail}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* PML */}
+                        <div className="p-2.5 bg-white rounded-xl border border-slate-200/70 space-y-0.5">
+                          <span className="text-[9px] text-slate-400 block font-black uppercase tracking-wider">Petugas Pengawas (PML):</span>
+                          <div className="font-extrabold text-slate-900 leading-snug">
+                            {displayPmlName || '-'}
+                          </div>
+                          {displayPmlEmail && (
+                            <div className="text-[10px] text-cyan-800 font-mono flex items-center gap-1 truncate pt-0.5">
+                              <span>📧 {displayPmlEmail}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* METADATA SUMBER KOORDINAT & HASIL PADANAN (NIK / PLN / LAPANGAN) */}
                 {(() => {
@@ -2793,6 +3423,239 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                     </a>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 6.5 MOBILE UNIFIED FILTER BOTTOM SHEET (SLIDES UP FROM BOTTOM ON HP) */}
+      <AnimatePresence>
+        {showMobileFilterSheet && (
+          <div className="fixed inset-0 z-[1150] sm:hidden flex items-end justify-center pointer-events-none">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowMobileFilterSheet(false)}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs pointer-events-auto"
+            />
+
+            {/* Bottom Sheet Modal Container */}
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(e, info) => {
+                if (info.offset.y > 100 || info.velocity.y > 500) {
+                  setShowMobileFilterSheet(false);
+                }
+              }}
+              className="relative w-full bg-white border-t border-slate-200 rounded-t-3xl shadow-2xl z-10 pointer-events-auto max-h-[88vh] flex flex-col overflow-hidden"
+            >
+              {/* Drag Handle Bar */}
+              <div 
+                onClick={() => setShowMobileFilterSheet(false)}
+                className="pt-3 pb-1.5 flex flex-col items-center justify-center cursor-pointer bg-slate-50 border-b border-slate-100 shrink-0"
+              >
+                <div className="w-12 h-1.5 rounded-full bg-slate-300 mb-1" />
+                <span className="text-[10px] text-slate-400 font-bold tracking-tight">Tarik ke bawah atau ketuk untuk menutup</span>
+              </div>
+
+              {/* Sheet Header */}
+              <div className="px-4 py-3 flex items-center justify-between border-b border-slate-100 bg-white shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-xl bg-cyan-600 text-white flex items-center justify-center font-bold text-xs">
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-slate-900 leading-none">Filter Peta Responden</h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Atur wilayah, petugas & kategori data</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleResetView}
+                    className="px-2.5 py-1 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Reset</span>
+                  </button>
+                  <button
+                    onClick={() => setShowMobileFilterSheet(false)}
+                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Scrollable Filter Form Content */}
+              <div className="p-4 space-y-4 overflow-y-auto custom-scrollbar flex-1 text-slate-800">
+                
+                {/* 1. WILAYAH KERJA */}
+                <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-2.5">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-cyan-600" />
+                    1. Wilayah Kerja (Kecamatan / Desa / SLS)
+                  </span>
+
+                  {/* Kecamatan Select */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Kecamatan</label>
+                    <SearchableFilterDropdown
+                      options={kecamatanOptions}
+                      value={selectedKec}
+                      onChange={(val) => {
+                        setSelectedKec(val);
+                        setSelectedDesa('all');
+                        setSelectedSls([]);
+                        setSelectedOfficer('all');
+                      }}
+                      placeholder="Semua Kecamatan"
+                      prefix="Kec: "
+                      searchPlaceholder="Cari Kecamatan..."
+                      icon={Building2}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Desa Select */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Desa / Kelurahan</label>
+                    <SearchableFilterDropdown
+                      options={desaOptions}
+                      value={selectedDesa}
+                      onChange={(val) => {
+                        setSelectedDesa(val);
+                        setSelectedSls([]);
+                        setSelectedOfficer('all');
+                      }}
+                      placeholder="Semua Desa"
+                      prefix="Desa: "
+                      searchPlaceholder="Cari Desa/Kel..."
+                      icon={Home}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* SLS Multi-Select */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Satuan Lingkungan Setempat (SLS)</label>
+                    <MultiSelectSlsDropdown
+                      options={availableSlsList}
+                      selectedKeys={selectedSls}
+                      onChange={(keys) => {
+                        setSelectedSls(keys);
+                        setSelectedOfficer('all');
+                      }}
+                      disabled={selectedDesa === 'all'}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                {/* 2. PETUGAS LAPANGAN (PPL & PML) */}
+                <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5 text-cyan-600" />
+                      2. Petugas Lapangan (PPL / PML)
+                    </span>
+                    {selectedOfficer !== 'all' && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOfficer('all')}
+                        className="text-[10px] font-bold text-rose-600 underline cursor-pointer"
+                      >
+                        Reset Petugas
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Pilih Petugas (Beban PPL atau Wilayah PML)</label>
+                    <SearchableFilterDropdown
+                      options={availableOfficerOptions}
+                      value={selectedOfficer}
+                      onChange={setSelectedOfficer}
+                      placeholder="Pilih Petugas (PPL / PML)"
+                      prefix="Petugas: "
+                      searchPlaceholder="Cari Nama/Email PPL atau PML..."
+                      icon={UserCheck}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Active Officer Scope Explanation Callout */}
+                  {selectedOfficerInfo && (
+                    <div className={`p-2.5 rounded-xl border text-xs leading-relaxed ${
+                      selectedOfficerInfo.isPpl 
+                        ? 'bg-emerald-50 text-emerald-950 border-emerald-200' 
+                        : 'bg-purple-50 text-purple-950 border-purple-200'
+                    }`}>
+                      <div className="flex items-center gap-1.5 font-bold mb-0.5">
+                        <span>{selectedOfficerInfo.isPpl ? '🟢' : '🟣'}</span>
+                        <span>{selectedOfficerInfo.roleLabel}</span>
+                      </div>
+                      <p className="text-[11px] opacity-90">{selectedOfficerInfo.scopeDescription}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. BATAS WILAYAH */}
+                <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-cyan-600" />
+                    3. Garis Batas Wilayah Peta
+                  </span>
+                  <SearchableFilterDropdown
+                    options={boundaryOptions}
+                    value={boundaryMode}
+                    onChange={setBoundaryMode}
+                    placeholder="Pilih Batas Wilayah"
+                    prefix="Batas: "
+                    searchPlaceholder="Pilih opsi batas..."
+                    icon={Layers}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* 4. STATUS & WARNA RESPONDEN */}
+                <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
+                    4. Filter Status & Kategori Responden (13 Kategori)
+                  </span>
+                  <MultiSelectStatusDropdown
+                    categories={STATUS_CATEGORIES}
+                    selectedIds={selectedStatuses}
+                    onChange={setSelectedStatuses}
+                    className="w-full"
+                  />
+                </div>
+
+              </div>
+
+              {/* Sticky Footer CTA */}
+              <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-between gap-3 shrink-0">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Hasil Filter</span>
+                  <span className="text-sm font-black text-cyan-900">
+                    {displayedPoints.length.toLocaleString('id-ID')} Responden
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowMobileFilterSheet(false)}
+                  className="flex-1 py-3 px-4 bg-cyan-600 hover:bg-cyan-700 text-white font-black text-xs rounded-2xl shadow-lg shadow-cyan-600/30 transition-all cursor-pointer text-center"
+                >
+                  Terapkan & Lihat Peta
+                </button>
               </div>
             </motion.div>
           </div>
