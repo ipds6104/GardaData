@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
 const authMiddleware = require('../middleware/auth');
+const { getJwtSecret } = require('../middleware/jwtSecret');
 
 // In-Memory Rate Limiter for Login Attempts (Anti-Brute Force)
 const loginAttemptTracker = new Map();
@@ -125,10 +126,10 @@ router.post('/login', async (req, res) => {
         // Reset failed attempt on success
         loginAttemptTracker.delete(trackKey);
 
-        // Sign JWT
+        // Sign JWT with strong secret
         const token = jwt.sign(
             { id: user.id, username: user.username, role: user.role, name: user.name },
-            process.env.JWT_SECRET || 'GARDA_DATA_SUPER_SECURE_JWT_SECRET_KEY_6104!',
+            getJwtSecret(),
             { expiresIn: '7d' } // Secure 7 days session duration
         );
         

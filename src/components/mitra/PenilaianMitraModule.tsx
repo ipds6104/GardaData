@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../../lib/auth';
+import { decryptMilitaryPayload } from '../../utils/cryptoSecurity';
 
 interface PenilaianMitraModuleProps {
   onBack: () => void;
@@ -370,10 +371,15 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
       try {
         const localRes = await fetch('/data/initial_mitra_se2026.json');
         if (localRes.ok) {
-          baseline = await localRes.json();
+          const rawPayload = await localRes.json();
+          if (rawPayload && (rawPayload.algo === 'AES-256-GCM' || rawPayload.data)) {
+            baseline = await decryptMilitaryPayload<MitraRecord[]>(rawPayload);
+          } else if (Array.isArray(rawPayload)) {
+            baseline = rawPayload;
+          }
         }
       } catch (e) {
-        console.warn('Gagal memuat baseline data mitra:', e);
+        console.warn('Gagal memuat baseline data mitra terenkripsi:', e);
       }
 
       // Ambil cache lokal v3 yang mungkin menyimpan nilai offline sebelumnya

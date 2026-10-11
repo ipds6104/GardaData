@@ -1,8 +1,5 @@
 const jwt = require('jsonwebtoken');
-const path = require('path');
-const dotenv = require('dotenv');
-
-dotenv.config({ path: path.join(__dirname, '../.env') });
+const { getJwtSecret } = require('./jwtSecret');
 
 const authMiddleware = (req, res, next) => {
     // Get token from header
@@ -16,11 +13,12 @@ const authMiddleware = (req, res, next) => {
     const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
     
     try {
-        const verified = jwt.verify(token, process.env.JWT_SECRET || 'gardadatajwtsecret12345!');
+        const secret = getJwtSecret();
+        const verified = jwt.verify(token, secret);
         req.user = verified;
         next();
     } catch (err) {
-        res.status(400).json({ message: 'Invalid or Expired Token' });
+        res.status(401).json({ message: 'Invalid or Expired Token' });
     }
 };
 

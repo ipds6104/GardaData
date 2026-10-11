@@ -6,6 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+__pycache__/
+*.pyc
 
 ~\$*
 dev-dist/
@@ -30,4 +32,6 @@ server/config/**
 server/data/
 server/data/**
 *service-account*.json
+*LAPORAN_ANALISIS_KEAMANAN*
+*ANALISIS_KEAMANAN*
 

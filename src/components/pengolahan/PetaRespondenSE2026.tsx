@@ -3068,7 +3068,16 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   );
                 })()}
 
-                {/* IDENTITAS KELUARGA, PEMILIK/PENGELOLA USAHA & NO. URUT BANGUNAN */}
+                {/* NOTICE PERLINDUNGAN DATA MIKRO */}
+                <div className="p-3 bg-emerald-50/90 rounded-2xl border border-emerald-200/90 flex items-start gap-2.5 text-xs text-emerald-900 shadow-2xs">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-relaxed">
+                    <span className="font-extrabold text-emerald-950 block">Data Mikro Dilindungi & Disensor</span>
+                    Nama responden disensor dan seluruh rincian informasi mikro telah diamankan dari server demi menjaga kerahasiaan data statistik (UU No. 16/1997).
+                  </div>
+                </div>
+
+                {/* IDENTITAS KELUARGA & NO. URUT BANGUNAN */}
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2 text-xs">
                   <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/60">
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
@@ -3084,40 +3093,39 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   </div>
 
                   <div className="space-y-1.5">
-                    {/* 1. Nama Kepala Keluarga */}
+                    {/* 1. Nama Kepala Keluarga (Disensor) */}
                     <div className="p-2 bg-white rounded-xl border border-slate-200/70 flex items-start justify-between gap-2">
                       <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0 flex items-center gap-1">
                         <Home className="w-3 h-3 text-blue-500" />
                         Kepala Keluarga:
                       </span>
-                      <span className="font-black text-right text-slate-900">{selectedPoint.k || '-'}</span>
+                      <div className="text-right">
+                        <span className="font-black text-slate-900 font-mono tracking-wider">{selectedPoint.k || '-'}</span>
+                        <span className="block text-[9px] font-bold text-amber-700 uppercase tracking-tight flex items-center justify-end gap-1 mt-0.5">
+                          <Lock className="w-2.5 h-2.5" /> Nama Disensor (Privasi)
+                        </span>
+                      </div>
                     </div>
 
-                    {/* 2. Nama Usaha (Jika Keluarga Memiliki Usaha) */}
-                    {(selectedPoint.u > 0 || isValidText(selectedPoint.nu) || isValidText(selectedPoint.mFound)) && (
+                    {/* 2. Indikator Usaha Keluarga */}
+                    {selectedPoint.u > 0 && (
                       <div className="p-2 bg-emerald-50/90 rounded-xl border border-emerald-200/80 flex items-start justify-between gap-2">
                         <span className="text-[10px] font-black uppercase text-emerald-900 flex items-center gap-1 shrink-0">
                           <Briefcase className="w-3 h-3 text-emerald-700" />
-                          Nama Usaha:
+                          Kegiatan Usaha:
                         </span>
                         <div className="text-right">
-                          <span className="font-black text-emerald-950 block">
-                            {isValidText(selectedPoint.nu)
-                              ? selectedPoint.nu
-                              : isValidText(selectedPoint.mFound)
-                              ? selectedPoint.mFound
-                              : 'Usaha Keluarga (Tanpa Nama Komersial)'}
+                          <span className="font-bold text-emerald-950 text-xs">
+                            {isValidText(selectedPoint.nu) ? selectedPoint.nu : 'Memiliki Usaha Keluarga'}
                           </span>
-                          {selectedPoint.u > 0 && (
-                            <span className="text-[10px] font-bold text-emerald-700 inline-block mt-0.5">
-                              Jumlah: {selectedPoint.u} Usaha
-                            </span>
-                          )}
+                          <span className="text-[10px] font-bold text-emerald-700 block mt-0.5">
+                            Jumlah: {selectedPoint.u} Usaha
+                          </span>
                         </div>
                       </div>
                     )}
 
-                    {/* 3. Nama Pemilik / Pengelola Usaha */}
+                    {/* 3. Nama Pemilik / Pengelola Usaha (Jika Ada) */}
                     {isValidText(selectedPoint.peng) && (
                       <div className="p-2 bg-slate-100/90 rounded-xl border border-slate-200/80 flex items-start justify-between gap-2">
                         <span className="text-[10px] font-bold uppercase text-slate-600 flex items-center gap-1 shrink-0">
@@ -3132,19 +3140,12 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
 
                 {/* KHUSUS: INFORMASI STATUS & ALASAN TIDAK DITEMUKAN / NON-RESPON / TUTUP */}
                 {(() => {
-                  const cat = getPointStatusCategory(selectedPoint);
-                  const isNotFoundOrSpecial = [
-                    'keluarga_tidak_ditemukan', 'keluarga_non_respon', 'keluarga_meninggal', 
-                    'keluarga_tidak_eligible', 'keluarga_khusus', 'usaha_tidak_ditemukan', 
-                    'usaha_tutup', 'usaha_ganda'
-                  ].includes(cat.id) || (selectedPoint.m === 1 || !!selectedPoint.mKat);
-
                   const hasValidStKel = isValidText(selectedPoint.stKel);
                   const hasValidStUsaha = isValidText(selectedPoint.stUsaha);
                   const hasValidMKat = isValidText(selectedPoint.mKat);
                   const hasValidMNotes = isValidText(selectedPoint.mNotes);
 
-                  if (!isNotFoundOrSpecial && !hasValidStKel && !hasValidStUsaha) return null;
+                  if (!hasValidStKel && !hasValidStUsaha && !hasValidMKat && !hasValidMNotes) return null;
 
                   return (
                     <div className="p-3.5 bg-amber-50/80 rounded-2xl border border-amber-200/90 space-y-2">
@@ -3204,87 +3205,108 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                 </div>
 
                 {/* DETAIL USAHA MATCHING SE-ST */}
-                {(selectedPoint.m === 1 || selectedPoint.mKat) ? (
-                  <div className="space-y-2 text-xs">
-                    {/* 1. Usaha Ditemukan */}
-                    {isValidText(selectedPoint.mFound) && (
-                      <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            Daftar Usaha Ditemukan ({selectedPoint.mFCnt || 1})
+                {(() => {
+                  const hasFound = isValidText(selectedPoint.mFound);
+                  const hasNotFound = isValidText(selectedPoint.mNotFound);
+                  const hasClosed = isValidText(selectedPoint.mClosed);
+                  const hasNotes = isValidText(selectedPoint.mNotes);
+                  const hasResp = isValidText(selectedPoint.resp);
+
+                  if (!hasFound && !hasNotFound && !hasClosed && !hasNotes && !hasResp) {
+                    return null;
+                  }
+
+                  return (
+                    <div className="space-y-2 text-xs">
+                      {/* 1. Usaha Ditemukan */}
+                      {hasFound && (
+                        <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              Daftar Usaha Ditemukan ({selectedPoint.mFCnt || 1})
+                            </span>
+                          </div>
+                          <div className="space-y-1 pl-5">
+                            {selectedPoint.mFound!.split(/[;\n]/).map((item, idx) => isValidText(item) && (
+                              <p key={idx} className="text-xs font-bold text-emerald-950 leading-relaxed">
+                                • {item.trim()}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 2. Usaha Tidak Ditemukan */}
+                      {hasNotFound && (
+                        <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-rose-900 flex items-center gap-1.5">
+                              <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                              Daftar Usaha Tidak Ditemukan ({selectedPoint.mNFCnt || 1})
+                            </span>
+                          </div>
+                          <div className="space-y-1 pl-5">
+                            {selectedPoint.mNotFound!.split(/[;\n]/).map((item, idx) => isValidText(item) && (
+                              <p key={idx} className="text-xs font-bold text-rose-950 leading-relaxed">
+                                • {item.trim()}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3. Usaha Tutup */}
+                      {hasClosed && (
+                        <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              Daftar Usaha Tutup ({selectedPoint.mCCnt || 1})
+                            </span>
+                          </div>
+                          <div className="space-y-1 pl-5">
+                            {selectedPoint.mClosed!.split(/[;\n]/).map((item, idx) => isValidText(item) && (
+                              <p key={idx} className="text-xs font-bold text-amber-950 leading-relaxed">
+                                • {item.trim()}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Catatan Lapangan */}
+                      {hasNotes && (
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700 space-y-1">
+                          <span className="font-bold text-[10px] uppercase text-slate-500 flex items-center gap-1">
+                            <FileText className="w-3.5 h-3.5 text-slate-500" />
+                            Catatan Lapangan:
                           </span>
+                          <p className="italic text-slate-800 leading-relaxed">{selectedPoint.mNotes}</p>
                         </div>
-                        <div className="space-y-1 pl-5">
-                          {selectedPoint.mFound!.split(/[;\n]/).map((item, idx) => isValidText(item) && (
-                            <p key={idx} className="text-xs font-bold text-emerald-950 leading-relaxed">
-                              • {item.trim()}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* 2. Usaha Tidak Ditemukan */}
-                    {isValidText(selectedPoint.mNotFound) && (
-                      <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-rose-900 flex items-center gap-1.5">
-                            <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                            Daftar Usaha Tidak Ditemukan ({selectedPoint.mNFCnt || 1})
-                          </span>
+                      {/* Informasi Pemberi Informasi */}
+                      {hasResp && (
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between text-xs">
+                          <span className="text-slate-600">Pemberi Info: <b className="text-slate-800">{selectedPoint.resp}</b></span>
+                          {isValidText(selectedPoint.telp) && <span className="font-mono text-[11px] text-cyan-700">📞 {selectedPoint.telp}</span>}
                         </div>
-                        <div className="space-y-1 pl-5">
-                          {selectedPoint.mNotFound!.split(/[;\n]/).map((item, idx) => isValidText(item) && (
-                            <p key={idx} className="text-xs font-bold text-rose-950 leading-relaxed">
-                              • {item.trim()}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  );
+                })()}
 
-                    {/* 3. Usaha Tutup */}
-                    {isValidText(selectedPoint.mClosed) && (
-                      <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                            Daftar Usaha Tutup ({selectedPoint.mCCnt || 1})
-                          </span>
-                        </div>
-                        <div className="space-y-1 pl-5">
-                          {selectedPoint.mClosed!.split(/[;\n]/).map((item, idx) => isValidText(item) && (
-                            <p key={idx} className="text-xs font-bold text-amber-950 leading-relaxed">
-                              • {item.trim()}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                {/* Info Usaha Biasa (SE2026 - Hanya jika rincian ada) */}
+                {(() => {
+                  const hasNu = isValidText(selectedPoint.nu);
+                  const hasPeng = isValidText(selectedPoint.peng);
+                  const hasKb = isValidText(selectedPoint.kb);
+                  const hasSk = isValidText(selectedPoint.sk);
 
-                    {/* Catatan Lapangan */}
-                    {isValidText(selectedPoint.mNotes) && (
-                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700 space-y-1">
-                        <span className="font-bold text-[10px] uppercase text-slate-500 flex items-center gap-1">
-                          <FileText className="w-3.5 h-3.5 text-slate-500" />
-                          Catatan Lapangan:
-                        </span>
-                        <p className="italic text-slate-800 leading-relaxed">{selectedPoint.mNotes}</p>
-                      </div>
-                    )}
+                  if (!hasNu && !hasPeng && !hasKb && !hasSk) return null;
 
-                    {/* Informasi Pemberi Informasi (Khusus Matching SE-ST) */}
-                    {isValidText(selectedPoint.resp) && (
-                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between text-xs">
-                        <span className="text-slate-600">Pemberi Info: <b className="text-slate-800">{selectedPoint.resp}</b></span>
-                        {isValidText(selectedPoint.telp) && <span className="font-mono text-[11px] text-cyan-700">📞 {selectedPoint.telp}</span>}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  /* Info Usaha Biasa (SE2026) */
-                  (selectedPoint.u > 0 || isValidText(selectedPoint.nu) || isValidText(selectedPoint.peng) || isValidText(selectedPoint.kb)) && (
+                  return (
                     <div className="p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200/90 space-y-2.5">
                       <div className="flex items-center justify-between pb-1.5 border-b border-emerald-200/60">
                         <p className="font-extrabold text-emerald-950 text-xs flex items-center gap-1.5">
@@ -3299,34 +3321,28 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                       </div>
 
                       <div className="space-y-1.5 text-xs">
-                        {/* Nama Usaha */}
-                        <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Nama Usaha:</span>
-                          <span className="font-black text-right text-emerald-950">
-                            {isValidText(selectedPoint.nu)
-                              ? selectedPoint.nu
-                              : 'Usaha Keluarga (Tanpa Nama Komersial)'}
-                          </span>
-                        </div>
+                        {hasNu && (
+                          <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Nama Usaha:</span>
+                            <span className="font-black text-right text-emerald-950">{selectedPoint.nu}</span>
+                          </div>
+                        )}
 
-                        {/* Pemilik / Pengelola */}
-                        {isValidText(selectedPoint.peng) && (
+                        {hasPeng && (
                           <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
                             <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Pemilik / Pengelola:</span>
                             <span className="font-black text-right text-emerald-950">{selectedPoint.peng}</span>
                           </div>
                         )}
 
-                        {/* Deskripsi KBLI */}
-                        {isValidText(selectedPoint.kb) && (
+                        {hasKb && (
                           <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
                             <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Kategori KBLI:</span>
                             <span className="font-medium text-right text-emerald-900">{selectedPoint.kb}</span>
                           </div>
                         )}
 
-                        {/* Skala Usaha */}
-                        {isValidText(selectedPoint.sk) && (
+                        {hasSk && (
                           <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
                             <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Skala Usaha:</span>
                             <span className="font-bold text-right text-emerald-900 uppercase tracking-wide">{selectedPoint.sk}</span>
@@ -3334,8 +3350,8 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                         )}
                       </div>
                     </div>
-                  )
-                )}
+                  );
+                })()}
 
                 {/* INFORMASI PETUGAS LAPANGAN SE2026 (PPL, PML & PJ KUDA) */}
                 {(() => {

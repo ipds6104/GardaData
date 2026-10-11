@@ -75,6 +75,25 @@ def parse_prelist_label(val):
     m = re.search(r'label=([^,\}\]]+)', str(val))
     return m.group(1).strip() if m else ''
 
+def mask_nama_kk(name):
+    if not name or str(name).strip().lower() in ['none', 'nan', '-', 'null', 'responden se2026']:
+        return 'Responden SE2026'
+    words = str(name).strip().split()
+    masked = []
+    for w in words:
+        w_clean = re.sub(r'[^a-zA-Z0-9]', '', w)
+        if not w_clean:
+            continue
+        if len(w_clean) == 1:
+            masked.append(w_clean)
+        elif len(w_clean) == 2:
+            masked.append(w_clean[0] + '*')
+        elif len(w_clean) <= 4:
+            masked.append(w_clean[0] + '*' * (len(w_clean) - 1))
+        else:
+            masked.append(w_clean[:2] + '*' * (len(w_clean) - 2))
+    return ' '.join(masked) if masked else 'Responden SE2026'
+
 def main():
     print("=" * 90)
     print("🚀 HIGH-ACCURACY DETERMINISTIC NIK + PLN SPATIAL MATCHING PIPELINE (UPDATE 01-10-2026)")
@@ -486,80 +505,24 @@ def main():
             if not nama_kk:
                 nama_kk = 'Responden SE2026'
                 
-            raw_nama_usaha = str(r.get('se2026_nama_usaha', '') or r.get('se2026_nama_komersial', '') or r.get('root_label_usaha', '')).strip()
-            if not raw_nama_usaha and a_id in se_by_ass:
-                biz_names = [b['nama_usaha'] or b['nama_komersial'] for b in se_by_ass[a_id] if b.get('nama_usaha') or b.get('nama_komersial')]
-                if biz_names:
-                    raw_nama_usaha = '; '.join(dict.fromkeys(biz_names))
-            if not raw_nama_usaha and a_id in se_by_ass:
-                keg_list = [b['kbli'] for b in se_by_ass[a_id] if b.get('kbli')]
-                if keg_list:
-                    raw_nama_usaha = '; '.join(dict.fromkeys(keg_list))
-            if raw_nama_usaha.lower() in ['none', 'nan', 'null', '-']:
-                raw_nama_usaha = ''
-
-            safe_nama_usaha = raw_nama_usaha[:100] if len(raw_nama_usaha) > 100 else raw_nama_usaha
-            
-            kbli_desc = str(r.get('se2026_kbli_label', '') or r.get('se2026_kbli_akhir', '')).strip()
-            if not kbli_desc and a_id in se_by_ass:
-                kblis = [b['kbli'] for b in se_by_ass[a_id] if b.get('kbli')]
-                if kblis:
-                    kbli_desc = '; '.join(dict.fromkeys(kblis))
-
-            # Nama Pemilik / Pengelola Usaha
-            pengusaha = clean_str(r.get('se2026_pengusaha', '')) or clean_str(r.get('se2026_pengusaha_var_label', '')) or clean_str(parse_prelist_label(r.get('se2026_pengusaha_var_prelist', '')))
-            if not pengusaha and a_id in se_by_ass:
-                biz_pengs = [b['pengusaha'] for b in se_by_ass[a_id] if b.get('pengusaha')]
-                if biz_pengs:
-                    pengusaha = ', '.join(dict.fromkeys(biz_pengs))
-            if pengusaha.lower() in ['none', 'nan', 'null', '-']:
-                pengusaha = ''
-
-            # Nomor Urut Bangunan
+            # Nomor Urut Bangunan (hanya penomoran fisik)
             no_bang = str(r.get('root_no_bang', '') or r.get('se2026_no_bang_l', '')).strip()
-            if (not no_bang or no_bang.lower() in ['none', 'nan', '-', 'null']) and a_id in se_by_ass:
-                biz_nbs = [b['no_bang'] for b in se_by_ass[a_id] if b.get('no_bang')]
-                if biz_nbs:
-                    no_bang = ', '.join(dict.fromkeys(biz_nbs))
             if no_bang.lower() in ['none', 'nan', '-', 'null']:
                 no_bang = ''
 
-            # Lookup Petugas PPL & PML
-            l6_code = str(r.get('level_6_full_code', '') or r.get('root_level_6_full_code', '') or r.get('se2026_level_6_full_code', '')).strip().zfill(16)
-            l5_code = str(r.get('level_5_full_code', '') or r.get('root_level_5_full_code', '') or r.get('se2026_level_5_full_code', '')).strip().zfill(14)
-            mitra_info = mitra_by_sls.get(l6_code) or mitra_by_sls.get(l5_code)
-            ppl_email = mitra_info['ppl_email'] if mitra_info else ''
-            ppl_name = mitra_info['ppl_name'] if mitra_info else ''
-            pml_email = mitra_info['pml_email'] if mitra_info else ''
-            pml_name = mitra_info['pml_name'] if mitra_info else ''
-            
-            if not pml_email and r.get('current_user_survey_role_name') == 'Pengawas':
-                pml_email = str(r.get('current_user_username', '') or '').strip().lower()
-
+            # Strip all microdata: ONLY retain coordinates, censored nama KK, no bangunan, kecamatan, desa, SLS
             pt = {
                 'i': safe_id,
-                'k': nama_kk.upper(),
+                'k': mask_nama_kk(nama_kk),
                 'lt': round(lat, 6),
                 'lg': round(lng, 6),
                 'd': d_code,
                 'dn': d_name_raw,
                 's': s_name_raw,
                 'ks': s_code,
-                'u': jml_usaha,
-                'nu': safe_nama_usaha,
-                'kb': kbli_desc,
-                'st': raw_status,
-                'sk': raw_skala,
-                'stKel': raw_kel_status,
-                'stUsaha': raw_usaha_status,
-                'peng': pengusaha,
                 'nb': no_bang,
-                'ppl': ppl_email,
-                'pplName': ppl_name,
-                'pml': pml_email,
-                'pmlName': pml_name,
-                'mSource': match_source or 'GEOTAG_LAPANGAN',
-                'mConf': match_conf or 100
+                'u': 1 if ada_usaha else 0,
+                'st': raw_status
             }
             
             kec_data = by_kecamatan[k_code]
@@ -657,26 +620,6 @@ def main():
                 if best_row is not None:
                     matched_indices.add(best_idx)
                     p['m'] = 1
-                    p['mKat'] = best_row.get('kategori_status_usaha_keluarga', 'Sebagian Ditemukan')
-                    p['mFound'] = best_row.get('daftar_usaha_ditemukan', '') if best_row.get('daftar_usaha_ditemukan', '') != '-' else ''
-                    p['mNotFound'] = best_row.get('daftar_usaha_tidak_ditemukan', '') if best_row.get('daftar_usaha_tidak_ditemukan', '') != '-' else ''
-                    p['mClosed'] = best_row.get('daftar_usaha_tutup', '') if best_row.get('daftar_usaha_tutup', '') != '-' else ''
-                    p['mFCnt'] = int(float(best_row.get('jumlah_usaha_ditemukan', 0))) if str(best_row.get('jumlah_usaha_ditemukan', '')).isdigit() else 0
-                    p['mNFCnt'] = int(float(best_row.get('jumlah_usaha_tidak_ditemukan', 0))) if str(best_row.get('jumlah_usaha_tidak_ditemukan', '')).isdigit() else 0
-                    p['mCCnt'] = int(float(best_row.get('jumlah_usaha_tutup', 0))) if str(best_row.get('jumlah_usaha_tutup', '')).isdigit() else 0
-                    p['mNotes'] = best_row.get('catatan_lapangan', '') if best_row.get('catatan_lapangan', '') != '-' else ''
-                    if best_row.get('ppl'):
-                        e_ppl, n_ppl = resolve_officer_ppl(best_row.get('ppl'))
-                        if not p.get('ppl'): p['ppl'] = e_ppl
-                        if not p.get('pplName'): p['pplName'] = n_ppl or best_row.get('ppl')
-                    if best_row.get('pml'):
-                        e_pml, n_pml = resolve_officer_pml(best_row.get('pml'))
-                        if not p.get('pml'): p['pml'] = e_pml
-                        if not p.get('pmlName'): p['pmlName'] = n_pml or best_row.get('pml')
-                    p['telp'] = best_row.get('no_telp_responden', '') if best_row.get('no_telp_responden', '') != '-' else ''
-                    p['resp'] = best_row.get('nama_responden_pemberi_informasi', '')
-                    if best_row.get('pj_kuda'):
-                        p['pjKuda'] = clean_str(best_row.get('pj_kuda', ''))
                     total_sest_matched += 1
 
             # Pass 2: Fast Name Lookup in same Kecamatan
@@ -690,26 +633,6 @@ def main():
                     if idx not in matched_indices:
                         matched_indices.add(idx)
                         p['m'] = 1
-                        p['mKat'] = r.get('kategori_status_usaha_keluarga', 'Sebagian Ditemukan')
-                        p['mFound'] = r.get('daftar_usaha_ditemukan', '') if r.get('daftar_usaha_ditemukan', '') != '-' else ''
-                        p['mNotFound'] = r.get('daftar_usaha_tidak_ditemukan', '') if r.get('daftar_usaha_tidak_ditemukan', '') != '-' else ''
-                        p['mClosed'] = r.get('daftar_usaha_tutup', '') if r.get('daftar_usaha_tutup', '') != '-' else ''
-                        p['mFCnt'] = int(float(r.get('jumlah_usaha_ditemukan', 0))) if str(r.get('jumlah_usaha_ditemukan', '')).isdigit() else 0
-                        p['mNFCnt'] = int(float(r.get('jumlah_usaha_tidak_ditemukan', 0))) if str(r.get('jumlah_usaha_tidak_ditemukan', '')).isdigit() else 0
-                        p['mCCnt'] = int(float(r.get('jumlah_usaha_tutup', 0))) if str(r.get('jumlah_usaha_tutup', '')).isdigit() else 0
-                        p['mNotes'] = r.get('catatan_lapangan', '') if r.get('catatan_lapangan', '') != '-' else ''
-                        if r.get('ppl'):
-                            e_ppl, n_ppl = resolve_officer_ppl(r.get('ppl'))
-                            if not p.get('ppl'): p['ppl'] = e_ppl
-                            if not p.get('pplName'): p['pplName'] = n_ppl or r.get('ppl')
-                        if r.get('pml'):
-                            e_pml, n_pml = resolve_officer_pml(r.get('pml'))
-                            if not p.get('pml'): p['pml'] = e_pml
-                            if not p.get('pmlName'): p['pmlName'] = n_pml or r.get('pml')
-                        p['telp'] = r.get('no_telp_responden', '') if r.get('no_telp_responden', '') != '-' else ''
-                        p['resp'] = r.get('nama_responden_pemberi_informasi', '')
-                        if r.get('pj_kuda'):
-                            p['pjKuda'] = clean_str(r.get('pj_kuda', ''))
                         total_sest_matched += 1
                         break
 
@@ -724,47 +647,19 @@ def main():
                                 d_name = clean_str(r.get('desa_kelurahan', 'DESA'))
                                 s_name = str(r.get('nama_sls', 'SLS')).strip()
                                 s_code = str(r.get('kode_sls', '')).strip()
-                                pj_kuda_val = clean_str(r.get('pj_kuda', ''))
-                                e_ppl, n_ppl = resolve_officer_ppl(r.get('ppl', ''))
-                                e_pml, n_pml = resolve_officer_pml(r.get('pml', ''))
                                 new_pt = {
                                     'i': f"MST-{str(r.get('id_assignment', idx)).replace('assignment:', '')[:10]}",
-                                    'k': clean_str(r.get('nama_kepala_keluarga', 'Responden Matching')),
+                                    'k': mask_nama_kk(r.get('nama_kepala_keluarga', 'Responden Matching')),
                                     'lt': round(parts[0], 6),
                                     'lg': round(parts[1], 6),
                                     'd': '000',
                                     'dn': d_name,
                                     's': s_name,
                                     'ks': s_code,
-                                    'u': int(float(r.get('jumlah_usaha_ditemukan', 0))) if str(r.get('jumlah_usaha_ditemukan', '')).isdigit() else 0,
-                                    'nu': r.get('daftar_usaha_ditemukan', '') or r.get('daftar_usaha_tidak_ditemukan', ''),
-                                    'kb': '',
-                                    'pjKuda': pj_kuda_val,
-                                    'st': r.get('status_keberadaan_keluarga', 'Ditemukan'),
-                                    'sk': 'MATCHING SE-ST',
-                                    'stKel': r.get('status_keberadaan_keluarga', 'Ditemukan'),
-                                    'stUsaha': r.get('kategori_status_usaha_keluarga', 'Sebagian Ditemukan'),
-                                    'peng': pj_usaha,
                                     'nb': '',
-                                    'ppl': e_ppl,
-                                    'pplName': n_ppl or clean_str(r.get('ppl', '')),
-                                    'pml': e_pml,
-                                    'pmlName': n_pml or clean_str(r.get('pml', '')),
-                                    'm': 1,
-                                    'mKat': r.get('kategori_status_usaha_keluarga', 'Sebagian Ditemukan'),
-                                    'mFound': r.get('daftar_usaha_ditemukan', '') if r.get('daftar_usaha_ditemukan', '') != '-' else '',
-                                    'mNotFound': r.get('daftar_usaha_tidak_ditemukan', '') if r.get('daftar_usaha_tidak_ditemukan', '') != '-' else '',
-                                    'mClosed': r.get('daftar_usaha_tutup', '') if r.get('daftar_usaha_tutup', '') != '-' else '',
-                                    'mFCnt': int(float(r.get('jumlah_usaha_ditemukan', 0))) if str(r.get('jumlah_usaha_ditemukan', '')).isdigit() else 0,
-                                    'mNFCnt': int(float(r.get('jumlah_usaha_tidak_ditemukan', 0))) if str(r.get('jumlah_usaha_tidak_ditemukan', '')).isdigit() else 0,
-                                    'mCCnt': int(float(r.get('jumlah_usaha_tutup', 0))) if str(r.get('jumlah_usaha_tutup', '')).isdigit() else 0,
-                                    'mNotes': r.get('catatan_lapangan', '') if r.get('catatan_lapangan', '') != '-' else '',
-                                    'pml': r.get('pml', ''),
-                                    'ppl': r.get('ppl', ''),
-                                    'telp': r.get('no_telp_responden', '') if r.get('no_telp_responden', '') != '-' else '',
-                                    'resp': r.get('nama_responden_pemberi_informasi', ''),
-                                    'mSource': 'MATCHING_SEST_APPSHEET',
-                                    'mConf': 95
+                                    'u': 1,
+                                    'st': '1. Ditemukan',
+                                    'm': 1
                                 }
                                 kec_points.append(new_pt)
                                 kec_data['total'] += 1
