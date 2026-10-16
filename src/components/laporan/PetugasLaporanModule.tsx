@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme';
 import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES, getRecordVal, cleanText, normalizeKey, normalizeStringVal, isRecordMatchStep } from './laporanConstants';
+import { getLaporanAuthHeaders } from './AdminLaporanManager';
 
 // Custom Pin Icon for Leaflet
 const customDraggableIcon = L.divIcon({
@@ -836,7 +837,9 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
 
     try {
       setIsLoading(true);
-      const res = await fetch(`${baseUrl}/api/laporan/activities?t=${Date.now()}`);
+      const res = await fetch(`${baseUrl}/api/laporan/activities?t=${Date.now()}`, {
+        headers: getLaporanAuthHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         const openActivities = isAdmin ? data : data.filter((a: any) => a.isOpen !== false);
@@ -885,7 +888,9 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     }
 
     try {
-      const res = await fetch(`${baseUrl}/api/laporan/activities/${actId}/forms?t=${Date.now()}`);
+      const res = await fetch(`${baseUrl}/api/laporan/activities/${actId}/forms?t=${Date.now()}`, {
+        headers: getLaporanAuthHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -924,7 +929,9 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
       
       // 1. Try Backend API
       try {
-        const res = await fetch(`${baseUrl}/api/laporan/forms/${formId}/records?t=${Date.now()}`);
+        const res = await fetch(`${baseUrl}/api/laporan/forms/${formId}/records?t=${Date.now()}`, {
+          headers: getLaporanAuthHeaders()
+        });
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -1569,7 +1576,7 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
       try {
         const res = await fetch(`${baseUrl}/api/laporan/forms/${currentForm.id}/records`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(payload)
         });
 

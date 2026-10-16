@@ -43,6 +43,10 @@ router.get('/', authMiddleware, async (req, res) => {
 
 // POST /api/imputations/sync - Batch upsert imputation data (requires auth)
 router.post('/sync', authMiddleware, async (req, res) => {
+    if (req.user.role === 'pengunjung') {
+        return res.status(403).json({ message: 'Akses ditolak: Pengunjung hanya memiliki izin baca data.' });
+    }
+
     const records = req.body; // Expecting an array
     
     if (!Array.isArray(records)) {

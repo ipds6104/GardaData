@@ -96,6 +96,10 @@ router.get('/', authMiddleware, async (req, res) => {
 
 // POST /api/phenomena - Submit a new phenomenon (open to both Admin and Petugas)
 router.post('/', authMiddleware, async (req, res) => {
+    if (req.user.role === 'pengunjung') {
+        return res.status(403).json({ message: 'Akses ditolak: Pengunjung hanya memiliki izin baca data.' });
+    }
+
     const {
         judul, kategori, kecamatan, desa, sls, petugas_name, tanggal, deskripsi, dampak, rekomendasi, helper_answers, agreement
     } = req.body;

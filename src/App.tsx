@@ -23,6 +23,7 @@ const AdminSLSDashboard = lazy(() => import('./components/sls/AdminSLSDashboard'
 const PenilaianMitraModule = lazy(() => import('./components/mitra/PenilaianMitraModule').then(m => ({ default: m.PenilaianMitraModule })));
 const PetaRespondenSE2026 = lazy(() => import('./components/pengolahan/PetaRespondenSE2026').then(m => ({ default: m.PetaRespondenSE2026 })));
 import { Login } from './components/Login';
+import { AuthCallback } from './components/AuthCallback';
 import { syncImputationFromFirebase } from './services/imputationService';
 
 function AppContent() {
@@ -54,6 +55,12 @@ function AppContent() {
     const timer = setTimeout(preloadData, 1000);
     return () => clearTimeout(timer);
   }, [user]);
+
+  // Handle SSO rIDM Callback redirect
+  const isAuthCallback = window.location.pathname.startsWith('/auth/callback') || window.location.search.includes('code=');
+  if (isAuthCallback && !user) {
+    return <AuthCallback onSuccess={() => setCurrentPage('landing')} />;
+  }
 
   if (!user) {
     return <Login />;

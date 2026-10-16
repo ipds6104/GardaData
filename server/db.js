@@ -19,17 +19,40 @@ const initDb = async () => {
     try {
         console.log(`Connecting to MySQL database: ${dbConfig.database} on ${dbConfig.host}...`);
         
-        // 1. Create users table
+        // 1. Create users table with SSO support (NIP & Email)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id VARCHAR(50) PRIMARY KEY,
                 username VARCHAR(50) NOT NULL UNIQUE,
                 password_hash VARCHAR(255) NOT NULL,
                 name VARCHAR(100) NOT NULL,
+                nip VARCHAR(30) NULL,
+                email VARCHAR(100) NULL,
                 role ENUM('admin', 'petugas', 'petugas_pengolahan', 'pengunjung') NOT NULL DEFAULT 'petugas',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
+        // Safe migration for existing installations: add nip and email columns if missing
+        try {
+            const [colsNip] = await pool.query("SHOW COLUMNS FROM users LIKE 'nip'");
+            if (colsNip.length === 0) {
+                await pool.query("ALTER TABLE users ADD COLUMN nip VARCHAR(30) NULL AFTER name");
+                console.log('✔ Migrated users table: Added nip column');
+            }
+        } catch (colErr) {
+            console.warn('Note on users.nip column check:', colErr.message);
+        }
+
+        try {
+            const [colsEmail] = await pool.query("SHOW COLUMNS FROM users LIKE 'email'");
+            if (colsEmail.length === 0) {
+                await pool.query("ALTER TABLE users ADD COLUMN email VARCHAR(100) NULL AFTER nip");
+                console.log('✔ Migrated users table: Added email column');
+            }
+        } catch (colErr) {
+            console.warn('Note on users.email column check:', colErr.message);
+        }
         
         // 2. Create building_measurements table
         await pool.query(`
@@ -74,24 +97,22 @@ const initDb = async () => {
             )
         `);
         
-        // Seed default users if they don't exist
+        // Seed legacy external users (Petugas Pendataan & Pengolahan)
+        // Per rule: Administrator role is now exclusively managed via Pegawai SSO rIDM
         const bcrypt = require('bcryptjs');
         const salt = await bcrypt.genSalt(12);
 
-        const [adminRows] = await pool.query('SELECT * FROM users WHERE username = ?', ['admin']);
-        const hashedAdminPassword = await bcrypt.hash('adminjosjis', salt);
-        if (adminRows.length === 0) {
-            console.log('Seeding default administrator into users table...');
-            await pool.query(
-                'INSERT INTO users (id, username, password_hash, name, role) VALUES (?, ?, ?, ?, ?)',
-                ['user_admin', 'admin', hashedAdminPassword, 'Administrator BPS', 'admin']
-            );
-            console.log('Default admin seeded (username: admin, password: adminjosjis)');
-        } else {
-            await pool.query(
-                'UPDATE users SET password_hash = ? WHERE username = ?',
-                [hashedAdminPassword, 'admin']
-            );
+        // Decommission legacy static admin user if present to prevent password backdoor
+        try {
+            const [oldAdmin] = await pool.query('SELECT id FROM users WHERE username = ?', ['admin']);
+            if (oldAdmin.length > 0) {
+                // Invalidate static password so it cannot be used with form login
+                const disabledHash = await bcrypt.hash(`disabled_sso_migrated_${Date.now()}`, 12);
+                await pool.query('UPDATE users SET password_hash = ? WHERE username = ?', [disabledHash, 'admin']);
+                console.log('ℹ Legacy adminjosjis password decommissioned. Admin authentication is now managed via Pegawai SSO rIDM.');
+            }
+        } catch (e) {
+            console.warn('Note on legacy admin decommissioning:', e.message);
         }
 
         const [petugasRows] = await pool.query('SELECT * FROM users WHERE username = ?', ['petugas']);

@@ -218,6 +218,15 @@ const CustomDropdown: React.FC<{
   );
 };
 
+export function getLaporanAuthHeaders(customHeaders: Record<string, string> = {}): Record<string, string> {
+  const token = localStorage.getItem('navigasi_token') || localStorage.getItem('token');
+  const headers: Record<string, string> = { ...customHeaders };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 interface AdminLaporanManagerProps {
   onBack?: () => void;
   user?: any;
@@ -527,7 +536,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       }
 
       // 3. Fallback to REST API if available
-      const res = await fetch(`${baseUrl}/api/laporan/activities?t=${Date.now()}`);
+      const res = await fetch(`${baseUrl}/api/laporan/activities?t=${Date.now()}`, {
+        headers: getLaporanAuthHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         const actList = Array.isArray(data) ? data : [];
@@ -599,7 +610,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       }
 
       // 2. Fallback to REST API
-      const res = await fetch(`${baseUrl}/api/laporan/activities/${actId}/forms?t=${Date.now()}`);
+      const res = await fetch(`${baseUrl}/api/laporan/activities/${actId}/forms?t=${Date.now()}`, {
+        headers: getLaporanAuthHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         const formArray = Array.isArray(data) ? data : [];
@@ -669,7 +682,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     try {
       await fetch(`${baseUrl}/api/laporan/activities/${actId}/forms`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(defaultFormObj)
       });
     } catch (e) {}
@@ -795,7 +808,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     try {
       await fetch(`${baseUrl}/api/laporan/activities/${act.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ isOpen: newStatus })
       });
     } catch (err) {}
@@ -842,7 +855,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     try {
       const res = await fetch(`${baseUrl}/api/laporan/activities`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(newAct)
       });
       if (res.ok) {
@@ -901,7 +914,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     try {
       const res = await fetch(`${baseUrl}/api/laporan/activities/${selectedActivity.id}/forms`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(newFormObj)
       });
       if (res.ok) {
@@ -1071,7 +1084,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       try {
         const res = await fetch(`${baseUrl}/api/laporan/forms/${selectedFormId}/sync-sheet`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({
             sheetUrl: formConfig.sheetUrl,
             sheetName: formConfig.sheetName || 'Sheet1'
@@ -1309,7 +1322,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       if (selectedFormId) {
         await fetch(`${baseUrl}/api/laporan/forms/${selectedFormId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({
             title: formConfig.title || selectedForm?.title,
             sheetUrl: formConfig.sheetUrl,
@@ -1347,7 +1360,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       try {
         await fetch(`${baseUrl}/api/laporan/activities/${selectedActivity.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(updatedActivityObj)
         });
       } catch (e) {}
@@ -1432,7 +1445,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       try {
         const res = await fetch(`${baseUrl}/api/laporan/forms/${selectedFormId}/publish`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(publishPayload)
         });
 
@@ -1507,7 +1520,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       const wb = XLSX.utils.book_new();
 
       if (type === 'activity') {
-        const formsRes = await fetch(`${baseUrl}/api/laporan/activities/${item.id}/forms?t=${Date.now()}`);
+        const formsRes = await fetch(`${baseUrl}/api/laporan/activities/${item.id}/forms?t=${Date.now()}`, {
+          headers: getLaporanAuthHeaders()
+        });
         const formList = formsRes.ok ? await formsRes.json() : forms;
 
         if (!formList || formList.length === 0) {
@@ -1516,7 +1531,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         } else {
           for (const f of formList) {
             try {
-              const recRes = await fetch(`${baseUrl}/api/laporan/forms/${f.id}/records?t=${Date.now()}`);
+              const recRes = await fetch(`${baseUrl}/api/laporan/forms/${f.id}/records?t=${Date.now()}`, {
+                headers: getLaporanAuthHeaders()
+              });
               const recList = recRes.ok ? await recRes.json() : [];
               const exportRows = (recList || []).map((r: any, i: number) => ({
                 'No': i + 1,
@@ -1537,7 +1554,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         const cleanAct = (item.title || 'Kegiatan').replace(/[^a-zA-Z0-9_-]/g, '_');
         XLSX.writeFile(wb, `Cadangan_Kegiatan_${cleanAct}_${Date.now()}.xlsx`);
       } else {
-        const recRes = await fetch(`${baseUrl}/api/laporan/forms/${item.id}/records?t=${Date.now()}`);
+        const recRes = await fetch(`${baseUrl}/api/laporan/forms/${item.id}/records?t=${Date.now()}`, {
+          headers: getLaporanAuthHeaders()
+        });
         const recList = recRes.ok ? await recRes.json() : [];
         const exportRows = (recList || []).map((r: any, i: number) => ({
           'No': i + 1,
@@ -1568,7 +1587,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
 
       if (type === 'activity') {
         try {
-          await fetch(`${baseUrl}/api/laporan/activities/${item.id}`, { method: 'DELETE' });
+          await fetch(`${baseUrl}/api/laporan/activities/${item.id}`, {
+            method: 'DELETE',
+            headers: getLaporanAuthHeaders()
+          });
         } catch (e) {}
         await deleteCloudActivity(item.id);
         const remaining = activities.filter(a => a.id !== item.id);
@@ -1578,7 +1600,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         setSelectedActivity(null);
       } else {
         try {
-          await fetch(`${baseUrl}/api/laporan/forms/${item.id}`, { method: 'DELETE' });
+          await fetch(`${baseUrl}/api/laporan/forms/${item.id}`, {
+            method: 'DELETE',
+            headers: getLaporanAuthHeaders()
+          });
         } catch (e) {}
         if (selectedActivity?.id) {
           await deleteCloudForm(selectedActivity.id, item.id);
@@ -3318,7 +3343,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                         setIsTestingApiSync(true);
                         const res = await fetch(`${baseUrl}/api/laporan/google-sheets/test-sync`, {
                           method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
+                          headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
                           body: JSON.stringify({
                             sheetUrl: sheetUrl,
                             sheetName: formConfig.sheetName || 'Sheet1'

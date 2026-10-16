@@ -40,6 +40,10 @@ router.get('/', authMiddleware, async (req, res) => {
 
 // POST /api/measurements - Create new measurement (requires auth)
 router.post('/', authMiddleware, async (req, res) => {
+    if (req.user.role === 'pengunjung') {
+        return res.status(403).json({ message: 'Akses ditolak: Pengunjung hanya memiliki izin baca data.' });
+    }
+
     const {
         id, petugasId, petugasName, timestamp, geojson, luasTapak,
         jumlahLantai, jenisBangunan, perkiraanLuasLantai, latitude, longitude, metodeDigitasi
@@ -82,6 +86,10 @@ router.post('/', authMiddleware, async (req, res) => {
 
 // POST /api/measurements/sync - Sync multiple measurements in batch (requires auth)
 router.post('/sync', authMiddleware, async (req, res) => {
+    if (req.user.role === 'pengunjung') {
+        return res.status(403).json({ message: 'Akses ditolak: Pengunjung hanya memiliki izin baca data.' });
+    }
+
     const records = req.body; // Expecting an array
     
     if (!Array.isArray(records)) {
@@ -137,13 +145,30 @@ router.post('/sync', authMiddleware, async (req, res) => {
     }
 });
 
-// DELETE /api/measurements/:id - Delete a measurement (requires auth)
+// DELETE /api/measurements/:id - Delete a measurement (requires auth & IDOR protection)
 router.delete('/:id', authMiddleware, async (req, res) => {
+    if (req.user.role === 'pengunjung') {
+        return res.status(403).json({ message: 'Akses ditolak: Pengunjung tidak memiliki izin menghapus data.' });
+    }
+
     try {
-        const [result] = await pool.query('DELETE FROM building_measurements WHERE id = ?', [req.params.id]);
+        let query = 'DELETE FROM building_measurements WHERE id = ?';
+        const params = [req.params.id];
+
+        // IDOR Mitigasi: Non-admin users are strictly restricted to deleting their own measurements
+        if (req.user.role !== 'admin') {
+            query += ' AND (petugas_id = ? OR petugas_name = ? OR petugas_name = ?)';
+            params.push(
+                req.user.id || req.user.username,
+                req.user.username || '',
+                req.user.name || ''
+            );
+        }
+
+        const [result] = await pool.query(query, params);
         
         if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Measurement not found' });
+            return res.status(404).json({ message: 'Measurement not found or unauthorized' });
         }
         
         res.json({ message: 'Measurement deleted successfully', id: req.params.id });

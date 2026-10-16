@@ -729,8 +729,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
                   <User className="w-4 h-4" />
                 </div>
                 <div className="hidden sm:flex flex-col">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight">{user.username}</span>
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase">{user.role}</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight">
+                    {user.name || user.username}
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase flex items-center gap-1">
+                    {user.nip ? `NIP. ${user.nip}` : user.role}
+                    {user.role === 'admin' && (
+                      <span className="text-[9px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/60 dark:text-blue-300 px-1 rounded">
+                        Admin SSO
+                      </span>
+                    )}
+                  </span>
                 </div>
                 <button
                   onClick={() => logout()}

@@ -5,6 +5,22 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 const { google } = require('googleapis');
+const authMiddleware = require('../middleware/auth');
+
+// Role-based Access Control Middlewares
+function requireAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Akses ditolak: Hanya Administrator yang berwenang.' });
+  }
+  next();
+}
+
+function blockVisitor(req, res, next) {
+  if (req.user && req.user.role === 'pengunjung') {
+    return res.status(403).json({ message: 'Akses ditolak: Pengunjung hanya memiliki izin baca data.' });
+  }
+  next();
+}
 
 // Dual Storage Engine: MySQL with File-Based Fallback/Sync
 const DATA_DIR = path.join(__dirname, '../data');
@@ -34,9 +50,14 @@ function getGoogleSheetsClient() {
 }
 
 function extractSpreadsheetId(url) {
-  if (!url) return null;
-  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  return match ? match[1] : url.trim();
+  if (!url || typeof url !== 'string') return null;
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]{15,100})/);
+  if (match) return match[1];
+  const trimmed = url.trim();
+  if (/^[a-zA-Z0-9-_]{15,100}$/.test(trimmed)) {
+    return trimmed;
+  }
+  return null;
 }
 
 // 2-Way Write to Google Sheet via Google Sheets API v4
@@ -210,20 +231,46 @@ function writeStore(store) {
   }
 }
 
-// Helper to forward record data to Google Apps Script Webhook
+// SSRF & Webhook Security Validator
+function isAllowedWebhookUrl(webhookUrl) {
+  if (!webhookUrl || typeof webhookUrl !== 'string') return false;
+  try {
+    const urlObj = new URL(webhookUrl);
+    // 1. Strictly enforce HTTPS protocol
+    if (urlObj.protocol !== 'https:') return false;
+
+    const hostname = urlObj.hostname.toLowerCase();
+
+    // 2. Reject Loopback, Private LAN, Link-Local & Cloud Metadata IPs
+    const privateIpRegex = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.|0\.0\.0\.0|::1|metadata\.google\.internal)/i;
+    if (privateIpRegex.test(hostname)) return false;
+
+    // 3. Reject non-standard ports to prevent port scanning via SSRF
+    if (urlObj.port && urlObj.port !== '443') return false;
+
+    // 4. Whitelist Google Apps Script or require valid public domain
+    const isGoogleScript = hostname === 'script.google.com' || hostname.endsWith('.google.com') || hostname.endsWith('.googleusercontent.com');
+    if (isGoogleScript) return true;
+
+    return hostname.includes('.') && !hostname.endsWith('.local') && !hostname.endsWith('.internal');
+  } catch {
+    return false;
+  }
+}
+
+// Helper to forward record data to Google Apps Script Webhook (Protected against SSRF)
 function forwardToWebhook(webhookUrl, payload) {
-  if (!webhookUrl || typeof webhookUrl !== 'string' || !webhookUrl.startsWith('http')) {
+  if (!isAllowedWebhookUrl(webhookUrl)) {
+    console.warn('[SECURITY WARNING] Blocked suspicious or non-compliant webhook URL (SSRF Mitigated):', webhookUrl);
     return;
   }
   try {
     const postData = JSON.stringify(payload);
     const urlObj = new URL(webhookUrl);
-    const isHttps = urlObj.protocol === 'https:';
-    const client = isHttps ? https : http;
 
     const options = {
       hostname: urlObj.hostname,
-      port: urlObj.port || (isHttps ? 443 : 80),
+      port: 443,
       path: urlObj.pathname + urlObj.search,
       method: 'POST',
       headers: {
@@ -233,7 +280,7 @@ function forwardToWebhook(webhookUrl, payload) {
       timeout: 8000
     };
 
-    const req = client.request(options, (res) => {
+    const req = https.request(options, (res) => {
       res.on('data', () => {});
     });
 
@@ -252,8 +299,8 @@ function forwardToWebhook(webhookUrl, payload) {
 // 0. GOOGLE SHEETS API STATUS & SERVICE ACCOUNT ENDPOINTS
 // -------------------------------------------------------------
 
-// GET /api/laporan/google-sheets/service-account-status
-router.get('/google-sheets/service-account-status', (req, res) => {
+// GET /api/laporan/google-sheets/service-account-status (Admin only)
+router.get('/google-sheets/service-account-status', authMiddleware, requireAdmin, (req, res) => {
   if (fs.existsSync(SERVICE_ACCOUNT_KEY_FILE)) {
     try {
       const keyData = JSON.parse(fs.readFileSync(SERVICE_ACCOUNT_KEY_FILE, 'utf8'));
@@ -269,8 +316,8 @@ router.get('/google-sheets/service-account-status', (req, res) => {
   return res.json({ configured: false });
 });
 
-// POST /api/laporan/google-sheets/test-sync
-router.post('/google-sheets/test-sync', async (req, res) => {
+// POST /api/laporan/google-sheets/test-sync (Admin only)
+router.post('/google-sheets/test-sync', authMiddleware, requireAdmin, async (req, res) => {
   const { sheetUrl, sheetName } = req.body;
   const result = await syncToGoogleSheetsAPI(sheetUrl, sheetName, {
     rowId: `test_${Date.now()}`,
@@ -287,14 +334,14 @@ router.post('/google-sheets/test-sync', async (req, res) => {
 // 1. ACTIVITIES ENDPOINTS (CRUD & LIVE TOGGLE)
 // -------------------------------------------------------------
 
-// GET /api/laporan/activities
-router.get('/activities', (req, res) => {
+// GET /api/laporan/activities (Authenticated users: Admin, Petugas, Pengunjung)
+router.get('/activities', authMiddleware, (req, res) => {
   const store = readStore();
   res.json(store.activities);
 });
 
-// POST /api/laporan/activities
-router.post('/activities', (req, res) => {
+// POST /api/laporan/activities (Admin only)
+router.post('/activities', authMiddleware, requireAdmin, (req, res) => {
   const store = readStore();
   const newActivity = {
     id: req.body.id || `act_${Date.now()}`,
@@ -330,8 +377,8 @@ router.post('/activities', (req, res) => {
   res.status(201).json(newActivity);
 });
 
-// PUT /api/laporan/activities/:id
-router.put('/activities/:id', (req, res) => {
+// PUT /api/laporan/activities/:id (Admin only)
+router.put('/activities/:id', authMiddleware, requireAdmin, (req, res) => {
   const store = readStore();
   const idx = store.activities.findIndex(a => a.id === req.params.id);
   if (idx === -1) {
@@ -348,8 +395,8 @@ router.put('/activities/:id', (req, res) => {
   res.json(store.activities[idx]);
 });
 
-// PATCH /api/laporan/activities/:id/toggle-open
-router.patch('/activities/:id/toggle-open', (req, res) => {
+// PATCH /api/laporan/activities/:id/toggle-open (Admin only)
+router.patch('/activities/:id/toggle-open', authMiddleware, requireAdmin, (req, res) => {
   const store = readStore();
   const idx = store.activities.findIndex(a => a.id === req.params.id);
   if (idx === -1) {
@@ -367,8 +414,8 @@ router.patch('/activities/:id/toggle-open', (req, res) => {
   });
 });
 
-// DELETE /api/laporan/activities/:id
-router.delete('/activities/:id', (req, res) => {
+// DELETE /api/laporan/activities/:id (Admin only)
+router.delete('/activities/:id', authMiddleware, requireAdmin, (req, res) => {
   const store = readStore();
   store.activities = store.activities.filter(a => a.id !== req.params.id);
   store.forms = store.forms.filter(f => f.activityId !== req.params.id);
@@ -382,15 +429,15 @@ router.delete('/activities/:id', (req, res) => {
 // 2. FORMS ENDPOINTS (DRAFT & PUBLISH)
 // -------------------------------------------------------------
 
-// GET /api/laporan/activities/:actId/forms
-router.get('/activities/:actId/forms', (req, res) => {
+// GET /api/laporan/activities/:actId/forms (Authenticated users)
+router.get('/activities/:actId/forms', authMiddleware, (req, res) => {
   const store = readStore();
   const forms = store.forms.filter(f => f.activityId === req.params.actId);
   res.json(forms);
 });
 
-// POST /api/laporan/activities/:actId/forms
-router.post('/activities/:actId/forms', (req, res) => {
+// POST /api/laporan/activities/:actId/forms (Admin only)
+router.post('/activities/:actId/forms', authMiddleware, requireAdmin, (req, res) => {
   const store = readStore();
   const newForm = {
     id: req.body.id || `form_${Date.now()}`,
@@ -413,8 +460,8 @@ router.post('/activities/:actId/forms', (req, res) => {
   res.status(201).json(newForm);
 });
 
-// PUT /api/laporan/forms/:formId (Save Draft / Update Form Settings)
-router.put('/forms/:formId', (req, res) => {
+// PUT /api/laporan/forms/:formId (Admin only)
+router.put('/forms/:formId', authMiddleware, requireAdmin, (req, res) => {
   const store = readStore();
   const idx = store.forms.findIndex(f => f.id === req.params.formId);
   if (idx === -1) {
@@ -439,8 +486,8 @@ router.put('/forms/:formId', (req, res) => {
   res.json(store.forms[idx]);
 });
 
-// POST /api/laporan/forms/:formId/publish (PUBLISH CONFIGURATION TO PETUGAS)
-router.post('/forms/:formId/publish', (req, res) => {
+// POST /api/laporan/forms/:formId/publish (Admin only)
+router.post('/forms/:formId/publish', authMiddleware, requireAdmin, (req, res) => {
   const store = readStore();
   const idx = store.forms.findIndex(f => f.id === req.params.formId);
   if (idx === -1) {
@@ -477,8 +524,8 @@ router.post('/forms/:formId/publish', (req, res) => {
   });
 });
 
-// DELETE /api/laporan/forms/:formId
-router.delete('/forms/:formId', (req, res) => {
+// DELETE /api/laporan/forms/:formId (Admin only)
+router.delete('/forms/:formId', authMiddleware, requireAdmin, (req, res) => {
   const store = readStore();
   store.forms = store.forms.filter(f => f.id !== req.params.formId);
   store.records = store.records.filter(r => r.formId !== req.params.formId);
@@ -491,15 +538,15 @@ router.delete('/forms/:formId', (req, res) => {
 // 3. RECORDS ENDPOINTS (TRANSACTIONS & 2-WAY SYNC)
 // -------------------------------------------------------------
 
-// GET /api/laporan/forms/:formId/records
-router.get('/forms/:formId/records', (req, res) => {
+// GET /api/laporan/forms/:formId/records (Authenticated users)
+router.get('/forms/:formId/records', authMiddleware, (req, res) => {
   const store = readStore();
   const records = store.records.filter(r => r.formId === req.params.formId);
   res.json(records);
 });
 
-// POST /api/laporan/forms/:formId/records (Create/Upsert Record + Google Sheets 2-Way Sync)
-router.post('/forms/:formId/records', (req, res) => {
+// POST /api/laporan/forms/:formId/records (Create/Upsert Record - Petugas & Admin only)
+router.post('/forms/:formId/records', authMiddleware, blockVisitor, (req, res) => {
   const store = readStore();
   const recordData = req.body;
   const newId = recordData.id || `${req.params.formId}_rec_${Date.now()}`;
@@ -535,7 +582,7 @@ router.post('/forms/:formId/records', (req, res) => {
     });
   }
 
-  // 2. Apps Script Webhook Fallback if configured
+  // 2. Apps Script Webhook Fallback if configured (Protected against SSRF)
   if (webhookUrl) {
     forwardToWebhook(webhookUrl, {
       action: existingIdx !== -1 ? 'UPDATE' : 'CREATE',
@@ -549,8 +596,8 @@ router.post('/forms/:formId/records', (req, res) => {
   res.status(201).json(formattedRecord);
 });
 
-// PUT /api/laporan/records/:recordId
-router.put('/records/:recordId', (req, res) => {
+// PUT /api/laporan/records/:recordId (Petugas & Admin only)
+router.put('/records/:recordId', authMiddleware, blockVisitor, (req, res) => {
   const store = readStore();
   const idx = store.records.findIndex(r => r.id === req.params.recordId);
   if (idx === -1) {
@@ -591,8 +638,8 @@ router.put('/records/:recordId', (req, res) => {
   res.json(updatedRec);
 });
 
-// DELETE /api/laporan/records/:recordId
-router.delete('/records/:recordId', (req, res) => {
+// DELETE /api/laporan/records/:recordId (Petugas & Admin only)
+router.delete('/records/:recordId', authMiddleware, blockVisitor, (req, res) => {
   const store = readStore();
   const targetRec = store.records.find(r => r.id === req.params.recordId);
   store.records = store.records.filter(r => r.id !== req.params.recordId);

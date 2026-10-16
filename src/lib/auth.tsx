@@ -3,9 +3,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 export type UserRole = 'admin' | 'petugas' | 'petugas_pengolahan' | 'pengunjung' | null;
 
 export interface AuthUser {
+  id?: string;
   username: string;
   role: UserRole;
   name?: string;
+  nip?: string;
+  email?: string;
+  isSso?: boolean;
 }
 
 export interface PasswordValidationResult {
@@ -43,18 +47,13 @@ async function sha256Hex(data: string): Promise<string> {
 }
 
 // Zero-plaintext offline credential database with individual cryptographic salts
+// Admin role is strictly managed via Pegawai SSO rIDM. Offline credentials are exclusively for external field officers.
 const SECURE_OFFLINE_USERS: Record<string, {
   salt: string;
   hash: string;
   role: UserRole;
   name: string;
 }> = {
-  'admin': {
-    salt: 'garda_sec_admin_salt_6104',
-    hash: 'a4989151788d4a45bb961353506c719f291fe293bc6b3d8c8b861c6319ac6f2c',
-    role: 'admin',
-    name: 'Administrator BPS'
-  },
   'petugas': {
     salt: 'garda_sec_petugas_salt_6104',
     hash: 'ef8b88dfe2f5a6d4ac3f030a594123ea9039855764a03d929b3cb7705e216ef3',
@@ -72,10 +71,14 @@ const SECURE_OFFLINE_USERS: Record<string, {
 interface AuthContextType {
   user: AuthUser | null;
   login: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  loginWithSso: () => Promise<{ success: boolean; url?: string; message?: string }>;
+  handleSsoCallback: (code: string, state?: string) => Promise<{ success: boolean; message?: string }>;
+  mockSsoLogin: (nip?: string, name?: string) => Promise<{ success: boolean; message?: string }>;
   loginAsVisitor: () => void;
   logout: () => void;
   changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
   lockoutRemainingSeconds: number;
+  ssoConfigured: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -118,10 +121,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, [lockoutUntil]);
 
-  const loginAsVisitor = () => {
+  const loginAsVisitor = async () => {
     const visitorUser: AuthUser = { username: 'Pengunjung', role: 'pengunjung', name: 'Tamu BPS' };
     setUser(visitorUser);
     localStorage.setItem('navigasi_user', JSON.stringify(visitorUser));
+    try {
+      const res = await fetch('/api/auth/visitor', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.token) {
+          localStorage.setItem('navigasi_token', data.token);
+        }
+      }
+    } catch {
+      // Offline fallback mode
+    }
   };
 
   const login = async (username: string, password: string): Promise<{ success: boolean; message?: string }> => {
@@ -282,14 +296,154 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true, message: 'Sandi berhasil diperbarui secara aman.' };
   };
 
+  const [ssoConfigured, setSsoConfigured] = useState<boolean>(false);
+
+  useEffect(() => {
+    fetch('/api/auth/sso/config')
+      .then(res => res.json())
+      .then(data => {
+        setSsoConfigured(Boolean(data.configured));
+      })
+      .catch(() => {
+        // Offline or backend unavailable
+      });
+  }, []);
+
+  const loginWithSso = async (): Promise<{ success: boolean; url?: string; message?: string }> => {
+    try {
+      const redirectUri = `${window.location.origin}/auth/callback`;
+      const res = await fetch(`/api/auth/sso/login?redirect_uri=${encodeURIComponent(redirectUri)}`);
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+        return { success: true, url: data.url };
+      } else {
+        return {
+          success: false,
+          message: data.message || 'Gagal memulai otentikasi SSO rIDM. Pastikan Client ID telah dikonfigurasi.'
+        };
+      }
+    } catch {
+      return {
+        success: false,
+        message: 'Gagal menghubungi server SSO rIDM. Periksa koneksi internet Anda.'
+      };
+    }
+  };
+
+  const handleSsoCallback = async (code: string, state?: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const redirectUri = `${window.location.origin}/auth/callback`;
+      const res = await fetch('/api/auth/sso/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, state, redirectUri })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.user) {
+        const newUser: AuthUser = {
+          id: data.user.id,
+          username: data.user.username,
+          role: data.user.role as UserRole,
+          name: data.user.name,
+          nip: data.user.nip,
+          email: data.user.email,
+          isSso: true
+        };
+        setUser(newUser);
+        localStorage.setItem('navigasi_user', JSON.stringify(newUser));
+        if (data.token) {
+          localStorage.setItem('navigasi_token', data.token);
+        }
+        return { success: true };
+      } else {
+        return {
+          success: false,
+          message: data.message || 'Gagal memverifikasi akun Pegawai SSO rIDM.'
+        };
+      }
+    } catch {
+      return {
+        success: false,
+        message: 'Terjadi gangguan jaringan saat sinkronisasi profil SSO rIDM.'
+      };
+    }
+  };
+
+  const mockSsoLogin = async (nip?: string, name?: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await fetch('/api/auth/sso/mock-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nip: nip || '199503112022031001',
+          name: name || 'Pegawai BPS Kabupaten Mempawah'
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.user) {
+        const newUser: AuthUser = {
+          id: data.user.id,
+          username: data.user.username,
+          role: data.user.role as UserRole,
+          name: data.user.name,
+          nip: data.user.nip,
+          email: data.user.email,
+          isSso: true
+        };
+        setUser(newUser);
+        localStorage.setItem('navigasi_user', JSON.stringify(newUser));
+        if (data.token) {
+          localStorage.setItem('navigasi_token', data.token);
+        }
+        return { success: true };
+      } else {
+        return {
+          success: false,
+          message: data.message || 'Gagal menjalankan simulasi SSO.'
+        };
+      }
+    } catch {
+      return {
+        success: false,
+        message: 'Gagal menghubungi server untuk simulasi SSO.'
+      };
+    }
+  };
+
   const logout = () => {
+    const isSsoUser = user?.isSso;
     setUser(null);
     localStorage.removeItem('navigasi_user');
     localStorage.removeItem('navigasi_token');
+
+    if (isSsoUser) {
+      fetch(`/api/auth/sso/logout?post_logout_redirect_uri=${encodeURIComponent(window.location.origin)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.logoutUrl) {
+            window.location.href = data.logoutUrl;
+          }
+        })
+        .catch(() => {});
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, loginAsVisitor, logout, changePassword, lockoutRemainingSeconds }}>
+    <AuthContext.Provider value={{
+      user,
+      login,
+      loginWithSso,
+      handleSsoCallback,
+      mockSsoLogin,
+      loginAsVisitor,
+      logout,
+      changePassword,
+      lockoutRemainingSeconds,
+      ssoConfigured
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -302,4 +456,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
 
