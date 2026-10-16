@@ -222,26 +222,69 @@ router.post('/login', async (req, res) => {
 // SSO BPS KABUPATEN MEMPAWAH (rIDM OIDC)
 // ==========================================
 
+// In-Memory PKCE verifier store (10 minutes TTL)
+const pkceStore = new Map();
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, item] of pkceStore.entries()) {
+        if (now - item.timestamp > 10 * 60 * 1000) {
+            pkceStore.delete(key);
+        }
+    }
+}, 5 * 60 * 1000);
+
+// Helper to determine active registered redirect URI (Anti-Open Redirect & OAuth Hijacking)
+function resolveRedirectUri(req) {
+    const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://gardadata.dvlpid.my.id'];
+    if (req.query && req.query.redirect_uri) {
+        try {
+            const parsed = new URL(req.query.redirect_uri);
+            if (allowedOrigins.includes(parsed.origin) && parsed.pathname === '/auth/callback') {
+                return req.query.redirect_uri;
+            }
+        } catch {
+            // Ignore invalid URL
+        }
+    }
+    const origin = req.get('origin') || req.get('referer') || '';
+    if (origin.includes('gardadata.dvlpid.my.id')) {
+        return 'https://gardadata.dvlpid.my.id/auth/callback';
+    }
+    return process.env.RIDM_REDIRECT_URI || 'http://localhost:5173/auth/callback';
+}
+
 // GET /api/auth/sso/config - Check SSO configuration status
 router.get('/sso/config', (req, res) => {
     const baseUrl = process.env.RIDM_BASE_URL || 'https://auth.dvlpid.my.id/t/bps';
     const clientId = process.env.RIDM_CLIENT_ID || '';
-    const redirectUri = process.env.RIDM_REDIRECT_URI || `${req.protocol}://${req.get('host')}/auth/callback`;
+    const redirectUri = resolveRedirectUri(req);
     res.json({
         configured: Boolean(clientId),
         baseUrl,
+        clientId,
         redirectUri,
         isDev: process.env.NODE_ENV !== 'production'
     });
 });
 
-// GET /api/auth/sso/login - Initiate SSO OAuth2 Authorization URL
+// GET /api/auth/sso/login - Initiate SSO OAuth2 Authorization URL with PKCE (S256)
 router.get('/sso/login', (req, res) => {
     const baseUrl = process.env.RIDM_BASE_URL || 'https://auth.dvlpid.my.id/t/bps';
-    const clientId = process.env.RIDM_CLIENT_ID || '';
-    const redirectUri = req.query.redirect_uri || process.env.RIDM_REDIRECT_URI || `${req.protocol}://${req.get('host')}/auth/callback`;
+    const clientId = process.env.RIDM_CLIENT_ID || 'gardadata-app';
+    const redirectUri = resolveRedirectUri(req);
     const state = crypto.randomBytes(16).toString('hex');
     
+    // PKCE S256 Generation (Mandatory per rIDM client configuration)
+    const codeVerifier = crypto.randomBytes(32).toString('base64url');
+    const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+
+    // Store verifier with state mapping
+    pkceStore.set(state, {
+        codeVerifier,
+        redirectUri,
+        timestamp: Date.now()
+    });
+
     if (!clientId) {
         return res.status(400).json({
             error: 'SSO_NOT_CONFIGURED',
@@ -255,40 +298,57 @@ router.get('/sso/login', (req, res) => {
         redirect_uri: redirectUri,
         response_type: 'code',
         scope: 'openid profile email',
-        state: state
+        state: state,
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256'
     });
 
     const authUrl = `${baseUrl}/authorize?${params.toString()}`;
-    res.json({ url: authUrl, state });
+    res.json({ url: authUrl, state, codeVerifier });
 });
 
-// POST /api/auth/sso/callback - Exchange authorization code, sync Pegawai to DB, and issue JWT
+// POST /api/auth/sso/callback - Exchange authorization code with PKCE, sync Pegawai to DB, and issue JWT
 router.post('/sso/callback', async (req, res) => {
-    const { code, redirectUri } = req.body;
+    const { code, state, redirectUri, codeVerifier } = req.body;
     if (!code) {
         return res.status(400).json({ message: 'Kode otorisasi (code) tidak ditemukan.' });
     }
 
     const baseUrl = process.env.RIDM_BASE_URL || 'https://auth.dvlpid.my.id/t/bps';
-    const clientId = process.env.RIDM_CLIENT_ID || '';
+    const clientId = process.env.RIDM_CLIENT_ID || 'gardadata-app';
     const clientSecret = process.env.RIDM_CLIENT_SECRET || '';
-    const finalRedirectUri = redirectUri || process.env.RIDM_REDIRECT_URI || 'http://localhost:5173/auth/callback';
 
-    if (!clientId || !clientSecret) {
-        return res.status(500).json({
-            message: 'Kredensial SSO rIDM (Client ID / Client Secret) belum terkonfigurasi pada file server/.env.'
-        });
+    // Retrieve PKCE verifier and redirect URI from memory store or request body
+    let finalVerifier = codeVerifier;
+    let finalRedirectUri = redirectUri;
+
+    if (state && pkceStore.has(state)) {
+        const stored = pkceStore.get(state);
+        finalVerifier = finalVerifier || stored.codeVerifier;
+        finalRedirectUri = finalRedirectUri || stored.redirectUri;
+        pkceStore.delete(state);
+    }
+
+    if (!finalRedirectUri) {
+        finalRedirectUri = resolveRedirectUri(req);
     }
 
     try {
-        // 1. Exchange authorization code for token
+        // 1. Exchange authorization code for token (including PKCE code_verifier)
         const tokenParams = new URLSearchParams({
             grant_type: 'authorization_code',
             code: String(code).trim(),
             client_id: clientId,
-            client_secret: clientSecret,
             redirect_uri: finalRedirectUri
         });
+
+        if (clientSecret) {
+            tokenParams.append('client_secret', clientSecret);
+        }
+
+        if (finalVerifier) {
+            tokenParams.append('code_verifier', finalVerifier);
+        }
 
         const tokenRes = await fetch(`${baseUrl}/token`, {
             method: 'POST',
@@ -452,10 +512,21 @@ router.post('/sso/mock-login', async (req, res) => {
     }
 });
 
-// GET /api/auth/sso/logout - Get Single Logout URL
+// GET /api/auth/sso/logout - Get Single Logout URL (Anti-Open Redirect)
 router.get('/sso/logout', (req, res) => {
     const baseUrl = process.env.RIDM_BASE_URL || 'https://auth.dvlpid.my.id/t/bps';
-    const postLogoutUri = req.query.post_logout_redirect_uri || `${req.protocol}://${req.get('host')}`;
+    let postLogoutUri = req.query.post_logout_redirect_uri || `${req.protocol}://${req.get('host')}`;
+
+    try {
+        const parsed = new URL(postLogoutUri);
+        const allowedHosts = ['localhost', '127.0.0.1', 'gardadata.dvlpid.my.id'];
+        if (!allowedHosts.includes(parsed.hostname)) {
+            postLogoutUri = `${req.protocol}://${req.get('host')}`;
+        }
+    } catch {
+        postLogoutUri = `${req.protocol}://${req.get('host')}`;
+    }
+
     const logoutUrl = `${baseUrl}/sessions/logout?post_logout_redirect_uri=${encodeURIComponent(postLogoutUri)}`;
     res.json({ logoutUrl });
 });

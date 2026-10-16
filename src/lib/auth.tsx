@@ -315,6 +315,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await fetch(`/api/auth/sso/login?redirect_uri=${encodeURIComponent(redirectUri)}`);
       const data = await res.json();
       if (res.ok && data.url) {
+        if (data.codeVerifier) {
+          sessionStorage.setItem('sso_code_verifier', data.codeVerifier);
+        }
         window.location.href = data.url;
         return { success: true, url: data.url };
       } else {
@@ -334,10 +337,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSsoCallback = async (code: string, state?: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const redirectUri = `${window.location.origin}/auth/callback`;
+      const codeVerifier = sessionStorage.getItem('sso_code_verifier') || undefined;
+      sessionStorage.removeItem('sso_code_verifier');
+
       const res = await fetch('/api/auth/sso/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, state, redirectUri })
+        body: JSON.stringify({ code, state, redirectUri, codeVerifier })
       });
 
       const data = await res.json();
