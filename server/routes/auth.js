@@ -300,7 +300,8 @@ router.get('/sso/login', (req, res) => {
         scope: 'openid profile email',
         state: state,
         code_challenge: codeChallenge,
-        code_challenge_method: 'S256'
+        code_challenge_method: 'S256',
+        prompt: 'login'
     });
 
     const authUrl = `${baseUrl}/authorize?${params.toString()}`;

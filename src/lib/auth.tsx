@@ -404,7 +404,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         scope: 'openid profile email',
         state: state,
         code_challenge: codeChallenge,
-        code_challenge_method: 'S256'
+        code_challenge_method: 'S256',
+        prompt: 'login'
       });
 
       const authUrl = `https://auth.dvlpid.my.id/t/bps/authorize?${params.toString()}`;
