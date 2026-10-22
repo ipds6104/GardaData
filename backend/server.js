@@ -33,6 +33,7 @@ app.use(helmet({
       scriptSrcElem: ["'self'", "'unsafe-inline'", "https://apis.google.com", "https://accounts.google.com", "https://*.googleapis.com"],
       connectSrc: [
         "'self'", 
+        "https://auth.dvlpid.my.id", 
         "https://api.garda-data.com", 
         "https://gardadata.dvlpid.my.id",
         "https://docs.google.com", 
@@ -99,6 +100,8 @@ const classificationRouter = require('./routes/classification');
 const slsRouter = require('./routes/sls');
 const mitraRouter = require('./routes/mitra');
 const pengolahanRouter = require('./routes/pengolahan');
+const authRouter = require('./routes/auth');
+app.use('/api/auth', authRouter);
 app.use('/api/measurements', measurementsRouter);
 app.use('/api/monitoring', monitoringRouter);
 app.use('/api/lms', lmsRouter);
