@@ -57,11 +57,11 @@ export const Login: React.FC = () => {
     setError('');
 
     const res = await loginWithSso();
-    setIsSsoLoading(false);
-
+    // If redirect was initiated, browser navigates to rIDM.
+    // If failed, clear loading and show error message.
     if (!res.success) {
-      setSsoModalMessage(res.message || '');
-      setShowSsoInfoModal(true);
+      setIsSsoLoading(false);
+      setError(res.message || 'Gagal memulai otentikasi SSO.');
     }
   };
 

@@ -46,6 +46,33 @@ async function sha256Hex(data: string): Promise<string> {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// PKCE RFC 7636 Utilities for Browser-Native rIDM OIDC Flow
+function generateRandomString(length = 43): string {
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  const array = new Uint8Array(length);
+  window.crypto.getRandomValues(array);
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += charset[array[i] % charset.length];
+  }
+  return result;
+}
+
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await window.crypto.subtle.digest('SHA-256', data);
+  const bytes = new Uint8Array(digest);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
 // Zero-plaintext offline credential database with individual cryptographic salts
 // Admin role is strictly managed via Pegawai SSO rIDM. Offline credentials are exclusively for external field officers.
 const SECURE_OFFLINE_USERS: Record<string, {
@@ -296,40 +323,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true, message: 'Sandi berhasil diperbarui secara aman.' };
   };
 
-  const [ssoConfigured, setSsoConfigured] = useState<boolean>(false);
+  const [ssoConfigured, setSsoConfigured] = useState<boolean>(true);
 
   useEffect(() => {
     fetch('/api/auth/sso/config')
       .then(res => res.json())
       .then(data => {
-        setSsoConfigured(Boolean(data.configured));
+        if (data && typeof data.configured === 'boolean') {
+          setSsoConfigured(data.configured);
+        }
       })
       .catch(() => {
-        // Offline or backend unavailable
+        // Profil B (gardadata-spa) is always active client-side
+        setSsoConfigured(true);
       });
   }, []);
 
   const loginWithSso = async (): Promise<{ success: boolean; url?: string; message?: string }> => {
     try {
       const redirectUri = `${window.location.origin}/auth/callback`;
-      const res = await fetch(`/api/auth/sso/login?redirect_uri=${encodeURIComponent(redirectUri)}`);
-      const data = await res.json();
-      if (res.ok && data.url) {
-        if (data.codeVerifier) {
-          sessionStorage.setItem('sso_code_verifier', data.codeVerifier);
-        }
-        window.location.href = data.url;
-        return { success: true, url: data.url };
-      } else {
-        return {
-          success: false,
-          message: data.message || 'Gagal memulai otentikasi SSO rIDM. Pastikan Client ID telah dikonfigurasi.'
-        };
-      }
-    } catch {
+      
+      // Native Web Crypto PKCE S256 (RFC 7636) using official registered client 'gardadata-spa'
+      const codeVerifier = generateRandomString(43);
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
+      const state = generateRandomString(16);
+
+      sessionStorage.setItem('sso_code_verifier', codeVerifier);
+      sessionStorage.setItem('sso_state', state);
+
+      const params = new URLSearchParams({
+        client_id: 'gardadata-spa',
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope: 'openid profile email',
+        state: state,
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256'
+      });
+
+      const authUrl = `https://auth.dvlpid.my.id/t/bps/authorize?${params.toString()}`;
+      window.location.href = authUrl;
+      return { success: true, url: authUrl };
+    } catch (err: any) {
+      console.error('SSO login initialization error:', err);
       return {
         success: false,
-        message: 'Gagal menghubungi server SSO rIDM. Periksa koneksi internet Anda.'
+        message: 'Gagal mengarahkan ke portal SSO rIDM BPS. Silakan periksa koneksi internet.'
       };
     }
   };
@@ -338,83 +377,141 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const redirectUri = `${window.location.origin}/auth/callback`;
       const codeVerifier = sessionStorage.getItem('sso_code_verifier') || undefined;
-      sessionStorage.removeItem('sso_code_verifier');
 
-      const res = await fetch('/api/auth/sso/callback', {
+      let tokenData: any = null;
+      let userInfo: any = null;
+
+      // 1. Direct OIDC Token Exchange via Profil B (gardadata-spa, PKCE S256, CORS enabled)
+      if (codeVerifier) {
+        try {
+          const tokenBody = new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: 'gardadata-spa',
+            code: code.trim(),
+            redirect_uri: redirectUri,
+            code_verifier: codeVerifier
+          });
+
+          const tokenRes = await fetch('https://auth.dvlpid.my.id/t/bps/token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Accept': 'application/json'
+            },
+            body: tokenBody.toString()
+          });
+
+          if (tokenRes.ok) {
+            tokenData = await tokenRes.json();
+            if (tokenData && tokenData.access_token) {
+              const userinfoRes = await fetch('https://auth.dvlpid.my.id/t/bps/userinfo', {
+                headers: {
+                  'Authorization': `Bearer ${tokenData.access_token}`,
+                  'Accept': 'application/json'
+                }
+              });
+              if (userinfoRes.ok) {
+                userInfo = await userinfoRes.json();
+              }
+            }
+          } else {
+            console.warn('Direct token exchange response not ok:', tokenRes.status, await tokenRes.text());
+          }
+        } catch (spaErr) {
+          console.warn('Direct rIDM token exchange error:', spaErr);
+        }
+      }
+
+      // 2. Fallback to backend exchange (Profil A: gardadata-app) if direct exchange failed
+      if (!userInfo) {
+        try {
+          const backendRes = await fetch('/api/auth/sso/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, state, redirectUri, codeVerifier })
+          });
+          if (backendRes.ok) {
+            const bData = await backendRes.json();
+            if (bData.success && bData.user) {
+              userInfo = bData.user;
+              tokenData = { access_token: bData.token };
+            }
+          }
+        } catch (bErr) {
+          console.warn('Backend exchange also failed:', bErr);
+        }
+      }
+
+      if (!userInfo) {
+        return {
+          success: false,
+          message: 'Gagal memverifikasi tiket login SSO rIDM. Silakan coba login kembali.'
+        };
+      }
+
+      // 3. Extract identity and assign Admin role (Sesuai aturan: Pegawai otomatis role admin!)
+      const nip = String(userInfo.nip || userInfo.preferred_username || userInfo.username || userInfo.sub || '').trim();
+      const name = String(userInfo.name || userInfo.preferred_username || `Pegawai ${nip}`).trim();
+      const email = String(userInfo.email || '').trim().toLowerCase();
+
+      const newUser: AuthUser = {
+        id: userInfo.id || `pegawai_${nip}`,
+        username: nip || userInfo.username || 'pegawai',
+        role: 'admin',
+        name: name,
+        nip: nip,
+        email: email,
+        isSso: true
+      };
+
+      setUser(newUser);
+      localStorage.setItem('navigasi_user', JSON.stringify(newUser));
+
+      const sessionToken = (tokenData && (tokenData.id_token || tokenData.access_token)) || `sso_admin_${Date.now()}`;
+      localStorage.setItem('navigasi_token', sessionToken);
+
+      // Clean up sessionStorage
+      sessionStorage.removeItem('sso_code_verifier');
+      sessionStorage.removeItem('sso_state');
+
+      // Sync user to backend in background if backend route is alive
+      fetch('/api/auth/sso/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, state, redirectUri, codeVerifier })
-      });
+      }).catch(() => {});
 
-      const data = await res.json();
-      if (res.ok && data.success && data.user) {
-        const newUser: AuthUser = {
-          id: data.user.id,
-          username: data.user.username,
-          role: data.user.role as UserRole,
-          name: data.user.name,
-          nip: data.user.nip,
-          email: data.user.email,
-          isSso: true
-        };
-        setUser(newUser);
-        localStorage.setItem('navigasi_user', JSON.stringify(newUser));
-        if (data.token) {
-          localStorage.setItem('navigasi_token', data.token);
-        }
-        return { success: true };
-      } else {
-        return {
-          success: false,
-          message: data.message || 'Gagal memverifikasi akun Pegawai SSO rIDM.'
-        };
-      }
-    } catch {
+      return { success: true };
+    } catch (err: any) {
+      console.error('SSO callback processing error:', err);
       return {
         success: false,
-        message: 'Terjadi gangguan jaringan saat sinkronisasi profil SSO rIDM.'
+        message: err.message || 'Terjadi kesalahan saat memproses callback SSO.'
       };
     }
   };
 
   const mockSsoLogin = async (nip?: string, name?: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      const res = await fetch('/api/auth/sso/mock-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nip: nip || '199503112022031001',
-          name: name || 'Pegawai BPS Kabupaten Mempawah'
-        })
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success && data.user) {
-        const newUser: AuthUser = {
-          id: data.user.id,
-          username: data.user.username,
-          role: data.user.role as UserRole,
-          name: data.user.name,
-          nip: data.user.nip,
-          email: data.user.email,
-          isSso: true
-        };
-        setUser(newUser);
-        localStorage.setItem('navigasi_user', JSON.stringify(newUser));
-        if (data.token) {
-          localStorage.setItem('navigasi_token', data.token);
-        }
-        return { success: true };
-      } else {
-        return {
-          success: false,
-          message: data.message || 'Gagal menjalankan simulasi SSO.'
-        };
-      }
+      const cleanNip = nip || '199503112022031001';
+      const cleanName = name || 'Pegawai BPS Kabupaten Mempawah';
+      const newUser: AuthUser = {
+        id: `pegawai_${cleanNip}`,
+        username: cleanNip,
+        role: 'admin',
+        name: cleanName,
+        nip: cleanNip,
+        email: `${cleanNip}@bps.go.id`,
+        isSso: true
+      };
+      setUser(newUser);
+      localStorage.setItem('navigasi_user', JSON.stringify(newUser));
+      localStorage.setItem('navigasi_token', `mock_sso_token_${Date.now()}`);
+      return { success: true };
     } catch {
       return {
         success: false,
-        message: 'Gagal menghubungi server untuk simulasi SSO.'
+        message: 'Gagal menjalankan simulasi SSO.'
       };
     }
   };
@@ -426,14 +523,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('navigasi_token');
 
     if (isSsoUser) {
-      fetch(`/api/auth/sso/logout?post_logout_redirect_uri=${encodeURIComponent(window.location.origin)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.logoutUrl) {
-            window.location.href = data.logoutUrl;
-          }
-        })
-        .catch(() => {});
+      window.location.href = `https://auth.dvlpid.my.id/t/bps/sessions/logout?post_logout_redirect_uri=${encodeURIComponent(window.location.origin)}`;
     }
   };
 
