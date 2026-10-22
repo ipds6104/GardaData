@@ -613,18 +613,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    const isSsoUser = user?.isSso;
+    // 1. Bersihkan seluruh sesi dan token otentikasi lokal
     setUser(null);
     localStorage.removeItem('navigasi_user');
     localStorage.removeItem('navigasi_token');
+    localStorage.removeItem('sso_code_verifier');
+    localStorage.removeItem('sso_state');
+    sessionStorage.removeItem('sso_code_verifier');
+    sessionStorage.removeItem('sso_state');
 
-    if (isSsoUser) {
-      const postLogoutUri = window.location.origin.includes('gardadata.dvlpid.my.id')
-        ? 'https://gardadata.dvlpid.my.id'
-        : 'http://localhost:5173';
-      // Official OIDC RP-Initiated Logout endpoint from rIDM discovery document
-      window.location.href = `https://auth.dvlpid.my.id/t/bps/end_session?post_logout_redirect_uri=${encodeURIComponent(postLogoutUri)}&client_id=gardadata-spa`;
-    }
+    // 2. Beritahukan terminasi sesi ke rIDM di background (jika didukung) tanpa mengalihkan halaman
+    try {
+      fetch('https://auth.dvlpid.my.id/t/bps/end_session?client_id=gardadata-spa', {
+        mode: 'no-cors'
+      }).catch(() => {});
+    } catch {}
+
+    // 3. Arahkan langsung ke halaman login awal aplikasi Garda Data
+    window.location.href = '/';
   };
 
   return (
