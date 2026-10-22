@@ -12,8 +12,12 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess, onError }
   const { handleSsoCallback } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const hasProcessedRef = React.useRef(false);
 
   useEffect(() => {
+    if (hasProcessedRef.current) return;
+    hasProcessedRef.current = true;
+
     const processCallback = async () => {
       const searchParams = new URLSearchParams(window.location.search);
       const code = searchParams.get('code');
@@ -37,7 +41,7 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess, onError }
       if (res.success) {
         setStatus('success');
         // Clean URL params to avoid re-triggering on refresh
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState({}, document.title, '/');
         setTimeout(() => {
           if (onSuccess) {
             onSuccess();
@@ -52,7 +56,7 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess, onError }
     };
 
     processCallback();
-  }, [handleSsoCallback, onSuccess]);
+  }, []);
 
   const handleReturnToLogin = () => {
     window.history.replaceState({}, document.title, '/');

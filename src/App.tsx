@@ -56,10 +56,22 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, [user]);
 
+  const [authCallbackDone, setAuthCallbackDone] = useState(false);
+
   // Handle SSO rIDM Callback redirect
-  const isAuthCallback = window.location.pathname.startsWith('/auth/callback') || window.location.search.includes('code=');
-  if (isAuthCallback && !user) {
-    return <AuthCallback onSuccess={() => setCurrentPage('landing')} />;
+  const isAuthCallback = !authCallbackDone && (window.location.pathname.startsWith('/auth/callback') || window.location.search.includes('code='));
+  if (isAuthCallback) {
+    return (
+      <AuthCallback
+        onSuccess={() => {
+          setAuthCallbackDone(true);
+          setCurrentPage('landing');
+        }}
+        onError={() => {
+          setAuthCallbackDone(true);
+        }}
+      />
+    );
   }
 
   if (!user) {
@@ -189,4 +201,5 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
 

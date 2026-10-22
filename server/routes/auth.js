@@ -309,13 +309,13 @@ router.get('/sso/login', (req, res) => {
 
 // POST /api/auth/sso/callback - Exchange authorization code with PKCE, sync Pegawai to DB, and issue JWT
 router.post('/sso/callback', async (req, res) => {
-    const { code, state, redirectUri, codeVerifier } = req.body;
+    const { code, state, redirectUri, codeVerifier, clientId: clientReqId } = req.body;
     if (!code) {
         return res.status(400).json({ message: 'Kode otorisasi (code) tidak ditemukan.' });
     }
 
     const baseUrl = process.env.RIDM_BASE_URL || 'https://auth.dvlpid.my.id/t/bps';
-    const clientId = process.env.RIDM_CLIENT_ID || 'gardadata-app';
+    const clientId = clientReqId || process.env.RIDM_CLIENT_ID || 'gardadata-app';
     const clientSecret = process.env.RIDM_CLIENT_SECRET || '';
 
     // Retrieve PKCE verifier and redirect URI from memory store or request body
@@ -342,7 +342,8 @@ router.post('/sso/callback', async (req, res) => {
             redirect_uri: finalRedirectUri
         });
 
-        if (clientSecret) {
+        // gardadata-spa is a public client (no secret). gardadata-app requires client_secret.
+        if (clientSecret && clientId !== 'gardadata-spa') {
             tokenParams.append('client_secret', clientSecret);
         }
 

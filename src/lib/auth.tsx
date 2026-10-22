@@ -73,6 +73,42 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
     .replace(/=+$/, '');
 }
 
+/**
+ * Normalisasi URL Callback OIDC rIDM.
+ * Selaras dengan Redirect URI yang terdaftar resmi di portal rIDM BPS:
+ * 1. Produksi: https://gardadata.dvlpid.my.id/auth/callback
+ * 2. Lokal/Dev: http://localhost:5173/auth/callback
+ */
+export function getOidcRedirectUri(): string {
+  if (typeof window === 'undefined') return 'http://localhost:5173/auth/callback';
+  if (window.location.origin.includes('gardadata.dvlpid.my.id')) {
+    return 'https://gardadata.dvlpid.my.id/auth/callback';
+  }
+  return 'http://localhost:5173/auth/callback';
+}
+
+/**
+ * Decode payload JWT (seperti ID Token OIDC) secara aman di sisi browser
+ */
+export function parseJwtPayload(token: string): any {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.warn('Gagal mem-parsing payload JWT ID Token:', e);
+    return null;
+  }
+}
+
 // Zero-plaintext offline credential database with individual cryptographic salts
 // Admin role is strictly managed via Pegawai SSO rIDM. Offline credentials are exclusively for external field officers.
 const SECURE_OFFLINE_USERS: Record<string, {
@@ -341,15 +377,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithSso = async (): Promise<{ success: boolean; url?: string; message?: string }> => {
     try {
-      const redirectUri = `${window.location.origin}/auth/callback`;
+      // Jika pengguna mengakses via IP 127.0.0.1, alihkan otomatis ke localhost agar origin cocok persis dengan whitelist OIDC rIDM
+      if (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1') {
+        const targetUrl = window.location.href.replace('127.0.0.1', 'localhost');
+        window.location.href = targetUrl;
+        return { success: false, message: 'Mengalihkan ke localhost sesuai izin OIDC rIDM...' };
+      }
+
+      const redirectUri = getOidcRedirectUri();
       
       // Native Web Crypto PKCE S256 (RFC 7636) using official registered client 'gardadata-spa'
       const codeVerifier = generateRandomString(43);
       const codeChallenge = await generateCodeChallenge(codeVerifier);
       const state = generateRandomString(16);
 
+      // Simpan di sessionStorage DAN localStorage agar tahan navigasi redirect antar-origin
       sessionStorage.setItem('sso_code_verifier', codeVerifier);
       sessionStorage.setItem('sso_state', state);
+      localStorage.setItem('sso_code_verifier', codeVerifier);
+      localStorage.setItem('sso_state', state);
 
       const params = new URLSearchParams({
         client_id: 'gardadata-spa',
@@ -375,11 +421,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleSsoCallback = async (code: string, state?: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      const redirectUri = `${window.location.origin}/auth/callback`;
-      const codeVerifier = sessionStorage.getItem('sso_code_verifier') || undefined;
+      const redirectUri = getOidcRedirectUri();
+      const codeVerifier =
+        localStorage.getItem('sso_code_verifier') ||
+        sessionStorage.getItem('sso_code_verifier') ||
+        undefined;
 
       let tokenData: any = null;
       let userInfo: any = null;
+      let detailedError = '';
 
       // 1. Direct OIDC Token Exchange via Profil B (gardadata-spa, PKCE S256, CORS enabled)
       if (codeVerifier) {
@@ -403,32 +453,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (tokenRes.ok) {
             tokenData = await tokenRes.json();
-            if (tokenData && tokenData.access_token) {
-              const userinfoRes = await fetch('https://auth.dvlpid.my.id/t/bps/userinfo', {
-                headers: {
-                  'Authorization': `Bearer ${tokenData.access_token}`,
-                  'Accept': 'application/json'
-                }
-              });
-              if (userinfoRes.ok) {
-                userInfo = await userinfoRes.json();
+
+            // 1a. Ekstrak identitas langsung dari ID Token OIDC jika tersedia
+            if (tokenData?.id_token) {
+              const idClaims = parseJwtPayload(tokenData.id_token);
+              if (idClaims) {
+                userInfo = { ...idClaims };
               }
             }
+
+            // 1b. Ambil atau lengkapi profil via endpoint UserInfo jika ada access_token
+            const accessToken = tokenData?.access_token || tokenData?.accessToken;
+            if (accessToken) {
+              try {
+                const userinfoRes = await fetch('https://auth.dvlpid.my.id/t/bps/userinfo', {
+                  headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Accept': 'application/json'
+                  }
+                });
+                if (userinfoRes.ok) {
+                  const uiData = await userinfoRes.json();
+                  userInfo = { ...(userInfo || {}), ...uiData };
+                }
+              } catch (uiErr) {
+                console.warn('UserInfo fetch error:', uiErr);
+              }
+            }
+
+            if (!userInfo) {
+              detailedError = `Respon token sukses namun tidak memuat data identitas pegawai (${JSON.stringify(tokenData).slice(0, 100)})`;
+            }
           } else {
-            console.warn('Direct token exchange response not ok:', tokenRes.status, await tokenRes.text());
+            const errRaw = await tokenRes.text().catch(() => '');
+            let parsedErr: any = null;
+            try {
+              parsedErr = JSON.parse(errRaw);
+            } catch {}
+            detailedError = parsedErr?.error_description || parsedErr?.error || `Penukaran token ditolak rIDM (HTTP ${tokenRes.status}): ${errRaw.slice(0, 120)}`;
+            console.warn('Direct token exchange response not ok:', tokenRes.status, detailedError);
           }
-        } catch (spaErr) {
+        } catch (spaErr: any) {
+          detailedError = `Koneksi langsung ke rIDM terhambat (${spaErr.message || 'CORS / Jaringan'}). Mencoba fallback ke server...`;
           console.warn('Direct rIDM token exchange error:', spaErr);
         }
+      } else {
+        detailedError = 'Kode verifikasi PKCE (code_verifier) tidak ditemukan di penyimpanan sesi.';
       }
 
-      // 2. Fallback to backend exchange (Profil A: gardadata-app) if direct exchange failed
+      // 2. Fallback to backend exchange if direct exchange failed
       if (!userInfo) {
         try {
           const backendRes = await fetch('/api/auth/sso/callback', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code, state, redirectUri, codeVerifier })
+            body: JSON.stringify({
+              code,
+              state,
+              redirectUri,
+              codeVerifier,
+              clientId: 'gardadata-spa'
+            })
           });
           if (backendRes.ok) {
             const bData = await backendRes.json();
@@ -436,6 +521,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               userInfo = bData.user;
               tokenData = { access_token: bData.token };
             }
+          } else {
+            const bErr = await backendRes.text().catch(() => '');
+            console.warn('Backend fallback response not ok:', backendRes.status, bErr);
           }
         } catch (bErr) {
           console.warn('Backend exchange also failed:', bErr);
@@ -445,7 +533,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!userInfo) {
         return {
           success: false,
-          message: 'Gagal memverifikasi tiket login SSO rIDM. Silakan coba login kembali.'
+          message: detailedError || 'Gagal memverifikasi tiket login SSO rIDM. Silakan coba login kembali.'
         };
       }
 
@@ -470,15 +558,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const sessionToken = (tokenData && (tokenData.id_token || tokenData.access_token)) || `sso_admin_${Date.now()}`;
       localStorage.setItem('navigasi_token', sessionToken);
 
-      // Clean up sessionStorage
+      // Clean up storage
       sessionStorage.removeItem('sso_code_verifier');
       sessionStorage.removeItem('sso_state');
+      localStorage.removeItem('sso_code_verifier');
+      localStorage.removeItem('sso_state');
 
       // Sync user to backend in background if backend route is alive
       fetch('/api/auth/sso/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, state, redirectUri, codeVerifier })
+        body: JSON.stringify({
+          code,
+          state,
+          redirectUri,
+          codeVerifier,
+          clientId: 'gardadata-spa'
+        })
       }).catch(() => {});
 
       return { success: true };
