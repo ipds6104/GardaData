@@ -532,7 +532,7 @@ router.get('/sso/logout', (req, res) => {
         postLogoutUri = `${req.protocol}://${req.get('host')}`;
     }
 
-    const logoutUrl = `${baseUrl}/sessions/logout?post_logout_redirect_uri=${encodeURIComponent(postLogoutUri)}`;
+    const logoutUrl = `${baseUrl}/end_session?post_logout_redirect_uri=${encodeURIComponent(postLogoutUri)}&client_id=gardadata-spa`;
     res.json({ logoutUrl });
 });
 

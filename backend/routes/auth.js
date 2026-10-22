@@ -25,6 +25,14 @@ router.get('/sso/config', (req, res) => {
   });
 });
 
+// GET /api/auth/sso/logout - Get Single Logout URL
+router.get('/sso/logout', (req, res) => {
+  const baseUrl = process.env.RIDM_BASE_URL || 'https://auth.dvlpid.my.id/t/bps';
+  const postLogoutUri = req.query.post_logout_redirect_uri || 'https://gardadata.dvlpid.my.id';
+  const logoutUrl = `${baseUrl}/end_session?post_logout_redirect_uri=${encodeURIComponent(postLogoutUri)}&client_id=gardadata-spa`;
+  res.json({ logoutUrl });
+});
+
 // POST /api/auth/sso/callback - Proxy token exchange and sync pegawai to database
 router.post('/sso/callback', async (req, res) => {
   const { code, state, redirectUri, codeVerifier, clientId: clientReqId } = req.body;

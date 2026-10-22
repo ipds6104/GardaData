@@ -622,7 +622,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const postLogoutUri = window.location.origin.includes('gardadata.dvlpid.my.id')
         ? 'https://gardadata.dvlpid.my.id'
         : 'http://localhost:5173';
-      window.location.href = `https://auth.dvlpid.my.id/t/bps/sessions/logout?post_logout_redirect_uri=${encodeURIComponent(postLogoutUri)}`;
+      // Official OIDC RP-Initiated Logout endpoint from rIDM discovery document
+      window.location.href = `https://auth.dvlpid.my.id/t/bps/end_session?post_logout_redirect_uri=${encodeURIComponent(postLogoutUri)}&client_id=gardadata-spa`;
     }
   };
 
