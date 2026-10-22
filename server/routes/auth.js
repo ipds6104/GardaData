@@ -342,22 +342,26 @@ router.post('/sso/callback', async (req, res) => {
             redirect_uri: finalRedirectUri
         });
 
-        // gardadata-spa is a public client (no secret). gardadata-app requires client_secret.
-        if (clientSecret && clientId !== 'gardadata-spa') {
-            tokenParams.append('client_secret', clientSecret);
-        }
-
         if (finalVerifier) {
             tokenParams.append('code_verifier', finalVerifier);
         }
 
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+            'User-Agent': 'GardaData-BPS-Mempawah'
+        };
+
+        // Profil A: gardadata-app terdaftar wajib menggunakan client_secret_basic
+        if (clientId === 'gardadata-app') {
+            const secret = clientSecret || 'cs_--WU8U2qOOpGxH9WO-0cO5z2Qx6zhn6CNROGOh6Ixa8';
+            const basicAuth = Buffer.from(`${clientId}:${secret}`).toString('base64');
+            headers['Authorization'] = `Basic ${basicAuth}`;
+        }
+
         const tokenRes = await fetch(`${baseUrl}/token`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json',
-                'User-Agent': 'GardaData-BPS-Mempawah'
-            },
+            headers: headers,
             body: tokenParams.toString()
         });
 

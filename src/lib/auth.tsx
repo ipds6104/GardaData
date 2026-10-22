@@ -619,7 +619,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('navigasi_token');
 
     if (isSsoUser) {
-      window.location.href = `https://auth.dvlpid.my.id/t/bps/sessions/logout?post_logout_redirect_uri=${encodeURIComponent(window.location.origin)}`;
+      const postLogoutUri = window.location.origin.includes('gardadata.dvlpid.my.id')
+        ? 'https://gardadata.dvlpid.my.id'
+        : 'http://localhost:5173';
+      window.location.href = `https://auth.dvlpid.my.id/t/bps/sessions/logout?post_logout_redirect_uri=${encodeURIComponent(postLogoutUri)}`;
     }
   };
 
