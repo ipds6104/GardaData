@@ -133,8 +133,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
   const searchIndex = [
     { id: 'lms', title: 'Learning Management System', desc: 'Pelatihan, e-learning, materi, sakernas agustus', keywords: ['lms', 'pelatihan', 'sakernas', 'susenas', 'agustus', 'materi', 'kuis', 'jadwal'] },
     { id: 'laporan-pendataan', title: 'Laporan Pendataan', desc: 'Laporan progres pendataan lapangan', keywords: ['laporan', 'pendataan', 'formulir', 'progress', 'progres', 'lapangan'] },
-    { id: 'kbli-2025', title: 'Klasifikasi Baku Lapangan Usaha Indonesia 2025', desc: 'Klasifikasi Baku Lapangan Usaha Indonesia 2025 standar BPS', keywords: ['kbli', 'kbli 2025', 'konsep', 'definisi', 'lapangan usaha', 'se2026', 'sektor', 'industri'] },
-    { id: 'kbli-kbji', title: 'KBLI 2025 & KBJI 2014', desc: 'Pencarian kode klasifikasi KBLI/KBJI', keywords: ['kbli', 'kbji', 'klasifikasi', 'kode', 'industri', 'pekerjaan'] },
+    ...((user?.role === 'admin' || user?.role === 'petugas' || user?.role === 'petugas_pengolahan') ? [
+      { id: 'kbli-2025', title: 'KBLI 2025', desc: 'Klasifikasi Baku Lapangan Usaha Indonesia 2025 standar BPS', keywords: ['kbli', 'kbli 2025', 'konsep', 'definisi', 'lapangan usaha', 'se2026', 'sektor', 'industri'] }
+    ] : []),
+    { id: 'kbli-kbji', title: 'KBLI dan KBJI Mempawah', desc: 'Pencarian kode klasifikasi KBLI/KBJI lokal Mempawah', keywords: ['kbli', 'kbji', 'klasifikasi', 'kode', 'industri', 'pekerjaan'] },
     { id: 'building-area', title: 'Pengukuran Luas Bangunan', desc: 'Kalkulator area bangunan via satelit', keywords: ['bangunan', 'luas', 'atap', 'pengukuran', 'peta', 'satelit', 'geospasial'] },
     { id: 'imputation', title: 'Imputasi Susenas-Seruti', desc: 'Panduan nilai imputasi lapangan', keywords: ['imputasi', 'susenas', 'seruti', 'nilai', 'batas'] },
     { id: 'infrastructure', title: 'Infrastruktur Desa', desc: 'Monitoring infrastruktur pendukung desa', keywords: ['infrastruktur', 'desa', 'fasilitas', 'pasar', 'sekolah'] },
@@ -184,8 +186,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       items: [
         { id: 'monitoring', label: 'Monitoring Dashboard', icon: Activity },
         { id: 'laporan-pendataan', label: 'Laporan Pendataan', icon: FileEdit, isDev: true },
-        { id: 'kbli-2025', label: 'Klasifikasi Baku Lapangan Usaha Indonesia 2025', icon: BookOpenCheck },
-        { id: 'kbli-kbji', label: 'KBLI 2025 & KBJI 2014', icon: BookOpen },
+        ...((user?.role === 'admin' || user?.role === 'petugas' || user?.role === 'petugas_pengolahan') ? [
+          { id: 'kbli-2025', label: 'KBLI 2025', icon: BookOpenCheck }
+        ] : []),
+        { id: 'kbli-kbji', label: 'KBLI dan KBJI Mempawah', icon: BookOpen },
         { id: 'imputation', label: 'Imputasi Susenas-Seruti', icon: FileEdit },
         { id: 'infrastructure', label: 'Infrastruktur Desa', icon: Map },
         { id: 'building-area', label: 'Pengukuran Luas Bangunan', icon: Ruler }

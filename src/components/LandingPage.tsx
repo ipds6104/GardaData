@@ -195,25 +195,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               badge="Dev"
               onClick={() => onNavigate('laporan-pendataan')}
             />
-            <FeatureCard
-
-              title="Klasifikasi Baku Lapangan Usaha Indonesia 2025"
-
-              description="Eksplorasi hierarki kategori, konsep, dan definisi klasifikasi lapangan usaha standar BPS."
-
-              icon={BookOpenCheck}
-
-              iconColor="text-blue-600 dark:text-blue-400"
-
-              bgColor="bg-blue-50"
-
-              onClick={() => onNavigate('kbli-2025')}
-
-            />
+            {(user?.role === 'admin' || user?.role === 'petugas' || user?.role === 'petugas_pengolahan') && (
+              <FeatureCard
+                title="KBLI 2025"
+                description="Eksplorasi hierarki kategori, konsep, dan definisi klasifikasi lapangan usaha standar BPS."
+                icon={BookOpenCheck}
+                iconColor="text-blue-600 dark:text-blue-400"
+                bgColor="bg-blue-50"
+                onClick={() => onNavigate('kbli-2025')}
+              />
+            )}
 
             <FeatureCard
 
-              title="KBLI 2025 & KBJI 2014"
+              title="KBLI dan KBJI Mempawah"
               description="Akses cepat klasifikasi KBLI 2025 dan KBJI untuk penentuan kode yang akurat."
               icon={BookOpen}
               iconColor="text-primary-600 dark:text-primary-400"

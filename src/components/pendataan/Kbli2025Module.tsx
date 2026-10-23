@@ -38,6 +38,7 @@ import {
   Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { INITIAL_KBLI_CATEGORIES } from './kbliCategoriesData';
 
 // ==========================================
 // TYPES & INTERFACES
@@ -102,6 +103,8 @@ export interface SearchResultItem {
 
 interface SearchResponse {
   total: number;
+  total_kelompok?: number;
+  execution_time_ms?: number;
   page: number;
   limit: number;
   totalPages: number;
@@ -188,8 +191,10 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
   const [loadingNode, setLoadingNode] = useState<boolean>(false);
 
   // Initial Root Categories
-  const [categories, setCategories] = useState<KbliCategory[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState<boolean>(true);
+  const [categories, setCategories] = useState<KbliCategory[]>(INITIAL_KBLI_CATEGORIES);
+  const [loadingCategories, setLoadingCategories] = useState<boolean>(false);
+  const [nodeError, setNodeError] = useState<string | null>(null);
+  const [activeCode, setActiveCode] = useState<string | null>(null);
 
   // Search Mode State
   const [searchQuery, setSearchQuery] = useState('');
@@ -220,11 +225,11 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
     fetchCategories();
   }, []);
 
-  // Debounce search query
+  // Debounce search query (Ultra-responsive)
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(searchQuery.trim());
-    }, 280);
+    }, 180);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
@@ -263,7 +268,9 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
 
   // Navigate to a specific code (drill-down or jump via breadcrumb)
   const handleSelectCode = async (kode: string) => {
+    setActiveCode(kode);
     setLoadingNode(true);
+    setNodeError(null);
     setIsExpandedDefinition(false);
     // Clear search if selecting an item
     setSearchQuery('');
@@ -275,11 +282,20 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
       if (res.ok) {
         const data = await res.json();
         setCurrentNode(data);
+        // Jika kategori tingkat terbawah (tidak ada turunan lagi atau level kelompok), buka deskripsi penuh secara otomatis
+        if (!data.children || data.children.length === 0 || data.level === 'kelompok') {
+          setIsExpandedDefinition(true);
+        } else {
+          setIsExpandedDefinition(false);
+        }
         // Scroll smoothly to top of content
         window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        throw new Error(`Server merespons kode status ${res.status}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(`Gagal memuat detail KBLI ${kode}:`, err);
+      setNodeError(`Gagal mengambil data dari server (${err.message || 'Network error'}).`);
     } finally {
       setLoadingNode(false);
     }
@@ -380,6 +396,24 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
       {/* ========================================================= */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
 
+        {/* Node Error Banner if any */}
+        {nodeError && (
+          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex items-center justify-between gap-3 text-rose-800 dark:text-rose-300 text-xs md:text-sm">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 shrink-0 text-rose-600 dark:text-rose-400" />
+              <span>{nodeError}</span>
+            </div>
+            {activeCode && (
+              <button
+                onClick={() => handleSelectCode(activeCode)}
+                className="px-3 py-1.5 rounded-xl font-bold bg-rose-600 text-white text-xs hover:bg-rose-700 transition-colors shrink-0 shadow-2xs"
+              >
+                Coba Lagi
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Global Search Bar */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl p-3 md:p-4 border border-slate-200/80 dark:border-slate-800 shadow-xs">
           <div className="relative">
@@ -411,13 +445,28 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
         {/* ========================================================= */}
         {debouncedQuery ? (
           <section className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-              <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                Hasil Pencarian Kata Kunci: <span className="text-primary-600 font-extrabold">"{debouncedQuery}"</span>
-              </h2>
-              <span className="text-xs text-slate-500 font-medium">
-                {searchResults?.total || 0} entitas ditemukan
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+              <div>
+                <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                  Hasil Pencarian Kata Kunci: <span className="text-primary-600 font-extrabold">"{debouncedQuery}"</span>
+                </h2>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Mencari pada kode, judul, serta deskripsi & contoh komoditas BPS
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {searchResults?.execution_time_ms !== undefined && (
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                    ⚡ {searchResults.execution_time_ms} ms
+                  </span>
+                )}
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-2xs">
+                  {searchResults?.total_kelompok ?? searchResults?.items.filter(i => i.digit === 5).length ?? 0} Kategori 5-Digit (Prioritas Teratas)
+                </span>
+                <span className="text-xs text-slate-500 font-medium">
+                  Total {searchResults?.total || 0} entitas
+                </span>
+              </div>
             </div>
 
             {loadingSearch ? (
@@ -430,12 +479,17 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                 {searchResults.items.map((item) => {
                   const visual = CATEGORY_VISUALS[item.kategori_kode] || DEFAULT_VISUAL;
                   const IconComp = visual.icon;
+                  const is5Digit = item.digit === 5 || item.level === 'kelompok';
 
                   return (
                     <article
                       key={`${item.level}-${item.kode}`}
                       onClick={() => handleSelectCode(item.kode)}
-                      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 md:p-5 shadow-2xs hover:shadow-md hover:border-primary-400 dark:hover:border-primary-600 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+                      className={`bg-white dark:bg-slate-900 rounded-2xl border ${
+                        is5Digit 
+                          ? 'border-emerald-200/90 dark:border-emerald-900/60 shadow-xs' 
+                          : 'border-slate-200/80 dark:border-slate-800 shadow-2xs'
+                      } p-4 md:p-5 hover:shadow-md hover:border-primary-400 dark:hover:border-primary-600 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group`}
                     >
                       <div className="flex items-start gap-4 flex-1 min-w-0">
                         <div
@@ -445,17 +499,44 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                         </div>
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-mono font-black text-xs px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700">
+                            <span className="font-mono font-black text-xs px-2.5 py-0.5 rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900">
                               {item.kode}
                             </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(item.kode, item.kode);
+                              }}
+                              title="Salin Kode KBLI"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+                            >
+                              {copiedCode === item.kode ? (
+                                <>
+                                  <Check className="w-3 h-3 text-emerald-600" />
+                                  <span className="text-emerald-600 font-bold">Tersalin</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3 h-3 text-slate-400" />
+                                  <span>Salin Kode</span>
+                                </>
+                              )}
+                            </button>
                             <h3 className="font-bold text-sm md:text-base text-slate-900 dark:text-white group-hover:text-primary-600 transition-colors">
                               {item.judul}
                             </h3>
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                              {LEVEL_NAMES[item.level] || item.level}
-                            </span>
+                            {is5Digit ? (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                                5 Digit (Kelompok)
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                {LEVEL_NAMES[item.level] || item.level}
+                              </span>
+                            )}
                           </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                             {item.snippet}
                           </p>
                         </div>
@@ -463,7 +544,7 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
 
                       <div className="flex items-center justify-end shrink-0 pt-2 md:pt-0">
                         <span className="inline-flex items-center gap-1 text-xs font-bold text-primary-600 dark:text-primary-400 group-hover:translate-x-1 transition-transform">
-                          <span>Buka Definisi & Hierarki</span>
+                          <span>{is5Digit ? 'Buka Definisi 5-Digit' : 'Buka Definisi & Hierarki'}</span>
                           <ChevronRight className="w-4 h-4" />
                         </span>
                       </div>
@@ -483,6 +564,11 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
               </div>
             )}
           </section>
+        ) : loadingNode ? (
+          <div className="min-h-[280px] flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800">
+            <Loader2 className="w-8 h-8 text-primary-600 animate-spin mb-3" />
+            <span className="text-xs font-semibold text-slate-500">Memuat rincian klasifikasi dari server...</span>
+          </div>
         ) : currentNode ? (
           /* ========================================================= */
           /* VIEW 2: DRILL-DOWN LEVEL VIEW (DETAIL + DAFTAR TURUNAN) */
@@ -547,20 +633,21 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                   </div>
                 </div>
 
-                {/* Quick Copy */}
+                {/* Quick Copy KBLI Code */}
                 <button
-                  onClick={() => handleCopy(`${currentNode.kode} - ${currentNode.judul}\n\n${currentNode.deskripsi}`, currentNode.kode)}
-                  className="self-start inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors shadow-2xs"
+                  onClick={() => handleCopy(currentNode.kode, currentNode.kode)}
+                  title="Salin kode KBLI ini"
+                  className="self-start inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors shadow-2xs cursor-pointer"
                 >
                   {copiedCode === currentNode.kode ? (
                     <>
                       <Check className="w-4 h-4 text-emerald-600" />
-                      <span className="text-emerald-600">Tersalin</span>
+                      <span className="text-emerald-600 font-bold">Kode KBLI Tersalin</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-4 h-4 text-slate-500" />
-                      <span>Salin Uraian</span>
+                      <span>Salin Kode KBLI</span>
                     </>
                   )}
                 </button>
@@ -619,26 +706,39 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                     </a>
                   </div>
                 )}
+                {/* Indikator Kategori Terbawah (5-Digit) */}
+                {(!currentNode.children || currentNode.children.length === 0 || currentNode.level === 'kelompok') && (
+                  <div className="pt-2">
+                    <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/90 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <span className="font-bold">Klasifikasi Tingkat Terbawah (5-Digit): </span>
+                        <span>Ini adalah kode kelompok operasional paling terperinci standar BPS yang digunakan langsung dalam pencatatan kuesioner survei BPS dan perizinan berusaha OSS.</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* ========================================================= */}
-            {/* DAFTAR TURUNANNYA PADA BAGIAN BAWAH (DESAIN MODERN) */}
+            {/* DAFTAR TURUNANNYA PADA BAGIAN BAWAH (HANYA DITAMPILKAN JIKA MASIH MEMILIKI TURUNAN) */}
+            {/* JIKA TURUNAN SUDAH HABIS, HANYA MENAMPILKAN DESKRIPSI KATEGORI TERBAWAH DI ATAS */}
             {/* ========================================================= */}
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-5 bg-primary-600 rounded-full"></span>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    {CHILD_SECTION_TITLES[currentNode.level] || 'Daftar Sub-Klasifikasi'}
-                  </h3>
+            {currentNode.children && currentNode.children.length > 0 && (
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-5 bg-primary-600 rounded-full"></span>
+                    <h3 className="text-base font-black text-slate-900 dark:text-white">
+                      {CHILD_SECTION_TITLES[currentNode.level] || 'Daftar Sub-Klasifikasi'}
+                    </h3>
+                  </div>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                    {currentNode.children.length} entitas turunan
+                  </span>
                 </div>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                  {currentNode.children ? currentNode.children.length : 0} entitas turunan
-                </span>
-              </div>
 
-              {currentNode.children && currentNode.children.length > 0 ? (
                 <div className="space-y-3">
                   {currentNode.children.map((child) => {
                     const childVisual = CATEGORY_VISUALS[currentNode.kategori_kode] || DEFAULT_VISUAL;
@@ -666,6 +766,27 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                               <span className="font-mono font-black text-xs md:text-sm px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700">
                                 {child.kode}
                               </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopy(child.kode, child.kode);
+                                }}
+                                title="Salin Kode KBLI"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+                              >
+                                {copiedCode === child.kode ? (
+                                  <>
+                                    <Check className="w-3 h-3 text-emerald-600" />
+                                    <span className="text-emerald-600 font-bold">Tersalin</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3 text-slate-400" />
+                                    <span>Salin Kode</span>
+                                  </>
+                                )}
+                              </button>
                               <h4 className="font-bold text-sm md:text-base text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors leading-tight">
                                 {child.judul}
                               </h4>
@@ -707,42 +828,8 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                     );
                   })}
                 </div>
-              ) : currentNode.level === 'kelompok' ? (
-                /* At Kelompok (5-Digit) level: Show Siblings / Neighboring Codes */
-                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Klasifikasi Seinduk Terkait (Pilihan Lain dalam Subgolongan yang Sama)
-                  </h4>
-                  {currentNode.siblings && currentNode.siblings.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {currentNode.siblings.map((sib) => (
-                        <button
-                          key={sib.kode}
-                          onClick={() => handleSelectCode(sib.kode)}
-                          className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary-400 bg-slate-50/50 dark:bg-slate-800 text-left transition-all flex items-center justify-between gap-2 group"
-                        >
-                          <div className="min-w-0">
-                            <span className="font-mono font-black text-xs text-primary-600 dark:text-primary-400">
-                              {sib.kode}
-                            </span>
-                            <p className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate">
-                              {sib.judul}
-                            </p>
-                          </div>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400">Tidak ada klasifikasi seinduk lainnya.</p>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-10 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-xs text-slate-400">
-                  Tidak ada turunan langsung untuk kode ini.
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </section>
         ) : (
           /* ========================================================= */

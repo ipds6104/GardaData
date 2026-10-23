@@ -52,11 +52,23 @@ function loadKbliData() {
             const kategoriCode = kategoriRoot?.level === 'kategori' ? kategoriRoot.kode : (item.level === 'kategori' ? item.kode : '');
             const kategoriInfo = categoryMap.get(kategoriCode) || {};
 
+            const desc = item.deskripsi || '';
+            const descLower = desc.toLowerCase();
+            const exclIdx = descLower.indexOf('tidak mencakup');
+            const inclusion = exclIdx !== -1 ? descLower.slice(0, exclIdx) : descLower;
+            const exclusion = exclIdx !== -1 ? descLower.slice(exclIdx) : '';
+
             return {
                 ...item,
                 kategori_kode: kategoriCode,
                 kategori_judul: kategoriInfo.title || (kategoriRoot?.judul || ''),
-                breadcrumb
+                breadcrumb,
+                // Pre-indexed search fields for ultra-fast, zero-overhead execution
+                _kodeLower: item.kode.toLowerCase(),
+                _judulLower: item.judul.toLowerCase(),
+                _inclusionLower: inclusion,
+                _exclusionLower: exclusion,
+                _is5Digit: item.digit === 5 || item.level === 'kelompok'
             };
         });
 
@@ -108,8 +120,8 @@ router.use((req, res, next) => {
     next();
 });
 
-// Helper for snippet extraction & keyword matching
-function createSnippet(text, query, maxLength = 160) {
+// Helper for snippet extraction & keyword matching (centered around matched keywords/commodities)
+function createSnippet(text, query, maxLength = 180) {
     if (!text) return '';
     const cleanText = text.replace(/\s+/g, ' ').trim();
     if (!query) {
@@ -117,15 +129,27 @@ function createSnippet(text, query, maxLength = 160) {
     }
 
     const lowerText = cleanText.toLowerCase();
-    const lowerQuery = query.toLowerCase();
-    const idx = lowerText.indexOf(lowerQuery);
+    const lowerQuery = query.toLowerCase().trim();
+    let idx = lowerText.indexOf(lowerQuery);
+
+    if (idx === -1) {
+        // If exact phrase not found, find position of any significant keyword token (length >= 3)
+        const tokens = lowerQuery.split(/\s+/).filter(t => t.length >= 3);
+        for (const token of tokens) {
+            const tokenIdx = lowerText.indexOf(token);
+            if (tokenIdx !== -1) {
+                idx = tokenIdx;
+                break;
+            }
+        }
+    }
 
     if (idx === -1) {
         return cleanText.length > maxLength ? cleanText.slice(0, maxLength) + '...' : cleanText;
     }
 
     const start = Math.max(0, idx - 40);
-    const end = Math.min(cleanText.length, idx + query.length + 100);
+    const end = Math.min(cleanText.length, idx + 140);
     let snippet = cleanText.slice(start, end);
 
     if (start > 0) snippet = '...' + snippet;
@@ -187,6 +211,7 @@ router.get('/categories', (req, res) => {
  */
 router.get('/search', (req, res) => {
     loadKbliData();
+    const startTime = process.hrtime.bigint();
 
     const query = req.query || {};
     const q = (query.q || '').trim();
@@ -196,69 +221,161 @@ router.get('/search', (req, res) => {
     const page = Math.max(1, parseInt(query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(query.limit) || 20));
 
-    let filtered = allItems;
+    let pool = allItems;
 
-    // Filter by Kategori
+    // Fast filter by Kategori
     if (kategori && kategori !== 'ALL') {
-        filtered = filtered.filter(item => item.kategori_kode === kategori);
+        pool = pool.filter(item => item.kategori_kode === kategori);
     }
 
-    // Filter by Hierarchy Level
+    // Fast filter by Hierarchy Level
     if (level && level !== 'all') {
-        filtered = filtered.filter(item => item.level === level);
+        pool = pool.filter(item => item.level === level);
     }
 
-    // Filter by Search Query
+    // Level priority: 5-digit Kelompok items ALWAYS displayed first!
+    const levelPriority = {
+        kelompok: 1,       // 5 digit (Kelompok) - highest operational priority
+        subgolongan: 2,    // 4 digit
+        golongan: 3,       // 3 digit
+        golongan_pokok: 4, // 2 digit
+        kategori: 5        // 1 digit / alphabet
+    };
+
+    let filtered = pool;
+
+    // Filter & Score by Search Query (Ultra-Fast Pre-Indexed Matching)
     if (q) {
         const queryLower = q.toLowerCase();
-        const queryTokens = queryLower.split(/\s+/).filter(Boolean);
+        // Ignore single-character noise unless valid KBLI category letter A-U or single digit 0-9
+        const queryTokens = queryLower.split(/\s+/).filter(t => t.length > 1 || /^[a-u0-9]$/i.test(t));
 
         const scored = [];
-        for (const item of filtered) {
-            const kodeLower = item.kode.toLowerCase();
-            const judulLower = item.judul.toLowerCase();
-            const descLower = (item.deskripsi || '').toLowerCase();
+        const poolLen = pool.length;
 
+        for (let i = 0; i < poolLen; i++) {
+            const item = pool[i];
             let score = 0;
+            let matchedTokensCount = 0;
 
-            // Exact code match = highest score
-            if (kodeLower === queryLower) score += 1000;
-            else if (kodeLower.startsWith(queryLower)) score += 500;
-            else if (kodeLower.includes(queryLower)) score += 200;
-
-            // Title match
-            if (judulLower === queryLower) score += 400;
-            else if (judulLower.includes(queryLower)) score += 150;
-
-            // Token matches in title & description
-            let allTokensFound = true;
-            for (const token of queryTokens) {
-                const inTitle = judulLower.includes(token);
-                const inDesc = descLower.includes(token);
-                if (inTitle) score += 40;
-                else if (inDesc) score += 10;
-                else allTokensFound = false;
+            // 1. Exact match on Code (Highest instant pinpoint)
+            if (item._kodeLower === queryLower) {
+                score += 25000;
+            } else if (item._kodeLower.startsWith(queryLower)) {
+                score += 5000;
+            } else if (item._kodeLower.includes(queryLower)) {
+                score += 1500;
             }
 
-            if (score > 0 || allTokensFound) {
-                scored.push({ item, score });
+            // 2. Title match
+            if (item._judulLower === queryLower) {
+                score += 15000;
+            } else if (item._judulLower.includes(queryLower)) {
+                score += 6000;
+            }
+
+            // Penalty if title specifically says "selain [query]" (negative exclusion in title)
+            if (item._judulLower.includes('selain ' + queryLower)) {
+                score -= 3500;
+            }
+
+            // 3. Exact Phrase in Inclusion (Commodity concept)
+            if (item._inclusionLower.includes(queryLower)) {
+                score += 4000;
+            } else if (item._exclusionLower.includes(queryLower)) {
+                score += 200; // Small score for exclusion mention
+            }
+
+            // 4. Token-by-token matching across Title & Description
+            let titleHits = 0;
+            let inclusionHits = 0;
+            let exclusionHits = 0;
+
+            for (let j = 0; j < queryTokens.length; j++) {
+                const token = queryTokens[j];
+                let hit = false;
+
+                if (item._judulLower.includes(token)) {
+                    if (item._judulLower.includes('selain ' + token)) {
+                        score += 30; // Negative context in title
+                    } else {
+                        titleHits++;
+                        hit = true;
+                    }
+                }
+                if (item._inclusionLower.includes(token)) {
+                    inclusionHits++;
+                    hit = true;
+                } else if (item._exclusionLower.includes(token)) {
+                    exclusionHits++;
+                    hit = true;
+                }
+
+                if (hit) matchedTokensCount++;
+            }
+
+            score += titleHits * 700;
+            score += inclusionHits * 250;
+            score += exclusionHits * 30;
+
+            // Bonus if ALL query tokens match
+            if (queryTokens.length > 1 && matchedTokensCount === queryTokens.length) {
+                score += 3000;
+            }
+
+            if (score > 0) {
+                scored.push({ item, score, matchedTokensCount });
             }
         }
 
-        // Sort by relevance score
-        scored.sort((a, b) => b.score - a.score);
+        // Sort by Priority:
+        // 1. Exact code match is absolute #1 (e.g. typing '01' or '01111')
+        // 2. 5-digit Kelompok items ALWAYS displayed first!
+        // 3. Number of matched tokens
+        // 4. Relevance score descending
+        scored.sort((a, b) => {
+            const aExactCode = a.item._kodeLower === queryLower;
+            const bExactCode = b.item._kodeLower === queryLower;
+            if (aExactCode && !bExactCode) return -1;
+            if (!aExactCode && bExactCode) return 1;
+
+            // Prioritize 5-digit (kelompok) first!
+            const rankA = levelPriority[a.item.level] || 99;
+            const rankB = levelPriority[b.item.level] || 99;
+            if (rankA !== rankB) {
+                return rankA - rankB; // Rank 1 (kelompok 5-digit) comes first!
+            }
+
+            // Within same level, prioritize more tokens matched
+            if (a.matchedTokensCount !== b.matchedTokensCount && queryTokens.length > 1) {
+                return b.matchedTokensCount - a.matchedTokensCount;
+            }
+
+            // Within same level, sort by relevance score
+            return b.score - a.score;
+        });
+
         filtered = scored.map(s => s.item);
     } else {
         // Default sorting
         if (sort === 'title') {
-            filtered = [...filtered].sort((a, b) => a.judul.localeCompare(b.judul));
+            filtered = [...pool].sort((a, b) => a.judul.localeCompare(b.judul));
         } else {
-            // Sort by code / level
-            filtered = [...filtered].sort((a, b) => a.kode.localeCompare(b.kode));
+            // Sort by level priority (5-digit first) or code
+            filtered = [...pool].sort((a, b) => {
+                const rankA = levelPriority[a.level] || 99;
+                const rankB = levelPriority[b.level] || 99;
+                if (rankA !== rankB) return rankA - rankB;
+                return a.kode.localeCompare(b.kode);
+            });
         }
     }
 
+    const endTime = process.hrtime.bigint();
+    const timeMs = Number(endTime - startTime) / 1e6;
+
     const total = filtered.length;
+    const totalKelompok = filtered.filter(item => item._is5Digit).length;
     const totalPages = Math.ceil(total / limit);
     const startIndex = (page - 1) * limit;
     const paginatedItems = filtered.slice(startIndex, startIndex + limit);
@@ -272,12 +389,14 @@ router.get('/search', (req, res) => {
         kategori_kode: item.kategori_kode,
         kategori_judul: item.kategori_judul,
         induk: item.induk,
-        snippet: createSnippet(item.deskripsi, q),
+        snippet: createSnippet(item.deskripsi, q, 180),
         has_exclusions: (item.deskripsi || '').toLowerCase().includes('tidak mencakup')
     }));
 
     res.json({
         total,
+        total_kelompok: totalKelompok,
+        execution_time_ms: Number(timeMs.toFixed(2)),
         page,
         limit,
         totalPages,
