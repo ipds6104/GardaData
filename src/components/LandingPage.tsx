@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity, MapPin, ScanLine, Award } from 'lucide-react';
+import { BookOpen, BookOpenCheck, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity, MapPin, ScanLine, Award } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
 interface FeatureCardProps {
@@ -196,6 +196,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               onClick={() => onNavigate('laporan-pendataan')}
             />
             <FeatureCard
+
+              title="Klasifikasi Baku Lapangan Usaha Indonesia 2025"
+
+              description="Eksplorasi hierarki kategori, konsep, dan definisi klasifikasi lapangan usaha standar BPS."
+
+              icon={BookOpenCheck}
+
+              iconColor="text-blue-600 dark:text-blue-400"
+
+              bgColor="bg-blue-50"
+
+              onClick={() => onNavigate('kbli-2025')}
+
+            />
+
+            <FeatureCard
+
               title="KBLI 2025 & KBJI 2014"
               description="Akses cepat klasifikasi KBLI 2025 dan KBJI untuk penentuan kode yang akurat."
               icon={BookOpen}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  LogOut, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, 
+  LogOut, BookOpenCheck, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, 
   MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database, WifiOff, RefreshCw, 
   MapPin, ScanLine, Award, ChevronLeft, ChevronRight, HelpCircle, Sun, Palette, Sparkles,
   Maximize2, Minimize2
@@ -133,6 +133,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
   const searchIndex = [
     { id: 'lms', title: 'Learning Management System', desc: 'Pelatihan, e-learning, materi, sakernas agustus', keywords: ['lms', 'pelatihan', 'sakernas', 'susenas', 'agustus', 'materi', 'kuis', 'jadwal'] },
     { id: 'laporan-pendataan', title: 'Laporan Pendataan', desc: 'Laporan progres pendataan lapangan', keywords: ['laporan', 'pendataan', 'formulir', 'progress', 'progres', 'lapangan'] },
+    { id: 'kbli-2025', title: 'Klasifikasi Baku Lapangan Usaha Indonesia 2025', desc: 'Klasifikasi Baku Lapangan Usaha Indonesia 2025 standar BPS', keywords: ['kbli', 'kbli 2025', 'konsep', 'definisi', 'lapangan usaha', 'se2026', 'sektor', 'industri'] },
     { id: 'kbli-kbji', title: 'KBLI 2025 & KBJI 2014', desc: 'Pencarian kode klasifikasi KBLI/KBJI', keywords: ['kbli', 'kbji', 'klasifikasi', 'kode', 'industri', 'pekerjaan'] },
     { id: 'building-area', title: 'Pengukuran Luas Bangunan', desc: 'Kalkulator area bangunan via satelit', keywords: ['bangunan', 'luas', 'atap', 'pengukuran', 'peta', 'satelit', 'geospasial'] },
     { id: 'imputation', title: 'Imputasi Susenas-Seruti', desc: 'Panduan nilai imputasi lapangan', keywords: ['imputasi', 'susenas', 'seruti', 'nilai', 'batas'] },
@@ -183,6 +184,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       items: [
         { id: 'monitoring', label: 'Monitoring Dashboard', icon: Activity },
         { id: 'laporan-pendataan', label: 'Laporan Pendataan', icon: FileEdit, isDev: true },
+        { id: 'kbli-2025', label: 'Klasifikasi Baku Lapangan Usaha Indonesia 2025', icon: BookOpenCheck },
         { id: 'kbli-kbji', label: 'KBLI 2025 & KBJI 2014', icon: BookOpen },
         { id: 'imputation', label: 'Imputasi Susenas-Seruti', icon: FileEdit },
         { id: 'infrastructure', label: 'Infrastruktur Desa', icon: Map },

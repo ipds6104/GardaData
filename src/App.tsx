@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './lib/auth';
 import { Layout } from './components/Layout';
 import { LandingPage } from './components/LandingPage';
 const ClassificationModule = lazy(() => import('./components/ClassificationModule').then(m => ({ default: m.ClassificationModule })));
+const Kbli2025Module = lazy(() => import('./components/pendataan/Kbli2025Module').then(m => ({ default: m.Kbli2025Module })));
 const InfrastructureModule = lazy(() => import('./components/InfrastructureModule').then(m => ({ default: m.InfrastructureModule })));
 const BuildingAreaModule = lazy(() => import('./components/BuildingAreaModule').then(m => ({ default: m.BuildingAreaModule })));
 const AdminBuildingDashboard = lazy(() => import('./components/AdminBuildingDashboard').then(m => ({ default: m.AdminBuildingDashboard })));
@@ -80,6 +81,8 @@ function AppContent() {
 
   const renderContent = () => {
     switch (currentPage) {
+      case 'kbli-2025':
+        return <Kbli2025Module onBack={() => setCurrentPage('landing')} />;
       case 'kbli-kbji':
         return <ClassificationModule onBack={() => setCurrentPage('landing')} />;
       case 'infrastructure':

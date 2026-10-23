@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig, loadEnv} from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
@@ -10,6 +13,18 @@ export default defineConfig(({mode}) => {
     plugins: [
       react(), 
       tailwindcss(),
+      {
+        name: 'kbli-dev-server-middleware',
+        configureServer(server: any) {
+          try {
+            const kbliRouter = require('./server/routes/kbli');
+            server.middlewares.use('/api/kbli', kbliRouter);
+            console.log('✔ [Vite Dev] KBLI 2025 API middleware mounted at /api/kbli');
+          } catch (e: any) {
+            console.warn('Note on KBLI dev middleware:', e.message);
+          }
+        }
+      },
       VitePWA({
         registerType: 'autoUpdate',
         devOptions: {
