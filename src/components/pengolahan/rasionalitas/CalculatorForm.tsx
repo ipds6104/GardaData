@@ -146,6 +146,10 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
   }, []);
 
   const handleFieldChange = (field: keyof FormDataState, formattedValue: string) => {
+    if (field === 'namaUsaha') {
+      // Ketika user mengubah nama usaha, reset flag override manual agar saran baru otomatis diaplikasikan!
+      userManuallySelectedKbli.current = false;
+    }
     setFormData(prev => ({
       ...prev,
       [field]: formattedValue
@@ -164,7 +168,7 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
   // Rekomendasi otomatis KBLI berdasarkan Nama Usaha
   useEffect(() => {
     const cleanName = (formData.namaUsaha || '').trim();
-    if (cleanName.length < 3) {
+    if (cleanName.length < 2) {
       setSuggestion(null);
       // Ketika nama usaha dikosongkan, reset flag override manual agar nama baru berikutnya bisa auto-suggest
       userManuallySelectedKbli.current = false;
@@ -186,8 +190,8 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
     }
   }, [formData.namaUsaha]);
 
-  // Alphabet list for quick 1-click KBLI selection
-  const alphabetList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'Q', 'R', 'S', 'T'];
+  // Alphabet list for quick 1-click KBLI selection (A sampai U)
+  const alphabetList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U'];
 
   // Handle category selection
   const handleSelectKbli = (letterCode: string, isManual = true) => {
@@ -195,7 +199,7 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
       userManuallySelectedKbli.current = true;
     }
     const target = KATEGORI_LAPANGAN_USAHA.find(k => k.kode === letterCode);
-    if (target && target.dianalisis) {
+    if (target) {
       setFormData(prev => ({ 
         ...prev, 
         kategoriKode: letterCode,
@@ -401,6 +405,32 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
             onChange={(e) => handleFieldChange('namaUsaha', e.target.value)}
             className="w-full px-4 py-2.5 text-xs sm:text-sm font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B58DE]/20 focus:border-[#5B58DE] text-slate-800 dark:text-slate-100 placeholder-slate-400"
           />
+          {suggestion && (
+            <div className="mt-2 flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-xl border border-amber-200/80 dark:border-amber-800/60 text-[11px] text-amber-800 dark:text-amber-200 animate-fadeIn">
+              <span className="flex items-center gap-1.5 font-medium truncate">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+                <span>Saran SE2026: <strong>Kategori {suggestion.kode}</strong> – {suggestion.singkat}</span>
+                {suggestion.matchedKeyword && (
+                  <span className="text-amber-600 dark:text-amber-400 font-normal truncate hidden sm:inline">
+                    (cocok kata "{suggestion.matchedKeyword}")
+                  </span>
+                )}
+              </span>
+              {formData.kategoriKode !== suggestion.kode ? (
+                <button
+                  type="button"
+                  onClick={() => applySuggestion(suggestion.kode)}
+                  className="ml-2 px-2.5 py-0.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] shrink-0 transition shadow-xs cursor-pointer"
+                >
+                  Terapkan ({suggestion.kode})
+                </button>
+              ) : (
+                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider shrink-0 bg-amber-100/80 dark:bg-amber-900/40 px-1.5 py-0.5 rounded-md">
+                  Aktif
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* BAGIAN 2: KATEGORI LAPANGAN USAHA (KBLI) - BISA DI-KLIK & BISA DI-SEARCH DENGAN MENGETIK */}
@@ -508,10 +538,18 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
                         Saran SE2026: Kat. {suggestion.kode} ({suggestion.matchedKeyword}) •
                       </span>
                     ) : suggestion ? (
-                      <span className="text-amber-600 dark:text-amber-400 font-semibold inline-flex items-center gap-1 mr-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          applySuggestion(suggestion.kode);
+                        }}
+                        className="text-amber-600 dark:text-amber-400 font-semibold inline-flex items-center gap-1 mr-1 hover:underline cursor-pointer"
+                        title="Klik untuk menerapkan saran KBLI"
+                      >
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>
-                        Saran SE2026: Kat. {suggestion.kode} •
-                      </span>
+                        Saran SE2026: Kat. {suggestion.kode} (Klik untuk terapkan) •
+                      </button>
                     ) : null}
                     Standar SE2026: MIN {formatDecimal(selectedKategori.min)} | MAX {formatDecimal(selectedKategori.max)}
                   </span>
