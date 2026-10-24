@@ -3,7 +3,7 @@ import {
   LogOut, BookOpenCheck, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, 
   MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database, WifiOff, RefreshCw, 
   MapPin, ScanLine, Award, ChevronLeft, ChevronRight, HelpCircle, Sun, Palette, Sparkles,
-  Maximize2, Minimize2
+  Maximize2, Minimize2, Calculator
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../lib/auth';
@@ -123,9 +123,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     };
   }, []);
 
-  // Otomatis minimalkan (collapse) sidebar Garda Data saat membuka fitur laporan pendataan atau peta responden SE2026 agar ruang kerja maksimal
+  // Otomatis minimalkan (collapse) sidebar Garda Data saat membuka fitur laporan pendataan, peta responden SE2026, atau rasionalitas NTB agar ruang kerja maksimal
   useEffect(() => {
-    if (currentPage === 'laporan-pendataan' || currentPage === 'peta-responden-se2026') {
+    if (currentPage === 'laporan-pendataan' || currentPage === 'peta-responden-se2026' || currentPage === 'rasionalitas-ntb') {
       setIsSidebarCollapsed(true);
     }
   }, [currentPage]);
@@ -145,7 +145,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     ...(user?.role === 'admin' ? [
       { id: 'admin-sls', title: 'Peta Batas SLS Live', desc: 'Peta live batas SLS 2024, Desa, dan Kecamatan Kabupaten Mempawah', keywords: ['sls', 'batas', 'wilayah', 'peta', 'google maps', 'mempawah', 'desa', 'kecamatan', 'geospasial', 'persiapan'] },
       { id: 'identifikasi-sls', title: 'Identifikasi SLS', desc: 'Identifikasi dan verifikasi SLS di lapangan (Dalam pengembangan)', keywords: ['identifikasi', 'sls', 'verifikasi', 'persiapan'] },
-      { id: 'penilaian-mitra', title: 'Penilaian Kinerja Mitra Statistik', desc: 'Sistem penilaian dan evaluasi mutu kinerja mitra lapangan (PML & PPL)', keywords: ['penilaian', 'kinerja', 'mitra', 'statistik', 'persiapan', 'se2026', 'ppl', 'pml'] }
+      { id: 'penilaian-mitra', title: 'Penilaian Kinerja Mitra Statistik', desc: 'Sistem penilaian dan evaluasi mutu kinerja mitra lapangan (PML & PPL)', keywords: ['penilaian', 'kinerja', 'mitra', 'statistik', 'persiapan', 'se2026', 'ppl', 'pml'] },
+      { id: 'rasionalitas-ntb', title: 'Rasionalitas NTB SE2026', desc: 'Simulasi dan uji kewajaran rasio Nilai Tambah Bruto SE2026 BPS Kabupaten Mempawah dilengkapi fitur kalkulator', keywords: ['ntb', 'rasionalitas', 'nilai tambah', 'se2026', 'kalkulator', 'pengolahan', '26', '27', 'rasio', 'biaya'] }
     ] : []),
     ...((user?.role === 'admin' || user?.role === 'petugas_pengolahan') ? [
       { id: 'peta-responden-se2026', title: 'Peta Responden SE2026', desc: 'Visualisasi sebaran koordinat responden SE2026 di Kabupaten Mempawah dengan overlay batas SLS, Desa, dan Kecamatan', keywords: ['peta', 'responden', 'se2026', 'pengolahan', 'koordinat', 'rumah', 'sls', 'desa', 'mempawah', 'geospasial'] }
@@ -198,7 +199,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     ...((user?.role === 'admin' || user?.role === 'petugas_pengolahan') ? [{
       title: 'PENGOLAHAN DATA',
       items: [
-        { id: 'peta-responden-se2026', label: 'Peta Responden SE2026', icon: MapPin }
+        { id: 'peta-responden-se2026', label: 'Peta Responden SE2026', icon: MapPin },
+        ...(user?.role === 'admin' ? [
+          { id: 'rasionalitas-ntb', label: 'Rasionalitas NTB SE2026', icon: Calculator }
+        ] : [])
       ]
     }] : []),
     {

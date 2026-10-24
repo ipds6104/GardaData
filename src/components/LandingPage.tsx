@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, BookOpenCheck, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity, MapPin, ScanLine, Award } from 'lucide-react';
+import { BookOpen, BookOpenCheck, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity, MapPin, ScanLine, Award, Calculator } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
 interface FeatureCardProps {
@@ -255,6 +255,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 bgColor="bg-cyan-50"
                 onClick={() => onNavigate('peta-responden-se2026')}
               />
+              {user?.role === 'admin' && (
+                <FeatureCard
+                  title="Rasionalitas NTB SE2026"
+                  description="Simulasi dan uji kewajaran rasio Nilai Tambah Bruto SE2026 terhadap batas standar KBLI BPS dilengkapi kalkulator bantu hitung subtotal."
+                  icon={Calculator}
+                  iconColor="text-[#5B58DE] dark:text-indigo-400"
+                  bgColor="bg-indigo-50"
+                  badge="Admin"
+                  onClick={() => onNavigate('rasionalitas-ntb')}
+                />
+              )}
             </div>
           </div>
         )}

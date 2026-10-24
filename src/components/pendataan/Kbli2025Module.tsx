@@ -99,6 +99,12 @@ export interface SearchResultItem {
   induk: string;
   snippet: string;
   has_exclusions: boolean;
+  se2026_match?: {
+    count: number;
+    top_produk: string[];
+    top_kegiatan: string[];
+    top_nama: string[];
+  } | null;
 }
 
 interface SearchResponse {
@@ -535,10 +541,26 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                                 {LEVEL_NAMES[item.level] || item.level}
                               </span>
                             )}
+                            {item.se2026_match && item.se2026_match.count > 0 && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-300/80 shadow-2xs">
+                                <Sparkles className="w-3 h-3 text-amber-500" />
+                                <span>Data SE2026: {item.se2026_match.count.toLocaleString('id-ID')} Usaha</span>
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                             {item.snippet}
                           </p>
+                          {item.se2026_match && item.se2026_match.top_produk && item.se2026_match.top_produk.length > 0 && (
+                            <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                              <span className="text-[10px] font-semibold text-slate-400">Komoditas Lapangan SE2026:</span>
+                              {item.se2026_match.top_produk.slice(0, 4).map((p, pIdx) => (
+                                <span key={pIdx} className="text-[10px] px-2 py-0.5 rounded-md bg-amber-50/70 dark:bg-slate-800 text-amber-800 dark:text-amber-200 border border-amber-200/60 dark:border-slate-700 font-medium">
+                                  {p}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
 

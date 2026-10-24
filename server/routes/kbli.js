@@ -9,6 +9,9 @@ let allItems = [];
 let categories = [];
 let itemMap = new Map();
 let categoryMap = new Map();
+let se2026Data = null;
+let se2026KbliMap = new Map();
+let se2026Rules = [];
 
 // Helper to load datasets safely into RAM
 function loadKbliData() {
@@ -18,6 +21,30 @@ function loadKbliData() {
         const allItemsRaw = JSON.parse(fs.readFileSync(path.join(dataPath, 'kbli_2025_all_items.json'), 'utf8'));
         const categoriesRaw = JSON.parse(fs.readFileSync(path.join(dataPath, '01_kategori.json'), 'utf8'));
 
+        // Load SE2026 empirical training data if available
+        const se2026Path = path.join(dataPath, 'se2026_training_empirical.json');
+        if (fs.existsSync(se2026Path)) {
+            try {
+                se2026Data = JSON.parse(fs.readFileSync(se2026Path, 'utf8'));
+                if (se2026Data?.kbli_summary) {
+                    se2026KbliMap = new Map(Object.entries(se2026Data.kbli_summary));
+                }
+                if (se2026Data?.rules) {
+                    se2026Rules = Object.values(se2026Data.rules);
+                    // Sort phrases first (longer phrases higher precedence), then tokens
+                    se2026Rules.sort((a, b) => {
+                        const lenA = a.pattern.split(' ').length;
+                        const lenB = b.pattern.split(' ').length;
+                        if (lenA !== lenB) return lenB - lenA;
+                        return b.count - a.count;
+                    });
+                }
+                console.log(`✔ [KBLI 2025] Loaded SE2026 empirical training data: ${se2026KbliMap.size} KBLI codes, ${se2026Rules.length} rules.`);
+            } catch (seErr) {
+                console.warn('Note on loading SE2026 training data:', seErr.message);
+            }
+        }
+
         categories = categoriesRaw;
         categories.forEach(cat => {
             categoryMap.set(cat.code, cat);
@@ -25,7 +52,18 @@ function loadKbliData() {
 
         itemMap = new Map(allItemsRaw.map(it => [it.kode, it]));
 
-        // Enrich items with parent hierarchy & category mapping
+        // Index trained rule patterns by 5-digit KBLI code
+        const kbliPatternsMap = new Map();
+        for (const rule of se2026Rules) {
+            if (rule.kbli) {
+                if (!kbliPatternsMap.has(rule.kbli)) {
+                    kbliPatternsMap.set(rule.kbli, []);
+                }
+                kbliPatternsMap.get(rule.kbli).push(rule.pattern);
+            }
+        }
+
+        // Enrich items with parent hierarchy & category mapping & SE2026 empirical field data
         allItems = allItemsRaw.map(item => {
             // Traverse up to find root kategori
             let curr = item;
@@ -58,16 +96,37 @@ function loadKbliData() {
             const inclusion = exclIdx !== -1 ? descLower.slice(0, exclIdx) : descLower;
             const exclusion = exclIdx !== -1 ? descLower.slice(exclIdx) : '';
 
+            // Attach empirical SE2026 training data for 5-digit KBLI
+            const se2026Info = se2026KbliMap.get(item.kode);
+            const trainedPatterns = kbliPatternsMap.get(item.kode) || [];
+            let empiricalText = '';
+            if (se2026Info || trainedPatterns.length > 0) {
+                empiricalText = [
+                    ...(se2026Info ? se2026Info.top_nama || [] : []),
+                    ...(se2026Info ? se2026Info.top_kegiatan || [] : []),
+                    ...(se2026Info ? se2026Info.top_produk || [] : []),
+                    ...(se2026Info ? se2026Info.keywords || [] : []),
+                    ...trainedPatterns
+                ].join(' ').toLowerCase();
+            }
+
             return {
                 ...item,
                 kategori_kode: kategoriCode,
                 kategori_judul: kategoriInfo.title || (kategoriRoot?.judul || ''),
                 breadcrumb,
+                se2026_empirical: se2026Info ? {
+                    count: se2026Info.count,
+                    top_nama: se2026Info.top_nama,
+                    top_kegiatan: se2026Info.top_kegiatan,
+                    top_produk: se2026Info.top_produk
+                } : null,
                 // Pre-indexed search fields for ultra-fast, zero-overhead execution
                 _kodeLower: item.kode.toLowerCase(),
                 _judulLower: item.judul.toLowerCase(),
                 _inclusionLower: inclusion,
                 _exclusionLower: exclusion,
+                _empiricalLower: empiricalText,
                 _is5Digit: item.digit === 5 || item.level === 'kelompok'
             };
         });
@@ -318,6 +377,22 @@ router.get('/search', (req, res) => {
             score += inclusionHits * 250;
             score += exclusionHits * 30;
 
+            // 5. Match in SE2026 Empirical Training Data (Real field commodities, business names, activities)
+            let empiricalHits = 0;
+            if (item._empiricalLower) {
+                if (item._empiricalLower.includes(queryLower)) {
+                    score += 8500; // Strong match on empirical phrase in Mempawah census!
+                    empiricalHits += 2;
+                } else {
+                    for (let j = 0; j < queryTokens.length; j++) {
+                        if (item._empiricalLower.includes(queryTokens[j])) {
+                            score += 1500;
+                            empiricalHits++;
+                        }
+                    }
+                }
+            }
+
             // Bonus if ALL query tokens match
             if (queryTokens.length > 1 && matchedTokensCount === queryTokens.length) {
                 score += 3000;
@@ -381,17 +456,41 @@ router.get('/search', (req, res) => {
     const paginatedItems = filtered.slice(startIndex, startIndex + limit);
 
     // Return lightweight payload for list view (prevents excessive network bandwidth)
-    const resultItems = paginatedItems.map(item => ({
-        kode: item.kode,
-        judul: item.judul,
-        level: item.level,
-        digit: item.digit,
-        kategori_kode: item.kategori_kode,
-        kategori_judul: item.kategori_judul,
-        induk: item.induk,
-        snippet: createSnippet(item.deskripsi, q, 180),
-        has_exclusions: (item.deskripsi || '').toLowerCase().includes('tidak mencakup')
-    }));
+    const resultItems = paginatedItems.map(item => {
+        let snippetText = createSnippet(item.deskripsi, q, 180);
+        let empiricalMatch = null;
+        if (item.se2026_empirical) {
+            const emp = item.se2026_empirical;
+            empiricalMatch = {
+                count: emp.count,
+                top_produk: emp.top_produk || [],
+                top_kegiatan: emp.top_kegiatan || [],
+                top_nama: emp.top_nama || []
+            };
+            // If user query matched empirical field data, enrich snippet
+            const queryHitEmpirical = q && item._empiricalLower && (
+                item._empiricalLower.includes(q.toLowerCase()) ||
+                q.toLowerCase().split(/\s+/).some(t => t.length >= 3 && item._empiricalLower.includes(t))
+            );
+            if (queryHitEmpirical && emp.top_produk && emp.top_produk.length > 0) {
+                const sampleProds = emp.top_produk.slice(0, 3).join(', ');
+                snippetText = `✨ Data SE2026 Mempawah (${emp.count} unit): ${sampleProds} • ${snippetText}`;
+            }
+        }
+
+        return {
+            kode: item.kode,
+            judul: item.judul,
+            level: item.level,
+            digit: item.digit,
+            kategori_kode: item.kategori_kode,
+            kategori_judul: item.kategori_judul,
+            induk: item.induk,
+            snippet: snippetText,
+            has_exclusions: (item.deskripsi || '').toLowerCase().includes('tidak mencakup'),
+            se2026_match: empiricalMatch
+        };
+    });
 
     res.json({
         total,
@@ -402,6 +501,54 @@ router.get('/search', (req, res) => {
         totalPages,
         items: resultItems
     });
+});
+
+/**
+ * GET /api/kbli/recommend
+ * Recommend KBLI category & 5-digit code based on SE2026 empirical trained models
+ */
+router.get('/recommend', (req, res) => {
+    loadKbliData();
+    const rawName = (req.query.name || req.query.q || '').trim();
+    if (!rawName || rawName.length < 2) {
+        return res.json({ suggestion: null });
+    }
+    const clean = rawName
+        .replace(/\(.*?\)|<.*?>|\[.*?\]/g, ' ')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const tokens = clean.split(' ').filter(t => t.length >= 3);
+
+    for (const rule of se2026Rules) {
+        if (rule.isPhrase) {
+            if (clean.includes(rule.pattern)) {
+                return res.json({
+                    suggestion: {
+                        kategori: rule.kategori,
+                        kbli: rule.kbli,
+                        matchedKeyword: rule.pattern,
+                        count: rule.count,
+                        precision: rule.prec
+                    }
+                });
+            }
+        } else {
+            if (tokens.includes(rule.pattern) || (rule.pattern.length >= 4 && clean.includes(rule.pattern))) {
+                return res.json({
+                    suggestion: {
+                        kategori: rule.kategori,
+                        kbli: rule.kbli,
+                        matchedKeyword: rule.pattern,
+                        count: rule.count,
+                        precision: rule.prec
+                    }
+                });
+            }
+        }
+    }
+    res.json({ suggestion: null });
 });
 
 /**

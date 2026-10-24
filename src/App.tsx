@@ -23,6 +23,7 @@ const MonitoringModule = lazy(() => import('./components/monitoring/MonitoringMo
 const AdminSLSDashboard = lazy(() => import('./components/sls/AdminSLSDashboard').then(m => ({ default: m.AdminSLSDashboard })));
 const PenilaianMitraModule = lazy(() => import('./components/mitra/PenilaianMitraModule').then(m => ({ default: m.PenilaianMitraModule })));
 const PetaRespondenSE2026 = lazy(() => import('./components/pengolahan/PetaRespondenSE2026').then(m => ({ default: m.PetaRespondenSE2026 })));
+const RasionalitasNtbModule = lazy(() => import('./components/pengolahan/rasionalitas/RasionalitasNtbModule').then(m => ({ default: m.RasionalitasNtbModule })));
 import { Login } from './components/Login';
 import { AuthCallback } from './components/AuthCallback';
 import { syncImputationFromFirebase } from './services/imputationService';
@@ -134,6 +135,22 @@ function AppContent() {
           );
         }
         return <PetaRespondenSE2026 onBack={() => setCurrentPage('landing')} />;
+      case 'rasionalitas-ntb':
+        if (user?.role !== 'admin') {
+          return (
+            <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6">
+              <h2 className="text-xl font-black text-slate-800 tracking-tight">Akses Ditolak</h2>
+              <p className="text-sm text-slate-500 mt-2">Halaman Rasionalitas NTB SE2026 hanya dapat diakses oleh Administrator.</p>
+              <button 
+                onClick={() => setCurrentPage('landing')} 
+                className="mt-4 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+              >
+                Kembali ke Beranda
+              </button>
+            </div>
+          );
+        }
+        return <RasionalitasNtbModule onBack={() => setCurrentPage('landing')} />;
       case 'admin-sls':
         if (user?.role !== 'admin') {
           return (
