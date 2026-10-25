@@ -19,7 +19,9 @@ import {
   Calculator,
   Undo2,
   Redo2,
-  Sparkles
+  Sparkles,
+  ExternalLink,
+  BookOpenCheck
 } from 'lucide-react';
 import { 
   parseRupiah, 
@@ -54,7 +56,6 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
 
   // Rekomendasi KBLI Cerdas
   const [suggestion, setSuggestion] = useState<KbliSuggestion | null>(null);
-  const userManuallySelectedKbli = useRef<boolean>(false);
 
   // Undo / Redo history stack
   const [historyStack, setHistoryStack] = useState<FormDataState[]>([formData]);
@@ -146,10 +147,6 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
   }, []);
 
   const handleFieldChange = (field: keyof FormDataState, formattedValue: string) => {
-    if (field === 'namaUsaha') {
-      // Ketika user mengubah nama usaha, reset flag override manual agar saran baru otomatis diaplikasikan!
-      userManuallySelectedKbli.current = false;
-    }
     setFormData(prev => ({
       ...prev,
       [field]: formattedValue
@@ -170,16 +167,15 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
     const cleanName = (formData.namaUsaha || '').trim();
     if (cleanName.length < 2) {
       setSuggestion(null);
-      // Ketika nama usaha dikosongkan, reset flag override manual agar nama baru berikutnya bisa auto-suggest
-      userManuallySelectedKbli.current = false;
       return;
     }
 
     const found = getKbliSuggestionFromBusinessName(cleanName);
     setSuggestion(found);
 
-    // Jika saran ditemukan dan user belum secara manual memilih KBLI lain:
-    if (found && !userManuallySelectedKbli.current) {
+    // Otomatis terapkan saran KBLI saat user memasukkan atau mengedit nama usaha
+    // (Bahkan jika user sebelumnya salah mengklik kategori lain)
+    if (found) {
       if (formData.kategoriKode !== found.kode) {
         setFormData(prev => ({
           ...prev,
@@ -194,10 +190,7 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
   const alphabetList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U'];
 
   // Handle category selection
-  const handleSelectKbli = (letterCode: string, isManual = true) => {
-    if (isManual) {
-      userManuallySelectedKbli.current = true;
-    }
+  const handleSelectKbli = (letterCode: string) => {
     const target = KATEGORI_LAPANGAN_USAHA.find(k => k.kode === letterCode);
     if (target) {
       setFormData(prev => ({ 
@@ -213,14 +206,24 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
 
   // Terapkan saran KBLI jika user ingin menggunakan saran yang sempat di-override
   const applySuggestion = (kode: string) => {
-    userManuallySelectedKbli.current = false;
-    handleSelectKbli(kode, false);
+    handleSelectKbli(kode);
   };
 
-  // Handle Form Reset
+  // Handle Form Reset - kembalikan state form ke awal yang bersih
   const handleResetForm = () => {
-    userManuallySelectedKbli.current = false;
     setSuggestion(null);
+    setErrors({});
+    setIsKbliOpen(false);
+    setKbliSearch('');
+    setHistoryStack([{
+      namaUsaha: '',
+      kategoriKode: 'C',
+      nilaiProduksi: '',
+      biayaBarangTerjual: '',
+      biayaProduksi: '',
+      biayaOperasional: '',
+    }]);
+    setHistoryIndex(0);
     onReset();
   };
 
@@ -435,14 +438,29 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
 
         {/* BAGIAN 2: KATEGORI LAPANGAN USAHA (KBLI) - BISA DI-KLIK & BISA DI-SEARCH DENGAN MENGETIK */}
         <div className="bg-[#FAF9FE] dark:bg-slate-800/60 p-4 sm:p-5 rounded-2xl border border-indigo-100/70 dark:border-indigo-900/30" ref={kbliDropdownRef}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-[#5B58DE]" />
-              <span>Kategori Lapangan Usaha (KBLI)</span>
-            </label>
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-              Rentang Wajar SE2026: <strong className="text-[#5B58DE] font-mono">{formatDecimal(selectedKategori.min)} – {formatDecimal(selectedKategori.max)}</strong>
-            </span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-[#5B58DE]" />
+                <span>Kategori Lapangan Usaha (KBLI)</span>
+              </label>
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                Rentang Wajar SE2026: <strong className="text-[#5B58DE] font-mono">{formatDecimal(selectedKategori.min)} – {formatDecimal(selectedKategori.max)}</strong>
+              </span>
+            </div>
+
+            {/* Shortcut Buka KBLI 2025 di New Tab */}
+            <a
+              href="/?page=kbli-2025"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800/80 text-[#5B58DE] hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:border-indigo-300 text-xs font-bold shadow-2xs transition-all shrink-0 self-start sm:self-auto group cursor-pointer"
+              title="Buka Modul Pencarian KBLI 2025 Garda Data di Tab Baru"
+            >
+              <BookOpenCheck className="w-3.5 h-3.5 text-[#5B58DE] group-hover:scale-110 transition-transform" />
+              <span>Buka KBLI 2025</span>
+              <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-[#5B58DE] transition-colors" />
+            </a>
           </div>
 
           {/* Quick Click Alphabet Row */}
@@ -668,6 +686,22 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
                       );
                     })
                   )}
+                </div>
+
+                {/* Shortcut Footer ke Fitur KBLI 2025 di New Tab */}
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/90 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Butuh cari rincian kode KBLI 5-digit?
+                  </span>
+                  <a
+                    href="/?page=kbli-2025"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-bold text-[#5B58DE] hover:underline cursor-pointer"
+                  >
+                    <span>Buka KBLI 2025</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               </div>
             )}

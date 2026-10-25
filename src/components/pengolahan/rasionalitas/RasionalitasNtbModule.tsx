@@ -149,9 +149,14 @@ export const RasionalitasNtbModule: React.FC<RasionalitasNtbModuleProps> = ({ on
     }
   };
 
-  // Handle Form Reset
+  // Handle Form Reset - kembalikan seluruh isian dan halaman ke kondisi awal yang bersih
   const handleResetForm = () => {
     setFormData(INITIAL_FORM_STATE);
+    setSearchQuery('');
+    setActiveTab('calculator');
+    setIsFormulaOpen(false);
+    setIsCalculatorToolOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Load Preset
@@ -223,19 +228,6 @@ export const RasionalitasNtbModule: React.FC<RasionalitasNtbModuleProps> = ({ on
         }}
         onBackToGarda={onBack}
       />
-
-      {/* Floating Re-open Sidebar Button */}
-      {!isSidebarOpen && (
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="fixed left-0 top-24 z-40 bg-[#5B58DE] hover:bg-[#4C49CC] text-white py-2.5 px-3 rounded-r-2xl shadow-xl flex items-center gap-1.5 transition-all duration-200 group border-y border-r border-indigo-400/40"
-          title="Tampilkan Sidebar"
-          aria-label="Tampilkan Sidebar"
-        >
-          <PanelLeftOpen className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          <span className="text-xs font-bold pr-1 hidden sm:inline">Menu NTB</span>
-        </button>
-      )}
 
       {/* Main Content Area */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${

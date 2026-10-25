@@ -28,10 +28,43 @@ import { Login } from './components/Login';
 import { AuthCallback } from './components/AuthCallback';
 import { syncImputationFromFirebase } from './services/imputationService';
 
+const VALID_PAGES = new Set([
+  'landing',
+  'lms',
+  'laporan-pendataan',
+  'kbli-2025',
+  'kbli-kbji',
+  'building-area',
+  'imputation',
+  'infrastructure',
+  'social-phenomenon',
+  'admin-strategic-data',
+  'admin-sls',
+  'identifikasi-sls',
+  'penilaian-mitra',
+  'rasionalitas-ntb',
+  'peta-responden-se2026',
+  'monitoring'
+]);
+
 function AppContent() {
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState<string>(() => {
-    return sessionStorage.getItem('garda_current_page') || 'landing';
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const pageParam = params.get('page');
+      if (pageParam && VALID_PAGES.has(pageParam)) {
+        sessionStorage.setItem('garda_current_page', pageParam);
+        return pageParam;
+      }
+      const hash = window.location.hash.replace('#', '');
+      if (hash && VALID_PAGES.has(hash)) {
+        sessionStorage.setItem('garda_current_page', hash);
+        return hash;
+      }
+    }
+    const saved = sessionStorage.getItem('garda_current_page');
+    return saved && VALID_PAGES.has(saved) ? saved : 'landing';
   });
 
   useEffect(() => {
