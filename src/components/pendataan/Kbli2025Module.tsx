@@ -185,6 +185,142 @@ const CHILD_SECTION_TITLES: Record<string, string> = {
   kelompok: 'Klasifikasi Seinduk Terkait (Pilihan Lain)'
 };
 
+export type KbliDefinitionBlock =
+  | { type: 'paragraph'; text: string }
+  | { type: 'list'; header: string; items: string[] };
+
+// Bersihkan artefak OCR/PDF pada teks deskripsi KBLI 2025
+const cleanKbliRawText = (raw?: string | null): string => {
+  if (!raw) return '';
+  return raw
+    .replace(/\bSubdolongan\b/gi, 'Subgolongan')
+    .replace(/\bGolong\s+an\b/gi, 'Golongan')
+    .replace(/\bplatfo\s+rm\b/gi, 'platform')
+    .replace(/\bmen\s+cakup\b/gi, 'mencakup')
+    .replace(/\bSubgolongan\s+tidak\s+ini\s+mencakup\b/gi, 'Subgolongan ini tidak mencakup')
+    .replace(/\bsehari\s+-\s+hari\b/gi, 'sehari-hari')
+    .replace(/\bdipindah\s+-\s+pindahkan\b/gi, 'dipindah-pindahkan')
+    .replace(/\bcine\s+-\s+film\b/gi, 'cine-film')
+    .replace(/\bgolongan\s+pokok\s+55l\b/gi, 'golongan pokok 551')
+    .replace(/\bKONTEN\s*(?:-\s*)?\d{3,4}(?:\s*-\s*[A-Z\s,]+)?\s*(?=-)/g, '')
+    .replace(/\bSOSIAL\s+WAJIB\s+\d{3,4}\s*(?=-)/g, '')
+    .replace(/\bLAINNYA\s*-\s*\d{3,4}\s*-?\s*$/g, '')
+    .replace(/\.([A-Z])/g, '. $1')
+    .replace(/\.\s*\./g, '.')
+    .replace(/(\d+)\s+-\s+(\d+)/g, '$1–$2')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// Pisahkan bagian cakupan utama (main) dan bagian batasan/pengecualian (exclusions) secara utuh per kalimat
+const splitMainAndExclusions = (rawDesc?: string | null): { main: string; exclusions: string } => {
+  const cleaned = cleanKbliRawText(rawDesc);
+  if (!cleaned) return { main: '', exclusions: '' };
+
+  const exclRegex =
+    /(?:^|(?<=[.;])\s*|\s+(?=(?:Kategori|Golongan\s+pokok|Golongan|Subgolongan|Kelompok|Kegiatan\s+di\s+sini)\s+(?:ini\s+)?(?:juga\s+)?tidak\s+(?:mencakup|termasuk)))((?:Namun,\s*)?(?:(?:Kategori|Golongan\s+pokok|Golongan|Subgolongan|Kelompok|Kegiatan\s+(?:di\s+sini|pertanian))\s+(?:ini\s+)?(?:juga\s+)?)?tidak\s+(?:mencakup|termasuk)\b[\s\S]*)$/i;
+
+  const match = cleaned.match(exclRegex);
+  if (match && match.index !== undefined) {
+    return {
+      main: cleaned.slice(0, match.index).trim(),
+      exclusions: match[1].trim()
+    };
+  }
+
+  return { main: cleaned, exclusions: '' };
+};
+
+// Ubah teks deskripsi menjadi blok-blok paragraf dan daftar butir (list) terstruktur
+const parseSectionIntoBlocks = (sectionText: string): KbliDefinitionBlock[] => {
+  if (!sectionText) return [];
+
+  const subSections = sectionText
+    .split(
+      /(?<=[.;])\s+(?=(?:Kategori|Golongan\s+pokok|Golongan|Subgolongan|Kelompok)\s+ini\s+(?:juga\s+)?(?:tidak\s+)?(?:mencakup|termasuk)\b)/i
+    )
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const blocks: KbliDefinitionBlock[] = [];
+
+  for (const sub of subSections) {
+    let remaining = sub;
+    while (remaining.length > 0) {
+      const dashMatch = remaining.match(/(?:^|\s)-\s+/);
+      if (!dashMatch || dashMatch.index === undefined) {
+        if (remaining.trim()) {
+          blocks.push({ type: 'paragraph', text: remaining.trim() });
+        }
+        break;
+      }
+
+      const beforeDash = remaining.slice(0, dashMatch.index).trim();
+      const afterDashStart = remaining.slice(dashMatch.index + dashMatch[0].length).trim();
+
+      let introHeader = '';
+      if (beforeDash) {
+        const lastPeriodIdx = beforeDash.lastIndexOf('. ');
+        if (lastPeriodIdx !== -1) {
+          const prevSentences = beforeDash.slice(0, lastPeriodIdx + 1).trim();
+          if (prevSentences) {
+            blocks.push({ type: 'paragraph', text: prevSentences });
+          }
+          introHeader = beforeDash.slice(lastPeriodIdx + 2).trim();
+        } else {
+          introHeader = beforeDash;
+        }
+      }
+
+      if (introHeader && !introHeader.endsWith(':')) {
+        introHeader = introHeader.replace(/[.;,]+$/, '') + ':';
+      }
+
+      const rawItems = afterDashStart.split(/\s*(?:;|,)?\s+-\s+/);
+      const cleanItems: string[] = [];
+      let trailingProse = '';
+
+      for (let i = 0; i < rawItems.length; i++) {
+        let itemText = rawItems[i].trim();
+        if (i === rawItems.length - 1) {
+          const proseSplit = itemText.match(/^([\s\S]+?\.)\s+([A-Z][\s\S]+)$/);
+          if (proseSplit) {
+            itemText = proseSplit[1].trim();
+            trailingProse = proseSplit[2].trim();
+          }
+        }
+        itemText = itemText.replace(/[;,\s]+$/, '').trim();
+        if (itemText) {
+          cleanItems.push(itemText);
+        }
+      }
+
+      if (cleanItems.length > 0) {
+        blocks.push({
+          type: 'list',
+          header: introHeader,
+          items: cleanItems
+        });
+      } else if (introHeader) {
+        blocks.push({ type: 'paragraph', text: introHeader });
+      }
+
+      remaining = trailingProse;
+    }
+  }
+
+  return blocks;
+};
+
+// Rapikan snippet ringkas pada kartu pencarian/turunan agar tanda "- " menjadi bullet "• "
+const formatSnippetPreview = (raw?: string | null): string => {
+  if (!raw) return '';
+  return cleanKbliRawText(raw)
+    .replace(/\s*;\s*-\s+/g, ' • ')
+    .replace(/(?<=mencakup|termasuk|seperti|meliputi|berikut|lain|:)\s*-\s+/gi, ': • ')
+    .replace(/\s+-\s+/g, ' • ');
+};
+
 // ==========================================
 // MAIN COMPONENT
 // ==========================================
@@ -288,8 +424,16 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
       if (res.ok) {
         const data = await res.json();
         setCurrentNode(data);
-        // Jika kategori tingkat terbawah (tidak ada turunan lagi atau level kelompok), buka deskripsi penuh secara otomatis
-        if (!data.children || data.children.length === 0 || data.level === 'kelompok') {
+        // Buka deskripsi penuh secara otomatis untuk kelompok (5-digit), subgolongan, golongan, atau bila memiliki rincian list/pengecualian yang ringkas
+        const descLen = (data.deskripsi || '').length;
+        if (
+          !data.children ||
+          data.children.length === 0 ||
+          data.level === 'kelompok' ||
+          data.level === 'subgolongan' ||
+          data.level === 'golongan' ||
+          descLen <= 1200
+        ) {
           setIsExpandedDefinition(true);
         } else {
           setIsExpandedDefinition(false);
@@ -339,20 +483,69 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  // Separate definition into main text and exclusions ("Tidak mencakup...")
+  // Separate definition into structured blocks of main scope and exclusions ("Tidak mencakup..." / "Tidak termasuk...")
   const parsedDefinition = useMemo(() => {
-    if (!currentNode?.deskripsi) return { main: '', exclusions: '' };
-    const desc = currentNode.deskripsi;
-    const splitIndex = desc.toLowerCase().indexOf('tidak mencakup');
-
-    if (splitIndex !== -1) {
+    if (!currentNode?.deskripsi) {
       return {
-        main: desc.slice(0, splitIndex).trim(),
-        exclusions: desc.slice(splitIndex).trim()
+        main: '',
+        exclusions: '',
+        mainBlocks: [] as KbliDefinitionBlock[],
+        exclusionBlocks: [] as KbliDefinitionBlock[]
       };
     }
-    return { main: desc, exclusions: '' };
+    const { main, exclusions } = splitMainAndExclusions(currentNode.deskripsi);
+    return {
+      main,
+      exclusions,
+      mainBlocks: parseSectionIntoBlocks(main),
+      exclusionBlocks: parseSectionIntoBlocks(exclusions)
+    };
   }, [currentNode]);
+
+  // Render teks dengan tautan otomatis ke kode KBLI rujukan (misal: "lihat subgolongan 4730", "lihat golongan 953", "lihat kategori C")
+  const renderTextWithKbliLinks = (text: string, isExclusion = false) => {
+    if (!text) return null;
+    const refRegex =
+      /\b((?:lihat\s+)?(?:kategori|golongan\s+pokok|subgolongan|golongan|kelompok)\s+)([A-U]|\d{2,5})\b|\b(lihat\s+)(\d{2,5})\b/gi;
+
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = refRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(text.slice(lastIndex, match.index));
+      }
+      const prefix = match[1] || match[3] || '';
+      const codeTarget = (match[2] || match[4] || '').trim();
+      parts.push(prefix);
+      parts.push(
+        <button
+          key={`${match.index}-${codeTarget}`}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSelectCode(codeTarget);
+          }}
+          title={`Buka klasifikasi KBLI ${codeTarget}`}
+          className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 mx-0.5 rounded-md font-mono font-bold text-xs transition-all cursor-pointer underline decoration-dotted underline-offset-2 ${
+            isExclusion
+              ? 'bg-amber-200/70 hover:bg-amber-300 text-amber-950 dark:bg-amber-900/60 dark:hover:bg-amber-800 dark:text-amber-100'
+              : 'bg-primary-100/80 hover:bg-primary-200 text-primary-800 dark:bg-primary-900/50 dark:hover:bg-primary-800 dark:text-primary-200'
+          }`}
+        >
+          <span>{codeTarget}</span>
+        </button>
+      );
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex));
+    }
+
+    return parts;
+  };
 
   // Visual style for current active node
   const activeVisual = CATEGORY_VISUALS[currentNode?.kategori_kode || ''] || DEFAULT_VISUAL;
@@ -549,7 +742,7 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                             )}
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                            {item.snippet}
+                            {formatSnippetPreview(item.snippet)}
                           </p>
                           {item.se2026_match && item.se2026_match.top_produk && item.se2026_match.top_produk.length > 0 && (
                             <div className="flex items-center gap-1.5 flex-wrap pt-1">
@@ -684,24 +877,95 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                   </h3>
                 </div>
 
-                <div className="relative text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-3">
-                  {/* Definition text (Full vs Truncated) */}
-                  <p className={`whitespace-pre-line ${!isExpandedDefinition ? 'line-clamp-3' : ''}`}>
-                    {parsedDefinition.main}
-                  </p>
+                <div className="relative text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-3.5">
+                  {/* Definition blocks (Structured Paragraphs & Lists) */}
+                  <div className={!isExpandedDefinition ? 'line-clamp-4 overflow-hidden' : 'space-y-3.5'}>
+                    {parsedDefinition.mainBlocks.length > 0 ? (
+                      parsedDefinition.mainBlocks.map((block, bIdx) =>
+                        block.type === 'paragraph' ? (
+                          <p key={bIdx} className="leading-relaxed text-slate-700 dark:text-slate-300">
+                            {renderTextWithKbliLinks(block.text, false)}
+                          </p>
+                        ) : (
+                          <div
+                            key={bIdx}
+                            className="rounded-xl bg-white/90 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 p-3.5 md:p-4 space-y-2.5 shadow-2xs"
+                          >
+                            {block.header && (
+                              <div className="font-bold text-slate-800 dark:text-slate-100 text-xs md:text-sm">
+                                {renderTextWithKbliLinks(block.header, false)}
+                              </div>
+                            )}
+                            <ul className="space-y-2 pl-1">
+                              {block.items.map((itemText, iIdx) => (
+                                <li
+                                  key={iIdx}
+                                  className="flex items-start gap-2.5 text-xs md:text-sm text-slate-700 dark:text-slate-300 leading-relaxed"
+                                >
+                                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 shrink-0" />
+                                  <span className="flex-1">
+                                    {renderTextWithKbliLinks(
+                                      itemText.charAt(0).toUpperCase() + itemText.slice(1),
+                                      false
+                                    )}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )
+                      )
+                    ) : (
+                      <p className="leading-relaxed text-slate-500 italic">
+                        Tidak ada deskripsi rincian tambahan pada tingkat ini.
+                      </p>
+                    )}
+                  </div>
 
-                  {/* Exclusions highlighted if expanded or if short */}
-                  {parsedDefinition.exclusions && isExpandedDefinition && (
+                  {/* Exclusions highlighted as structured list */}
+                  {parsedDefinition.exclusionBlocks.length > 0 && isExpandedDefinition && (
                     <motion.div
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="p-4 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs md:text-sm leading-relaxed space-y-1.5 mt-3"
+                      className="p-4 md:p-5 rounded-xl bg-amber-50/90 dark:bg-amber-950/35 border border-amber-200/90 dark:border-amber-800/70 text-amber-950 dark:text-amber-100 text-xs md:text-sm leading-relaxed space-y-2.5 mt-3 shadow-2xs"
                     >
-                      <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
-                        <AlertTriangle className="w-4 h-4 shrink-0" />
-                        <span>Batasan & Pengecualian Klasifikasi:</span>
+                      <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+                        <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <span>Batasan & Pengecualian Klasifikasi (Tidak Mencakup):</span>
                       </div>
-                      <p className="whitespace-pre-line">{parsedDefinition.exclusions}</p>
+                      <div className="space-y-2.5">
+                        {parsedDefinition.exclusionBlocks.map((block, bIdx) =>
+                          block.type === 'paragraph' ? (
+                            <p key={bIdx} className="leading-relaxed text-amber-900 dark:text-amber-200">
+                              {renderTextWithKbliLinks(block.text, true)}
+                            </p>
+                          ) : (
+                            <div key={bIdx} className="space-y-2">
+                              {block.header && (
+                                <div className="font-semibold text-amber-900/90 dark:text-amber-200/90 text-xs md:text-sm">
+                                  {renderTextWithKbliLinks(block.header, true)}
+                                </div>
+                              )}
+                              <ul className="space-y-2 pl-1">
+                                {block.items.map((itemText, iIdx) => (
+                                  <li
+                                    key={iIdx}
+                                    className="flex items-start gap-2.5 text-xs md:text-sm text-amber-900 dark:text-amber-100 leading-relaxed"
+                                  >
+                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400 shrink-0" />
+                                    <span className="flex-1">
+                                      {renderTextWithKbliLinks(
+                                        itemText.charAt(0).toUpperCase() + itemText.slice(1),
+                                        true
+                                      )}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )
+                        )}
+                      </div>
                     </motion.div>
                   )}
                 </div>
@@ -818,7 +1082,7 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                             </div>
 
                             <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                              {child.snippet || child.deskripsi}
+                              {formatSnippetPreview(child.snippet || child.deskripsi)}
                             </p>
 
                             {/* Sub-item count badge */}

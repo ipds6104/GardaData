@@ -109,6 +109,30 @@ export function parseJwtPayload(token: string): any {
   }
 }
 
+/**
+ * Menyiapkan transfer sesi sekali-pakai (single-use handoff) untuk tab baru
+ * dengan batas kedaluwarsa 6 detik. Hanya digunakan oleh aksi klik internal di aplikasi.
+ */
+export function prepareTabHandoff(): void {
+  try {
+    const userStr = sessionStorage.getItem('navigasi_user');
+    const token = sessionStorage.getItem('navigasi_token');
+    if (userStr) {
+      const payload = {
+        user: JSON.parse(userStr),
+        token: token || null,
+        expiresAt: Date.now() + 6000 // Berlaku maksimal 6 detik
+      };
+      localStorage.setItem('garda_tab_handoff', JSON.stringify(payload));
+    }
+  } catch {}
+}
+
+export function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return sessionStorage.getItem('navigasi_token') || localStorage.getItem('navigasi_token');
+}
+
 // Zero-plaintext offline credential database with individual cryptographic salts
 // Admin role is strictly managed via Pegawai SSO rIDM. Offline credentials are exclusively for external field officers.
 const SECURE_OFFLINE_USERS: Record<string, {
@@ -150,20 +174,102 @@ const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30 * 1000; // 30 seconds lockout after 5 failed attempts
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    if (typeof window === 'undefined') return null;
+
+    // 0. Selalu bersihkan sisa kredensial permanen di localStorage (mencegah celah histori browser)
+    try {
+      localStorage.removeItem('navigasi_user');
+      localStorage.removeItem('navigasi_token');
+    } catch {}
+
+    // 1. Cek apakah ada transfer sesi sekali-pakai dari tab utama yang baru saja diklik (< 6 detik)
+    try {
+      const handoffRaw = localStorage.getItem('garda_tab_handoff');
+      if (handoffRaw) {
+        localStorage.removeItem('garda_tab_handoff'); // Burn-after-reading: langsung hapus agar tidak bisa digunakan lagi
+        const handoff = JSON.parse(handoffRaw);
+        if (handoff && handoff.expiresAt && handoff.expiresAt > Date.now() && handoff.user) {
+          sessionStorage.setItem('navigasi_user', JSON.stringify(handoff.user));
+          if (handoff.token) {
+            sessionStorage.setItem('navigasi_token', handoff.token);
+          }
+          return handoff.user;
+        }
+      }
+    } catch {
+      try { localStorage.removeItem('garda_tab_handoff'); } catch {}
+    }
+
+    // 2. Deteksi jenis navigasi browser:
+    // Jika halaman dibuka melalui Histori Browser, Bookmark, ketik URL langsung ('navigate' / 'back_forward'),
+    // atau tab ditutup lalu dibuka kembali dari histori (> 5 detik), WAJIBKAN LOGIN ULANG!
+    try {
+      const navEntries = window.performance?.getEntriesByType?.('navigation') as PerformanceNavigationTiming[] | undefined;
+      const navType = navEntries && navEntries.length > 0 ? navEntries[0].type : 'navigate';
+      const unloadTs = Number(sessionStorage.getItem('garda_unload_ts') || '0');
+      sessionStorage.removeItem('garda_unload_ts');
+
+      const isQuickReload = navType === 'reload' && (unloadTs === 0 || (Date.now() - unloadTs) < 5000);
+
+      if (!isQuickReload) {
+        sessionStorage.removeItem('navigasi_user');
+        sessionStorage.removeItem('navigasi_token');
+        return null;
+      }
+
+      const savedUser = sessionStorage.getItem('navigasi_user');
+      if (savedUser) {
+        return JSON.parse(savedUser);
+      }
+    } catch {
+      sessionStorage.removeItem('navigasi_user');
+      sessionStorage.removeItem('navigasi_token');
+    }
+
+    return null;
+  });
+
   const [failedAttempts, setFailedAttempts] = useState<number>(0);
   const [lockoutUntil, setLockoutUntil] = useState<number>(0);
   const [lockoutRemainingSeconds, setLockoutRemainingSeconds] = useState<number>(0);
 
+  // Pasang proteksi anti-histori (BFCache & Unload Timestamp)
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem('navigasi_user');
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
-      }
-    } catch {
       localStorage.removeItem('navigasi_user');
-    }
+      localStorage.removeItem('navigasi_token');
+      localStorage.removeItem('garda_tab_handoff');
+    } catch {}
+
+    const handleUnload = () => {
+      try {
+        sessionStorage.setItem('garda_unload_ts', String(Date.now()));
+      } catch {}
+    };
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // Jika halaman direstore dari BFCache (Back-Forward Cache melalui histori browser)
+      if (event.persisted) {
+        setUser(null);
+        try {
+          sessionStorage.removeItem('navigasi_user');
+          sessionStorage.removeItem('navigasi_token');
+          localStorage.removeItem('navigasi_user');
+          localStorage.removeItem('navigasi_token');
+        } catch {}
+      }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
   }, []);
 
   // Lockout countdown timer
@@ -187,13 +293,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginAsVisitor = async () => {
     const visitorUser: AuthUser = { username: 'Pengunjung', role: 'pengunjung', name: 'Tamu BPS' };
     setUser(visitorUser);
-    localStorage.setItem('navigasi_user', JSON.stringify(visitorUser));
+    sessionStorage.setItem('navigasi_user', JSON.stringify(visitorUser));
+    localStorage.removeItem('navigasi_user');
     try {
       const res = await fetch('/api/auth/visitor', { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         if (data.token) {
-          localStorage.setItem('navigasi_token', data.token);
+          sessionStorage.setItem('navigasi_token', data.token);
+          localStorage.removeItem('navigasi_token');
         }
       }
     } catch {
@@ -236,9 +344,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(newUser);
         setFailedAttempts(0);
-        localStorage.setItem('navigasi_user', JSON.stringify(newUser));
+        sessionStorage.setItem('navigasi_user', JSON.stringify(newUser));
+        localStorage.removeItem('navigasi_user');
         if (data.token) {
-          localStorage.setItem('navigasi_token', data.token);
+          sessionStorage.setItem('navigasi_token', data.token);
+          localStorage.removeItem('navigasi_token');
         }
         return { success: true };
       }
@@ -258,7 +368,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(newUser);
         setFailedAttempts(0);
-        localStorage.setItem('navigasi_user', JSON.stringify(newUser));
+        sessionStorage.setItem('navigasi_user', JSON.stringify(newUser));
+        localStorage.removeItem('navigasi_user');
         return { success: true };
       }
     }
@@ -277,7 +388,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           setUser(newUser);
           setFailedAttempts(0);
-          localStorage.setItem('navigasi_user', JSON.stringify(newUser));
+          sessionStorage.setItem('navigasi_user', JSON.stringify(newUser));
+          localStorage.removeItem('navigasi_user');
           return { success: true };
         }
       }
@@ -320,7 +432,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, message: 'Sandi baru tidak boleh sama dengan sandi lama.' };
     }
 
-    const token = localStorage.getItem('navigasi_token');
+    const token = sessionStorage.getItem('navigasi_token') || localStorage.getItem('navigasi_token');
 
     // Attempt online change password
     try {
@@ -554,10 +666,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       setUser(newUser);
-      localStorage.setItem('navigasi_user', JSON.stringify(newUser));
+      sessionStorage.setItem('navigasi_user', JSON.stringify(newUser));
+      localStorage.removeItem('navigasi_user');
 
       const sessionToken = (tokenData && (tokenData.id_token || tokenData.access_token)) || `sso_admin_${Date.now()}`;
-      localStorage.setItem('navigasi_token', sessionToken);
+      sessionStorage.setItem('navigasi_token', sessionToken);
+      localStorage.removeItem('navigasi_token');
 
       // Clean up storage
       sessionStorage.removeItem('sso_code_verifier');
@@ -602,8 +716,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSso: true
       };
       setUser(newUser);
-      localStorage.setItem('navigasi_user', JSON.stringify(newUser));
-      localStorage.setItem('navigasi_token', `mock_sso_token_${Date.now()}`);
+      sessionStorage.setItem('navigasi_user', JSON.stringify(newUser));
+      sessionStorage.setItem('navigasi_token', `mock_sso_token_${Date.now()}`);
+      localStorage.removeItem('navigasi_user');
+      localStorage.removeItem('navigasi_token');
       return { success: true };
     } catch {
       return {
@@ -616,8 +732,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     // 1. Bersihkan seluruh sesi dan token otentikasi lokal
     setUser(null);
+    sessionStorage.removeItem('navigasi_user');
+    sessionStorage.removeItem('navigasi_token');
+    sessionStorage.removeItem('garda_current_page');
     localStorage.removeItem('navigasi_user');
     localStorage.removeItem('navigasi_token');
+    localStorage.removeItem('garda_tab_handoff');
     localStorage.removeItem('sso_code_verifier');
     localStorage.removeItem('sso_state');
     sessionStorage.removeItem('sso_code_verifier');

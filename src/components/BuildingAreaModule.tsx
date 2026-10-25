@@ -70,7 +70,7 @@ export const BuildingAreaModule: React.FC<BuildingAreaModuleProps> = ({ onBack }
       const pending = await getPendingMeasurements();
       if (pending.length === 0) return;
 
-      const token = localStorage.getItem('navigasi_token');
+      const token = sessionStorage.getItem('navigasi_token') || localStorage.getItem('navigasi_token');
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };

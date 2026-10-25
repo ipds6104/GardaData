@@ -24,7 +24,7 @@ export const initImputationDB = async () => {
 
 export const syncImputationFromFirebase = async (): Promise<ImputationData[]> => {
   try {
-    const token = localStorage.getItem('navigasi_token');
+    const token = sessionStorage.getItem('navigasi_token') || localStorage.getItem('navigasi_token');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -93,7 +93,7 @@ export const getLocalImputationData = async (): Promise<ImputationData[]> => {
 
 export const batchUpsertImputationData = async (data: ImputationData[]): Promise<void> => {
   try {
-    const token = localStorage.getItem('navigasi_token');
+    const token = sessionStorage.getItem('navigasi_token') || localStorage.getItem('navigasi_token');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };

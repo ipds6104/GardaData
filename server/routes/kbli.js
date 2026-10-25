@@ -92,7 +92,8 @@ function loadKbliData() {
 
             const desc = item.deskripsi || '';
             const descLower = desc.toLowerCase();
-            const exclIdx = descLower.indexOf('tidak mencakup');
+            let exclIdx = descLower.indexOf('tidak mencakup');
+            if (exclIdx === -1) exclIdx = descLower.indexOf('tidak termasuk');
             const inclusion = exclIdx !== -1 ? descLower.slice(0, exclIdx) : descLower;
             const exclusion = exclIdx !== -1 ? descLower.slice(exclIdx) : '';
 
@@ -487,7 +488,7 @@ router.get('/search', (req, res) => {
             kategori_judul: item.kategori_judul,
             induk: item.induk,
             snippet: snippetText,
-            has_exclusions: (item.deskripsi || '').toLowerCase().includes('tidak mencakup'),
+            has_exclusions: /tidak\s+(?:ini\s+)?(?:mencakup|termasuk)/i.test(item.deskripsi || ''),
             se2026_match: empiricalMatch
         };
     });
@@ -575,7 +576,7 @@ router.get('/detail/:kode', (req, res) => {
             digit: it.digit,
             deskripsi: it.deskripsi,
             snippet: createSnippet(it.deskripsi, '', 160),
-            has_exclusions: (it.deskripsi || '').toLowerCase().includes('tidak mencakup'),
+            has_exclusions: /tidak\s+(?:ini\s+)?(?:mencakup|termasuk)/i.test(it.deskripsi || ''),
             child_count: allItems.filter(c => c.induk === it.kode).length
         }));
 

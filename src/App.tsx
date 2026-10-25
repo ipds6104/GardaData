@@ -55,11 +55,17 @@ function AppContent() {
       const pageParam = params.get('page');
       if (pageParam && VALID_PAGES.has(pageParam)) {
         sessionStorage.setItem('garda_current_page', pageParam);
+        try {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch {}
         return pageParam;
       }
       const hash = window.location.hash.replace('#', '');
       if (hash && VALID_PAGES.has(hash)) {
         sessionStorage.setItem('garda_current_page', hash);
+        try {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch {}
         return hash;
       }
     }

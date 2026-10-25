@@ -32,6 +32,7 @@ import {
 import { TargetFormField } from './CalculatorToolModal';
 import { CurrencyInputField } from './CurrencyInputField';
 import { getKbliSuggestionFromBusinessName, KbliSuggestion } from './kbliRecommender';
+import { prepareTabHandoff } from '../../../lib/auth';
 
 interface CalculatorFormProps {
   formData: FormDataState;
@@ -357,15 +358,15 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
           </p>
         </div>
 
-        {/* Undo and Redo Action Buttons */}
-        <div className="flex items-center gap-1.5 self-start sm:self-auto bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700">
+        {/* Undo, Redo, and Reset Action Buttons */}
+        <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto bg-slate-50 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700">
           <button
             type="button"
             onClick={handleUndo}
             disabled={!canUndo}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
               canUndo
-                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-xs hover:text-[#5B58DE]'
+                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-xs hover:text-[#5B58DE] cursor-pointer'
                 : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
             }`}
             title="Batal perubahan terakhir (Ctrl+Z)"
@@ -380,13 +381,25 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
             disabled={!canRedo}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
               canRedo
-                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-xs hover:text-[#5B58DE]'
+                ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 shadow-xs hover:text-[#5B58DE] cursor-pointer'
                 : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
             }`}
             title="Ulangi perubahan (Ctrl+Y atau Ctrl+Shift+Z)"
           >
             <Redo2 className="w-3.5 h-3.5" />
             <span>Redo</span>
+          </button>
+
+          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
+
+          <button
+            type="button"
+            onClick={handleResetForm}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-200 shadow-xs hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+            title="Kosongkan dan kembalikan seluruh isian form ke awal"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Isian</span>
           </button>
         </div>
       </div>
@@ -409,26 +422,41 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
             className="w-full px-4 py-2.5 text-xs sm:text-sm font-medium bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B58DE]/20 focus:border-[#5B58DE] text-slate-800 dark:text-slate-100 placeholder-slate-400"
           />
           {suggestion && (
-            <div className="mt-2 flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-xl border border-amber-200/80 dark:border-amber-800/60 text-[11px] text-amber-800 dark:text-amber-200 animate-fadeIn">
-              <span className="flex items-center gap-1.5 font-medium truncate">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
-                <span>Saran SE2026: <strong>Kategori {suggestion.kode}</strong> – {suggestion.singkat}</span>
-                {suggestion.matchedKeyword && (
-                  <span className="text-amber-600 dark:text-amber-400 font-normal truncate hidden sm:inline">
-                    (cocok kata "{suggestion.matchedKeyword}")
+            <div className="mt-2 flex items-center justify-between gap-2 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 rounded-xl border border-amber-200/80 dark:border-amber-800/60 text-[11px] text-amber-800 dark:text-amber-200 animate-fadeIn">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+                  <span>
+                    Saran Nama Usaha SE2026: <strong>Kategori {suggestion.kode}</strong> – {suggestion.singkat}
                   </span>
+                  {suggestion.kbli5Digit && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-200/70 dark:bg-amber-900/60 text-amber-900 dark:text-amber-100 font-mono font-bold text-[10px]">
+                      KBLI {suggestion.kbli5Digit}
+                    </span>
+                  )}
+                </div>
+                {(suggestion.kbliJudul || suggestion.matchedKeyword) && (
+                  <div className="text-[10px] text-amber-700/90 dark:text-amber-300/90 mt-0.5 truncate">
+                    {suggestion.kbliJudul && (
+                      <span className="font-semibold">{suggestion.kbliJudul}</span>
+                    )}
+                    {suggestion.kbliJudul && suggestion.matchedKeyword && <span> • </span>}
+                    {suggestion.matchedKeyword && (
+                      <span>pola nama usaha: &ldquo;{suggestion.matchedKeyword}&rdquo;</span>
+                    )}
+                  </div>
                 )}
-              </span>
+              </div>
               {formData.kategoriKode !== suggestion.kode ? (
                 <button
                   type="button"
                   onClick={() => applySuggestion(suggestion.kode)}
-                  className="ml-2 px-2.5 py-0.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] shrink-0 transition shadow-xs cursor-pointer"
+                  className="ml-2 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] shrink-0 transition shadow-xs cursor-pointer"
                 >
                   Terapkan ({suggestion.kode})
                 </button>
               ) : (
-                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider shrink-0 bg-amber-100/80 dark:bg-amber-900/40 px-1.5 py-0.5 rounded-md">
+                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider shrink-0 bg-amber-100/80 dark:bg-amber-900/40 px-2 py-0.5 rounded-md">
                   Aktif
                 </span>
               )}
@@ -454,6 +482,7 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
               href="/?page=kbli-2025"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => prepareTabHandoff()}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800/80 text-[#5B58DE] hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:border-indigo-300 text-xs font-bold shadow-2xs transition-all shrink-0 self-start sm:self-auto group cursor-pointer"
               title="Buka Modul Pencarian KBLI 2025 Garda Data di Tab Baru"
             >
@@ -481,7 +510,7 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
                   <button
                     key={letter}
                     type="button"
-                    onClick={() => handleSelectKbli(letter, true)}
+                    onClick={() => handleSelectKbli(letter)}
                     className={`relative w-8 h-8 rounded-xl font-bold text-xs transition-all shrink-0 flex items-center justify-center cursor-pointer ${
                       isCurrent
                         ? 'bg-[#5B58DE] text-white shadow-md ring-2 ring-[#5B58DE]/30 scale-105'
@@ -697,6 +726,7 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
                     href="/?page=kbli-2025"
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => prepareTabHandoff()}
                     className="inline-flex items-center gap-1 font-bold text-[#5B58DE] hover:underline cursor-pointer"
                   >
                     <span>Buka KBLI 2025</span>

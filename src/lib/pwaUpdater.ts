@@ -63,7 +63,18 @@ export async function clearAppCacheAndReload(): Promise<void> {
       console.log('[PWA] Service Worker berhasil di-unregister');
     }
 
-    // 3. Bersihkan cache sesi halaman tanpa menghapus login (navigasi_token, navigasi_user)
+    // 3. Simpan tiket sesi sementara sebelum membersihkan sessionStorage agar reload resmi tidak memutus sesi aktif
+    try {
+      const userStr = sessionStorage.getItem('navigasi_user');
+      const token = sessionStorage.getItem('navigasi_token');
+      if (userStr) {
+        localStorage.setItem('garda_tab_handoff', JSON.stringify({
+          user: JSON.parse(userStr),
+          token: token || null,
+          expiresAt: Date.now() + 6000
+        }));
+      }
+    } catch {}
     sessionStorage.clear();
 
     // 4. Muat ulang halaman dengan bypass cache menggunakan timestamp unik

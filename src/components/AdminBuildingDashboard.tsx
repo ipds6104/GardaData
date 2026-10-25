@@ -18,7 +18,7 @@ export const AdminBuildingDashboard: React.FC<AdminBuildingDashboardProps> = ({ 
     let active = true;
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('navigasi_token');
+        const token = sessionStorage.getItem('navigasi_token') || localStorage.getItem('navigasi_token');
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
         };
