@@ -1,0 +1,11049 @@
+{
+  "phrases": [
+    [
+      "budidaya ikan air tawar",
+      "A",
+      "03221",
+      85,
+      0.99
+    ],
+    [
+      "air minum isi ulang",
+      "C",
+      "11052",
+      65,
+      0.98
+    ],
+    [
+      "isi ulang air galon",
+      "C",
+      "11052",
+      45,
+      0.98
+    ],
+    [
+      "perusahaan daerah air minum",
+      "E",
+      "36001",
+      15,
+      1.0
+    ],
+    [
+      "utp tanaman pangan",
+      "A",
+      "01122",
+      5771,
+      1.0
+    ],
+    [
+      "kebun kelapa sawit",
+      "A",
+      "01262",
+      1248,
+      1.0
+    ],
+    [
+      "tanaman pangan padi",
+      "A",
+      "01122",
+      1200,
+      1.0
+    ],
+    [
+      "perkebunan kelapa sawit",
+      "A",
+      "01262",
+      980,
+      1.0
+    ],
+    [
+      "padi sawah inbrida",
+      "A",
+      "01122",
+      950,
+      1.0
+    ],
+    [
+      "utp perkebunan kelapa",
+      "A",
+      "01261",
+      471,
+      1.0
+    ],
+    [
+      "utp tanaman padi",
+      "A",
+      "01122",
+      431,
+      1.0
+    ],
+    [
+      "upt tanaman pangan",
+      "A",
+      "01122",
+      358,
+      1.0
+    ],
+    [
+      "utp perkebunan sawit",
+      "A",
+      "01262",
+      325,
+      1.0
+    ],
+    [
+      "peternakan sapi potong",
+      "A",
+      "01411",
+      290,
+      1.0
+    ],
+    [
+      "pertanian padi sawah",
+      "A",
+      "01122",
+      242,
+      1.0
+    ],
+    [
+      "nelayan tangkap ikan",
+      "A",
+      "03110",
+      250,
+      0.99
+    ],
+    [
+      "pertanian kelapa sawit",
+      "A",
+      "01262",
+      224,
+      1.0
+    ],
+    [
+      "budidaya tanaman padi",
+      "A",
+      "01122",
+      216,
+      1.0
+    ],
+    [
+      "tanaman padi sawah",
+      "A",
+      "01122",
+      209,
+      1.0
+    ],
+    [
+      "peternakan ayam kampung",
+      "A",
+      "01464",
+      180,
+      0.99
+    ],
+    [
+      "pertanian padi inbrida",
+      "A",
+      "01122",
+      162,
+      1.0
+    ],
+    [
+      "pembuatan ikan asin",
+      "C",
+      "10211",
+      138,
+      0.99
+    ],
+    [
+      "budidaya padi sawah",
+      "A",
+      "01122",
+      129,
+      1.0
+    ],
+    [
+      "peternakan ayam broiler",
+      "A",
+      "01461",
+      120,
+      0.99
+    ],
+    [
+      "jualan sayur keliling",
+      "G",
+      "47213",
+      120,
+      0.98
+    ],
+    [
+      "sarang burung walet",
+      "A",
+      "01497",
+      110,
+      0.99
+    ],
+    [
+      "budidaya pertanian padi",
+      "A",
+      "01122",
+      100,
+      1.0
+    ],
+    [
+      "pangan padi inbrida",
+      "A",
+      "01122",
+      100,
+      1.0
+    ],
+    [
+      "budidaya tanaman pangan",
+      "A",
+      "01122",
+      98,
+      1.0
+    ],
+    [
+      "utp tanaman kelapa",
+      "A",
+      "01261",
+      94,
+      1.0
+    ],
+    [
+      "bengkel sepeda motor",
+      "G",
+      "95320",
+      95,
+      0.99
+    ],
+    [
+      "toko bahan bangunan",
+      "G",
+      "47521",
+      95,
+      0.99
+    ],
+    [
+      "jual sayur keliling",
+      "G",
+      "47213",
+      95,
+      0.98
+    ],
+    [
+      "pembuatan kue tradisional",
+      "C",
+      "10792",
+      95,
+      0.98
+    ],
+    [
+      "utp perkebunan karet",
+      "A",
+      "01291",
+      90,
+      0.99
+    ],
+    [
+      "budidaya ikan lele",
+      "A",
+      "03221",
+      90,
+      0.99
+    ],
+    [
+      "jual bensin eceran",
+      "G",
+      "47302",
+      85,
+      0.99
+    ],
+    [
+      "jual ikan keliling",
+      "G",
+      "47215",
+      85,
+      0.98
+    ],
+    [
+      "industri kue basah",
+      "C",
+      "10792",
+      85,
+      0.98
+    ],
+    [
+      "peternakan ayam petelur",
+      "A",
+      "01462",
+      80,
+      0.99
+    ],
+    [
+      "upt perkebunan kelapa",
+      "A",
+      "01262",
+      74,
+      1.0
+    ],
+    [
+      "pangkalan gas lpg",
+      "G",
+      "47772",
+      75,
+      0.99
+    ],
+    [
+      "tanaman padi inbrida",
+      "A",
+      "01122",
+      64,
+      1.0
+    ],
+    [
+      "pengolahan ikan asin",
+      "C",
+      "10211",
+      65,
+      0.99
+    ],
+    [
+      "pangkalan gas elpiji",
+      "G",
+      "47772",
+      65,
+      0.99
+    ],
+    [
+      "utp peternakan sapi",
+      "A",
+      "01411",
+      62,
+      1.0
+    ],
+    [
+      "depot air minum",
+      "C",
+      "11052",
+      65,
+      0.98
+    ],
+    [
+      "pengeringan ikan asin",
+      "C",
+      "10211",
+      55,
+      0.99
+    ],
+    [
+      "depot air galon",
+      "C",
+      "11052",
+      55,
+      0.98
+    ],
+    [
+      "pertanian tanaman padi",
+      "A",
+      "01122",
+      49,
+      1.0
+    ],
+    [
+      "utp perkebunan pinang",
+      "A",
+      "01289",
+      47,
+      1.0
+    ],
+    [
+      "utp tanaman pinang",
+      "A",
+      "01289",
+      47,
+      1.0
+    ],
+    [
+      "toko pakan ternak",
+      "G",
+      "47763",
+      45,
+      0.99
+    ],
+    [
+      "pabrik es batu",
+      "D",
+      "35302",
+      45,
+      0.99
+    ],
+    [
+      "koperasi simpan pinjam",
+      "K",
+      "64191",
+      45,
+      0.99
+    ],
+    [
+      "budidaya perkebunan kelapa",
+      "A",
+      "01262",
+      43,
+      1.0
+    ],
+    [
+      "jual ikan segar",
+      "G",
+      "47215",
+      45,
+      0.98
+    ],
+    [
+      "jual beli sawit",
+      "G",
+      "46202",
+      45,
+      0.98
+    ],
+    [
+      "utp pertanian padi",
+      "A",
+      "01122",
+      41,
+      1.0
+    ],
+    [
+      "utp peternakan kambing",
+      "A",
+      "01442",
+      40,
+      1.0
+    ],
+    [
+      "produksi es batu",
+      "D",
+      "35302",
+      40,
+      0.99
+    ],
+    [
+      "angkutan kelapa sawit",
+      "H",
+      "49231",
+      40,
+      0.99
+    ],
+    [
+      "jual beli karet",
+      "G",
+      "46202",
+      40,
+      0.98
+    ],
+    [
+      "praktek mandiri bidan",
+      "Q",
+      "86991",
+      35,
+      0.99
+    ],
+    [
+      "es batu balok",
+      "D",
+      "35302",
+      35,
+      0.99
+    ],
+    [
+      "jual ayam potong",
+      "G",
+      "47214",
+      40,
+      0.95
+    ],
+    [
+      "budidaya tanaman nanas",
+      "A",
+      "01220",
+      33,
+      1.0
+    ],
+    [
+      "pertanian tanaman pangan",
+      "A",
+      "01122",
+      33,
+      1.0
+    ],
+    [
+      "upt tanaman padi",
+      "A",
+      "01122",
+      33,
+      1.0
+    ],
+    [
+      "utp tanaman pisang",
+      "A",
+      "01220",
+      32,
+      1.0
+    ],
+    [
+      "asisten rumah tangga",
+      "T",
+      "97000",
+      30,
+      1.0
+    ],
+    [
+      "pembantu rumah tangga",
+      "T",
+      "97000",
+      30,
+      1.0
+    ],
+    [
+      "jual es batu",
+      "D",
+      "35302",
+      35,
+      0.95
+    ],
+    [
+      "petani padi inbrida",
+      "A",
+      "01122",
+      29,
+      1.0
+    ],
+    [
+      "jualan ikan keliling",
+      "G",
+      "47215",
+      29,
+      1.0
+    ],
+    [
+      "pedagang sayur keliling",
+      "G",
+      "47213",
+      28,
+      1.0
+    ],
+    [
+      "pangan padi sawah",
+      "A",
+      "01122",
+      28,
+      1.0
+    ],
+    [
+      "utp peternakan ayam",
+      "A",
+      "01464",
+      28,
+      0.97
+    ],
+    [
+      "utp tanaman sawit",
+      "A",
+      "01262",
+      25,
+      1.0
+    ],
+    [
+      "tempayan gorong gorong",
+      "C",
+      "23951",
+      25,
+      1.0
+    ],
+    [
+      "warung makan minum",
+      "I",
+      "56101",
+      24,
+      1.0
+    ],
+    [
+      "sawah padi inbrida",
+      "A",
+      "01122",
+      23,
+      1.0
+    ],
+    [
+      "upt peternakan sapi",
+      "A",
+      "01411",
+      23,
+      1.0
+    ],
+    [
+      "tanaman padi hibrida",
+      "A",
+      "01121",
+      23,
+      1.0
+    ],
+    [
+      "perikanan air tawar",
+      "A",
+      "03221",
+      23,
+      1.0
+    ],
+    [
+      "budidaya kelapa sawit",
+      "A",
+      "01262",
+      22,
+      1.0
+    ],
+    [
+      "warung sarapan pagi",
+      "I",
+      "56101",
+      28,
+      0.93
+    ],
+    [
+      "tanaman kelapa sawit",
+      "A",
+      "01262",
+      21,
+      1.0
+    ],
+    [
+      "pertanian pohon karet",
+      "A",
+      "01291",
+      20,
+      1.0
+    ],
+    [
+      "menanam padi sawah",
+      "A",
+      "01122",
+      20,
+      1.0
+    ],
+    [
+      "upt pemantik batu",
+      "B",
+      "08101",
+      20,
+      1.0
+    ],
+    [
+      "rt rw net",
+      "J",
+      "61104",
+      20,
+      0.99
+    ],
+    [
+      "cu pancur kasih",
+      "K",
+      "64191",
+      20,
+      0.99
+    ],
+    [
+      "upt perkebunan karet",
+      "A",
+      "01291",
+      19,
+      1.0
+    ],
+    [
+      "pemulung barang bekas",
+      "E",
+      "38110",
+      20,
+      0.98
+    ],
+    [
+      "pengumpul barang bekas",
+      "E",
+      "38110",
+      20,
+      0.98
+    ],
+    [
+      "jasa angkutan material",
+      "H",
+      "49231",
+      26,
+      0.9
+    ],
+    [
+      "upt memungut hasil",
+      "A",
+      "02202",
+      18,
+      1.0
+    ],
+    [
+      "memungut hasil hutan",
+      "A",
+      "02202",
+      18,
+      1.0
+    ],
+    [
+      "ikan air tawar",
+      "A",
+      "03221",
+      21,
+      0.95
+    ],
+    [
+      "warung gado gado",
+      "I",
+      "56101",
+      17,
+      1.0
+    ],
+    [
+      "pertanian perkebunan kelapa",
+      "A",
+      "01261",
+      17,
+      1.0
+    ],
+    [
+      "tanaman padi inhibrida",
+      "A",
+      "01122",
+      17,
+      1.0
+    ],
+    [
+      "jasa sumur bor",
+      "F",
+      "43120",
+      18,
+      0.98
+    ],
+    [
+      "pasang baja ringan",
+      "F",
+      "43909",
+      18,
+      0.98
+    ],
+    [
+      "upt angkatan tanah",
+      "B",
+      "08101",
+      16,
+      1.0
+    ],
+    [
+      "pertanian ubi kayu",
+      "A",
+      "01135",
+      16,
+      1.0
+    ],
+    [
+      "utp pangan padi",
+      "A",
+      "01122",
+      16,
+      1.0
+    ],
+    [
+      "utp kelapa sawit",
+      "A",
+      "01262",
+      16,
+      1.0
+    ],
+    [
+      "angkatan tanah merah",
+      "B",
+      "08101",
+      18,
+      0.95
+    ],
+    [
+      "ikan asin keliling",
+      "G",
+      "47246",
+      15,
+      1.0
+    ],
+    [
+      "budidaya tanaman duku",
+      "A",
+      "01220",
+      15,
+      1.0
+    ],
+    [
+      "pedagang ikan keliling",
+      "G",
+      "47215",
+      15,
+      1.0
+    ],
+    [
+      "penggalian emas perorangan",
+      "B",
+      "07221",
+      15,
+      1.0
+    ],
+    [
+      "pdam tirta galaherang",
+      "E",
+      "36001",
+      15,
+      1.0
+    ],
+    [
+      "daur ulang sampah",
+      "E",
+      "38210",
+      15,
+      0.99
+    ],
+    [
+      "tanah merah batu",
+      "B",
+      "08101",
+      17,
+      0.94
+    ],
+    [
+      "utp tanaman jagung",
+      "A",
+      "01111",
+      17,
+      0.94
+    ],
+    [
+      "utp hortikultura pisang",
+      "A",
+      "01220",
+      14,
+      1.0
+    ],
+    [
+      "perkebunan pohon kelapa",
+      "A",
+      "01261",
+      14,
+      1.0
+    ],
+    [
+      "utp hortikultura nenas",
+      "A",
+      "01220",
+      13,
+      1.0
+    ],
+    [
+      "sekolah dasar negeri",
+      "P",
+      "85201",
+      15,
+      0.94
+    ],
+    [
+      "peternakan kambing potong",
+      "A",
+      "01442",
+      15,
+      0.94
+    ],
+    [
+      "warung nasi kuning",
+      "I",
+      "56101",
+      15,
+      0.94
+    ],
+    [
+      "upt perkebunan sawit",
+      "A",
+      "01262",
+      12,
+      1.0
+    ],
+    [
+      "cuci motor mobil",
+      "G",
+      "95312",
+      12,
+      1.0
+    ],
+    [
+      "utp tanaman langsat",
+      "A",
+      "01220",
+      12,
+      1.0
+    ],
+    [
+      "mengambil kayu cerucuk",
+      "A",
+      "02202",
+      12,
+      1.0
+    ],
+    [
+      "tanaman pangan ubi",
+      "A",
+      "01135",
+      12,
+      1.0
+    ],
+    [
+      "jasa sedot wc",
+      "E",
+      "37000",
+      12,
+      0.99
+    ],
+    [
+      "pertanian kangkung sawi",
+      "A",
+      "01131",
+      11,
+      1.0
+    ],
+    [
+      "jasa angkutan barang",
+      "H",
+      "49231",
+      11,
+      1.0
+    ],
+    [
+      "tanaman pangan jagung",
+      "A",
+      "01111",
+      11,
+      1.0
+    ],
+    [
+      "tanaman ubi kayu",
+      "A",
+      "01135",
+      11,
+      1.0
+    ],
+    [
+      "utp ubi rambat",
+      "A",
+      "01139",
+      11,
+      1.0
+    ],
+    [
+      "utp budidaya kelapa",
+      "A",
+      "01262",
+      10,
+      1.0
+    ],
+    [
+      "budidaya ikan nila",
+      "A",
+      "03231",
+      10,
+      1.0
+    ],
+    [
+      "jasa angkutan truk",
+      "H",
+      "49231",
+      10,
+      1.0
+    ],
+    [
+      "padi sawah hibrida",
+      "A",
+      "01121",
+      10,
+      1.0
+    ],
+    [
+      "ternak ayam kampung",
+      "A",
+      "01464",
+      10,
+      1.0
+    ],
+    [
+      "jual bunga kertas",
+      "A",
+      "01301",
+      10,
+      1.0
+    ],
+    [
+      "jual barang bekas",
+      "G",
+      "47749",
+      12,
+      0.92
+    ],
+    [
+      "benih ikan nila",
+      "A",
+      "03231",
+      9,
+      1.0
+    ],
+    [
+      "utp tanaman perkebunan",
+      "A",
+      "01262",
+      9,
+      1.0
+    ],
+    [
+      "penyediaan makan minum",
+      "I",
+      "56101",
+      9,
+      1.0
+    ],
+    [
+      "utp hortikultura buah",
+      "A",
+      "01220",
+      9,
+      1.0
+    ],
+    [
+      "sembako kecil kecilan",
+      "G",
+      "47112",
+      9,
+      1.0
+    ],
+    [
+      "upt toko sembako",
+      "G",
+      "47111",
+      9,
+      1.0
+    ],
+    [
+      "pangan ubi kayu",
+      "A",
+      "01135",
+      9,
+      1.0
+    ],
+    [
+      "nelayan perikanan tangkap",
+      "A",
+      "03110",
+      9,
+      1.0
+    ],
+    [
+      "nelayan air tawar",
+      "A",
+      "03120",
+      9,
+      1.0
+    ],
+    [
+      "jasa angkut barang",
+      "H",
+      "49231",
+      11,
+      0.92
+    ],
+    [
+      "pentol kuah keliling",
+      "I",
+      "56102",
+      12,
+      0.86
+    ],
+    [
+      "warung makanan minuman",
+      "I",
+      "56101",
+      12,
+      0.86
+    ],
+    [
+      "pertanian tanaman nanas",
+      "A",
+      "01220",
+      8,
+      1.0
+    ],
+    [
+      "eceran gas lpg",
+      "G",
+      "47772",
+      8,
+      1.0
+    ],
+    [
+      "kantin makan minum",
+      "I",
+      "56101",
+      8,
+      1.0
+    ],
+    [
+      "upt tanam pangan",
+      "A",
+      "01122",
+      8,
+      1.0
+    ],
+    [
+      "jual kue basah",
+      "C",
+      "10792",
+      8,
+      1.0
+    ],
+    [
+      "pembibitan ikan air",
+      "A",
+      "03221",
+      8,
+      1.0
+    ],
+    [
+      "pembibitan penggemukan sapi",
+      "A",
+      "01411",
+      8,
+      1.0
+    ],
+    [
+      "utp padi sawah",
+      "A",
+      "01122",
+      8,
+      1.0
+    ],
+    [
+      "budidaya tanaman kelapa",
+      "A",
+      "01261",
+      10,
+      0.91
+    ],
+    [
+      "penjual sayur keliling",
+      "G",
+      "47213",
+      10,
+      0.91
+    ],
+    [
+      "pengalian emas perorangan",
+      "B",
+      "07221",
+      7,
+      1.0
+    ],
+    [
+      "noreh pohon karet",
+      "A",
+      "01291",
+      7,
+      1.0
+    ],
+    [
+      "nelayan air asin",
+      "A",
+      "03110",
+      7,
+      1.0
+    ],
+    [
+      "bubur nasi kuning",
+      "I",
+      "56101",
+      7,
+      1.0
+    ],
+    [
+      "penebang kayu hutan",
+      "A",
+      "02102",
+      7,
+      1.0
+    ],
+    [
+      "toko sembako kecil",
+      "G",
+      "47112",
+      7,
+      1.0
+    ],
+    [
+      "penjual pentol keliling",
+      "I",
+      "56102",
+      7,
+      1.0
+    ],
+    [
+      "utp ubi kayu",
+      "A",
+      "01135",
+      7,
+      1.0
+    ],
+    [
+      "tambal ban mobil",
+      "G",
+      "95311",
+      7,
+      1.0
+    ],
+    [
+      "budidaya perikanan air",
+      "A",
+      "03221",
+      7,
+      1.0
+    ],
+    [
+      "pedagang ikan segar",
+      "G",
+      "47215",
+      7,
+      1.0
+    ],
+    [
+      "pembuat kue tradisional",
+      "C",
+      "10792",
+      7,
+      1.0
+    ],
+    [
+      "daerah air minum",
+      "E",
+      "36001",
+      7,
+      1.0
+    ],
+    [
+      "perusahaan daerah air",
+      "E",
+      "36001",
+      7,
+      1.0
+    ],
+    [
+      "budidaya tanaman sawit",
+      "A",
+      "01262",
+      7,
+      1.0
+    ],
+    [
+      "pembuat ikan asin",
+      "C",
+      "10211",
+      7,
+      1.0
+    ],
+    [
+      "perkebunan pohon karet",
+      "A",
+      "01291",
+      7,
+      1.0
+    ],
+    [
+      "gas lpg kg",
+      "G",
+      "47772",
+      9,
+      0.9
+    ],
+    [
+      "air isi ulang",
+      "C",
+      "11052",
+      12,
+      0.8
+    ],
+    [
+      "jualan makanan minuman",
+      "I",
+      "56304",
+      8,
+      0.89
+    ],
+    [
+      "angkutan bahan material",
+      "H",
+      "49231",
+      8,
+      0.89
+    ],
+    [
+      "jasa angkutan bahan",
+      "H",
+      "49231",
+      8,
+      0.89
+    ],
+    [
+      "ulang air galon",
+      "C",
+      "11052",
+      8,
+      0.89
+    ],
+    [
+      "kantin sarapan pagi",
+      "I",
+      "56101",
+      6,
+      1.0
+    ],
+    [
+      "budidaya ikan air",
+      "A",
+      "03221",
+      6,
+      1.0
+    ],
+    [
+      "utp holtikultura pinang",
+      "A",
+      "01289",
+      6,
+      1.0
+    ],
+    [
+      "utp penangkapan kepiting",
+      "A",
+      "03120",
+      6,
+      1.0
+    ],
+    [
+      "cuci mobil motor",
+      "G",
+      "95312",
+      6,
+      1.0
+    ],
+    [
+      "hortikultura buah rambutan",
+      "A",
+      "01220",
+      6,
+      1.0
+    ],
+    [
+      "peternakan babi kampung",
+      "A",
+      "01450",
+      6,
+      1.0
+    ],
+    [
+      "jasa service elektronik",
+      "S",
+      "95210",
+      6,
+      1.0
+    ],
+    [
+      "al qur an",
+      "P",
+      "85542",
+      6,
+      1.0
+    ],
+    [
+      "jualan baju online",
+      "G",
+      "47711",
+      6,
+      1.0
+    ],
+    [
+      "utp holtikultura pisang",
+      "A",
+      "01220",
+      6,
+      1.0
+    ],
+    [
+      "warung makan minuman",
+      "I",
+      "56101",
+      6,
+      1.0
+    ],
+    [
+      "pedagang eceran buah",
+      "G",
+      "47212",
+      6,
+      1.0
+    ],
+    [
+      "jual gas elpiji",
+      "G",
+      "47772",
+      6,
+      1.0
+    ],
+    [
+      "pertanian tanaman ubi",
+      "A",
+      "01135",
+      6,
+      1.0
+    ],
+    [
+      "pedagang buah keliling",
+      "G",
+      "47212",
+      6,
+      1.0
+    ],
+    [
+      "budidaya burung walet",
+      "A",
+      "01497",
+      6,
+      1.0
+    ],
+    [
+      "jasa angkutan matrial",
+      "H",
+      "49231",
+      6,
+      1.0
+    ],
+    [
+      "petani padi sawah",
+      "A",
+      "01122",
+      6,
+      1.0
+    ],
+    [
+      "penjual ikan keliling",
+      "G",
+      "47215",
+      6,
+      1.0
+    ],
+    [
+      "perabotan rumah tangga",
+      "G",
+      "47593",
+      6,
+      1.0
+    ],
+    [
+      "tanam padi sawah",
+      "A",
+      "01122",
+      6,
+      1.0
+    ],
+    [
+      "utp tanaman nanas",
+      "A",
+      "01220",
+      6,
+      1.0
+    ],
+    [
+      "pertanian sawah inbrida",
+      "A",
+      "01122",
+      6,
+      1.0
+    ],
+    [
+      "industri gula merah",
+      "C",
+      "10722",
+      6,
+      1.0
+    ],
+    [
+      "kedai makan minum",
+      "I",
+      "56101",
+      6,
+      1.0
+    ],
+    [
+      "penggemukan sapi potong",
+      "A",
+      "01411",
+      6,
+      1.0
+    ],
+    [
+      "minum isi ulang",
+      "C",
+      "11052",
+      6,
+      1.0
+    ],
+    [
+      "air minum isi",
+      "C",
+      "11052",
+      6,
+      1.0
+    ],
+    [
+      "budidaya pisang kepok",
+      "A",
+      "01220",
+      6,
+      1.0
+    ],
+    [
+      "jual motor bekas",
+      "G",
+      "47832",
+      7,
+      0.88
+    ],
+    [
+      "membuat ikan asin",
+      "C",
+      "10211",
+      7,
+      0.88
+    ],
+    [
+      "isi ulang air",
+      "C",
+      "11052",
+      7,
+      0.88
+    ],
+    [
+      "budidaya ayam kampung",
+      "A",
+      "01464",
+      5,
+      1.0
+    ],
+    [
+      "jual buah buahan",
+      "G",
+      "47212",
+      5,
+      1.0
+    ],
+    [
+      "pedagang sayuran keliling",
+      "G",
+      "47213",
+      5,
+      1.0
+    ],
+    [
+      "daging babi keliling",
+      "G",
+      "47214",
+      5,
+      1.0
+    ],
+    [
+      "jasa urut tradisional",
+      "Q",
+      "86992",
+      5,
+      1.0
+    ],
+    [
+      "padi ladang inbrida",
+      "A",
+      "01122",
+      5,
+      1.0
+    ],
+    [
+      "pedagang mainan keliling",
+      "G",
+      "47630",
+      5,
+      1.0
+    ],
+    [
+      "sekolah menengah pertama",
+      "P",
+      "85311",
+      5,
+      1.0
+    ],
+    [
+      "upt ikan asin",
+      "C",
+      "10211",
+      5,
+      1.0
+    ],
+    [
+      "budidya tanaman padi",
+      "A",
+      "01122",
+      5,
+      1.0
+    ],
+    [
+      "pertanian tanaman cabai",
+      "A",
+      "01138",
+      5,
+      1.0
+    ],
+    [
+      "budidaya tanaman pisang",
+      "A",
+      "01220",
+      5,
+      1.0
+    ],
+    [
+      "membudidayakan tanaman pangan",
+      "A",
+      "01122",
+      5,
+      1.0
+    ],
+    [
+      "utp perkebunan durian",
+      "A",
+      "01220",
+      5,
+      1.0
+    ],
+    [
+      "upt jasa pertanian",
+      "A",
+      "01616",
+      5,
+      1.0
+    ],
+    [
+      "ikan asin kering",
+      "C",
+      "10211",
+      5,
+      1.0
+    ],
+    [
+      "tanaman hortikultura pisang",
+      "A",
+      "01220",
+      5,
+      1.0
+    ],
+    [
+      "utp toko sembako",
+      "G",
+      "47112",
+      5,
+      1.0
+    ],
+    [
+      "peternakan ayam pedaging",
+      "A",
+      "01461",
+      5,
+      1.0
+    ],
+    [
+      "utp pertanian pangan",
+      "A",
+      "01122",
+      5,
+      1.0
+    ],
+    [
+      "pedagang ikan asin",
+      "G",
+      "47246",
+      5,
+      1.0
+    ],
+    [
+      "utp hortitikultura semangka",
+      "A",
+      "01132",
+      5,
+      1.0
+    ],
+    [
+      "pembuatan kue basah",
+      "C",
+      "10792",
+      5,
+      1.0
+    ],
+    [
+      "perdagangan batu pasir",
+      "G",
+      "47521",
+      5,
+      1.0
+    ],
+    [
+      "utp pertanian tanaman",
+      "A",
+      "01122",
+      5,
+      1.0
+    ],
+    [
+      "jualan mainan keliling",
+      "G",
+      "47630",
+      5,
+      1.0
+    ],
+    [
+      "utp peternakan babi",
+      "A",
+      "01450",
+      5,
+      1.0
+    ],
+    [
+      "es teh jumbo",
+      "I",
+      "56304",
+      5,
+      1.0
+    ],
+    [
+      "isi ulang gas",
+      "G",
+      "47772",
+      5,
+      1.0
+    ],
+    [
+      "teh es jumbo",
+      "I",
+      "56304",
+      5,
+      1.0
+    ],
+    [
+      "pondok pesantren al",
+      "P",
+      "85541",
+      5,
+      1.0
+    ],
+    [
+      "budidaya penggemukan sapi",
+      "A",
+      "01411",
+      5,
+      1.0
+    ],
+    [
+      "mie ayam bakso",
+      "I",
+      "56101",
+      5,
+      1.0
+    ],
+    [
+      "pom bensin mini",
+      "G",
+      "47302",
+      5,
+      1.0
+    ],
+    [
+      "tanaman pangan hibrida",
+      "A",
+      "01121",
+      5,
+      1.0
+    ],
+    [
+      "noreh kebun karet",
+      "A",
+      "01291",
+      5,
+      1.0
+    ],
+    [
+      "gas lpg 3kg",
+      "G",
+      "47772",
+      5,
+      1.0
+    ],
+    [
+      "upt jasa pemanenan",
+      "A",
+      "01613",
+      5,
+      1.0
+    ],
+    [
+      "perdagangan batu tanah",
+      "G",
+      "47521",
+      5,
+      1.0
+    ],
+    [
+      "utp tanaman hortikultura",
+      "A",
+      "01134",
+      5,
+      1.0
+    ],
+    [
+      "jasa permak pakaian",
+      "S",
+      "95291",
+      6,
+      0.86
+    ],
+    [
+      "sayur ikan keliling",
+      "G",
+      "47213",
+      6,
+      0.86
+    ],
+    [
+      "jual pentol keliling",
+      "I",
+      "56102",
+      6,
+      0.86
+    ],
+    [
+      "pengepul barang bekas",
+      "G",
+      "46796",
+      7,
+      0.78
+    ],
+    [
+      "budidaya pohon kelapa",
+      "A",
+      "01261",
+      4,
+      1.0
+    ],
+    [
+      "menengah pertama negeri",
+      "P",
+      "85311",
+      4,
+      1.0
+    ],
+    [
+      "noreh tanaman karet",
+      "A",
+      "01291",
+      4,
+      1.0
+    ],
+    [
+      "utp perkebunan getah",
+      "A",
+      "01291",
+      4,
+      1.0
+    ],
+    [
+      "tanaman durian lokal",
+      "A",
+      "01220",
+      4,
+      1.0
+    ],
+    [
+      "pangkalan lpg kg",
+      "G",
+      "47772",
+      4,
+      1.0
+    ],
+    [
+      "upt pertanian padi",
+      "A",
+      "01122",
+      4,
+      1.0
+    ],
+    [
+      "kue kering lebaran",
+      "C",
+      "10710",
+      4,
+      1.0
+    ],
+    [
+      "pangan padi hibrida",
+      "A",
+      "01122",
+      4,
+      1.0
+    ],
+    [
+      "parkir truk angkutan",
+      "H",
+      "52214",
+      4,
+      1.0
+    ],
+    [
+      "daya tanaman padi",
+      "A",
+      "01122",
+      4,
+      1.0
+    ],
+    [
+      "pembuatan gula merah",
+      "C",
+      "10722",
+      4,
+      1.0
+    ],
+    [
+      "jualan tahu keliling",
+      "G",
+      "47244",
+      4,
+      1.0
+    ],
+    [
+      "bengkel las mobil",
+      "G",
+      "95311",
+      4,
+      1.0
+    ],
+    [
+      "perdagangan kelapa bulat",
+      "G",
+      "46202",
+      4,
+      1.0
+    ],
+    [
+      "jasa angkut material",
+      "H",
+      "49231",
+      4,
+      1.0
+    ],
+    [
+      "warung kue snack",
+      "G",
+      "47112",
+      4,
+      1.0
+    ],
+    [
+      "menjual sayur keliling",
+      "G",
+      "47213",
+      4,
+      1.0
+    ],
+    [
+      "petani padi inhibrida",
+      "A",
+      "01122",
+      4,
+      1.0
+    ],
+    [
+      "jual nasi kuning",
+      "I",
+      "56101",
+      4,
+      1.0
+    ],
+    [
+      "pembuat kue basah",
+      "C",
+      "10792",
+      4,
+      1.0
+    ],
+    [
+      "kedai nasi kuning",
+      "I",
+      "56101",
+      4,
+      1.0
+    ],
+    [
+      "taman pendidikan al",
+      "P",
+      "85542",
+      4,
+      1.0
+    ],
+    [
+      "noreh getah karet",
+      "A",
+      "01291",
+      4,
+      1.0
+    ],
+    [
+      "ikan sayur keliling",
+      "G",
+      "47215",
+      4,
+      1.0
+    ],
+    [
+      "pertanian jeruk sambal",
+      "A",
+      "01230",
+      4,
+      1.0
+    ],
+    [
+      "peternakan ayam potong",
+      "A",
+      "01461",
+      4,
+      1.0
+    ],
+    [
+      "perkebunan cabe rawit",
+      "A",
+      "01138",
+      4,
+      1.0
+    ],
+    [
+      "ikan segar keliling",
+      "G",
+      "47215",
+      4,
+      1.0
+    ],
+    [
+      "utp perikanan air",
+      "A",
+      "03221",
+      4,
+      1.0
+    ],
+    [
+      "madrasah ibtidaiyah swasta",
+      "P",
+      "85202",
+      4,
+      1.0
+    ],
+    [
+      "gas elpiji kg",
+      "G",
+      "47772",
+      4,
+      1.0
+    ],
+    [
+      "pembuat gula merah",
+      "C",
+      "10722",
+      4,
+      1.0
+    ],
+    [
+      "peternakan burung puyuh",
+      "A",
+      "01466",
+      4,
+      1.0
+    ],
+    [
+      "toko makan minum",
+      "I",
+      "56101",
+      4,
+      1.0
+    ],
+    [
+      "pencucian motor mobil",
+      "G",
+      "95312",
+      4,
+      1.0
+    ],
+    [
+      "pertanian kacang panjang",
+      "A",
+      "01116",
+      4,
+      1.0
+    ],
+    [
+      "budidaya pembibitan penggemukan",
+      "A",
+      "01411",
+      4,
+      1.0
+    ],
+    [
+      "gas elpiji 3kg",
+      "G",
+      "47772",
+      4,
+      1.0
+    ],
+    [
+      "penangkapan ikan laut",
+      "A",
+      "03110",
+      4,
+      1.0
+    ],
+    [
+      "utp kebun sawit",
+      "A",
+      "01262",
+      4,
+      1.0
+    ],
+    [
+      "pedagang eceran gas",
+      "G",
+      "47772",
+      4,
+      1.0
+    ],
+    [
+      "menjual sarapan pagi",
+      "I",
+      "56101",
+      4,
+      1.0
+    ],
+    [
+      "membuat gula merah",
+      "C",
+      "10722",
+      4,
+      1.0
+    ],
+    [
+      "budidaya peternakan kambing",
+      "A",
+      "01442",
+      4,
+      1.0
+    ],
+    [
+      "jual es tebu",
+      "I",
+      "56304",
+      10,
+      0.67
+    ],
+    [
+      "angkutan tanah merah",
+      "B",
+      "08101",
+      5,
+      0.83
+    ],
+    [
+      "toko sarapan pagi",
+      "I",
+      "56101",
+      5,
+      0.83
+    ],
+    [
+      "perkebunan kelapa pinang",
+      "A",
+      "01261",
+      5,
+      0.83
+    ],
+    [
+      "toko ikan hias",
+      "G",
+      "47753",
+      3,
+      1.0
+    ],
+    [
+      "toko sinar harapan",
+      "G",
+      "47112",
+      3,
+      1.0
+    ],
+    [
+      "warung ayam geprek",
+      "I",
+      "56101",
+      3,
+      1.0
+    ],
+    [
+      "penjual ikan asin",
+      "G",
+      "47246",
+      3,
+      1.0
+    ],
+    [
+      "menjual bensin eceran",
+      "G",
+      "47302",
+      3,
+      1.0
+    ],
+    [
+      "utp kue tradisional",
+      "C",
+      "10792",
+      3,
+      1.0
+    ],
+    [
+      "utp penyediaan makan",
+      "I",
+      "56101",
+      3,
+      1.0
+    ],
+    [
+      "jualan buah keliling",
+      "G",
+      "47212",
+      3,
+      1.0
+    ],
+    [
+      "warung sembako kecil",
+      "G",
+      "47112",
+      3,
+      1.0
+    ],
+    [
+      "jualan sosis keliling",
+      "I",
+      "56306",
+      3,
+      1.0
+    ],
+    [
+      "membuat kue tradisional",
+      "C",
+      "10792",
+      3,
+      1.0
+    ],
+    [
+      "pedagang bensin eceran",
+      "G",
+      "47302",
+      3,
+      1.0
+    ],
+    [
+      "rumah makan padang",
+      "I",
+      "56101",
+      3,
+      1.0
+    ],
+    [
+      "bengkel tambal ban",
+      "G",
+      "95311",
+      3,
+      1.0
+    ],
+    [
+      "jual bensin ecer",
+      "G",
+      "47302",
+      3,
+      1.0
+    ],
+    [
+      "jual kelapa pisang",
+      "G",
+      "47212",
+      3,
+      1.0
+    ],
+    [
+      "pedagang ayam potong",
+      "G",
+      "47214",
+      3,
+      1.0
+    ],
+    [
+      "pendidikan al qur",
+      "P",
+      "85542",
+      3,
+      1.0
+    ],
+    [
+      "angkutan pick up",
+      "H",
+      "49231",
+      3,
+      1.0
+    ],
+    [
+      "makanan sarapan pagi",
+      "I",
+      "56101",
+      3,
+      1.0
+    ],
+    [
+      "bengkel servis motor",
+      "G",
+      "95320",
+      3,
+      1.0
+    ],
+    [
+      "jual buah nanas",
+      "G",
+      "47219",
+      3,
+      1.0
+    ],
+    [
+      "penjual aksesoris keliling",
+      "G",
+      "47192",
+      3,
+      1.0
+    ],
+    [
+      "dagang ikan asin",
+      "G",
+      "47215",
+      3,
+      1.0
+    ],
+    [
+      "ayam geprek sambal",
+      "I",
+      "56102",
+      3,
+      1.0
+    ],
+    [
+      "jual pakaian bekas",
+      "G",
+      "47742",
+      3,
+      1.0
+    ],
+    [
+      "warung mie ayam",
+      "I",
+      "56101",
+      3,
+      1.0
+    ],
+    [
+      "sekolah sd negeri",
+      "P",
+      "85201",
+      3,
+      1.0
+    ],
+    [
+      "kedai makanan minuman",
+      "I",
+      "56102",
+      3,
+      1.0
+    ],
+    [
+      "jual minyak eceran",
+      "G",
+      "47302",
+      3,
+      1.0
+    ],
+    [
+      "sopir jasa angkut",
+      "H",
+      "49231",
+      3,
+      1.0
+    ],
+    [
+      "dagang sayur keliling",
+      "G",
+      "47213",
+      3,
+      1.0
+    ],
+    [
+      "warung minuman es",
+      "I",
+      "56304",
+      3,
+      1.0
+    ],
+    [
+      "gas elpiji eceran",
+      "G",
+      "47772",
+      3,
+      1.0
+    ],
+    [
+      "utp pemantik batu",
+      "B",
+      "08101",
+      3,
+      1.0
+    ],
+    [
+      "jualan es keliling",
+      "I",
+      "56306",
+      3,
+      1.0
+    ],
+    [
+      "dagang ikan keliling",
+      "G",
+      "47753",
+      3,
+      1.0
+    ],
+    [
+      "gula merah kelapa",
+      "C",
+      "10722",
+      3,
+      1.0
+    ],
+    [
+      "pembuatan kue donat",
+      "C",
+      "10792",
+      3,
+      1.0
+    ],
+    [
+      "pom mini bensin",
+      "G",
+      "47302",
+      3,
+      1.0
+    ],
+    [
+      "kios bensin eceran",
+      "G",
+      "47302",
+      3,
+      1.0
+    ],
+    [
+      "eceran gas elpiji",
+      "G",
+      "47772",
+      3,
+      1.0
+    ],
+    [
+      "jual buah keliling",
+      "G",
+      "47212",
+      3,
+      1.0
+    ],
+    [
+      "nasi kuning bubur",
+      "I",
+      "56101",
+      3,
+      1.0
+    ],
+    [
+      "rumah makan minang",
+      "I",
+      "56101",
+      3,
+      1.0
+    ],
+    [
+      "jasa angkut truck",
+      "H",
+      "49233",
+      3,
+      1.0
+    ],
+    [
+      "tukang pijat tradisional",
+      "Q",
+      "86992",
+      3,
+      1.0
+    ],
+    [
+      "jualan minuman sachet",
+      "I",
+      "56304",
+      3,
+      1.0
+    ],
+    [
+      "pencucian mobil motor",
+      "G",
+      "95312",
+      3,
+      1.0
+    ],
+    [
+      "jual sayuran keliling",
+      "G",
+      "47213",
+      3,
+      1.0
+    ],
+    [
+      "utp warung sembako",
+      "G",
+      "47112",
+      3,
+      1.0
+    ],
+    [
+      "jual gas lpg",
+      "G",
+      "47772",
+      3,
+      1.0
+    ],
+    [
+      "penyewaan sound sistem",
+      "N",
+      "77291",
+      3,
+      1.0
+    ],
+    [
+      "utp gas eceran",
+      "G",
+      "47772",
+      3,
+      1.0
+    ],
+    [
+      "penjual gas eceran",
+      "G",
+      "47772",
+      3,
+      1.0
+    ],
+    [
+      "jasa angkutan truck",
+      "H",
+      "49233",
+      3,
+      1.0
+    ],
+    [
+      "truk angkutan solar",
+      "H",
+      "52214",
+      3,
+      1.0
+    ],
+    [
+      "jasa tukang parkir",
+      "H",
+      "52214",
+      3,
+      1.0
+    ],
+    [
+      "jual motor seken",
+      "G",
+      "47832",
+      3,
+      1.0
+    ],
+    [
+      "eceran buah buahan",
+      "G",
+      "47212",
+      3,
+      1.0
+    ],
+    [
+      "jual sayur ikan",
+      "G",
+      "47213",
+      3,
+      1.0
+    ],
+    [
+      "kantin kk smpn",
+      "I",
+      "56101",
+      3,
+      1.0
+    ],
+    [
+      "penjualan sayur keliling",
+      "G",
+      "47213",
+      3,
+      1.0
+    ],
+    [
+      "jual mobil bekas",
+      "G",
+      "47812",
+      3,
+      1.0
+    ],
+    [
+      "menjual aneka minuman",
+      "I",
+      "56304",
+      4,
+      0.8
+    ],
+    [
+      "jual ayam kampung",
+      "G",
+      "47214",
+      4,
+      0.8
+    ],
+    [
+      "jual tanah merah",
+      "G",
+      "46734",
+      4,
+      0.8
+    ],
+    [
+      "peternakan burung walet",
+      "A",
+      "01497",
+      4,
+      0.8
+    ],
+    [
+      "kantin sekolah smpn",
+      "G",
+      "47112",
+      4,
+      0.8
+    ],
+    [
+      "sewa kontrakan rumah",
+      "L",
+      "68112",
+      4,
+      0.8
+    ],
+    [
+      "warung makanan ringan",
+      "I",
+      "56101",
+      5,
+      0.71
+    ],
+    [
+      "tukang sayur keliling",
+      "G",
+      "47213",
+      5,
+      0.71
+    ],
+    [
+      "meubel sumber harapan",
+      "C",
+      "31011",
+      2,
+      1.0
+    ],
+    [
+      "gado gado sumber",
+      "I",
+      "56102",
+      2,
+      1.0
+    ],
+    [
+      "penjualan bbm pertalite",
+      "G",
+      "47302",
+      2,
+      1.0
+    ],
+    [
+      "bengkel sinar motor",
+      "G",
+      "95320",
+      2,
+      1.0
+    ],
+    [
+      "jasa guru ngaji",
+      "P",
+      "85542",
+      2,
+      1.0
+    ],
+    [
+      "jual pakaian online",
+      "G",
+      "47742",
+      2,
+      1.0
+    ],
+    [
+      "aneka kue tradisional",
+      "C",
+      "10792",
+      2,
+      1.0
+    ],
+    [
+      "jual daging babi",
+      "G",
+      "47214",
+      2,
+      1.0
+    ],
+    [
+      "dagang buah keliling",
+      "G",
+      "47212",
+      2,
+      1.0
+    ],
+    [
+      "pembuatan kue bolu",
+      "C",
+      "10792",
+      2,
+      1.0
+    ],
+    [
+      "jual kue kering",
+      "C",
+      "10710",
+      2,
+      1.0
+    ],
+    [
+      "jual pakaian lelong",
+      "G",
+      "47742",
+      2,
+      1.0
+    ],
+    [
+      "jual tabung gas",
+      "G",
+      "47772",
+      2,
+      1.0
+    ],
+    [
+      "es krim tradisional",
+      "I",
+      "56306",
+      2,
+      1.0
+    ],
+    [
+      "pondok pesantren darul",
+      "P",
+      "85541",
+      2,
+      1.0
+    ],
+    [
+      "jual material bangunan",
+      "G",
+      "46734",
+      2,
+      1.0
+    ],
+    [
+      "jualan air galon",
+      "G",
+      "47222",
+      2,
+      1.0
+    ],
+    [
+      "pinang roti bakar",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "apam pinang roti",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "penyedia makanan minuman",
+      "I",
+      "56102",
+      2,
+      1.0
+    ],
+    [
+      "sppg bakau kecil",
+      "I",
+      "56290",
+      2,
+      1.0
+    ],
+    [
+      "penjual es batu",
+      "D",
+      "35302",
+      2,
+      1.0
+    ],
+    [
+      "pembuatan gorong gorong",
+      "C",
+      "23951",
+      2,
+      1.0
+    ],
+    [
+      "truk angkutan minyak",
+      "H",
+      "52214",
+      2,
+      1.0
+    ],
+    [
+      "angkutan minyak solar",
+      "H",
+      "52214",
+      2,
+      1.0
+    ],
+    [
+      "jasa parkir truk",
+      "H",
+      "52214",
+      2,
+      1.0
+    ],
+    [
+      "isi ulang bensin",
+      "G",
+      "47301",
+      2,
+      1.0
+    ],
+    [
+      "penyediaan makan minuman",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "jualan bubur nasi",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "tukang gigi palsu",
+      "C",
+      "32509",
+      2,
+      1.0
+    ],
+    [
+      "jasa tukang gigi",
+      "C",
+      "32509",
+      2,
+      1.0
+    ],
+    [
+      "praktik mandiri dokter",
+      "Q",
+      "86910",
+      2,
+      1.0
+    ],
+    [
+      "perdagangan sayur keliling",
+      "G",
+      "47213",
+      2,
+      1.0
+    ],
+    [
+      "jual es saset",
+      "I",
+      "56304",
+      2,
+      1.0
+    ],
+    [
+      "penyediaan makanan minuman",
+      "I",
+      "56400",
+      2,
+      1.0
+    ],
+    [
+      "jualan minuman es",
+      "I",
+      "56304",
+      2,
+      1.0
+    ],
+    [
+      "jual es jagung",
+      "I",
+      "56304",
+      2,
+      1.0
+    ],
+    [
+      "bahan material pupuk",
+      "H",
+      "49231",
+      2,
+      1.0
+    ],
+    [
+      "jual baju online",
+      "G",
+      "47711",
+      2,
+      1.0
+    ],
+    [
+      "pengepul barang rongsokan",
+      "G",
+      "46796",
+      2,
+      1.0
+    ],
+    [
+      "pedagang keliling ikan",
+      "G",
+      "47215",
+      2,
+      1.0
+    ],
+    [
+      "penggilingan padi sumber",
+      "C",
+      "10631",
+      2,
+      1.0
+    ],
+    [
+      "sosis goreng keliling",
+      "I",
+      "56102",
+      2,
+      1.0
+    ],
+    [
+      "jasa ukir batu",
+      "C",
+      "23969",
+      2,
+      1.0
+    ],
+    [
+      "jual nanas keliling",
+      "G",
+      "47212",
+      2,
+      1.0
+    ],
+    [
+      "toko parut kelapa",
+      "C",
+      "10793",
+      2,
+      1.0
+    ],
+    [
+      "penggalian batu tanah",
+      "B",
+      "08109",
+      2,
+      1.0
+    ],
+    [
+      "sembako makanan ringan",
+      "G",
+      "47112",
+      2,
+      1.0
+    ],
+    [
+      "rumah makan sederhana",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "pedagang kelapa keliling",
+      "G",
+      "46202",
+      2,
+      1.0
+    ],
+    [
+      "jual bahan material",
+      "G",
+      "47521",
+      2,
+      1.0
+    ],
+    [
+      "jasa pijit badan",
+      "Q",
+      "86992",
+      2,
+      1.0
+    ],
+    [
+      "kue kering keliling",
+      "G",
+      "47242",
+      2,
+      1.0
+    ],
+    [
+      "mengaji al qur",
+      "P",
+      "85549",
+      2,
+      1.0
+    ],
+    [
+      "pedagang kelapa bulat",
+      "G",
+      "47212",
+      2,
+      1.0
+    ],
+    [
+      "jasa angkutan pick",
+      "H",
+      "49231",
+      2,
+      1.0
+    ],
+    [
+      "pedagang buah buahan",
+      "G",
+      "47212",
+      2,
+      1.0
+    ],
+    [
+      "jual minuman sachet",
+      "I",
+      "56304",
+      2,
+      1.0
+    ],
+    [
+      "jual ikan sayur",
+      "G",
+      "47213",
+      2,
+      1.0
+    ],
+    [
+      "service barang elektronik",
+      "S",
+      "95210",
+      2,
+      1.0
+    ],
+    [
+      "ulang tabung gas",
+      "G",
+      "47772",
+      2,
+      1.0
+    ],
+    [
+      "isi ulang tabung",
+      "G",
+      "47772",
+      2,
+      1.0
+    ],
+    [
+      "toko perabotan rumah",
+      "G",
+      "47599",
+      2,
+      1.0
+    ],
+    [
+      "jasa cuci motor",
+      "G",
+      "95320",
+      2,
+      1.0
+    ],
+    [
+      "jual minuman keliling",
+      "I",
+      "56306",
+      2,
+      1.0
+    ],
+    [
+      "penjualan es batu",
+      "D",
+      "35302",
+      2,
+      1.0
+    ],
+    [
+      "toko variasi mobil",
+      "G",
+      "95311",
+      2,
+      1.0
+    ],
+    [
+      "industri kue donat",
+      "C",
+      "10792",
+      2,
+      1.0
+    ],
+    [
+      "produksi kue basah",
+      "C",
+      "10792",
+      2,
+      1.0
+    ],
+    [
+      "gas tabung lpg",
+      "G",
+      "47772",
+      2,
+      1.0
+    ],
+    [
+      "ulang gas lpg",
+      "G",
+      "47772",
+      2,
+      1.0
+    ],
+    [
+      "warung kopi segar",
+      "I",
+      "56304",
+      2,
+      1.0
+    ],
+    [
+      "warung nasi padang",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "bidan praktek mandiri",
+      "Q",
+      "86991",
+      2,
+      1.0
+    ],
+    [
+      "jual minuman es",
+      "I",
+      "56303",
+      2,
+      1.0
+    ],
+    [
+      "warung es sachet",
+      "G",
+      "47222",
+      2,
+      1.0
+    ],
+    [
+      "jual minyak bensin",
+      "G",
+      "47302",
+      2,
+      1.0
+    ],
+    [
+      "jasa perbaikan mobil",
+      "G",
+      "95311",
+      2,
+      1.0
+    ],
+    [
+      "jasa pijat tradisional",
+      "Q",
+      "86992",
+      2,
+      1.0
+    ],
+    [
+      "parfum isi ulang",
+      "G",
+      "47724",
+      2,
+      1.0
+    ],
+    [
+      "pengepul buah buahan",
+      "G",
+      "46312",
+      2,
+      1.0
+    ],
+    [
+      "pedagang keliling sayur",
+      "G",
+      "47213",
+      2,
+      1.0
+    ],
+    [
+      "tk atap sd",
+      "P",
+      "85101",
+      2,
+      1.0
+    ],
+    [
+      "perdagangan kelapa tua",
+      "G",
+      "46202",
+      2,
+      1.0
+    ],
+    [
+      "warung pentol kuah",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "jualan minuman keliling",
+      "I",
+      "56306",
+      2,
+      1.0
+    ],
+    [
+      "es parut keliling",
+      "I",
+      "56306",
+      2,
+      1.0
+    ],
+    [
+      "madrasah ibtidaiyah al",
+      "P",
+      "85203",
+      2,
+      1.0
+    ],
+    [
+      "jualan rujak keliling",
+      "I",
+      "56102",
+      2,
+      1.0
+    ],
+    [
+      "jualan kue basah",
+      "C",
+      "10792",
+      2,
+      1.0
+    ],
+    [
+      "menjual perabotan rumah",
+      "G",
+      "47593",
+      2,
+      1.0
+    ],
+    [
+      "ikan air laut",
+      "C",
+      "10211",
+      2,
+      1.0
+    ],
+    [
+      "pengeringan ikan air",
+      "C",
+      "10211",
+      2,
+      1.0
+    ],
+    [
+      "paud tunas harapan",
+      "P",
+      "85101",
+      2,
+      1.0
+    ],
+    [
+      "jualan ikan sayur",
+      "G",
+      "47215",
+      2,
+      1.0
+    ],
+    [
+      "perabot rumah tangga",
+      "G",
+      "47599",
+      2,
+      1.0
+    ],
+    [
+      "pedagang ikan pasar",
+      "G",
+      "47753",
+      2,
+      1.0
+    ],
+    [
+      "jualan apam pinang",
+      "I",
+      "56102",
+      2,
+      1.0
+    ],
+    [
+      "warung es snack",
+      "I",
+      "56304",
+      2,
+      1.0
+    ],
+    [
+      "menjual kue jajanan",
+      "G",
+      "47242",
+      2,
+      1.0
+    ],
+    [
+      "jual buah kelapa",
+      "G",
+      "46202",
+      2,
+      1.0
+    ],
+    [
+      "kantor cabang pembantu",
+      "H",
+      "53100",
+      2,
+      1.0
+    ],
+    [
+      "jualan sarapan pagi",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "jualan barang online",
+      "G",
+      "47901",
+      2,
+      1.0
+    ],
+    [
+      "jualan gorengan minuman",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "tabung gas lpg",
+      "G",
+      "47772",
+      2,
+      1.0
+    ],
+    [
+      "pemasangan instalasi listrik",
+      "F",
+      "43211",
+      2,
+      1.0
+    ],
+    [
+      "mainan anak anak",
+      "G",
+      "47630",
+      2,
+      1.0
+    ],
+    [
+      "jajanan kue tradisional",
+      "C",
+      "10792",
+      2,
+      1.0
+    ],
+    [
+      "ulang gas elpiji",
+      "G",
+      "47772",
+      2,
+      1.0
+    ],
+    [
+      "menjual aneka kue",
+      "C",
+      "10794",
+      2,
+      1.0
+    ],
+    [
+      "mts al falah",
+      "P",
+      "85311",
+      2,
+      1.0
+    ],
+    [
+      "penjual es kelapa",
+      "I",
+      "56304",
+      2,
+      1.0
+    ],
+    [
+      "jual daging keliling",
+      "G",
+      "46323",
+      2,
+      1.0
+    ],
+    [
+      "jualan gas eceran",
+      "G",
+      "47772",
+      2,
+      1.0
+    ],
+    [
+      "jasa parut kelapa",
+      "C",
+      "10793",
+      2,
+      1.0
+    ],
+    [
+      "penjualan kue tradisional",
+      "C",
+      "10792",
+      2,
+      1.0
+    ],
+    [
+      "al ma wajok",
+      "P",
+      "85317",
+      2,
+      1.0
+    ],
+    [
+      "madrasah aliyah al",
+      "P",
+      "85317",
+      2,
+      1.0
+    ],
+    [
+      "jual gado gado",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "perdagangan kelapa sawit",
+      "G",
+      "46202",
+      2,
+      1.0
+    ],
+    [
+      "pengepul getah karet",
+      "G",
+      "46793",
+      2,
+      1.0
+    ],
+    [
+      "sate ayam bakar",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "perdagangan tanah batu",
+      "G",
+      "47521",
+      2,
+      1.0
+    ],
+    [
+      "dagang sayuran keliling",
+      "G",
+      "47213",
+      2,
+      1.0
+    ],
+    [
+      "toko material bangunan",
+      "G",
+      "47521",
+      2,
+      1.0
+    ],
+    [
+      "bahan bakar eceran",
+      "G",
+      "47301",
+      2,
+      1.0
+    ],
+    [
+      "penyedia makan minum",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "kantin es gorengan",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "reparasi alat elektronik",
+      "S",
+      "95210",
+      2,
+      1.0
+    ],
+    [
+      "jasa angkutan umum",
+      "H",
+      "49294",
+      2,
+      1.0
+    ],
+    [
+      "warung makan sarapan",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "kios bensin solar",
+      "G",
+      "47302",
+      2,
+      1.0
+    ],
+    [
+      "pt aneka sejahtera",
+      "G",
+      "47831",
+      2,
+      1.0
+    ],
+    [
+      "jasa permak baju",
+      "S",
+      "95291",
+      2,
+      1.0
+    ],
+    [
+      "warung es buah",
+      "I",
+      "56306",
+      2,
+      1.0
+    ],
+    [
+      "toko pakaian bekas",
+      "G",
+      "47742",
+      2,
+      1.0
+    ],
+    [
+      "servis barang elektronik",
+      "S",
+      "95210",
+      2,
+      1.0
+    ],
+    [
+      "warung jajanan anak",
+      "G",
+      "47112",
+      2,
+      1.0
+    ],
+    [
+      "pembuatan gigi palsu",
+      "C",
+      "32502",
+      2,
+      1.0
+    ],
+    [
+      "jual buah sawit",
+      "G",
+      "46202",
+      2,
+      1.0
+    ],
+    [
+      "pedagang karpet keliling",
+      "G",
+      "47530",
+      2,
+      1.0
+    ],
+    [
+      "les privat bahasa",
+      "P",
+      "85593",
+      2,
+      1.0
+    ],
+    [
+      "penjual buah keliling",
+      "G",
+      "47212",
+      2,
+      1.0
+    ],
+    [
+      "warkop sinar pagi",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "jual atap daun",
+      "C",
+      "16292",
+      2,
+      1.0
+    ],
+    [
+      "pedagang ayam kampung",
+      "G",
+      "47752",
+      2,
+      1.0
+    ],
+    [
+      "warung sembako snack",
+      "G",
+      "47112",
+      2,
+      1.0
+    ],
+    [
+      "jual motor second",
+      "G",
+      "47832",
+      2,
+      1.0
+    ],
+    [
+      "membuat sayur jadi",
+      "C",
+      "10750",
+      2,
+      1.0
+    ],
+    [
+      "barang pecah belah",
+      "G",
+      "47741",
+      2,
+      1.0
+    ],
+    [
+      "koperasi sd negeri",
+      "G",
+      "47611",
+      2,
+      1.0
+    ],
+    [
+      "bawang merah putih",
+      "G",
+      "47213",
+      2,
+      1.0
+    ],
+    [
+      "atap daun nipah",
+      "C",
+      "16292",
+      2,
+      1.0
+    ],
+    [
+      "penyewaan alat musik",
+      "N",
+      "77292",
+      2,
+      1.0
+    ],
+    [
+      "menjual ikan keliling",
+      "G",
+      "47215",
+      2,
+      1.0
+    ],
+    [
+      "jualan online pakaian",
+      "G",
+      "47711",
+      2,
+      1.0
+    ],
+    [
+      "rumah makan berkah",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "jasa pembuatan sampan",
+      "C",
+      "30113",
+      2,
+      1.0
+    ],
+    [
+      "alat alat elektronik",
+      "S",
+      "95220",
+      2,
+      1.0
+    ],
+    [
+      "reparasi alat alat",
+      "S",
+      "95220",
+      2,
+      1.0
+    ],
+    [
+      "upt pembuatan tahu",
+      "C",
+      "10309",
+      2,
+      1.0
+    ],
+    [
+      "perdagangan buah kelapa",
+      "G",
+      "46202",
+      2,
+      1.0
+    ],
+    [
+      "tukang parkir truk",
+      "H",
+      "52214",
+      2,
+      1.0
+    ],
+    [
+      "bengkel service motor",
+      "G",
+      "95320",
+      2,
+      1.0
+    ],
+    [
+      "penjahit vermak pakaian",
+      "S",
+      "95291",
+      2,
+      1.0
+    ],
+    [
+      "donat aneka rasa",
+      "C",
+      "10792",
+      2,
+      1.0
+    ],
+    [
+      "kantin mi raudhatul",
+      "I",
+      "56304",
+      2,
+      1.0
+    ],
+    [
+      "kedai mie ayam",
+      "I",
+      "56101",
+      2,
+      1.0
+    ],
+    [
+      "jual es baru",
+      "D",
+      "35302",
+      2,
+      1.0
+    ],
+    [
+      "toko sendal sepatu",
+      "G",
+      "47712",
+      2,
+      1.0
+    ],
+    [
+      "menjual gorengan keliling",
+      "I",
+      "56102",
+      2,
+      1.0
+    ],
+    [
+      "toko kaca sinar",
+      "C",
+      "23121",
+      2,
+      1.0
+    ],
+    [
+      "penjual pentol kuah",
+      "I",
+      "56102",
+      2,
+      1.0
+    ],
+    [
+      "menjual bahan bakar",
+      "G",
+      "47302",
+      2,
+      1.0
+    ],
+    [
+      "pengepul buah sawit",
+      "G",
+      "46202",
+      2,
+      1.0
+    ],
+    [
+      "pembuatan kue kering",
+      "C",
+      "10710",
+      2,
+      1.0
+    ],
+    [
+      "praktek dokter umum",
+      "Q",
+      "86910",
+      2,
+      1.0
+    ],
+    [
+      "membuat kue donat",
+      "C",
+      "10710",
+      2,
+      1.0
+    ],
+    [
+      "penjual manisan keliling",
+      "C",
+      "10733",
+      2,
+      1.0
+    ],
+    [
+      "jual pakaian second",
+      "G",
+      "47742",
+      2,
+      1.0
+    ],
+    [
+      "madrasah aliyah darul",
+      "P",
+      "85317",
+      2,
+      1.0
+    ],
+    [
+      "keripik ubi pedas",
+      "C",
+      "10794",
+      2,
+      1.0
+    ],
+    [
+      "ubi pedas manis",
+      "C",
+      "10794",
+      2,
+      1.0
+    ],
+    [
+      "mi sagu cendol",
+      "C",
+      "10792",
+      2,
+      1.0
+    ],
+    [
+      "jasa jual motor",
+      "G",
+      "47832",
+      2,
+      1.0
+    ],
+    [
+      "jajanan kue basah",
+      "C",
+      "10792",
+      2,
+      1.0
+    ],
+    [
+      "pembuat kue keranjang",
+      "C",
+      "10796",
+      2,
+      1.0
+    ],
+    [
+      "jual pisang keliling",
+      "G",
+      "47212",
+      2,
+      1.0
+    ],
+    [
+      "jasa cuci baju",
+      "S",
+      "96900",
+      2,
+      1.0
+    ],
+    [
+      "jual es buah",
+      "I",
+      "56304",
+      2,
+      1.0
+    ],
+    [
+      "jasa jual mobil",
+      "G",
+      "47812",
+      2,
+      1.0
+    ],
+    [
+      "toko es tebu",
+      "I",
+      "56304",
+      2,
+      1.0
+    ],
+    [
+      "jajan anak anak",
+      "G",
+      "47112",
+      2,
+      1.0
+    ],
+    [
+      "servis jam tangan",
+      "S",
+      "95299",
+      2,
+      1.0
+    ],
+    [
+      "jual sate ayam",
+      "I",
+      "56102",
+      2,
+      1.0
+    ],
+    [
+      "pembuatan kue apam",
+      "C",
+      "10792",
+      2,
+      1.0
+    ],
+    [
+      "menjual sayur ikan",
+      "G",
+      "47249",
+      2,
+      1.0
+    ],
+    [
+      "jual pakaian keliling",
+      "G",
+      "47711",
+      2,
+      1.0
+    ],
+    [
+      "membuat kue kering",
+      "C",
+      "10750",
+      2,
+      1.0
+    ],
+    [
+      "membuat menjual ikan",
+      "C",
+      "10211",
+      2,
+      1.0
+    ],
+    [
+      "sewa sound sistem",
+      "N",
+      "77291",
+      2,
+      1.0
+    ],
+    [
+      "jual sate keliling",
+      "I",
+      "56102",
+      2,
+      1.0
+    ],
+    [
+      "parkir angkutan solar",
+      "H",
+      "52214",
+      2,
+      1.0
+    ],
+    [
+      "jual es sachet",
+      "I",
+      "56304",
+      2,
+      1.0
+    ],
+    [
+      "penggilingan padi tani",
+      "C",
+      "10631",
+      2,
+      1.0
+    ],
+    [
+      "truck angkutan tanah",
+      "H",
+      "49232",
+      2,
+      1.0
+    ],
+    [
+      "pembuatan tapai singkong",
+      "C",
+      "10613",
+      2,
+      1.0
+    ],
+    [
+      "jual pentol kuah",
+      "I",
+      "56102",
+      2,
+      1.0
+    ],
+    [
+      "utp ikan asin",
+      "C",
+      "10291",
+      2,
+      1.0
+    ],
+    [
+      "jasa bengkel motor",
+      "G",
+      "95320",
+      2,
+      1.0
+    ],
+    [
+      "perdagangan ikan keliling",
+      "G",
+      "46324",
+      2,
+      1.0
+    ],
+    [
+      "pt tbk cabang",
+      "K",
+      "64121",
+      2,
+      1.0
+    ],
+    [
+      "pt bank mandiri",
+      "K",
+      "64121",
+      2,
+      1.0
+    ],
+    [
+      "bank mandiri tbk",
+      "K",
+      "64121",
+      2,
+      1.0
+    ],
+    [
+      "menjual ikan asin",
+      "C",
+      "10211",
+      4,
+      0.67
+    ],
+    [
+      "jual kue tradisional",
+      "C",
+      "10792",
+      4,
+      0.67
+    ],
+    [
+      "budidaya tanaman jagung",
+      "A",
+      "01111",
+      4,
+      0.67
+    ],
+    [
+      "jualan kue tradisional",
+      "C",
+      "10792",
+      4,
+      0.67
+    ],
+    [
+      "toko makanan minuman",
+      "I",
+      "56101",
+      3,
+      0.75
+    ],
+    [
+      "aneka kue basah",
+      "C",
+      "10792",
+      3,
+      0.75
+    ],
+    [
+      "jualan es tebu",
+      "I",
+      "56306",
+      3,
+      0.75
+    ],
+    [
+      "galon isi ulang",
+      "C",
+      "11052",
+      3,
+      0.75
+    ],
+    [
+      "menjual nasi kuning",
+      "I",
+      "56101",
+      3,
+      0.75
+    ],
+    [
+      "pemasangan gigi palsu",
+      "C",
+      "32502",
+      3,
+      0.75
+    ],
+    [
+      "depot air isi",
+      "C",
+      "11052",
+      3,
+      0.75
+    ],
+    [
+      "jual sosis keliling",
+      "I",
+      "56102",
+      3,
+      0.75
+    ],
+    [
+      "jual es keliling",
+      "I",
+      "56306",
+      3,
+      0.75
+    ],
+    [
+      "peternakan ayam daging",
+      "A",
+      "01461",
+      3,
+      0.75
+    ],
+    [
+      "pangkalan lpg 3kg",
+      "G",
+      "47772",
+      3,
+      0.75
+    ],
+    [
+      "jasa servis elektronik",
+      "S",
+      "95210",
+      3,
+      0.75
+    ],
+    [
+      "jual apam pinang",
+      "I",
+      "56101",
+      3,
+      0.75
+    ],
+    [
+      "warung jajanan ringan",
+      "G",
+      "47249",
+      2,
+      0.67
+    ],
+    [
+      "jualan makanan ringan",
+      "I",
+      "56102",
+      2,
+      0.67
+    ],
+    [
+      "jual aneka kue",
+      "C",
+      "10614",
+      2,
+      0.67
+    ],
+    [
+      "penjual sosis keliling",
+      "I",
+      "56102",
+      2,
+      0.67
+    ],
+    [
+      "air galon isi",
+      "C",
+      "11052",
+      2,
+      0.67
+    ],
+    [
+      "penjual es tebu",
+      "G",
+      "47222",
+      2,
+      0.67
+    ],
+    [
+      "nasi kuning nasi",
+      "I",
+      "56101",
+      2,
+      0.67
+    ],
+    [
+      "kuning nasi uduk",
+      "I",
+      "56101",
+      2,
+      0.67
+    ],
+    [
+      "toko sembako makanan",
+      "G",
+      "47112",
+      2,
+      0.67
+    ],
+    [
+      "jual makan minum",
+      "I",
+      "56101",
+      2,
+      0.67
+    ],
+    [
+      "jualan kue kering",
+      "G",
+      "47242",
+      2,
+      0.67
+    ],
+    [
+      "jualan nasi kuning",
+      "I",
+      "56101",
+      2,
+      0.67
+    ],
+    [
+      "jual sarapan pagi",
+      "I",
+      "56101",
+      2,
+      0.67
+    ],
+    [
+      "kue jajanan pasar",
+      "C",
+      "10792",
+      2,
+      0.67
+    ],
+    [
+      "jual barang rongsokan",
+      "G",
+      "47749",
+      2,
+      0.67
+    ],
+    [
+      "penyewaan sound system",
+      "N",
+      "77292",
+      2,
+      0.67
+    ],
+    [
+      "angkutan material bangunan",
+      "H",
+      "49231",
+      2,
+      0.67
+    ],
+    [
+      "jualan jamu keliling",
+      "C",
+      "21022",
+      2,
+      0.67
+    ],
+    [
+      "pengolahan udang ebi",
+      "C",
+      "10291",
+      2,
+      0.67
+    ],
+    [
+      "jasa angkutan pupuk",
+      "H",
+      "49232",
+      2,
+      0.67
+    ],
+    [
+      "jasa angkutan tanah",
+      "H",
+      "49231",
+      2,
+      0.67
+    ],
+    [
+      "utp budidaya tanaman",
+      "C",
+      "10632",
+      2,
+      0.67
+    ],
+    [
+      "pedagang kelapa tua",
+      "C",
+      "10421",
+      2,
+      0.67
+    ],
+    [
+      "jasa pemasangan gigi",
+      "C",
+      "32502",
+      2,
+      0.67
+    ],
+    [
+      "kantin makanan minuman",
+      "I",
+      "56101",
+      2,
+      0.67
+    ],
+    [
+      "kantin sekolah sdn",
+      "I",
+      "56101",
+      2,
+      0.67
+    ],
+    [
+      "pemotongan ayam daging",
+      "C",
+      "10113",
+      2,
+      0.67
+    ],
+    [
+      "upt angkutan tanah",
+      "B",
+      "08101",
+      2,
+      0.67
+    ],
+    [
+      "tanaman pangan",
+      "A",
+      "01122",
+      6617,
+      1.0
+    ],
+    [
+      "utp tanaman",
+      "A",
+      "01122",
+      6429,
+      1.0
+    ],
+    [
+      "utp perkebunan",
+      "A",
+      "01262",
+      6243,
+      1.0
+    ],
+    [
+      "utp hortikultura",
+      "A",
+      "01220",
+      2069,
+      1.0
+    ],
+    [
+      "perkebunan kelapa",
+      "A",
+      "01261",
+      1813,
+      1.0
+    ],
+    [
+      "kelapa sawit",
+      "A",
+      "01262",
+      1261,
+      0.99
+    ],
+    [
+      "toko sembako",
+      "G",
+      "47112",
+      1285,
+      0.98
+    ],
+    [
+      "tanaman padi",
+      "A",
+      "01122",
+      1039,
+      1.0
+    ],
+    [
+      "utp peternakan",
+      "A",
+      "01411",
+      1099,
+      0.99
+    ],
+    [
+      "warung sembako",
+      "G",
+      "47112",
+      968,
+      0.98
+    ],
+    [
+      "padi sawah",
+      "A",
+      "01122",
+      715,
+      1.0
+    ],
+    [
+      "perkebunan sawit",
+      "A",
+      "01262",
+      630,
+      1.0
+    ],
+    [
+      "pertanian padi",
+      "A",
+      "01122",
+      606,
+      1.0
+    ],
+    [
+      "sawah inbrida",
+      "A",
+      "01122",
+      576,
+      1.0
+    ],
+    [
+      "utp perikanan",
+      "A",
+      "03110",
+      746,
+      0.95
+    ],
+    [
+      "upt perkebunan",
+      "A",
+      "01262",
+      528,
+      1.0
+    ],
+    [
+      "kebun kelapa",
+      "A",
+      "01262",
+      485,
+      1.0
+    ],
+    [
+      "pangan padi",
+      "A",
+      "01122",
+      456,
+      1.0
+    ],
+    [
+      "padi inbrida",
+      "A",
+      "01122",
+      423,
+      1.0
+    ],
+    [
+      "upt tanaman",
+      "A",
+      "01122",
+      403,
+      1.0
+    ],
+    [
+      "budidaya tanaman",
+      "A",
+      "01122",
+      402,
+      0.99
+    ],
+    [
+      "toko kelontong",
+      "G",
+      "47112",
+      350,
+      0.99
+    ],
+    [
+      "perkebunan karet",
+      "A",
+      "01291",
+      350,
+      0.98
+    ],
+    [
+      "warung kelontong",
+      "G",
+      "47112",
+      320,
+      0.99
+    ],
+    [
+      "kebun karet",
+      "A",
+      "01291",
+      320,
+      0.98
+    ],
+    [
+      "kebun sawit",
+      "A",
+      "01262",
+      252,
+      1.0
+    ],
+    [
+      "peternakan kambing",
+      "A",
+      "01442",
+      260,
+      0.99
+    ],
+    [
+      "pertanian kelapa",
+      "A",
+      "01262",
+      245,
+      1.0
+    ],
+    [
+      "peternakan sapi",
+      "A",
+      "01411",
+      222,
+      1.0
+    ],
+    [
+      "perikanan tangkap",
+      "A",
+      "03110",
+      210,
+      0.99
+    ],
+    [
+      "utp pertanian",
+      "A",
+      "01122",
+      186,
+      1.0
+    ],
+    [
+      "bengkel motor",
+      "G",
+      "95320",
+      205,
+      0.98
+    ],
+    [
+      "sayur keliling",
+      "G",
+      "47213",
+      223,
+      0.94
+    ],
+    [
+      "utp holtikultura",
+      "A",
+      "01220",
+      162,
+      0.99
+    ],
+    [
+      "petani padi",
+      "A",
+      "01122",
+      149,
+      1.0
+    ],
+    [
+      "budidaya padi",
+      "A",
+      "01122",
+      139,
+      1.0
+    ],
+    [
+      "warung makan",
+      "I",
+      "56101",
+      135,
+      0.98
+    ],
+    [
+      "warung kopi",
+      "I",
+      "56304",
+      148,
+      0.96
+    ],
+    [
+      "peternakan ayam",
+      "A",
+      "01464",
+      132,
+      0.98
+    ],
+    [
+      "pangkas rambut",
+      "S",
+      "96210",
+      115,
+      1.0
+    ],
+    [
+      "tanaman kelapa",
+      "A",
+      "01261",
+      120,
+      0.99
+    ],
+    [
+      "rumah makan",
+      "I",
+      "56101",
+      120,
+      0.99
+    ],
+    [
+      "penggilingan padi",
+      "C",
+      "10631",
+      120,
+      0.99
+    ],
+    [
+      "toko bangunan",
+      "G",
+      "47521",
+      120,
+      0.99
+    ],
+    [
+      "pertanian tanaman",
+      "A",
+      "01122",
+      110,
+      1.0
+    ],
+    [
+      "budidaya pertanian",
+      "A",
+      "01122",
+      101,
+      1.0
+    ],
+    [
+      "ikan keliling",
+      "G",
+      "47215",
+      109,
+      0.98
+    ],
+    [
+      "perkebunan pinang",
+      "A",
+      "01289",
+      101,
+      0.99
+    ],
+    [
+      "toko pakaian",
+      "G",
+      "47711",
+      95,
+      0.99
+    ],
+    [
+      "peternakan babi",
+      "A",
+      "01450",
+      95,
+      0.99
+    ],
+    [
+      "jasa angkutan",
+      "H",
+      "49231",
+      127,
+      0.93
+    ],
+    [
+      "jualan sayur",
+      "G",
+      "47213",
+      102,
+      0.97
+    ],
+    [
+      "bensin eceran",
+      "G",
+      "47302",
+      85,
+      0.99
+    ],
+    [
+      "bengkel las",
+      "C",
+      "25920",
+      85,
+      0.99
+    ],
+    [
+      "toko baju",
+      "G",
+      "47711",
+      85,
+      0.99
+    ],
+    [
+      "penjahit pakaian",
+      "C",
+      "14120",
+      85,
+      0.98
+    ],
+    [
+      "sarapan pagi",
+      "I",
+      "56101",
+      95,
+      0.95
+    ],
+    [
+      "material bangunan",
+      "G",
+      "47521",
+      90,
+      0.96
+    ],
+    [
+      "kantin sekolah",
+      "I",
+      "56101",
+      115,
+      0.91
+    ],
+    [
+      "pertanian nanas",
+      "A",
+      "01220",
+      73,
+      1.0
+    ],
+    [
+      "upt peternakan",
+      "A",
+      "01411",
+      72,
+      1.0
+    ],
+    [
+      "upt holtikultura",
+      "A",
+      "01220",
+      72,
+      1.0
+    ],
+    [
+      "sd negeri",
+      "P",
+      "85201",
+      75,
+      0.99
+    ],
+    [
+      "tanaman nanas",
+      "A",
+      "01220",
+      71,
+      1.0
+    ],
+    [
+      "konter pulsa",
+      "G",
+      "47404",
+      85,
+      0.95
+    ],
+    [
+      "utp padi",
+      "A",
+      "01122",
+      67,
+      1.0
+    ],
+    [
+      "warung sarapan",
+      "I",
+      "56101",
+      77,
+      0.96
+    ],
+    [
+      "upt hortikultura",
+      "A",
+      "01220",
+      67,
+      0.99
+    ],
+    [
+      "jual ikan",
+      "G",
+      "47215",
+      92,
+      0.92
+    ],
+    [
+      "es batu",
+      "D",
+      "35302",
+      75,
+      0.96
+    ],
+    [
+      "warung bakso",
+      "I",
+      "56101",
+      65,
+      0.99
+    ],
+    [
+      "sekolah dasar",
+      "P",
+      "85201",
+      65,
+      0.99
+    ],
+    [
+      "rumah kontrakan",
+      "L",
+      "68112",
+      65,
+      0.99
+    ],
+    [
+      "tambak udang",
+      "A",
+      "03211",
+      65,
+      0.99
+    ],
+    [
+      "toko pertanian",
+      "G",
+      "47763",
+      65,
+      0.99
+    ],
+    [
+      "kedai kopi",
+      "I",
+      "56304",
+      65,
+      0.99
+    ],
+    [
+      "potong rambut",
+      "S",
+      "96210",
+      65,
+      0.99
+    ],
+    [
+      "salon kecantikan",
+      "S",
+      "96210",
+      65,
+      0.99
+    ],
+    [
+      "laundry pakaian",
+      "S",
+      "96100",
+      65,
+      0.99
+    ],
+    [
+      "ayam kampung",
+      "A",
+      "01464",
+      87,
+      0.92
+    ],
+    [
+      "warung minuman",
+      "I",
+      "56304",
+      90,
+      0.91
+    ],
+    [
+      "mebel kayu",
+      "C",
+      "31011",
+      65,
+      0.98
+    ],
+    [
+      "padi hibrida",
+      "A",
+      "01121",
+      58,
+      1.0
+    ],
+    [
+      "gilingan padi",
+      "C",
+      "10631",
+      60,
+      0.99
+    ],
+    [
+      "las listrik",
+      "C",
+      "25920",
+      60,
+      0.99
+    ],
+    [
+      "cetak batako",
+      "C",
+      "23951",
+      60,
+      0.99
+    ],
+    [
+      "pembuatan batako",
+      "C",
+      "23951",
+      60,
+      0.99
+    ],
+    [
+      "sapi potong",
+      "A",
+      "01411",
+      57,
+      1.0
+    ],
+    [
+      "kue basah",
+      "C",
+      "10792",
+      67,
+      0.96
+    ],
+    [
+      "ubi kayu",
+      "A",
+      "01135",
+      64,
+      0.97
+    ],
+    [
+      "pedagang sayur",
+      "G",
+      "47213",
+      55,
+      1.0
+    ],
+    [
+      "ojek motor",
+      "H",
+      "49296",
+      55,
+      0.99
+    ],
+    [
+      "sewa kontrakan",
+      "L",
+      "68112",
+      55,
+      0.99
+    ],
+    [
+      "cukur rambut",
+      "S",
+      "96210",
+      55,
+      0.99
+    ],
+    [
+      "jasa laundry",
+      "S",
+      "96100",
+      55,
+      0.99
+    ],
+    [
+      "kue tradisional",
+      "C",
+      "10792",
+      90,
+      0.88
+    ],
+    [
+      "tanaman pinang",
+      "A",
+      "01289",
+      51,
+      1.0
+    ],
+    [
+      "nasi kuning",
+      "I",
+      "56101",
+      60,
+      0.96
+    ],
+    [
+      "nasi goreng",
+      "I",
+      "56101",
+      55,
+      0.98
+    ],
+    [
+      "ayam geprek",
+      "I",
+      "56101",
+      55,
+      0.98
+    ],
+    [
+      "mie ayam",
+      "I",
+      "56101",
+      55,
+      0.98
+    ],
+    [
+      "tambal ban",
+      "G",
+      "95320",
+      55,
+      0.98
+    ],
+    [
+      "ikan asin",
+      "C",
+      "10211",
+      131,
+      0.8
+    ],
+    [
+      "air tawar",
+      "A",
+      "03221",
+      52,
+      0.98
+    ],
+    [
+      "pangkalan gas",
+      "G",
+      "47772",
+      52,
+      0.98
+    ],
+    [
+      "pertanian jahe",
+      "A",
+      "01285",
+      48,
+      1.0
+    ],
+    [
+      "gula merah",
+      "C",
+      "10722",
+      51,
+      0.98
+    ],
+    [
+      "kebun nanas",
+      "A",
+      "01220",
+      47,
+      1.0
+    ],
+    [
+      "makan minum",
+      "I",
+      "56101",
+      55,
+      0.96
+    ],
+    [
+      "konveksi baju",
+      "C",
+      "14120",
+      50,
+      0.98
+    ],
+    [
+      "budidaya perkebunan",
+      "A",
+      "01262",
+      45,
+      1.0
+    ],
+    [
+      "tanaman pisang",
+      "A",
+      "01220",
+      45,
+      1.0
+    ],
+    [
+      "kedai minuman",
+      "I",
+      "56304",
+      48,
+      0.98
+    ],
+    [
+      "jualan ikan",
+      "G",
+      "47215",
+      44,
+      1.0
+    ],
+    [
+      "jual sayur",
+      "G",
+      "47213",
+      78,
+      0.87
+    ],
+    [
+      "bengkel mobil",
+      "G",
+      "95311",
+      61,
+      0.92
+    ],
+    [
+      "pondok pesantren",
+      "P",
+      "85541",
+      45,
+      0.99
+    ],
+    [
+      "smp negeri",
+      "P",
+      "85311",
+      45,
+      0.99
+    ],
+    [
+      "madrasah ibtidaiyah",
+      "P",
+      "85203",
+      45,
+      0.99
+    ],
+    [
+      "toko sepatu",
+      "G",
+      "47712",
+      45,
+      0.99
+    ],
+    [
+      "service elektronik",
+      "S",
+      "95210",
+      45,
+      0.99
+    ],
+    [
+      "pembuatan tempe",
+      "C",
+      "10307",
+      45,
+      0.99
+    ],
+    [
+      "pabrik tahu",
+      "C",
+      "10307",
+      45,
+      0.99
+    ],
+    [
+      "pabrik tempe",
+      "C",
+      "10307",
+      45,
+      0.99
+    ],
+    [
+      "toko emas",
+      "G",
+      "47735",
+      45,
+      0.99
+    ],
+    [
+      "toko kosmetik",
+      "G",
+      "47724",
+      45,
+      0.99
+    ],
+    [
+      "toko elektronik",
+      "G",
+      "47592",
+      45,
+      0.99
+    ],
+    [
+      "toko perabotan",
+      "G",
+      "47599",
+      45,
+      0.99
+    ],
+    [
+      "coffee shop",
+      "I",
+      "56303",
+      45,
+      0.99
+    ],
+    [
+      "simpan pinjam",
+      "K",
+      "64191",
+      45,
+      0.99
+    ],
+    [
+      "usaha kontrakan",
+      "L",
+      "68112",
+      45,
+      0.99
+    ],
+    [
+      "kontrakan rumah",
+      "L",
+      "68112",
+      45,
+      0.99
+    ],
+    [
+      "permak pakaian",
+      "S",
+      "95291",
+      45,
+      0.99
+    ],
+    [
+      "servis elektronik",
+      "S",
+      "95210",
+      45,
+      0.99
+    ],
+    [
+      "ladang padi",
+      "A",
+      "01122",
+      46,
+      0.98
+    ],
+    [
+      "gas lpg",
+      "G",
+      "47772",
+      46,
+      0.98
+    ],
+    [
+      "angkutan truk",
+      "H",
+      "49231",
+      45,
+      0.98
+    ],
+    [
+      "angkutan barang",
+      "H",
+      "49231",
+      45,
+      0.98
+    ],
+    [
+      "angkutan material",
+      "H",
+      "49231",
+      45,
+      0.98
+    ],
+    [
+      "industri furnitur",
+      "C",
+      "31011",
+      45,
+      0.98
+    ],
+    [
+      "nasi uduk",
+      "I",
+      "56101",
+      45,
+      0.98
+    ],
+    [
+      "pecel lele",
+      "I",
+      "56101",
+      45,
+      0.98
+    ],
+    [
+      "ikan segar",
+      "G",
+      "47215",
+      40,
+      1.0
+    ],
+    [
+      "pedagang ikan",
+      "G",
+      "47215",
+      43,
+      0.98
+    ],
+    [
+      "tanaman holtikultura",
+      "A",
+      "01220",
+      39,
+      1.0
+    ],
+    [
+      "vermak pakaian",
+      "S",
+      "95291",
+      40,
+      0.99
+    ],
+    [
+      "toko obat",
+      "G",
+      "47722",
+      40,
+      0.99
+    ],
+    [
+      "rumah kos",
+      "L",
+      "68112",
+      40,
+      0.99
+    ],
+    [
+      "madrasah tsanawiyah",
+      "P",
+      "85313",
+      40,
+      0.99
+    ],
+    [
+      "taman kanak",
+      "P",
+      "85102",
+      40,
+      0.99
+    ],
+    [
+      "praktek bidan",
+      "Q",
+      "86991",
+      40,
+      0.99
+    ],
+    [
+      "praktik bidan",
+      "Q",
+      "86991",
+      40,
+      0.99
+    ],
+    [
+      "pengobatan tradisional",
+      "Q",
+      "86992",
+      40,
+      0.99
+    ],
+    [
+      "cuci setrika",
+      "S",
+      "96100",
+      40,
+      0.99
+    ],
+    [
+      "service hp",
+      "S",
+      "95120",
+      40,
+      0.99
+    ],
+    [
+      "servis hp",
+      "S",
+      "95120",
+      40,
+      0.99
+    ],
+    [
+      "pentol keliling",
+      "I",
+      "56102",
+      45,
+      0.96
+    ],
+    [
+      "penjual pentol",
+      "I",
+      "56102",
+      45,
+      0.96
+    ],
+    [
+      "pembuatan kue",
+      "C",
+      "10792",
+      41,
+      0.98
+    ],
+    [
+      "nelayan tangkap",
+      "A",
+      "03110",
+      38,
+      1.0
+    ],
+    [
+      "pentol kuah",
+      "I",
+      "56102",
+      59,
+      0.89
+    ],
+    [
+      "kios bensin",
+      "G",
+      "47302",
+      40,
+      0.98
+    ],
+    [
+      "pabrik roti",
+      "C",
+      "10710",
+      40,
+      0.98
+    ],
+    [
+      "cuci mobil",
+      "G",
+      "95312",
+      40,
+      0.98
+    ],
+    [
+      "angkutan sawit",
+      "H",
+      "49231",
+      40,
+      0.98
+    ],
+    [
+      "gas elpiji",
+      "G",
+      "47772",
+      37,
+      1.0
+    ],
+    [
+      "hortikultura pisang",
+      "A",
+      "01220",
+      37,
+      1.0
+    ],
+    [
+      "budidaya kelapa",
+      "A",
+      "01262",
+      36,
+      1.0
+    ],
+    [
+      "jual buah",
+      "G",
+      "47212",
+      35,
+      1.0
+    ],
+    [
+      "tanaman sawit",
+      "A",
+      "01262",
+      34,
+      1.0
+    ],
+    [
+      "tangkap ikan",
+      "A",
+      "03110",
+      38,
+      0.97
+    ],
+    [
+      "gado gado",
+      "I",
+      "56101",
+      41,
+      0.95
+    ],
+    [
+      "tukang urut",
+      "Q",
+      "86992",
+      35,
+      0.99
+    ],
+    [
+      "jasa urut",
+      "Q",
+      "86992",
+      35,
+      0.99
+    ],
+    [
+      "ojek pangkalan",
+      "H",
+      "49296",
+      35,
+      0.99
+    ],
+    [
+      "agen brilink",
+      "K",
+      "66141",
+      35,
+      0.99
+    ],
+    [
+      "kost putri",
+      "L",
+      "68112",
+      35,
+      0.99
+    ],
+    [
+      "kost putra",
+      "L",
+      "68112",
+      35,
+      0.99
+    ],
+    [
+      "sewa tenda",
+      "N",
+      "77291",
+      35,
+      0.99
+    ],
+    [
+      "penyewaan tenda",
+      "N",
+      "77291",
+      35,
+      0.99
+    ],
+    [
+      "dekorasi pengantin",
+      "N",
+      "77291",
+      35,
+      0.99
+    ],
+    [
+      "sma negeri",
+      "P",
+      "85312",
+      35,
+      0.99
+    ],
+    [
+      "madrasah aliyah",
+      "P",
+      "85317",
+      35,
+      0.99
+    ],
+    [
+      "bimbingan belajar",
+      "P",
+      "85595",
+      35,
+      0.99
+    ],
+    [
+      "praktik dokter",
+      "Q",
+      "86201",
+      35,
+      0.99
+    ],
+    [
+      "praktek dokter",
+      "Q",
+      "86201",
+      35,
+      0.99
+    ],
+    [
+      "klinik pratama",
+      "Q",
+      "86105",
+      35,
+      0.99
+    ],
+    [
+      "klinik kesehatan",
+      "Q",
+      "86105",
+      35,
+      0.99
+    ],
+    [
+      "rumah sakit",
+      "Q",
+      "86101",
+      35,
+      0.99
+    ],
+    [
+      "reparasi hp",
+      "S",
+      "95120",
+      35,
+      0.99
+    ],
+    [
+      "cuci motor",
+      "G",
+      "95320",
+      46,
+      0.92
+    ],
+    [
+      "pohon karet",
+      "A",
+      "01291",
+      37,
+      0.97
+    ],
+    [
+      "penggalian batu",
+      "B",
+      "08101",
+      35,
+      0.98
+    ],
+    [
+      "somel kayu",
+      "C",
+      "16221",
+      35,
+      0.98
+    ],
+    [
+      "percetakan undangan",
+      "C",
+      "18111",
+      35,
+      0.98
+    ],
+    [
+      "konstruksi bangunan",
+      "F",
+      "41011",
+      35,
+      0.98
+    ],
+    [
+      "jasa konstruksi",
+      "F",
+      "42101",
+      35,
+      0.98
+    ],
+    [
+      "sewa rumah",
+      "L",
+      "68112",
+      35,
+      0.98
+    ],
+    [
+      "warung nasi",
+      "I",
+      "56101",
+      39,
+      0.95
+    ],
+    [
+      "ternak sapi",
+      "A",
+      "01411",
+      32,
+      1.0
+    ],
+    [
+      "penangkapan ikan",
+      "A",
+      "03110",
+      32,
+      1.0
+    ],
+    [
+      "es tebu",
+      "I",
+      "56304",
+      65,
+      0.83
+    ],
+    [
+      "hasil hutan",
+      "A",
+      "02202",
+      35,
+      0.97
+    ],
+    [
+      "utp pangan",
+      "A",
+      "01122",
+      31,
+      1.0
+    ],
+    [
+      "kerupuk ikan",
+      "C",
+      "10794",
+      35,
+      0.96
+    ],
+    [
+      "tanaman hortikultura",
+      "A",
+      "01220",
+      30,
+      1.0
+    ],
+    [
+      "petani nanas",
+      "A",
+      "01220",
+      29,
+      1.0
+    ],
+    [
+      "bengkel bubut",
+      "C",
+      "25920",
+      30,
+      0.99
+    ],
+    [
+      "kurir ekspedisi",
+      "H",
+      "53200",
+      30,
+      0.99
+    ],
+    [
+      "studio foto",
+      "M",
+      "74209",
+      30,
+      0.99
+    ],
+    [
+      "jasa fotografer",
+      "M",
+      "74209",
+      30,
+      0.99
+    ],
+    [
+      "sound system",
+      "N",
+      "77291",
+      30,
+      0.99
+    ],
+    [
+      "rental mobil",
+      "N",
+      "77100",
+      30,
+      0.99
+    ],
+    [
+      "kantor desa",
+      "O",
+      "84114",
+      30,
+      0.99
+    ],
+    [
+      "smk negeri",
+      "P",
+      "85321",
+      30,
+      0.99
+    ],
+    [
+      "les privat",
+      "P",
+      "85595",
+      30,
+      0.99
+    ],
+    [
+      "raudhatul athfal",
+      "P",
+      "85103",
+      30,
+      0.99
+    ],
+    [
+      "permak levis",
+      "S",
+      "95291",
+      30,
+      0.99
+    ],
+    [
+      "sol sepatu",
+      "S",
+      "95230",
+      30,
+      0.99
+    ],
+    [
+      "tukang pijat",
+      "Q",
+      "86992",
+      30,
+      0.98
+    ],
+    [
+      "tambang pasir",
+      "B",
+      "08101",
+      30,
+      0.98
+    ],
+    [
+      "sablon kaos",
+      "C",
+      "18111",
+      30,
+      0.98
+    ],
+    [
+      "sewa ruko",
+      "L",
+      "68129",
+      30,
+      0.98
+    ],
+    [
+      "sewa lahan",
+      "L",
+      "68129",
+      30,
+      0.98
+    ],
+    [
+      "pijat tradisional",
+      "Q",
+      "86992",
+      30,
+      0.98
+    ],
+    [
+      "rias pengantin",
+      "S",
+      "96210",
+      30,
+      0.98
+    ],
+    [
+      "budidaya ikan",
+      "A",
+      "03221",
+      28,
+      1.0
+    ],
+    [
+      "kebun durian",
+      "A",
+      "01220",
+      30,
+      0.97
+    ],
+    [
+      "lapak sayur",
+      "G",
+      "47213",
+      27,
+      1.0
+    ],
+    [
+      "jual bensin",
+      "G",
+      "47302",
+      27,
+      1.0
+    ],
+    [
+      "sawah padi",
+      "A",
+      "01122",
+      26,
+      1.0
+    ],
+    [
+      "pertanian jagung",
+      "A",
+      "01111",
+      26,
+      1.0
+    ],
+    [
+      "pengolahan ikan",
+      "C",
+      "10211",
+      26,
+      1.0
+    ],
+    [
+      "jual gas",
+      "G",
+      "47772",
+      26,
+      1.0
+    ],
+    [
+      "perikanan air",
+      "A",
+      "03221",
+      26,
+      1.0
+    ],
+    [
+      "depot air",
+      "C",
+      "11052",
+      37,
+      0.9
+    ],
+    [
+      "pom mini",
+      "G",
+      "47302",
+      25,
+      1.0
+    ],
+    [
+      "pengeringan ikan",
+      "C",
+      "10211",
+      25,
+      1.0
+    ],
+    [
+      "pemantik batu",
+      "B",
+      "08101",
+      25,
+      1.0
+    ],
+    [
+      "air galon",
+      "C",
+      "11052",
+      44,
+      0.85
+    ],
+    [
+      "instalasi listrik",
+      "F",
+      "43211",
+      25,
+      0.99
+    ],
+    [
+      "perahu tambang",
+      "H",
+      "50212",
+      25,
+      0.99
+    ],
+    [
+      "credit union",
+      "K",
+      "64191",
+      25,
+      0.99
+    ],
+    [
+      "transfer dana",
+      "K",
+      "66141",
+      25,
+      0.99
+    ],
+    [
+      "jasa transfer",
+      "K",
+      "66141",
+      25,
+      0.99
+    ],
+    [
+      "kantor notaris",
+      "M",
+      "69104",
+      25,
+      0.99
+    ],
+    [
+      "notaris ppat",
+      "M",
+      "69104",
+      25,
+      0.99
+    ],
+    [
+      "sound sistem",
+      "N",
+      "77291",
+      25,
+      0.99
+    ],
+    [
+      "rental motor",
+      "N",
+      "77100",
+      25,
+      0.99
+    ],
+    [
+      "kantor lurah",
+      "O",
+      "84114",
+      25,
+      0.99
+    ],
+    [
+      "kantor camat",
+      "O",
+      "84114",
+      25,
+      0.99
+    ],
+    [
+      "administrasi pemerintahan",
+      "O",
+      "84111",
+      25,
+      0.99
+    ],
+    [
+      "puskesmas rawat",
+      "Q",
+      "86102",
+      25,
+      0.99
+    ],
+    [
+      "lapangan futsal",
+      "R",
+      "93112",
+      25,
+      0.99
+    ],
+    [
+      "kolam renang",
+      "R",
+      "93113",
+      25,
+      0.99
+    ],
+    [
+      "sanggar seni",
+      "R",
+      "90002",
+      25,
+      0.99
+    ],
+    [
+      "sanggar tari",
+      "R",
+      "90002",
+      25,
+      0.99
+    ],
+    [
+      "lahan nanas",
+      "A",
+      "01133",
+      24,
+      1.0
+    ],
+    [
+      "penggemukan sapi",
+      "A",
+      "01411",
+      24,
+      1.0
+    ],
+    [
+      "jasa angkut",
+      "H",
+      "49231",
+      27,
+      0.96
+    ],
+    [
+      "kontruksi bangunan",
+      "F",
+      "41011",
+      25,
+      0.98
+    ],
+    [
+      "pemborong bangunan",
+      "F",
+      "41011",
+      25,
+      0.98
+    ],
+    [
+      "kontraktor bangunan",
+      "F",
+      "41011",
+      25,
+      0.98
+    ],
+    [
+      "usaha wifi",
+      "J",
+      "61104",
+      25,
+      0.98
+    ],
+    [
+      "tanaman jagung",
+      "A",
+      "01111",
+      32,
+      0.91
+    ],
+    [
+      "membuat kue",
+      "C",
+      "10792",
+      23,
+      1.0
+    ],
+    [
+      "perkebunan pohon",
+      "A",
+      "01261",
+      23,
+      1.0
+    ],
+    [
+      "pohon kelapa",
+      "A",
+      "01261",
+      22,
+      1.0
+    ],
+    [
+      "pembuat kue",
+      "C",
+      "10792",
+      22,
+      1.0
+    ],
+    [
+      "jualan minuman",
+      "I",
+      "56304",
+      22,
+      1.0
+    ],
+    [
+      "padi inhibrida",
+      "A",
+      "01122",
+      22,
+      1.0
+    ],
+    [
+      "galian tanah",
+      "B",
+      "08109",
+      25,
+      0.96
+    ],
+    [
+      "tukang bangunan",
+      "F",
+      "41011",
+      25,
+      0.96
+    ],
+    [
+      "voucher internet",
+      "J",
+      "61209",
+      25,
+      0.96
+    ],
+    [
+      "ikan nila",
+      "A",
+      "03221",
+      29,
+      0.91
+    ],
+    [
+      "pisang kepok",
+      "A",
+      "01220",
+      24,
+      0.96
+    ],
+    [
+      "perkebunan pisang",
+      "A",
+      "01220",
+      24,
+      0.96
+    ],
+    [
+      "pertanian kangkung",
+      "A",
+      "01131",
+      21,
+      1.0
+    ],
+    [
+      "tanaman ubi",
+      "A",
+      "01135",
+      21,
+      1.0
+    ],
+    [
+      "kebun pinang",
+      "A",
+      "01289",
+      21,
+      1.0
+    ],
+    [
+      "toko buah",
+      "G",
+      "47212",
+      21,
+      1.0
+    ],
+    [
+      "menanam padi",
+      "A",
+      "01122",
+      21,
+      1.0
+    ],
+    [
+      "warung makanan",
+      "I",
+      "56101",
+      31,
+      0.89
+    ],
+    [
+      "makanan minuman",
+      "I",
+      "56101",
+      37,
+      0.84
+    ],
+    [
+      "burung walet",
+      "A",
+      "01497",
+      23,
+      0.96
+    ],
+    [
+      "pertanian pohon",
+      "A",
+      "01291",
+      20,
+      1.0
+    ],
+    [
+      "pertanian perkebunan",
+      "A",
+      "01261",
+      20,
+      1.0
+    ],
+    [
+      "gorong gorong",
+      "C",
+      "23951",
+      20,
+      1.0
+    ],
+    [
+      "kacang panjang",
+      "A",
+      "01116",
+      20,
+      1.0
+    ],
+    [
+      "upt pemantik",
+      "B",
+      "08101",
+      20,
+      1.0
+    ],
+    [
+      "upt perikanan",
+      "A",
+      "03110",
+      51,
+      0.77
+    ],
+    [
+      "kambing potong",
+      "A",
+      "01442",
+      25,
+      0.93
+    ],
+    [
+      "pembangkit listrik",
+      "D",
+      "35110",
+      20,
+      0.99
+    ],
+    [
+      "tenaga listrik",
+      "D",
+      "35110",
+      20,
+      0.99
+    ],
+    [
+      "pemasangan listrik",
+      "F",
+      "43211",
+      20,
+      0.99
+    ],
+    [
+      "jasa internet",
+      "J",
+      "61104",
+      20,
+      0.99
+    ],
+    [
+      "bmt ugt",
+      "K",
+      "64192",
+      20,
+      0.99
+    ],
+    [
+      "kantor hukum",
+      "M",
+      "69101",
+      20,
+      0.99
+    ],
+    [
+      "penyewaan sampan",
+      "N",
+      "77312",
+      20,
+      0.99
+    ],
+    [
+      "pengasuh anak",
+      "T",
+      "97000",
+      20,
+      0.99
+    ],
+    [
+      "sopir pribadi",
+      "T",
+      "97000",
+      20,
+      0.99
+    ],
+    [
+      "utp kelapa",
+      "A",
+      "01262",
+      22,
+      0.96
+    ],
+    [
+      "buah buahan",
+      "G",
+      "47212",
+      19,
+      1.0
+    ],
+    [
+      "motor mobil",
+      "G",
+      "95312",
+      19,
+      1.0
+    ],
+    [
+      "rumah tangga",
+      "G",
+      "47593",
+      19,
+      1.0
+    ],
+    [
+      "tambang emas",
+      "B",
+      "07221",
+      20,
+      0.98
+    ],
+    [
+      "motor air",
+      "H",
+      "50212",
+      20,
+      0.98
+    ],
+    [
+      "rental ps",
+      "R",
+      "93299",
+      20,
+      0.98
+    ],
+    [
+      "rental playstation",
+      "R",
+      "93299",
+      20,
+      0.98
+    ],
+    [
+      "kolam pemancingan",
+      "R",
+      "93299",
+      20,
+      0.98
+    ],
+    [
+      "tempat wisata",
+      "R",
+      "93291",
+      20,
+      0.98
+    ],
+    [
+      "warung es",
+      "I",
+      "56304",
+      36,
+      0.82
+    ],
+    [
+      "toko sayur",
+      "G",
+      "47213",
+      18,
+      1.0
+    ],
+    [
+      "tanaman perkebunan",
+      "A",
+      "01261",
+      18,
+      1.0
+    ],
+    [
+      "kayu cerucuk",
+      "A",
+      "02201",
+      18,
+      1.0
+    ],
+    [
+      "upt memungut",
+      "A",
+      "02202",
+      18,
+      1.0
+    ],
+    [
+      "memungut hasil",
+      "A",
+      "02202",
+      18,
+      1.0
+    ],
+    [
+      "pedagang eceran",
+      "G",
+      "47212",
+      18,
+      1.0
+    ],
+    [
+      "utp ubi",
+      "A",
+      "01139",
+      18,
+      1.0
+    ],
+    [
+      "penjual sayur",
+      "G",
+      "47213",
+      21,
+      0.95
+    ],
+    [
+      "pencucian motor",
+      "G",
+      "95320",
+      21,
+      0.95
+    ],
+    [
+      "pangkalan lpg",
+      "G",
+      "47772",
+      20,
+      0.95
+    ],
+    [
+      "paket data",
+      "J",
+      "61209",
+      20,
+      0.95
+    ],
+    [
+      "pertanian pangan",
+      "A",
+      "01122",
+      17,
+      1.0
+    ],
+    [
+      "peternakan bebek",
+      "A",
+      "01465",
+      17,
+      1.0
+    ],
+    [
+      "penjual ikan",
+      "G",
+      "47215",
+      17,
+      1.0
+    ],
+    [
+      "warung gado",
+      "I",
+      "56101",
+      17,
+      1.0
+    ],
+    [
+      "utp perternakan",
+      "A",
+      "01411",
+      17,
+      1.0
+    ],
+    [
+      "ternak babi",
+      "A",
+      "01450",
+      17,
+      1.0
+    ],
+    [
+      "kedai makanan",
+      "I",
+      "56101",
+      17,
+      1.0
+    ],
+    [
+      "jualan sembako",
+      "G",
+      "47112",
+      17,
+      1.0
+    ],
+    [
+      "perdagangan kelapa",
+      "G",
+      "46202",
+      17,
+      1.0
+    ],
+    [
+      "tanam padi",
+      "A",
+      "01122",
+      17,
+      1.0
+    ],
+    [
+      "warung gorengan",
+      "I",
+      "56101",
+      22,
+      0.92
+    ],
+    [
+      "upt angkatan",
+      "B",
+      "08101",
+      16,
+      1.0
+    ],
+    [
+      "angkatan tanah",
+      "B",
+      "08101",
+      16,
+      1.0
+    ],
+    [
+      "industri kue",
+      "C",
+      "10792",
+      16,
+      1.0
+    ],
+    [
+      "buah keliling",
+      "G",
+      "47212",
+      16,
+      1.0
+    ],
+    [
+      "tanaman cabai",
+      "A",
+      "01138",
+      16,
+      1.0
+    ],
+    [
+      "upt pertanian",
+      "A",
+      "01122",
+      16,
+      1.0
+    ],
+    [
+      "nelayan air",
+      "A",
+      "03120",
+      16,
+      1.0
+    ],
+    [
+      "pertanian ubi",
+      "A",
+      "01135",
+      16,
+      1.0
+    ],
+    [
+      "lapak ikan",
+      "G",
+      "47215",
+      16,
+      1.0
+    ],
+    [
+      "kebun pisang",
+      "A",
+      "01220",
+      16,
+      1.0
+    ],
+    [
+      "ayam potong",
+      "G",
+      "47214",
+      36,
+      0.78
+    ],
+    [
+      "jual kue",
+      "C",
+      "10792",
+      40,
+      0.75
+    ],
+    [
+      "dompeng emas",
+      "B",
+      "07221",
+      16,
+      0.98
+    ],
+    [
+      "asin keliling",
+      "G",
+      "47246",
+      15,
+      1.0
+    ],
+    [
+      "peternakan walet",
+      "A",
+      "01497",
+      15,
+      1.0
+    ],
+    [
+      "tanaman langsat",
+      "A",
+      "01220",
+      15,
+      1.0
+    ],
+    [
+      "kelapa lokal",
+      "A",
+      "01261",
+      15,
+      1.0
+    ],
+    [
+      "tanaman duku",
+      "A",
+      "01220",
+      15,
+      1.0
+    ],
+    [
+      "jual bunga",
+      "A",
+      "01301",
+      15,
+      1.0
+    ],
+    [
+      "ikan air",
+      "A",
+      "03221",
+      22,
+      0.88
+    ],
+    [
+      "bank sampah",
+      "E",
+      "38110",
+      15,
+      0.99
+    ],
+    [
+      "pengelolaan sampah",
+      "E",
+      "38110",
+      15,
+      0.99
+    ],
+    [
+      "dokter hewan",
+      "M",
+      "75001",
+      15,
+      0.99
+    ],
+    [
+      "jual minuman",
+      "I",
+      "56304",
+      21,
+      0.88
+    ],
+    [
+      "merah batu",
+      "B",
+      "08101",
+      17,
+      0.94
+    ],
+    [
+      "plafon gypsum",
+      "F",
+      "43302",
+      15,
+      0.98
+    ],
+    [
+      "channel youtube",
+      "R",
+      "90200",
+      15,
+      0.98
+    ],
+    [
+      "jual pakaian",
+      "G",
+      "47742",
+      14,
+      1.0
+    ],
+    [
+      "pedagang sayuran",
+      "G",
+      "47213",
+      14,
+      1.0
+    ],
+    [
+      "petani jahe",
+      "A",
+      "01285",
+      14,
+      1.0
+    ],
+    [
+      "mainan keliling",
+      "G",
+      "47630",
+      14,
+      1.0
+    ],
+    [
+      "sarang walet",
+      "A",
+      "01497",
+      14,
+      1.0
+    ],
+    [
+      "makan minuman",
+      "I",
+      "56101",
+      14,
+      1.0
+    ],
+    [
+      "hortikultura nenas",
+      "A",
+      "01220",
+      14,
+      1.0
+    ],
+    [
+      "pertanian sayuran",
+      "A",
+      "01131",
+      14,
+      1.0
+    ],
+    [
+      "jasa pemanenan",
+      "A",
+      "01613",
+      14,
+      1.0
+    ],
+    [
+      "kue kering",
+      "C",
+      "10710",
+      25,
+      0.83
+    ],
+    [
+      "utp budidaya",
+      "A",
+      "01262",
+      19,
+      0.9
+    ],
+    [
+      "jual kelapa",
+      "G",
+      "46202",
+      26,
+      0.81
+    ],
+    [
+      "minuman es",
+      "I",
+      "56304",
+      16,
+      0.94
+    ],
+    [
+      "jual motor",
+      "G",
+      "47832",
+      18,
+      0.9
+    ],
+    [
+      "ternak ayam",
+      "A",
+      "01464",
+      20,
+      0.87
+    ],
+    [
+      "toko ikan",
+      "G",
+      "47215",
+      13,
+      1.0
+    ],
+    [
+      "utp kebun",
+      "A",
+      "01262",
+      13,
+      1.0
+    ],
+    [
+      "kebun sayur",
+      "A",
+      "01133",
+      13,
+      1.0
+    ],
+    [
+      "jualan baju",
+      "G",
+      "47711",
+      13,
+      1.0
+    ],
+    [
+      "eceran gas",
+      "G",
+      "47772",
+      13,
+      1.0
+    ],
+    [
+      "penyediaan makan",
+      "I",
+      "56101",
+      13,
+      1.0
+    ],
+    [
+      "petani cabai",
+      "A",
+      "01138",
+      13,
+      1.0
+    ],
+    [
+      "nelayan ikan",
+      "A",
+      "03110",
+      13,
+      1.0
+    ],
+    [
+      "tempayan gorong",
+      "C",
+      "23951",
+      13,
+      1.0
+    ],
+    [
+      "jual mobil",
+      "G",
+      "47812",
+      13,
+      1.0
+    ],
+    [
+      "budidaya nanas",
+      "A",
+      "01220",
+      13,
+      1.0
+    ],
+    [
+      "ojek online",
+      "H",
+      "49296",
+      13,
+      1.0
+    ],
+    [
+      "utp pertenakan",
+      "A",
+      "01411",
+      13,
+      1.0
+    ],
+    [
+      "jualan kue",
+      "C",
+      "10792",
+      40,
+      0.71
+    ],
+    [
+      "benih ikan",
+      "A",
+      "03231",
+      15,
+      0.94
+    ],
+    [
+      "dasar negeri",
+      "P",
+      "85201",
+      15,
+      0.94
+    ],
+    [
+      "pedagang keliling",
+      "G",
+      "47213",
+      30,
+      0.75
+    ],
+    [
+      "penggemukan kambing",
+      "A",
+      "01442",
+      19,
+      0.86
+    ],
+    [
+      "sayuran keliling",
+      "G",
+      "47213",
+      12,
+      1.0
+    ],
+    [
+      "jajanan tradisional",
+      "C",
+      "10792",
+      12,
+      1.0
+    ],
+    [
+      "cabai rawit",
+      "A",
+      "01138",
+      12,
+      1.0
+    ],
+    [
+      "warung seblak",
+      "I",
+      "56101",
+      12,
+      1.0
+    ],
+    [
+      "penebang kayu",
+      "A",
+      "02102",
+      12,
+      1.0
+    ],
+    [
+      "sepeda motor",
+      "G",
+      "95320",
+      12,
+      1.0
+    ],
+    [
+      "pengilingan padi",
+      "C",
+      "10631",
+      12,
+      1.0
+    ],
+    [
+      "mengambil kayu",
+      "A",
+      "02202",
+      12,
+      1.0
+    ],
+    [
+      "pangan ubi",
+      "A",
+      "01135",
+      12,
+      1.0
+    ],
+    [
+      "toko sumber",
+      "G",
+      "47592",
+      12,
+      1.0
+    ],
+    [
+      "atap daun",
+      "C",
+      "16292",
+      12,
+      1.0
+    ],
+    [
+      "bunga kertas",
+      "A",
+      "01301",
+      12,
+      1.0
+    ],
+    [
+      "perternakan sapi",
+      "A",
+      "01411",
+      12,
+      1.0
+    ],
+    [
+      "kantin sdn",
+      "I",
+      "56101",
+      12,
+      1.0
+    ],
+    [
+      "pembibitan ikan",
+      "A",
+      "03221",
+      12,
+      1.0
+    ],
+    [
+      "es teh",
+      "I",
+      "56304",
+      12,
+      1.0
+    ],
+    [
+      "nelayan perikanan",
+      "A",
+      "03110",
+      12,
+      1.0
+    ],
+    [
+      "gas eceran",
+      "G",
+      "47772",
+      12,
+      1.0
+    ],
+    [
+      "ternak kambing",
+      "A",
+      "01442",
+      18,
+      0.86
+    ],
+    [
+      "gudang kelapa",
+      "G",
+      "46202",
+      18,
+      0.86
+    ],
+    [
+      "kue donat",
+      "C",
+      "10792",
+      21,
+      0.81
+    ],
+    [
+      "apotek",
+      "G",
+      "47721",
+      55,
+      0.99
+    ]
+  ],
+  "tokens": [
+    [
+      "utp",
+      "A",
+      "01122",
+      17040,
+      0.99
+    ],
+    [
+      "perkebunan",
+      "A",
+      "01262",
+      8058,
+      1.0
+    ],
+    [
+      "tanaman",
+      "A",
+      "01122",
+      7961,
+      1.0
+    ],
+    [
+      "pangan",
+      "A",
+      "01122",
+      6676,
+      1.0
+    ],
+    [
+      "hortikultura",
+      "A",
+      "01220",
+      2289,
+      1.0
+    ],
+    [
+      "sembako",
+      "G",
+      "47112",
+      2375,
+      0.98
+    ],
+    [
+      "padi",
+      "A",
+      "01122",
+      2735,
+      0.96
+    ],
+    [
+      "kelapa",
+      "A",
+      "01261",
+      2938,
+      0.95
+    ],
+    [
+      "sawit",
+      "A",
+      "01262",
+      2256,
+      0.98
+    ],
+    [
+      "peternakan",
+      "A",
+      "01411",
+      1556,
+      0.99
+    ],
+    [
+      "pertanian",
+      "A",
+      "01122",
+      1548,
+      0.99
+    ],
+    [
+      "toko",
+      "G",
+      "47112",
+      2191,
+      0.92
+    ],
+    [
+      "inbrida",
+      "A",
+      "01122",
+      1007,
+      1.0
+    ],
+    [
+      "kebun",
+      "A",
+      "01262",
+      1037,
+      0.99
+    ],
+    [
+      "sawah",
+      "A",
+      "01122",
+      944,
+      0.99
+    ],
+    [
+      "budidaya",
+      "A",
+      "01122",
+      890,
+      0.99
+    ],
+    [
+      "upt",
+      "A",
+      "01122",
+      1287,
+      0.93
+    ],
+    [
+      "perikanan",
+      "A",
+      "03110",
+      924,
+      0.96
+    ],
+    [
+      "holtikultura",
+      "A",
+      "01220",
+      368,
+      0.98
+    ],
+    [
+      "karet",
+      "A",
+      "01291",
+      463,
+      0.94
+    ],
+    [
+      "motor",
+      "G",
+      "95320",
+      431,
+      0.94
+    ],
+    [
+      "kantin",
+      "I",
+      "56101",
+      455,
+      0.93
+    ],
+    [
+      "sapi",
+      "A",
+      "01411",
+      317,
+      0.98
+    ],
+    [
+      "petani",
+      "A",
+      "01122",
+      270,
+      1.0
+    ],
+    [
+      "makan",
+      "I",
+      "56101",
+      290,
+      0.97
+    ],
+    [
+      "minuman",
+      "I",
+      "56304",
+      314,
+      0.89
+    ],
+    [
+      "kambing",
+      "A",
+      "01442",
+      244,
+      0.93
+    ],
+    [
+      "nanas",
+      "A",
+      "01220",
+      274,
+      0.91
+    ],
+    [
+      "gas",
+      "G",
+      "47772",
+      163,
+      0.99
+    ],
+    [
+      "sayur",
+      "G",
+      "47213",
+      398,
+      0.84
+    ],
+    [
+      "kue",
+      "C",
+      "10792",
+      486,
+      0.81
+    ],
+    [
+      "nelayan",
+      "A",
+      "03110",
+      177,
+      0.95
+    ],
+    [
+      "kedai",
+      "I",
+      "56101",
+      197,
+      0.92
+    ],
+    [
+      "bensin",
+      "G",
+      "47302",
+      133,
+      0.99
+    ],
+    [
+      "sarapan",
+      "I",
+      "56101",
+      163,
+      0.95
+    ],
+    [
+      "bengkel",
+      "G",
+      "95320",
+      415,
+      0.8
+    ],
+    [
+      "eceran",
+      "G",
+      "47302",
+      120,
+      0.99
+    ],
+    [
+      "laundry",
+      "S",
+      "96100",
+      125,
+      0.98
+    ],
+    [
+      "pembuatan",
+      "C",
+      "10792",
+      145,
+      0.95
+    ],
+    [
+      "angkutan",
+      "H",
+      "49231",
+      188,
+      0.9
+    ],
+    [
+      "pangkas",
+      "S",
+      "96210",
+      111,
+      1.0
+    ],
+    [
+      "rambut",
+      "S",
+      "96210",
+      121,
+      0.98
+    ],
+    [
+      "kopi",
+      "I",
+      "56304",
+      174,
+      0.88
+    ],
+    [
+      "pedagang",
+      "G",
+      "47213",
+      235,
+      0.83
+    ],
+    [
+      "negeri",
+      "P",
+      "85201",
+      123,
+      0.94
+    ],
+    [
+      "penggilingan",
+      "C",
+      "10631",
+      97,
+      0.97
+    ],
+    [
+      "jahe",
+      "A",
+      "01285",
+      90,
+      0.97
+    ],
+    [
+      "hibrida",
+      "A",
+      "01121",
+      76,
+      1.0
+    ],
+    [
+      "batako",
+      "C",
+      "23951",
+      83,
+      0.97
+    ],
+    [
+      "salon",
+      "S",
+      "96210",
+      73,
+      0.99
+    ],
+    [
+      "pohon",
+      "A",
+      "01291",
+      71,
+      0.99
+    ],
+    [
+      "nasi",
+      "I",
+      "56101",
+      120,
+      0.88
+    ],
+    [
+      "keliling",
+      "G",
+      "47213",
+      542,
+      0.67
+    ],
+    [
+      "bakso",
+      "I",
+      "56101",
+      96,
+      0.92
+    ],
+    [
+      "pangkalan",
+      "G",
+      "47772",
+      75,
+      0.97
+    ],
+    [
+      "walet",
+      "A",
+      "01497",
+      79,
+      0.95
+    ],
+    [
+      "pentol",
+      "I",
+      "56102",
+      139,
+      0.84
+    ],
+    [
+      "koperasi",
+      "K",
+      "64191",
+      65,
+      0.99
+    ],
+    [
+      "membuat",
+      "C",
+      "10792",
+      69,
+      0.97
+    ],
+    [
+      "kontrakan",
+      "L",
+      "68112",
+      119,
+      0.86
+    ],
+    [
+      "perdagangan",
+      "G",
+      "46202",
+      96,
+      0.9
+    ],
+    [
+      "lpg",
+      "G",
+      "47772",
+      67,
+      0.97
+    ],
+    [
+      "sdn",
+      "P",
+      "85201",
+      109,
+      0.87
+    ],
+    [
+      "warung",
+      "G",
+      "47112",
+      1292,
+      0.57
+    ],
+    [
+      "pagi",
+      "I",
+      "56101",
+      101,
+      0.88
+    ],
+    [
+      "pinang",
+      "A",
+      "01289",
+      207,
+      0.76
+    ],
+    [
+      "jual",
+      "G",
+      "47213",
+      619,
+      0.63
+    ],
+    [
+      "mebel",
+      "C",
+      "31011",
+      84,
+      0.91
+    ],
+    [
+      "kios",
+      "G",
+      "47302",
+      75,
+      0.93
+    ],
+    [
+      "cabai",
+      "A",
+      "01138",
+      64,
+      0.96
+    ],
+    [
+      "penangkapan",
+      "A",
+      "03110",
+      52,
+      1.0
+    ],
+    [
+      "seblak",
+      "I",
+      "56101",
+      52,
+      1.0
+    ],
+    [
+      "kerupuk",
+      "C",
+      "10794",
+      85,
+      0.89
+    ],
+    [
+      "ladang",
+      "A",
+      "01122",
+      55,
+      0.98
+    ],
+    [
+      "gula",
+      "C",
+      "10722",
+      57,
+      0.97
+    ],
+    [
+      "madrasah",
+      "P",
+      "85203",
+      61,
+      0.95
+    ],
+    [
+      "ternak",
+      "A",
+      "01411",
+      99,
+      0.85
+    ],
+    [
+      "tawar",
+      "A",
+      "03221",
+      53,
+      0.98
+    ],
+    [
+      "pembuat",
+      "C",
+      "10792",
+      56,
+      0.95
+    ],
+    [
+      "tangkap",
+      "A",
+      "03110",
+      49,
+      0.98
+    ],
+    [
+      "sd",
+      "P",
+      "85201",
+      85,
+      0.86
+    ],
+    [
+      "perternakan",
+      "A",
+      "01411",
+      45,
+      1.0
+    ],
+    [
+      "noreh",
+      "A",
+      "01291",
+      45,
+      1.0
+    ],
+    [
+      "pisang",
+      "A",
+      "01220",
+      174,
+      0.74
+    ],
+    [
+      "es",
+      "I",
+      "56304",
+      296,
+      0.67
+    ],
+    [
+      "aksesoris",
+      "G",
+      "47713",
+      51,
+      0.96
+    ],
+    [
+      "basah",
+      "C",
+      "10792",
+      71,
+      0.88
+    ],
+    [
+      "elpiji",
+      "G",
+      "47772",
+      42,
+      1.0
+    ],
+    [
+      "konstruksi",
+      "F",
+      "41011",
+      45,
+      0.98
+    ],
+    [
+      "jagung",
+      "A",
+      "01111",
+      77,
+      0.86
+    ],
+    [
+      "al",
+      "P",
+      "85542",
+      76,
+      0.86
+    ],
+    [
+      "mobil",
+      "G",
+      "95311",
+      144,
+      0.75
+    ],
+    [
+      "lokal",
+      "A",
+      "01220",
+      47,
+      0.96
+    ],
+    [
+      "buah",
+      "G",
+      "47212",
+      149,
+      0.74
+    ],
+    [
+      "penggemukan",
+      "A",
+      "01411",
+      48,
+      0.94
+    ],
+    [
+      "hutan",
+      "A",
+      "02202",
+      48,
+      0.94
+    ],
+    [
+      "pesantren",
+      "P",
+      "85541",
+      44,
+      0.96
+    ],
+    [
+      "kuah",
+      "I",
+      "56102",
+      59,
+      0.89
+    ],
+    [
+      "kelontong",
+      "G",
+      "47112",
+      47,
+      0.94
+    ],
+    [
+      "ojek",
+      "H",
+      "49296",
+      37,
+      1.0
+    ],
+    [
+      "smp",
+      "P",
+      "85311",
+      37,
+      1.0
+    ],
+    [
+      "kangkung",
+      "A",
+      "01131",
+      37,
+      1.0
+    ],
+    [
+      "asin",
+      "C",
+      "10211",
+      134,
+      0.74
+    ],
+    [
+      "industri",
+      "C",
+      "10792",
+      53,
+      0.9
+    ],
+    [
+      "tk",
+      "P",
+      "85102",
+      44,
+      0.94
+    ],
+    [
+      "cafe",
+      "I",
+      "56303",
+      39,
+      0.97
+    ],
+    [
+      "gado",
+      "I",
+      "56101",
+      41,
+      0.95
+    ],
+    [
+      "fotografer",
+      "M",
+      "74209",
+      35,
+      0.99
+    ],
+    [
+      "bmt",
+      "K",
+      "64192",
+      35,
+      0.99
+    ],
+    [
+      "brilink",
+      "K",
+      "66141",
+      35,
+      0.99
+    ],
+    [
+      "makanan",
+      "I",
+      "56101",
+      119,
+      0.74
+    ],
+    [
+      "nenas",
+      "A",
+      "01220",
+      43,
+      0.93
+    ],
+    [
+      "kontruksi",
+      "F",
+      "41011",
+      35,
+      0.98
+    ],
+    [
+      "kontraktor",
+      "F",
+      "41011",
+      35,
+      0.98
+    ],
+    [
+      "tempe",
+      "C",
+      "10307",
+      39,
+      0.95
+    ],
+    [
+      "warkop",
+      "I",
+      "56304",
+      56,
+      0.86
+    ],
+    [
+      "durian",
+      "A",
+      "01220",
+      51,
+      0.88
+    ],
+    [
+      "mainan",
+      "G",
+      "47630",
+      35,
+      0.97
+    ],
+    [
+      "kampung",
+      "A",
+      "01464",
+      95,
+      0.76
+    ],
+    [
+      "menanam",
+      "A",
+      "01122",
+      31,
+      1.0
+    ],
+    [
+      "kuning",
+      "I",
+      "56101",
+      54,
+      0.86
+    ],
+    [
+      "ubi",
+      "A",
+      "01135",
+      97,
+      0.75
+    ],
+    [
+      "paud",
+      "P",
+      "85102",
+      62,
+      0.83
+    ],
+    [
+      "cabe",
+      "A",
+      "01138",
+      39,
+      0.93
+    ],
+    [
+      "kayu",
+      "A",
+      "01135",
+      123,
+      0.71
+    ],
+    [
+      "keripik",
+      "C",
+      "10794",
+      38,
+      0.93
+    ],
+    [
+      "bank",
+      "K",
+      "64121",
+      35,
+      0.95
+    ],
+    [
+      "notaris",
+      "M",
+      "69104",
+      30,
+      0.99
+    ],
+    [
+      "pdam",
+      "E",
+      "36001",
+      30,
+      0.99
+    ],
+    [
+      "pegadaian",
+      "K",
+      "64953",
+      30,
+      0.99
+    ],
+    [
+      "ppat",
+      "M",
+      "69104",
+      30,
+      0.99
+    ],
+    [
+      "urut",
+      "Q",
+      "86992",
+      46,
+      0.88
+    ],
+    [
+      "mts",
+      "P",
+      "85313",
+      40,
+      0.91
+    ],
+    [
+      "pemborong",
+      "F",
+      "41011",
+      30,
+      0.98
+    ],
+    [
+      "instalasi",
+      "F",
+      "43211",
+      30,
+      0.98
+    ],
+    [
+      "praktek",
+      "Q",
+      "86991",
+      28,
+      1.0
+    ],
+    [
+      "pom",
+      "G",
+      "47302",
+      28,
+      1.0
+    ],
+    [
+      "klinik",
+      "Q",
+      "86105",
+      28,
+      1.0
+    ],
+    [
+      "pengepul",
+      "G",
+      "46202",
+      48,
+      0.86
+    ],
+    [
+      "lapak",
+      "G",
+      "47213",
+      72,
+      0.78
+    ],
+    [
+      "pengolahan",
+      "C",
+      "10211",
+      34,
+      0.94
+    ],
+    [
+      "las",
+      "C",
+      "25111",
+      75,
+      0.77
+    ],
+    [
+      "jahit",
+      "C",
+      "14120",
+      75,
+      0.77
+    ],
+    [
+      "pecal",
+      "I",
+      "56101",
+      30,
+      0.97
+    ],
+    [
+      "pembibitan",
+      "A",
+      "03221",
+      27,
+      1.0
+    ],
+    [
+      "bubur",
+      "I",
+      "56101",
+      35,
+      0.92
+    ],
+    [
+      "pengeringan",
+      "C",
+      "10211",
+      26,
+      1.0
+    ],
+    [
+      "les",
+      "P",
+      "85595",
+      26,
+      1.0
+    ],
+    [
+      "babi",
+      "A",
+      "01450",
+      56,
+      0.81
+    ],
+    [
+      "tradisional",
+      "C",
+      "10792",
+      106,
+      0.7
+    ],
+    [
+      "pijat",
+      "Q",
+      "86992",
+      46,
+      0.85
+    ],
+    [
+      "angkut",
+      "H",
+      "49231",
+      28,
+      0.97
+    ],
+    [
+      "depot",
+      "C",
+      "11052",
+      43,
+      0.86
+    ],
+    [
+      "jualan",
+      "G",
+      "47213",
+      297,
+      0.57
+    ],
+    [
+      "tanam",
+      "A",
+      "01122",
+      33,
+      0.92
+    ],
+    [
+      "nila",
+      "A",
+      "03221",
+      35,
+      0.9
+    ],
+    [
+      "asuransi",
+      "K",
+      "65110",
+      25,
+      0.99
+    ],
+    [
+      "futsal",
+      "R",
+      "93112",
+      25,
+      0.99
+    ],
+    [
+      "gym",
+      "R",
+      "93120",
+      25,
+      0.99
+    ],
+    [
+      "fitness",
+      "R",
+      "93120",
+      25,
+      0.99
+    ],
+    [
+      "biliar",
+      "R",
+      "93293",
+      25,
+      0.99
+    ],
+    [
+      "billiard",
+      "R",
+      "93293",
+      25,
+      0.99
+    ],
+    [
+      "karaoke",
+      "R",
+      "93292",
+      25,
+      0.99
+    ],
+    [
+      "sanggar",
+      "R",
+      "90002",
+      25,
+      0.99
+    ],
+    [
+      "pengacara",
+      "M",
+      "69101",
+      25,
+      0.99
+    ],
+    [
+      "advokat",
+      "M",
+      "69101",
+      25,
+      0.99
+    ],
+    [
+      "konsultan",
+      "M",
+      "70209",
+      25,
+      0.99
+    ],
+    [
+      "perabotan",
+      "G",
+      "47593",
+      24,
+      1.0
+    ],
+    [
+      "loundry",
+      "S",
+      "96100",
+      24,
+      1.0
+    ],
+    [
+      "inhibrida",
+      "A",
+      "01122",
+      24,
+      1.0
+    ],
+    [
+      "gorengan",
+      "I",
+      "56101",
+      128,
+      0.66
+    ],
+    [
+      "segar",
+      "G",
+      "47215",
+      49,
+      0.82
+    ],
+    [
+      "sampah",
+      "E",
+      "38110",
+      25,
+      0.98
+    ],
+    [
+      "sekolah",
+      "I",
+      "56101",
+      116,
+      0.67
+    ],
+    [
+      "minum",
+      "I",
+      "56101",
+      83,
+      0.72
+    ],
+    [
+      "kering",
+      "C",
+      "10710",
+      36,
+      0.88
+    ],
+    [
+      "rawit",
+      "A",
+      "01138",
+      23,
+      1.0
+    ],
+    [
+      "getah",
+      "A",
+      "01291",
+      34,
+      0.89
+    ],
+    [
+      "bebek",
+      "A",
+      "01465",
+      26,
+      0.96
+    ],
+    [
+      "bidan",
+      "Q",
+      "86991",
+      22,
+      1.0
+    ],
+    [
+      "langsat",
+      "A",
+      "01220",
+      22,
+      1.0
+    ],
+    [
+      "teh",
+      "I",
+      "56304",
+      28,
+      0.93
+    ],
+    [
+      "bekas",
+      "G",
+      "47749",
+      58,
+      0.76
+    ],
+    [
+      "rongsokan",
+      "E",
+      "38110",
+      25,
+      0.95
+    ],
+    [
+      "dekorasi",
+      "N",
+      "77291",
+      24,
+      0.96
+    ],
+    [
+      "kepok",
+      "A",
+      "01220",
+      24,
+      0.96
+    ],
+    [
+      "apotek",
+      "G",
+      "47721",
+      24,
+      0.96
+    ],
+    [
+      "penggalian",
+      "B",
+      "08101",
+      21,
+      1.0
+    ],
+    [
+      "mart",
+      "G",
+      "47111",
+      21,
+      1.0
+    ],
+    [
+      "produksi",
+      "C",
+      "10794",
+      37,
+      0.84
+    ],
+    [
+      "goreng",
+      "I",
+      "56101",
+      49,
+      0.78
+    ],
+    [
+      "rambutan",
+      "A",
+      "01220",
+      23,
+      0.96
+    ],
+    [
+      "tpa",
+      "P",
+      "85542",
+      23,
+      0.96
+    ],
+    [
+      "galon",
+      "C",
+      "11052",
+      54,
+      0.76
+    ],
+    [
+      "lelong",
+      "G",
+      "47742",
+      20,
+      1.0
+    ],
+    [
+      "gorong",
+      "C",
+      "23951",
+      20,
+      1.0
+    ],
+    [
+      "tangga",
+      "G",
+      "47593",
+      20,
+      1.0
+    ],
+    [
+      "panjang",
+      "A",
+      "01116",
+      20,
+      1.0
+    ],
+    [
+      "pemantik",
+      "B",
+      "08101",
+      20,
+      1.0
+    ],
+    [
+      "pertenakan",
+      "A",
+      "01411",
+      20,
+      1.0
+    ],
+    [
+      "truk",
+      "H",
+      "49231",
+      38,
+      0.83
+    ],
+    [
+      "cuci",
+      "G",
+      "95320",
+      56,
+      0.75
+    ],
+    [
+      "sppg",
+      "I",
+      "56290",
+      28,
+      0.9
+    ],
+    [
+      "service",
+      "S",
+      "95210",
+      45,
+      0.79
+    ],
+    [
+      "arsitek",
+      "M",
+      "71101",
+      20,
+      0.99
+    ],
+    [
+      "babysitter",
+      "T",
+      "97000",
+      20,
+      0.99
+    ],
+    [
+      "pembantu",
+      "T",
+      "97000",
+      20,
+      0.99
+    ],
+    [
+      "buahan",
+      "G",
+      "47212",
+      19,
+      1.0
+    ],
+    [
+      "ibtidaiyah",
+      "P",
+      "85203",
+      19,
+      1.0
+    ],
+    [
+      "gypsum",
+      "F",
+      "43302",
+      20,
+      0.98
+    ],
+    [
+      "pemulung",
+      "E",
+      "38110",
+      20,
+      0.98
+    ],
+    [
+      "limbah",
+      "E",
+      "38110",
+      20,
+      0.98
+    ],
+    [
+      "plafon",
+      "F",
+      "43302",
+      20,
+      0.98
+    ],
+    [
+      "pemancingan",
+      "R",
+      "93299",
+      20,
+      0.98
+    ],
+    [
+      "playstation",
+      "R",
+      "93299",
+      20,
+      0.98
+    ],
+    [
+      "sate",
+      "I",
+      "56101",
+      38,
+      0.81
+    ],
+    [
+      "mini",
+      "G",
+      "47302",
+      41,
+      0.79
+    ],
+    [
+      "memungut",
+      "A",
+      "02202",
+      18,
+      1.0
+    ],
+    [
+      "duku",
+      "A",
+      "01220",
+      18,
+      1.0
+    ],
+    [
+      "geprek",
+      "I",
+      "56101",
+      32,
+      0.84
+    ],
+    [
+      "dasar",
+      "P",
+      "85201",
+      21,
+      0.95
+    ],
+    [
+      "kg",
+      "G",
+      "47772",
+      21,
+      0.95
+    ],
+    [
+      "tebu",
+      "I",
+      "56304",
+      66,
+      0.69
+    ],
+    [
+      "dagang",
+      "G",
+      "47212",
+      38,
+      0.79
+    ],
+    [
+      "obat",
+      "G",
+      "47722",
+      20,
+      0.95
+    ],
+    [
+      "lamongan",
+      "I",
+      "56101",
+      20,
+      0.95
+    ],
+    [
+      "transfer",
+      "K",
+      "66141",
+      20,
+      0.95
+    ],
+    [
+      "angkatan",
+      "B",
+      "08101",
+      17,
+      1.0
+    ],
+    [
+      "pemanenan",
+      "A",
+      "01613",
+      17,
+      1.0
+    ],
+    [
+      "donat",
+      "C",
+      "10792",
+      35,
+      0.8
+    ],
+    [
+      "pencucian",
+      "G",
+      "95320",
+      26,
+      0.87
+    ],
+    [
+      "penjahit",
+      "C",
+      "14120",
+      55,
+      0.71
+    ],
+    [
+      "material",
+      "H",
+      "49231",
+      46,
+      0.74
+    ],
+    [
+      "semangka",
+      "A",
+      "01132",
+      19,
+      0.95
+    ],
+    [
+      "lesung",
+      "C",
+      "23969",
+      19,
+      0.95
+    ],
+    [
+      "sarang",
+      "A",
+      "01497",
+      19,
+      0.95
+    ],
+    [
+      "penjual",
+      "G",
+      "47213",
+      96,
+      0.62
+    ],
+    [
+      "dompeng",
+      "B",
+      "07221",
+      16,
+      1.0
+    ],
+    [
+      "benih",
+      "A",
+      "03231",
+      21,
+      0.91
+    ],
+    [
+      "pulsa",
+      "J",
+      "61209",
+      21,
+      0.91
+    ],
+    [
+      "online",
+      "G",
+      "47901",
+      69,
+      0.66
+    ],
+    [
+      "kehutanan",
+      "A",
+      "02202",
+      27,
+      0.84
+    ],
+    [
+      "mis",
+      "P",
+      "85203",
+      18,
+      0.95
+    ],
+    [
+      "peternak",
+      "A",
+      "01442",
+      18,
+      0.95
+    ],
+    [
+      "parkir",
+      "H",
+      "52215",
+      15,
+      1.0
+    ],
+    [
+      "meubel",
+      "C",
+      "31011",
+      20,
+      0.91
+    ],
+    [
+      "vermak",
+      "S",
+      "95291",
+      22,
+      0.88
+    ],
+    [
+      "potong",
+      "A",
+      "01411",
+      92,
+      0.6
+    ],
+    [
+      "youtuber",
+      "R",
+      "90200",
+      15,
+      0.98
+    ],
+    [
+      "youtube",
+      "R",
+      "90200",
+      15,
+      0.98
+    ],
+    [
+      "coffe",
+      "I",
+      "56303",
+      14,
+      1.0
+    ],
+    [
+      "pertalite",
+      "G",
+      "47302",
+      14,
+      1.0
+    ],
+    [
+      "athfal",
+      "P",
+      "85103",
+      14,
+      1.0
+    ],
+    [
+      "mengambil",
+      "A",
+      "02202",
+      14,
+      1.0
+    ],
+    [
+      "express",
+      "H",
+      "53200",
+      14,
+      1.0
+    ],
+    [
+      "ma",
+      "P",
+      "85317",
+      25,
+      0.83
+    ],
+    [
+      "cerucuk",
+      "A",
+      "02201",
+      19,
+      0.9
+    ],
+    [
+      "sosis",
+      "I",
+      "56102",
+      26,
+      0.81
+    ],
+    [
+      "sawi",
+      "A",
+      "01131",
+      16,
+      0.94
+    ],
+    [
+      "pecel",
+      "I",
+      "56101",
+      16,
+      0.94
+    ],
+    [
+      "rm",
+      "I",
+      "56101",
+      16,
+      0.94
+    ],
+    [
+      "menjahit",
+      "C",
+      "14120",
+      18,
+      0.9
+    ],
+    [
+      "parfum",
+      "G",
+      "47774",
+      20,
+      0.87
+    ],
+    [
+      "bbm",
+      "G",
+      "47302",
+      13,
+      1.0
+    ],
+    [
+      "guru",
+      "P",
+      "85542",
+      13,
+      1.0
+    ],
+    [
+      "tpq",
+      "P",
+      "85542",
+      13,
+      1.0
+    ],
+    [
+      "apotik",
+      "G",
+      "47721",
+      13,
+      1.0
+    ],
+    [
+      "tb",
+      "G",
+      "47521",
+      13,
+      1.0
+    ],
+    [
+      "timun",
+      "A",
+      "01133",
+      13,
+      1.0
+    ],
+    [
+      "pengilingan",
+      "C",
+      "10631",
+      13,
+      1.0
+    ],
+    [
+      "taylor",
+      "C",
+      "14120",
+      13,
+      1.0
+    ],
+    [
+      "hasil",
+      "A",
+      "02202",
+      40,
+      0.71
+    ],
+    [
+      "kandang",
+      "A",
+      "01461",
+      27,
+      0.79
+    ],
+    [
+      "bangunan",
+      "G",
+      "47521",
+      68,
+      0.62
+    ],
+    [
+      "jeruk",
+      "A",
+      "01230",
+      23,
+      0.82
+    ],
+    [
+      "angkringan",
+      "I",
+      "56102",
+      15,
+      0.94
+    ],
+    [
+      "pengobatan",
+      "Q",
+      "86992",
+      15,
+      0.94
+    ],
+    [
+      "puskesmas",
+      "Q",
+      "86102",
+      15,
+      0.94
+    ],
+    [
+      "mie",
+      "I",
+      "56101",
+      36,
+      0.72
+    ],
+    [
+      "snack",
+      "G",
+      "47112",
+      39,
+      0.7
+    ],
+    [
+      "truck",
+      "H",
+      "52319",
+      19,
+      0.86
+    ],
+    [
+      "rental",
+      "N",
+      "77510",
+      24,
+      0.8
+    ],
+    [
+      "sopir",
+      "H",
+      "49231",
+      17,
+      0.89
+    ],
+    [
+      "permak",
+      "S",
+      "95291",
+      51,
+      0.65
+    ],
+    [
+      "tani",
+      "G",
+      "47763",
+      27,
+      0.77
+    ],
+    [
+      "rotikap",
+      "C",
+      "10710",
+      12,
+      1.0
+    ],
+    [
+      "islam",
+      "P",
+      "85313",
+      12,
+      1.0
+    ],
+    [
+      "penebang",
+      "A",
+      "02102",
+      12,
+      1.0
+    ],
+    [
+      "petelur",
+      "A",
+      "01462",
+      12,
+      1.0
+    ],
+    [
+      "supir",
+      "H",
+      "52219",
+      12,
+      1.0
+    ],
+    [
+      "bimbel",
+      "P",
+      "85595",
+      12,
+      1.0
+    ],
+    [
+      "store",
+      "G",
+      "47711",
+      20,
+      0.83
+    ],
+    [
+      "collection",
+      "G",
+      "47711",
+      14,
+      0.93
+    ],
+    [
+      "wifi",
+      "J",
+      "61104",
+      14,
+      0.93
+    ],
+    [
+      "olshop",
+      "G",
+      "47901",
+      14,
+      0.93
+    ],
+    [
+      "tempayan",
+      "C",
+      "23951",
+      14,
+      0.93
+    ],
+    [
+      "elektronik",
+      "S",
+      "95210",
+      49,
+      0.64
+    ],
+    [
+      "merah",
+      "C",
+      "10722",
+      52,
+      0.63
+    ],
+    [
+      "pengumpul",
+      "E",
+      "38110",
+      15,
+      0.9
+    ],
+    [
+      "martabak",
+      "I",
+      "56102",
+      19,
+      0.83
+    ],
+    [
+      "sol",
+      "S",
+      "95230",
+      11,
+      1.0
+    ],
+    [
+      "tsanawiyah",
+      "P",
+      "85313",
+      11,
+      1.0
+    ],
+    [
+      "privat",
+      "P",
+      "85595",
+      11,
+      1.0
+    ],
+    [
+      "internet",
+      "J",
+      "61209",
+      11,
+      1.0
+    ],
+    [
+      "burung",
+      "A",
+      "01497",
+      32,
+      0.71
+    ],
+    [
+      "tokoh",
+      "G",
+      "47112",
+      17,
+      0.85
+    ],
+    [
+      "ra",
+      "P",
+      "85103",
+      13,
+      0.93
+    ],
+    [
+      "bolu",
+      "C",
+      "10792",
+      13,
+      0.93
+    ],
+    [
+      "tambal",
+      "G",
+      "95311",
+      13,
+      0.93
+    ],
+    [
+      "tenda",
+      "N",
+      "77291",
+      13,
+      0.93
+    ],
+    [
+      "darul",
+      "P",
+      "85541",
+      15,
+      0.88
+    ],
+    [
+      "roti",
+      "C",
+      "10710",
+      30,
+      0.71
+    ],
+    [
+      "baru",
+      "G",
+      "47112",
+      31,
+      0.7
+    ],
+    [
+      "minyak",
+      "G",
+      "47302",
+      21,
+      0.78
+    ],
+    [
+      "ngaji",
+      "P",
+      "85542",
+      10,
+      1.0
+    ],
+    [
+      "prasmanan",
+      "I",
+      "56101",
+      10,
+      1.0
+    ],
+    [
+      "smk",
+      "P",
+      "85322",
+      10,
+      1.0
+    ],
+    [
+      "gudang",
+      "G",
+      "46202",
+      31,
+      0.69
+    ],
+    [
+      "coffee",
+      "I",
+      "56303",
+      14,
+      0.88
+    ],
+    [
+      "kost",
+      "I",
+      "55909",
+      32,
+      0.68
+    ],
+    [
+      "konter",
+      "J",
+      "61209",
+      26,
+      0.72
+    ],
+    [
+      "cake",
+      "C",
+      "10710",
+      19,
+      0.79
+    ],
+    [
+      "atap",
+      "C",
+      "16292",
+      19,
+      0.79
+    ],
+    [
+      "an",
+      "P",
+      "85542",
+      12,
+      0.92
+    ],
+    [
+      "santan",
+      "C",
+      "10793",
+      12,
+      0.92
+    ],
+    [
+      "sound",
+      "N",
+      "77291",
+      12,
+      0.92
+    ],
+    [
+      "3kg",
+      "G",
+      "47772",
+      12,
+      0.92
+    ],
+    [
+      "sepeda",
+      "G",
+      "95320",
+      29,
+      0.69
+    ],
+    [
+      "servis",
+      "S",
+      "95210",
+      31,
+      0.67
+    ],
+    [
+      "kosmetik",
+      "G",
+      "47724",
+      9,
+      1.0
+    ],
+    [
+      "diniyah",
+      "P",
+      "85203",
+      9,
+      1.0
+    ],
+    [
+      "mentimun",
+      "A",
+      "01133",
+      9,
+      1.0
+    ],
+    [
+      "padang",
+      "I",
+      "56101",
+      9,
+      1.0
+    ],
+    [
+      "bata",
+      "C",
+      "23951",
+      9,
+      1.0
+    ],
+    [
+      "swasta",
+      "P",
+      "85202",
+      9,
+      1.0
+    ],
+    [
+      "pijit",
+      "Q",
+      "86992",
+      15,
+      0.83
+    ],
+    [
+      "atk",
+      "G",
+      "47611",
+      15,
+      0.83
+    ],
+    [
+      "solar",
+      "G",
+      "47302",
+      18,
+      0.78
+    ],
+    [
+      "kertas",
+      "A",
+      "01301",
+      13,
+      0.87
+    ],
+    [
+      "teras",
+      "I",
+      "56101",
+      11,
+      0.92
+    ],
+    [
+      "boba",
+      "I",
+      "56304",
+      11,
+      0.92
+    ],
+    [
+      "sma",
+      "P",
+      "85315",
+      11,
+      0.92
+    ],
+    [
+      "parfume",
+      "G",
+      "47774",
+      11,
+      0.92
+    ],
+    [
+      "cetak",
+      "C",
+      "23951",
+      11,
+      0.92
+    ],
+    [
+      "aliyah",
+      "P",
+      "85317",
+      11,
+      0.92
+    ],
+    [
+      "ulang",
+      "C",
+      "11052",
+      34,
+      0.64
+    ],
+    [
+      "penyediaan",
+      "I",
+      "56101",
+      22,
+      0.71
+    ],
+    [
+      "bumbu",
+      "C",
+      "10779",
+      17,
+      0.77
+    ],
+    [
+      "qua",
+      "C",
+      "11052",
+      14,
+      0.82
+    ],
+    [
+      "dokter",
+      "Q",
+      "86201",
+      12,
+      0.86
+    ],
+    [
+      "pengantin",
+      "N",
+      "77291",
+      12,
+      0.86
+    ],
+    [
+      "manisan",
+      "C",
+      "10733",
+      12,
+      0.86
+    ],
+    [
+      "praktik",
+      "Q",
+      "86201",
+      12,
+      0.86
+    ],
+    [
+      "travel",
+      "H",
+      "49295",
+      12,
+      0.86
+    ],
+    [
+      "sinar",
+      "G",
+      "47112",
+      32,
+      0.63
+    ],
+    [
+      "terong",
+      "A",
+      "01133",
+      8,
+      1.0
+    ],
+    [
+      "menengah",
+      "P",
+      "85311",
+      8,
+      1.0
+    ],
+    [
+      "pertamini",
+      "G",
+      "47302",
+      8,
+      1.0
+    ],
+    [
+      "barbershop",
+      "S",
+      "96210",
+      8,
+      1.0
+    ],
+    [
+      "perabot",
+      "G",
+      "47599",
+      8,
+      1.0
+    ],
+    [
+      "cat",
+      "G",
+      "95311",
+      8,
+      1.0
+    ],
+    [
+      "yayasan",
+      "P",
+      "85599",
+      15,
+      0.79
+    ],
+    [
+      "sachet",
+      "I",
+      "56304",
+      15,
+      0.79
+    ],
+    [
+      "ban",
+      "G",
+      "95311",
+      19,
+      0.73
+    ],
+    [
+      "pendidikan",
+      "P",
+      "85542",
+      10,
+      0.91
+    ],
+    [
+      "taxi",
+      "H",
+      "49293",
+      10,
+      0.91
+    ],
+    [
+      "somel",
+      "C",
+      "16221",
+      10,
+      0.91
+    ],
+    [
+      "baju",
+      "G",
+      "47711",
+      51,
+      0.55
+    ],
+    [
+      "isi",
+      "C",
+      "11052",
+      32,
+      0.62
+    ],
+    [
+      "laut",
+      "A",
+      "03110",
+      23,
+      0.68
+    ],
+    [
+      "apam",
+      "I",
+      "56102",
+      24,
+      0.67
+    ],
+    [
+      "beras",
+      "G",
+      "47241",
+      13,
+      0.81
+    ],
+    [
+      "jumbo",
+      "I",
+      "56304",
+      13,
+      0.81
+    ],
+    [
+      "sewa",
+      "L",
+      "68112",
+      44,
+      0.56
+    ],
+    [
+      "daging",
+      "G",
+      "47214",
+      18,
+      0.72
+    ],
+    [
+      "kaca",
+      "C",
+      "23121",
+      14,
+      0.78
+    ],
+    [
+      "percetakan",
+      "C",
+      "18111",
+      14,
+      0.78
+    ],
+    [
+      "ac",
+      "S",
+      "95220",
+      7,
+      1.0
+    ],
+    [
+      "tambang",
+      "B",
+      "07221",
+      7,
+      1.0
+    ],
+    [
+      "saset",
+      "I",
+      "56304",
+      7,
+      1.0
+    ],
+    [
+      "perahu",
+      "C",
+      "30120",
+      7,
+      1.0
+    ],
+    [
+      "kuota",
+      "J",
+      "61209",
+      7,
+      1.0
+    ],
+    [
+      "lemper",
+      "C",
+      "10792",
+      7,
+      1.0
+    ],
+    [
+      "penginapan",
+      "I",
+      "55202",
+      7,
+      1.0
+    ],
+    [
+      "matrial",
+      "H",
+      "49231",
+      7,
+      1.0
+    ],
+    [
+      "bekam",
+      "Q",
+      "86992",
+      7,
+      1.0
+    ],
+    [
+      "anyaman",
+      "C",
+      "16292",
+      7,
+      1.0
+    ],
+    [
+      "nail",
+      "S",
+      "96220",
+      7,
+      1.0
+    ],
+    [
+      "optik",
+      "G",
+      "47733",
+      7,
+      1.0
+    ],
+    [
+      "bahasa",
+      "P",
+      "85593",
+      7,
+      1.0
+    ],
+    [
+      "spbu",
+      "G",
+      "47301",
+      9,
+      0.9
+    ],
+    [
+      "mangga",
+      "A",
+      "01220",
+      16,
+      0.73
+    ],
+    [
+      "besi",
+      "C",
+      "25931",
+      18,
+      0.69
+    ],
+    [
+      "rujak",
+      "I",
+      "56102",
+      13,
+      0.76
+    ],
+    [
+      "olahan",
+      "C",
+      "10710",
+      10,
+      0.83
+    ],
+    [
+      "pakis",
+      "A",
+      "02300",
+      10,
+      0.83
+    ],
+    [
+      "perlengkapan",
+      "G",
+      "47781",
+      10,
+      0.83
+    ],
+    [
+      "wk",
+      "I",
+      "56303",
+      10,
+      0.83
+    ],
+    [
+      "kepiting",
+      "A",
+      "03110",
+      16,
+      0.7
+    ],
+    [
+      "jadi",
+      "C",
+      "10750",
+      16,
+      0.7
+    ],
+    [
+      "shop",
+      "G",
+      "47901",
+      15,
+      0.71
+    ],
+    [
+      "daya",
+      "A",
+      "01122",
+      11,
+      0.79
+    ],
+    [
+      "gerobak",
+      "I",
+      "56306",
+      11,
+      0.79
+    ],
+    [
+      "fashion",
+      "G",
+      "47711",
+      8,
+      0.89
+    ],
+    [
+      "kredit",
+      "G",
+      "47242",
+      8,
+      0.89
+    ],
+    [
+      "bayam",
+      "A",
+      "01131",
+      6,
+      1.0
+    ],
+    [
+      "traktor",
+      "A",
+      "01611",
+      6,
+      1.0
+    ],
+    [
+      "barber",
+      "S",
+      "96210",
+      6,
+      1.0
+    ],
+    [
+      "pick",
+      "H",
+      "49231",
+      6,
+      1.0
+    ],
+    [
+      "perhiasan",
+      "G",
+      "47735",
+      6,
+      1.0
+    ],
+    [
+      "hijab",
+      "G",
+      "47713",
+      6,
+      1.0
+    ],
+    [
+      "second",
+      "G",
+      "47832",
+      6,
+      1.0
+    ],
+    [
+      "sumber",
+      "G",
+      "47112",
+      24,
+      0.6
+    ],
+    [
+      "serba",
+      "G",
+      "47711",
+      12,
+      0.75
+    ],
+    [
+      "jamu",
+      "I",
+      "56306",
+      22,
+      0.61
+    ],
+    [
+      "bunga",
+      "A",
+      "01301",
+      24,
+      0.59
+    ],
+    [
+      "catering",
+      "I",
+      "56210",
+      20,
+      0.62
+    ],
+    [
+      "raudhatul",
+      "P",
+      "85103",
+      9,
+      0.82
+    ],
+    [
+      "lele",
+      "A",
+      "03221",
+      18,
+      0.64
+    ],
+    [
+      "mama",
+      "I",
+      "56101",
+      18,
+      0.64
+    ],
+    [
+      "mi",
+      "P",
+      "85203",
+      17,
+      0.65
+    ],
+    [
+      "kopra",
+      "C",
+      "10421",
+      10,
+      0.77
+    ],
+    [
+      "papan",
+      "N",
+      "77291",
+      7,
+      0.88
+    ],
+    [
+      "tailor",
+      "C",
+      "14120",
+      7,
+      0.88
+    ],
+    [
+      "karpet",
+      "G",
+      "47530",
+      7,
+      0.88
+    ],
+    [
+      "belajar",
+      "P",
+      "85595",
+      7,
+      0.88
+    ],
+    [
+      "art",
+      "S",
+      "96220",
+      7,
+      0.88
+    ],
+    [
+      "dam",
+      "H",
+      "52319",
+      7,
+      0.88
+    ],
+    [
+      "risol",
+      "C",
+      "10792",
+      7,
+      0.88
+    ],
+    [
+      "puyuh",
+      "A",
+      "01466",
+      7,
+      0.88
+    ],
+    [
+      "tahu",
+      "C",
+      "10308",
+      21,
+      0.58
+    ],
+    [
+      "dawet",
+      "I",
+      "56306",
+      5,
+      1.0
+    ],
+    [
+      "pertama",
+      "P",
+      "85311",
+      5,
+      1.0
+    ],
+    [
+      "sparepart",
+      "G",
+      "47820",
+      5,
+      1.0
+    ],
+    [
+      "kroket",
+      "C",
+      "10792",
+      5,
+      1.0
+    ],
+    [
+      "tambak",
+      "A",
+      "03231",
+      5,
+      1.0
+    ],
+    [
+      "posyandu",
+      "Q",
+      "86991",
+      5,
+      1.0
+    ],
+    [
+      "teralis",
+      "C",
+      "25111",
+      5,
+      1.0
+    ],
+    [
+      "cukur",
+      "S",
+      "96210",
+      5,
+      1.0
+    ],
+    [
+      "counter",
+      "J",
+      "61209",
+      5,
+      1.0
+    ],
+    [
+      "kebab",
+      "I",
+      "56102",
+      5,
+      1.0
+    ],
+    [
+      "sistem",
+      "N",
+      "77291",
+      5,
+      1.0
+    ],
+    [
+      "bakar",
+      "I",
+      "56101",
+      17,
+      0.61
+    ],
+    [
+      "kecantikan",
+      "S",
+      "96220",
+      8,
+      0.8
+    ],
+    [
+      "cendol",
+      "I",
+      "56304",
+      8,
+      0.8
+    ],
+    [
+      "cu",
+      "K",
+      "64191",
+      8,
+      0.8
+    ],
+    [
+      "lapis",
+      "C",
+      "10792",
+      8,
+      0.8
+    ],
+    [
+      "singkong",
+      "C",
+      "10794",
+      8,
+      0.8
+    ],
+    [
+      "daun",
+      "C",
+      "16292",
+      14,
+      0.64
+    ],
+    [
+      "rempah",
+      "C",
+      "10779",
+      9,
+      0.75
+    ],
+    [
+      "kecilan",
+      "G",
+      "47112",
+      9,
+      0.75
+    ],
+    [
+      "variasi",
+      "G",
+      "95311",
+      9,
+      0.75
+    ],
+    [
+      "taman",
+      "P",
+      "85542",
+      11,
+      0.69
+    ],
+    [
+      "bingke",
+      "C",
+      "10792",
+      10,
+      0.71
+    ],
+    [
+      "gorden",
+      "C",
+      "13921",
+      6,
+      0.86
+    ],
+    [
+      "batagor",
+      "I",
+      "56102",
+      6,
+      0.86
+    ],
+    [
+      "keladi",
+      "A",
+      "01139",
+      6,
+      0.86
+    ],
+    [
+      "terasi",
+      "C",
+      "10296",
+      6,
+      0.86
+    ],
+    [
+      "ponpes",
+      "P",
+      "85541",
+      6,
+      0.86
+    ],
+    [
+      "sepatu",
+      "G",
+      "47712",
+      17,
+      0.57
+    ],
+    [
+      "kos",
+      "I",
+      "55201",
+      13,
+      0.62
+    ],
+    [
+      "ruko",
+      "L",
+      "68112",
+      13,
+      0.62
+    ],
+    [
+      "kreator",
+      "J",
+      "60390",
+      7,
+      0.78
+    ],
+    [
+      "voucher",
+      "J",
+      "61209",
+      7,
+      0.78
+    ],
+    [
+      "ketupat",
+      "C",
+      "10792",
+      7,
+      0.78
+    ],
+    [
+      "pickup",
+      "H",
+      "53200",
+      7,
+      0.78
+    ],
+    [
+      "beauty",
+      "S",
+      "96220",
+      11,
+      0.65
+    ],
+    [
+      "mesin",
+      "C",
+      "10631",
+      11,
+      0.65
+    ],
+    [
+      "bus",
+      "H",
+      "49294",
+      4,
+      1.0
+    ],
+    [
+      "tralis",
+      "C",
+      "25111",
+      4,
+      1.0
+    ],
+    [
+      "grosir",
+      "G",
+      "47591",
+      4,
+      1.0
+    ],
+    [
+      "quran",
+      "P",
+      "85542",
+      4,
+      1.0
+    ],
+    [
+      "risoles",
+      "C",
+      "10792",
+      4,
+      1.0
+    ],
+    [
+      "mengaji",
+      "P",
+      "85542",
+      4,
+      1.0
+    ],
+    [
+      "gilingan",
+      "C",
+      "10631",
+      4,
+      1.0
+    ],
+    [
+      "bimbingan",
+      "P",
+      "85595",
+      4,
+      1.0
+    ],
+    [
+      "kafe",
+      "I",
+      "56303",
+      4,
+      1.0
+    ],
+    [
+      "minimarket",
+      "G",
+      "47112",
+      4,
+      1.0
+    ],
+    [
+      "skincare",
+      "G",
+      "47724",
+      4,
+      1.0
+    ],
+    [
+      "tv",
+      "S",
+      "95210",
+      4,
+      1.0
+    ],
+    [
+      "seken",
+      "G",
+      "47832",
+      4,
+      1.0
+    ],
+    [
+      "terapi",
+      "Q",
+      "86992",
+      4,
+      1.0
+    ]
+  ],
+  "kbli5_titles": {
+    "01111": "PERTANIAN JAGUNG",
+    "01116": "PERTANIAN ANEKA KACANG SELAIN KEDELAI, KACANG TANAH, DAN KACANG HIJAU",
+    "01121": "PERTANIAN PADI HIBRIDA",
+    "01122": "PERTANIAN PADI INBRIDA",
+    "01131": "PERTANIAN SAYURAN DAUN",
+    "01132": "PERTANIAN BUAH SEMUSIM",
+    "01133": "PERTANIAN SAYURAN BUAH",
+    "01134": "PERTANIAN SAYURAN UMBI",
+    "01135": "PERTANIAN UBI KAYU",
+    "01138": "PERTANIAN CABAI",
+    "01139": "PERTANIAN UMBI LAINNYA",
+    "01220": "PERTANIAN BUAH-BUAHAN TROPIS DAN SUBTROPIS",
+    "01230": "PERTANIAN BUAH JERUK",
+    "01261": "PERTANIAN KELAPA",
+    "01262": "PERTANIAN KELAPA SAWIT",
+    "01285": "PERTANIAN TANAMAN OBAT RIMPANG",
+    "01289": "PERTANIAN TANAMAN REMPAH-REMPAH DAN AROMATIK/PENYEGAR LAINNYA",
+    "01291": "PERTANIAN POHON KARET DAN TANAMAN PENGHASIL GETAH LAINNYA",
+    "01301": "PERTANIAN TANAMAN HIAS",
+    "01411": "BUDI DAYA DAN PEMBIBITAN SAPI POTONG",
+    "01442": "BUDI DAYA DAN PEMBIBITAN KAMBING POTONG",
+    "01450": "PETERNAKAN BABI",
+    "01461": "BUDI DAYA AYAM RAS PEDAGING",
+    "01462": "BUDI DAYA AYAM RAS PETELUR",
+    "01464": "BUDI DAYA AYAM LOKAL DAN PERSILANGANNYA",
+    "01465": "BUDI DAYA DAN PEMBIBITAN ITIK DAN BEBEK",
+    "01466": "BUDI DAYA DAN PEMBIBITAN BURUNG PUYUH",
+    "01497": "BUDI DAYA DAN PEMBIBITAN BURUNG WALET",
+    "01611": "JASA PENGOLAHAN LAHAN",
+    "01613": "JASA PEMANENAN",
+    "01616": "JASA PENANAMAN BENIH",
+    "02102": "PEMANFAATAN KAYU HUTAN",
+    "02201": "PEMANENAN KAYU",
+    "02202": "PEMUNGUTAN KAYU",
+    "02300": "PEMUNGUTAN HASIL HUTAN BUKAN KAYU",
+    "03110": "PENANGKAPAN IKAN DAN BIOTA AIR LAINNYA DI LAUT",
+    "03120": "PENANGKAPAN IKAN DAN BIOTA AIR LAINNYA DI PERAIRAN AIR TAWAR",
+    "03211": "PEMBUDIDAYAAN IKAN BERSIRIP (SELAIN IKAN HIAS) DAN BIOTA AIR LAUT LAINNYA YANG TIDAK DILINDUNGI",
+    "03221": "PEMBUDIDAYAAN IKAN BERSIRIP (SELAIN IKAN HIAS) DAN BIOTA AIR TAWAR LAINNYA YANG TIDAK DILINDUNGI",
+    "03231": "PEMBUDIDAYAAN IKAN BERSIRIP (SELAIN IKAN HIAS) DAN BIOTA AIR PAYAU LAINNYA YANG TIDAK DILINDUNGI",
+    "07221": "PERTAMBANGAN EMAS DAN PERAK",
+    "08101": "PENGGALIAN BATU HIAS DAN BATU BANGUNAN",
+    "08109": "PENGGALIAN BATU, PASIR, DAN TANAH LIAT LAINNYA",
+    "10113": "KEGIATAN RUMAH POTONG UNGGAS",
+    "10211": "PENGOLAHAN DAN PENGAWETAN IKAN DENGAN PENGGARAMAN ATAU PENGERINGAN",
+    "10291": "PENGOLAHAN DAN PENGAWETAN BIOTA AIR LAINNYA DENGAN PENGGARAMAN ATAU PENGERINGAN",
+    "10296": "PENGOLAHAN DAN PENGAWETAN BIOTA AIR LAINNYA DENGAN PELUMATAN",
+    "10307": "PEMBUATAN TEMPE KEDELAI",
+    "10308": "PEMBUATAN TAHU KEDELAI",
+    "10309": "PENGOLAHAN DAN PENGAWETAN LAINNYA UNTUK BUAH-BUAHAN DAN SAYURAN",
+    "10421": "INDUSTRI KOPRA",
+    "10613": "INDUSTRI PRODUK GILINGAN ANEKA UMBI, TANAMAN RIMPANG, DAN SAYURAN",
+    "10614": "INDUSTRI TEPUNG CAMPURAN DAN ADONAN TEPUNG",
+    "10631": "INDUSTRI PENGGILINGAN PADI DAN PENYOSOHAN BERAS",
+    "10632": "INDUSTRI PEMIPILAN JAGUNG",
+    "10710": "INDUSTRI PRODUK BAKERI",
+    "10722": "INDUSTRI GULA MERAH",
+    "10733": "INDUSTRI MANISAN BUAH-BUAHAN DAN SAYURAN KERING",
+    "10750": "INDUSTRI MAKANAN DAN MASAKAN OLAHAN",
+    "10779": "INDUSTRI BUMBU MASAKAN LAINNYA",
+    "10792": "INDUSTRI KUE BASAH",
+    "10793": "INDUSTRI PRODUK MAKANAN DARI KELAPA",
+    "10794": "INDUSTRI KERUPUK, KERIPIK, PEYEK, DAN SEJENISNYA",
+    "10796": "INDUSTRI DODOL",
+    "11052": "INDUSTRI AIR MINUM ISI ULANG",
+    "13921": "INDUSTRI BARANG TEKSTIL UNTUK KEPERLUAN RUMAH TANGGA",
+    "14120": "INDUSTRI PENJAHITAN DAN PEMBUATAN (BUKAN KONFEKSI) PAKAIAN SESUAI PESANAN/KUSTOMISASI",
+    "16221": "INDUSTRI BARANG BANGUNAN DARI KAYU",
+    "16292": "INDUSTRI BARANG ANYAMAN DARI TANAMAN SELAIN ROTAN DAN BAMBU",
+    "18111": "PENCETAKAN UMUM",
+    "21022": "INDUSTRI PRODUK OBAT BAHAN ALAM UNTUK MANUSIA",
+    "23121": "INDUSTRI PERLENGKAPAN DAN PERALATAN RUMAH TANGGA DARI KACA",
+    "23951": "INDUSTRI BARANG DARI SEMEN",
+    "23969": "INDUSTRI BARANG DARI BATU LAINNYA",
+    "25111": "INDUSTRI PRODUK LOGAM STRUKTURAL BUKAN ALUMINIUM UNTUK KONSTRUKSI RINGAN",
+    "25920": "PENGERJAAN DAN PELAPISAN LOGAM",
+    "25931": "INDUSTRI PERKAKAS TANGAN",
+    "30113": "INDUSTRI KENDARAAN AIR DAN BAWAH AIR TANPA AWAK",
+    "30120": "INDUSTRI KAPAL DAN PERAHU UNTUK TUJUAN WISATA ATAU REKREASI DAN OLAHRAGA",
+    "31011": "INDUSTRI FURNITUR DARI KAYU",
+    "32502": "INDUSTRI PERALATAN KEDOKTERAN DAN KEDOKTERAN GIGI, SERTA PERLENGKAPAN ORTOPEDI DAN PROSTETIK",
+    "32509": "INDUSTRI PERALATAN KEDOKTERAN DAN KEDOKTERAN GIGI, SERTA PERLENGKAPAN LAINNYA",
+    "35302": "PRODUKSI ES",
+    "36001": "PENGOLAHAN DAN PENYEDIAAN AIR MINUM",
+    "38110": "PENGUMPULAN LIMBAH ATAU SAMPAH TIDAK BERBAHAYA",
+    "41011": "KONSTRUKSI KONVENSIONAL GEDUNG HUNIAN",
+    "42101": "KONSTRUKSI JALAN PADA PERMUKAAN TANAH",
+    "43120": "PENYIAPAN LAHAN",
+    "43211": "PEMASANGAN JARINGAN LISTRIK",
+    "43302": "PENGERJAAN LANTAI, DINDING, DAN PLAFON",
+    "43909": "KONSTRUKSI KHUSUS LAINNYA YTDL",
+    "46202": "PERDAGANGAN BESAR BUAH YANG MENGANDUNG MINYAK",
+    "46312": "PERDAGANGAN BESAR BUAH-BUAHAN",
+    "46323": "PERDAGANGAN BESAR DAGING DAN DAGING OLAHAN LAINNYA",
+    "46324": "PERDAGANGAN BESAR HASIL PERIKANAN DAN OLAHAN TERKAIT",
+    "46734": "PERDAGANGAN BESAR SEMEN, KAPUR, PASIR, DAN BATU",
+    "46793": "PERDAGANGAN BESAR KARET DAN PLASTIK DALAM BENTUK DASAR",
+    "46796": "PERDAGANGAN BESAR BARANG BEKAS DAN SKRAP",
+    "47111": "PERDAGANGAN ECERAN BERBAGAI MACAM BARANG YANG UTAMANYA MAKANAN, MINUMAN, ATAU TEMBAKAU DENGAN SISTEM SWALAYAN",
+    "47112": "PERDAGANGAN ECERAN BERBAGAI MACAM BARANG YANG UTAMANYA MAKANAN, MINUMAN, ATAU TEMBAKAU SELAIN DENGAN SISTEM SWALAYAN",
+    "47192": "PERDAGANGAN ECERAN BERBAGAI MACAM BARANG YANG UTAMANYA BUKAN MAKANAN, MINUMAN, ATAU TEMBAKAU SELAIN DENGAN SISTEM SWALAYAN",
+    "47212": "PERDAGANGAN ECERAN BUAH-BUAHAN",
+    "47213": "PERDAGANGAN ECERAN SAYURAN",
+    "47214": "PERDAGANGAN ECERAN HASIL PETERNAKAN",
+    "47215": "PERDAGANGAN ECERAN HASIL PERIKANAN",
+    "47219": "PERDAGANGAN ECERAN HASIL PERTANIAN LAINNYA",
+    "47222": "PERDAGANGAN ECERAN MINUMAN TIDAK BERALKOHOL",
+    "47241": "PERDAGANGAN ECERAN BERAS",
+    "47242": "PERDAGANGAN ECERAN ROTI, KUE KERING, SERTA KUE BASAH DAN SEJENISNYA",
+    "47244": "PERDAGANGAN ECERAN TAHU, TEMPE, TAUCO, DAN ONCOM",
+    "47246": "PERDAGANGAN ECERAN IKAN OLAHAN",
+    "47249": "PERDAGANGAN ECERAN MAKANAN LAINNYA",
+    "47301": "PERDAGANGAN ECERAN BAHAN BAKAR DI SARANA PENGISIAN BAHAN BAKAR",
+    "47302": "PERDAGANGAN ECERAN BAHAN BAKAR SELAIN DI SARANA PENGISIAN BAHAN BAKAR",
+    "47404": "PERDAGANGAN ECERAN TELEPON BESERTA AKSESORISNYA",
+    "47521": "PERDAGANGAN ECERAN BAHAN DAN MATERIAL KONSTRUKSI",
+    "47530": "PERDAGANGAN ECERAN KARPET, PERMADANI, SERTA PENUTUP DINDING DAN LANTAI",
+    "47591": "PERDAGANGAN ECERAN FURNITUR",
+    "47592": "PERDAGANGAN ECERAN PERALATAN LISTRIK RUMAH TANGGA, PERALATAN PENERANGAN, DAN PERLENGKAPANNYA",
+    "47593": "PERDAGANGAN ECERAN BARANG PECAH BELAH; PERLENGKAPAN DAPUR DAN MAKAN",
+    "47599": "PERDAGANGAN ECERAN PERALATAN DAN PERLENGKAPAN RUMAH TANGGA LAINNYA YTDL",
+    "47611": "PERDAGANGAN ECERAN ALAT TULIS MENULIS DAN GAMBAR",
+    "47630": "PERDAGANGAN ECERAN ALAT PERMAINAN DAN MAINAN",
+    "47711": "PERDAGANGAN ECERAN PAKAIAN",
+    "47712": "PERDAGANGAN ECERAN SEPATU, SANDAL, DAN ALAS KAKI LAINNYA",
+    "47713": "PERDAGANGAN ECERAN PERLENGKAPAN PAKAIAN",
+    "47721": "PERDAGANGAN ECERAN SEDIAAN FARMASI UNTUK MANUSIA DI APOTEK",
+    "47722": "PERDAGANGAN ECERAN SEDIAAN FARMASI UNTUK MANUSIA SELAIN DI APOTEK",
+    "47724": "PERDAGANGAN ECERAN KOSMETIK UNTUK MANUSIA",
+    "47733": "PERDAGANGAN ECERAN KACAMATA",
+    "47735": "PERDAGANGAN ECERAN BARANG PERHIASAN",
+    "47741": "PERDAGANGAN ECERAN PERLENGKAPAN RUMAH TANGGA BEKAS",
+    "47742": "PERDAGANGAN ECERAN PAKAIAN, ALAS KAKI, DAN PERLENGKAPAN PAKAIAN BEKAS",
+    "47749": "PERDAGANGAN ECERAN BARANG BEKAS LAINNYA",
+    "47752": "PERDAGANGAN ECERAN HEWAN TERNAK DAN BIBIT HEWAN",
+    "47753": "PERDAGANGAN ECERAN IKAN DAN BIOTA AIR HIDUP LAINNYA",
+    "47763": "PERDAGANGAN ECERAN PUPUK DAN PEMBERANTAS HAMA",
+    "47772": "PERDAGANGAN ECERAN GAS TABUNG LPG",
+    "47774": "PERDAGANGAN ECERAN AROMATIK/PENYEGAR (MINYAK ASIRI)",
+    "47781": "PERDAGANGAN ECERAN CENDERA MATA, KERAJINAN, DAN BARANG-BARANG KEAGAMAAN",
+    "47812": "PERDAGANGAN ECERAN MOBIL BEKAS",
+    "47820": "PERDAGANGAN ECERAN SUKU CADANG DAN AKSESORI MOBIL",
+    "47831": "PERDAGANGAN ECERAN SEPEDA MOTOR BARU",
+    "47832": "PERDAGANGAN ECERAN SEPEDA MOTOR BEKAS",
+    "47833": "PERDAGANGAN ECERAN SUKU CADANG SEPEDA MOTOR DAN AKSESORINYA",
+    "47901": "PLATFORM DIGITAL INTERMEDIASI PERDAGANGAN ECERAN",
+    "49231": "ANGKUTAN BERMOTOR UNTUK BARANG UMUM",
+    "49232": "ANGKUTAN BERMOTOR UNTUK BARANG KHUSUS",
+    "49233": "ANGKUTAN TIDAK BERMOTOR UNTUK BARANG",
+    "49293": "ANGKUTAN TAKSI",
+    "49294": "ANGKUTAN KHUSUS",
+    "49295": "ANGKUTAN SEWA",
+    "49296": "ANGKUTAN OJEK MOTOR",
+    "50212": "ANGKUTAN SUNGAI DAN DANAU TRAMPER (TRAYEK TIDAK TETAP DAN TIDAK TERATUR) UNTUK PENUMPANG",
+    "52214": "AKTIVITAS PERPARKIRAN DI BADAN JALAN (ON STREET PARKING)",
+    "52215": "AKTIVITAS PERPARKIRAN DI LUAR BADAN JALAN (OFF STREET PARKING)",
+    "52219": "AKTIVITAS JASA TERKAIT TRANSPORTASI DARAT LAINNYA",
+    "52319": "JASA INTERMEDIASI TRANSPORTASI LAINNYA UNTUK BARANG",
+    "53100": "AKTIVITAS POS",
+    "53200": "AKTIVITAS KURIR",
+    "55201": "AKTIVITAS RUMAH TINGGAL SEWA (HOMESTAY)",
+    "55202": "AKTIVITAS HOSTEL REMAJA (YOUTH HOSTEL)",
+    "55909": "PENYEDIAAN AKOMODASI LAINNYA YTDL",
+    "56101": "AKTIVITAS PENYEDIAAN MAKANAN DI BANGUNAN TETAP",
+    "56102": "AKTIVITAS PENYEDIAAN MAKANAN DI BANGUNAN TIDAK TETAP",
+    "56210": "AKTIVITAS JASA BOGA UNTUK ACARA TERTENTU (EVENT CATERING)",
+    "56290": "AKTIVITAS PENYEDIAAN JASA BOGA LAINNYA",
+    "56303": "AKTIVITAS RUMAH MINUM/KAFE",
+    "56304": "AKTIVITAS KEDAI MINUMAN",
+    "56306": "AKTIVITAS PENYEDIAAN MINUMAN KELILING/TEMPAT TIDAK TETAP",
+    "56400": "AKTIVITAS JASA INTERMEDIASI PENYEDIAAN MAKANAN DAN MINUMAN",
+    "60390": "AKTIVITAS SITUS JEJARING SOSIAL DAN DISTRIBUSI KONTEN LAINNYA",
+    "61104": "AKTIVITAS JASA AKSES INTERNET (INTERNET SERVICE PROVIDER)",
+    "61209": "AKTIVITAS PENJUALAN KEMBALI DAN JASA INTERMEDIASI UNTUK TELEKOMUNIKASI LAINNYA",
+    "64121": "PERBANKAN UMUM KONVENSIONAL",
+    "64191": "AKTIVITAS PEMBERIAN KREDIT OLEH KOPERASI KONVENSIONAL",
+    "64192": "AKTIVITAS PEMBERIAN KREDIT OLEH KOPERASI SYARIAH",
+    "64953": "AKTIVITAS GADAI KONVENSIONAL",
+    "66141": "PENYEDIAAN JASA PEMBAYARAN",
+    "68112": "AKTIVITAS PENYEWAAN BANGUNAN DAN LAHAN HUNIAN MILIK SENDIRI ATAU SEWA",
+    "68129": "AKTIVITAS REAL ESTAT (BANGUNAN DAN LAHAN) NONHUNIAN LAINNYA MILIK SENDIRI ATAU SEWA",
+    "69101": "AKTIVITAS PENGACARA",
+    "69104": "AKTIVITAS NOTARIS DAN PEJABAT PEMBUAT AKTA TANAH",
+    "70209": "AKTIVITAS KONSULTASI MANAJEMEN DAN BISNIS LAINNYA",
+    "71101": "AKTIVITAS ARSITEKTURAL",
+    "74209": "AKTIVITAS FOTOGRAFI LAINNYA",
+    "75001": "AKTIVITAS PERSONEL KESEHATAN HEWAN MANDIRI",
+    "77100": "PENYEWAAN DAN SEWA GUNA USAHA KENDARAAN BERMOTOR",
+    "77291": "PENYEWAAN PERALATAN DAN PERLENGKAPAN ACARA",
+    "77292": "PENYEWAAN ALAT MUSIK",
+    "77312": "PENYEWAAN DAN SEWA GUNA USAHA ALAT TRANSPORTASI AIR",
+    "77510": "AKTIVITAS JASA INTERMEDIASI UNTUK PENYEWAAN DAN SEWA GUNA USAHA MOBIL",
+    "84111": "LEMBAGA LEGISLATIF",
+    "84114": "LEMBAGA EKSEKUTIF PERENCANAAN",
+    "85101": "PENDIDIKAN TAMAN KANAK-KANAK UMUM PEMERINTAH",
+    "85102": "PENDIDIKAN TAMAN KANAK-KANAK UMUM SWASTA",
+    "85103": "PENDIDIKAN PRASEKOLAH KEAGAMAAN ISLAM",
+    "85201": "PENDIDIKAN DASAR UMUM PEMERINTAH",
+    "85202": "PENDIDIKAN DASAR UMUM SWASTA",
+    "85203": "PENDIDIKAN DASAR KEAGAMAAN ISLAM",
+    "85311": "PENDIDIKAN MENENGAH PERTAMA UMUM PEMERINTAH",
+    "85312": "PENDIDIKAN MENENGAH PERTAMA UMUM SWASTA",
+    "85313": "PENDIDIKAN MENENGAH PERTAMA KEAGAMAAN ISLAM",
+    "85315": "PENDIDIKAN MENENGAH ATAS UMUM PEMERINTAH",
+    "85317": "PENDIDIKAN MENENGAH ATAS KEAGAMAAN ISLAM",
+    "85321": "PENDIDIKAN MENENGAH KEJURUAN UMUM PEMERINTAH",
+    "85322": "PENDIDIKAN MENENGAH KEJURUAN UMUM SWASTA",
+    "85541": "PENDIDIKAN PESANTREN LAINNYA",
+    "85542": "PENDIDIKAN KEAGAMAAN ISLAM NONFORMAL",
+    "85549": "PENDIDIKAN KEAGAMAAN LAINNYA YTDL",
+    "85593": "PENDIDIKAN BAHASA SWASTA",
+    "85595": "PENDIDIKAN BIMBINGAN BELAJAR DAN KONSELING SWASTA",
+    "85599": "PENDIDIKAN LAINNYA SWASTA",
+    "86101": "AKTIVITAS RUMAH SAKIT PEMERINTAH",
+    "86102": "AKTIVITAS PUSKESMAS",
+    "86105": "AKTIVITAS KLINIK SWASTA",
+    "86201": "AKTIVITAS PRAKTIK DOKTER",
+    "86910": "AKTIVITAS JASA INTERMEDIASI UNTUK KESEHATAN MEDIS, KEDOKTERAN GIGI, DAN PELAYANAN KESEHATAN MANUSIA LAINNYA",
+    "86991": "AKTIVITAS PELAYANAN KESEHATAN YANG DILAKUKAN OLEH TENAGA KESEHATAN SELAIN DOKTER DAN DOKTER GIGI",
+    "86992": "AKTIVITAS PELAYANAN KESEHATAN TRADISIONAL",
+    "90200": "AKTIVITAS SENI PERTUNJUKAN",
+    "93112": "FASILITAS SIRKUIT",
+    "93113": "FASILITAS GELANGGANG/ARENA",
+    "93291": "AKTIVITAS LANTAI DANSA",
+    "93292": "PENGELOLAAN FASILITAS KARAOKE",
+    "93293": "PENGELOLAAN ARENA PERMAINAN",
+    "93299": "AKTIVITAS HIBURAN DAN REKREASI LAINNYA YTDL",
+    "95210": "REPARASI DAN PEMELIHARAAN ALAT-ALAT ELEKTRONIK KONSUMEN",
+    "95220": "REPARASI DAN PEMELIHARAAN PERALATAN RUMAH TANGGA DAN PERALATAN RUMAH DAN KEBUN",
+    "95230": "REPARASI DAN PEMELIHARAAN ALAS KAKI DAN BARANG DARI KULIT",
+    "95291": "AKTIVITAS VERMAK PAKAIAN",
+    "95299": "REPARASI DAN PEMELIHARAAN BARANG KEPERLUAN PRIBADI DAN PERLENGKAPAN RUMAH TANGGA LAINNYA",
+    "95311": "REPARASI MOBIL",
+    "95312": "PENCUCIAN DAN SALON MOBIL",
+    "95320": "REPARASI DAN PERAWATAN SEPEDA MOTOR",
+    "96100": "AKTIVITAS PENCUCIAN DAN PEMBERSIHAN PRODUK TEKSTIL DAN BULU",
+    "96210": "AKTIVITAS PENATAAN DAN PANGKAS RAMBUT",
+    "96220": "AKTIVITAS PERAWATAN KECANTIKAN DAN PERAWATAN KECANTIKAN LAINNYA",
+    "96900": "AKTIVITAS JASA PERORANGAN LAINNYA YTDL",
+    "97000": "AKTIVITAS RUMAH TANGGA SEBAGAI PEMBERI KERJA BAGI PEKERJA RUMAH TANGGA (PRT)"
+  }
+}

@@ -12,6 +12,63 @@ let categoryMap = new Map();
 let se2026Data = null;
 let se2026KbliMap = new Map();
 let se2026Rules = [];
+let namaUsahaPhrases = [];
+let namaUsahaTokens = [];
+let namaUsahaTokenMap = new Map();
+let kbli5TitlesMap = {};
+
+// Honorifics, Stopwords & Corporate Prefixes for SE2026 Business Name Normalization
+const OWNER_HONORIFICS = new Set([
+    'pak', 'bu', 'ibu', 'bapak', 'bpk', 'bang', 'bg', 'kak', 'dek', 'om', 'tante',
+    'nek', 'kek', 'hj', 'haji', 'hajjah', 'ny', 'tn', 'sdr', 'sdri', 'abg', 'abang',
+    'mak', 'wak', 'wan', 'cik', 'ce', 'ko', 'koh', 'ci'
+]);
+
+const GEO_AND_STOPWORDS = new Set([
+    'dan', 'di', 'ke', 'dari', 'yang', 'untuk', 'pada', 'dengan', 'atau', 'ini', 'itu',
+    'usaha', 'milik', 'sendiri', 'pribadi', 'kabupaten', 'mempawah', 'kecamatan', 'kelurahan',
+    'desa', 'jalan', 'jl', 'dusun', 'rt', 'rw', 'no', 'nomor', 'hilir', 'hulu', 'timur', 'barat',
+    'utara', 'selatan', 'tengah', 'dalam', 'luar', 'kota', 'sungai', 'pinyuh', 'kunyit',
+    'segedong', 'jongkat', 'siantan', 'anjongan', 'toho', 'sadaniang'
+]);
+
+const CORP_PREFIXES = new Set([
+    'cv', 'pt', 'ud', 'pd', 'fa', 'perum', 'perumda', 'bumdes', 'bumdesa', 'yayasan'
+]);
+
+const NON_AGRI_HEAD_WORDS = new Set([
+    'toko', 'kios', 'grosir', 'minimarket', 'supermarket', 'swalayan', 'distro', 'butik', 'konter', 'counter', 'pangkalan', 'spbu', 'pertamini', 'pengepul', 'tengkulak', 'pedagang', 'dagang', 'apotek', 'apotik',
+    'jual', 'jualan', 'penjual',
+    'warung', 'warkop', 'kedai', 'kafe', 'cafe', 'coffee', 'coffe', 'resto', 'restoran', 'rm', 'kantin', 'angkringan', 'lesehan', 'catering', 'katering',
+    'bengkel', 'servis', 'service', 'reparasi',
+    'pabrik', 'industri', 'penggilingan', 'gilingan', 'pembuatan', 'membuat', 'produksi', 'pengolahan', 'pengeringan', 'penggaraman', 'percetakan', 'konveksi', 'penjahit', 'tailor', 'taylor', 'mebel', 'meubel', 'furnitur', 'somel', 'sawmill', 'depot', 'cetak',
+    'angkutan', 'angkut', 'transportasi', 'truk', 'truck', 'dump', 'dam', 'pickup', 'ekspedisi', 'kurir', 'kargo', 'ojek', 'ojol', 'taksi', 'taxi', 'travel',
+    'sewa', 'penyewaan', 'persewaan', 'rental', 'kontrakan', 'kost', 'kos', 'kosan', 'kostan', 'indekos',
+    'konstruksi', 'kontruksi', 'kontraktor', 'pemborong', 'instalasi',
+    'koperasi', 'ksp', 'bmt', 'bank', 'pegadaian', 'brilink',
+    'pdam', 'pengumpul', 'pemulung',
+    'kantor', 'studio', 'notaris', 'klinik', 'praktek', 'praktik', 'puskesmas', 'sd', 'smp', 'sma', 'smk', 'madrasah', 'pondok', 'tk', 'paud', 'bimbel',
+    'lapangan', 'sanggar', 'pangkas', 'potong', 'cukur', 'salon', 'laundry', 'londri', 'permak', 'vermak', 'asisten', 'pembantu'
+]);
+
+const AGRI_EXPLICIT_HEADS = new Set([
+    'utp', 'kebun', 'perkebunan', 'petani', 'sawah', 'ladang', 'hortikultura', 'holtikultura',
+    'peternakan', 'peternak', 'ternak', 'kandang', 'perikanan', 'nelayan', 'tambak',
+    'budidaya', 'pembibitan', 'pembenihan', 'penggemukan'
+]);
+
+const NON_AGRI_STRONG_SIGNALS = [
+    'konstruksi', 'kontruksi', 'kontraktor', 'pemborong', 'instalasi', 'angkutan',
+    'penggilingan', 'gilingan', 'kontrakan', 'laundry', 'pangkas', 'bengkel',
+    'koperasi', 'brilink', 'notaris', 'futsal', 'bidan', 'dokter', 'pdam', 'rongsokan', 'pemulung'
+];
+
+function hasAny(wordSet, candidates) {
+    for (let i = 0; i < candidates.length; i++) {
+        if (wordSet.has(candidates[i])) return true;
+    }
+    return false;
+}
 
 // Helper to load datasets safely into RAM
 function loadKbliData() {
@@ -31,7 +88,6 @@ function loadKbliData() {
                 }
                 if (se2026Data?.rules) {
                     se2026Rules = Object.values(se2026Data.rules);
-                    // Sort phrases first (longer phrases higher precedence), then tokens
                     se2026Rules.sort((a, b) => {
                         const lenA = a.pattern.split(' ').length;
                         const lenB = b.pattern.split(' ').length;
@@ -39,9 +95,23 @@ function loadKbliData() {
                         return b.count - a.count;
                     });
                 }
-                console.log(`✔ [KBLI 2025] Loaded SE2026 empirical training data: ${se2026KbliMap.size} KBLI codes, ${se2026Rules.length} rules.`);
             } catch (seErr) {
                 console.warn('Note on loading SE2026 training data:', seErr.message);
+            }
+        }
+
+        // Load SE2026 Nama Usaha specialized model
+        const namaModelPath = path.join(dataPath, 'se2026_nama_usaha_model.json');
+        if (fs.existsSync(namaModelPath)) {
+            try {
+                const namaModel = JSON.parse(fs.readFileSync(namaModelPath, 'utf8'));
+                namaUsahaPhrases = namaModel.phrases || [];
+                namaUsahaTokens = namaModel.tokens || [];
+                kbli5TitlesMap = namaModel.kbli5_titles || {};
+                namaUsahaTokenMap = new Map(namaUsahaTokens.map(t => [t[0], t]));
+                console.log(`✔ [KBLI 2025] Loaded SE2026 Nama Usaha Model: ${namaUsahaPhrases.length} phrases, ${namaUsahaTokens.length} tokens.`);
+            } catch (nmErr) {
+                console.warn('Note on loading SE2026 Nama Usaha model:', nmErr.message);
             }
         }
 
@@ -52,7 +122,7 @@ function loadKbliData() {
 
         itemMap = new Map(allItemsRaw.map(it => [it.kode, it]));
 
-        // Index trained rule patterns by 5-digit KBLI code
+        // Index trained rule patterns & nama_usaha phrases by 5-digit KBLI code
         const kbliPatternsMap = new Map();
         for (const rule of se2026Rules) {
             if (rule.kbli) {
@@ -62,10 +132,17 @@ function loadKbliData() {
                 kbliPatternsMap.get(rule.kbli).push(rule.pattern);
             }
         }
+        for (const [phr, , kbli5] of namaUsahaPhrases) {
+            if (kbli5) {
+                if (!kbliPatternsMap.has(kbli5)) {
+                    kbliPatternsMap.set(kbli5, []);
+                }
+                kbliPatternsMap.get(kbli5).push(phr);
+            }
+        }
 
         // Enrich items with parent hierarchy & category mapping & SE2026 empirical field data
         allItems = allItemsRaw.map(item => {
-            // Traverse up to find root kategori
             let curr = item;
             const breadcrumb = [
                 {
@@ -122,17 +199,16 @@ function loadKbliData() {
                     top_kegiatan: se2026Info.top_kegiatan,
                     top_produk: se2026Info.top_produk
                 } : null,
-                // Pre-indexed search fields for ultra-fast, zero-overhead execution
                 _kodeLower: item.kode.toLowerCase(),
                 _judulLower: item.judul.toLowerCase(),
                 _inclusionLower: inclusion,
                 _exclusionLower: exclusion,
                 _empiricalLower: empiricalText,
+                _empCount: se2026Info ? (se2026Info.count || 0) : 0,
                 _is5Digit: item.digit === 5 || item.level === 'kelompok'
             };
         });
 
-        // Re-populate map with enriched items
         itemMap = new Map(allItems.map(it => [it.kode, it]));
         isLoaded = true;
         console.log(`✔ [KBLI 2025] Successfully initialized ${allItems.length} items and ${categories.length} categories in server memory.`);
@@ -144,9 +220,519 @@ function loadKbliData() {
 // Auto-load on route registration
 loadKbliData();
 
+/**
+ * Multi-Signal SE2026 Nama Usaha -> KBLI Recommender & Candidate Scorer
+ * Evaluates contiguous phrases, 2-word skip-grams, Head-Word DM rules, and token stems.
+ */
+function analyzeNamaUsahaQuery(rawName) {
+    if (!rawName || typeof rawName !== 'string') return null;
+
+    const clean = rawName
+        .replace(/\(.*?\)|<.*?>|\[.*?\]/g, ' ')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    if (clean.length < 2) return null;
+
+    const rawWords = clean.split(' ').filter(w => w.length >= 2);
+    let meaningful = rawWords.filter(
+        w => !OWNER_HONORIFICS.has(w) && !GEO_AND_STOPWORDS.has(w) && !/^\d+$/.test(w)
+    );
+    if (meaningful.length === 0) {
+        meaningful = rawWords.filter(w => !/^\d+$/.test(w));
+    }
+    if (meaningful.length === 0) return null;
+
+    let actWords = meaningful.filter(w => !CORP_PREFIXES.has(w));
+    if (actWords.length === 0) {
+        actWords = meaningful;
+    }
+
+    const condensed = meaningful.join(' ');
+    const firstWord = actWords[0];
+    const wordSet = new Set(meaningful);
+
+    const hasNonAgriHead =
+        NON_AGRI_HEAD_WORDS.has(firstWord) || hasAny(wordSet, NON_AGRI_STRONG_SIGNALS);
+    const hasExplicitAgri =
+        AGRI_EXPLICIT_HEADS.has(firstWord) || wordSet.has('utp');
+
+    const catScores = {};
+    const catBestKbli = {};
+    const kbli5Scores = new Map(); // kbli5 -> { score, matchedKw, count, kat }
+
+    const addVote = (kat, kbli5, kw, cnt, rawScore) => {
+        let score = rawScore;
+        if (kat === 'A' && hasNonAgriHead && !hasExplicitAgri) {
+            score *= 0.12;
+        }
+        catScores[kat] = (catScores[kat] || 0) + score;
+        if (!catBestKbli[kat] || score > catBestKbli[kat].score) {
+            catBestKbli[kat] = { score, kbli5, matchedKw: kw, count: cnt };
+        }
+        if (kbli5) {
+            const prev = kbli5Scores.get(kbli5);
+            if (!prev) {
+                kbli5Scores.set(kbli5, { score, matchedKw: kw, count: cnt, kat });
+            } else {
+                prev.score += score;
+                if (score > prev.topSingleScore || !prev.topSingleScore) {
+                    prev.matchedKw = kw;
+                    prev.topSingleScore = score;
+                }
+            }
+        }
+    };
+
+    const paddedClean = ` ${clean} `;
+    const paddedCondensed = ` ${condensed} `;
+
+    // 1. Contiguous & Skip-Gram Phrase Evaluation from SE2026 Nama Usaha
+    for (let i = 0; i < namaUsahaPhrases.length; i++) {
+        const [phr, kat, kbli5, cnt, prec] = namaUsahaPhrases[i];
+        const pWords = phr.split(' ');
+        const wCnt = pWords.length;
+
+        const isContiguous =
+            clean === phr ||
+            condensed === phr ||
+            paddedClean.includes(` ${phr} `) ||
+            paddedCondensed.includes(` ${phr} `);
+
+        if (isContiguous) {
+            let base = wCnt * 135.0 * prec + Math.log10(cnt + 1) * 45.0;
+            if (condensed.startsWith(phr) || clean.startsWith(phr)) {
+                base += 160.0;
+            }
+            addVote(kat, kbli5, phr, cnt, base);
+        } else if (wCnt === 2 && wordSet.has(pWords[0]) && wordSet.has(pWords[1])) {
+            const idx0 = meaningful.indexOf(pWords[0]);
+            const idx1 = meaningful.indexOf(pWords[1]);
+            if (idx0 >= 0 && idx0 < idx1) {
+                let skipScore = 175.0 * prec + Math.log10(cnt + 1) * 35.0;
+                if (idx0 === 0 || pWords[0] === firstWord) {
+                    skipScore += 110.0;
+                }
+                addVote(kat, kbli5, phr, cnt, skipScore);
+            }
+        }
+    }
+
+    // 2. Head-Word DM (Diterangkan-Menerangkan) Disambiguation Rules
+    if (
+        [
+            'toko', 'kios', 'grosir', 'minimarket', 'supermarket', 'swalayan', 'distro',
+            'butik', 'konter', 'counter', 'pangkalan', 'spbu', 'pertamini', 'pengepul',
+            'tengkulak', 'pedagang', 'dagang', 'apotek', 'apotik'
+        ].includes(firstWord)
+    ) {
+        if (hasAny(wordSet, ['roti', 'kue', 'bakery'])) {
+            addVote('C', '10710', `${firstWord} roti/kue`, 50, 320.0);
+        } else {
+            let defaultK5 = '47112';
+            if (hasAny(wordSet, ['bangunan', 'material', 'matrial', 'cat'])) defaultK5 = '47521';
+            else if (hasAny(wordSet, ['pertanian', 'tani', 'pupuk', 'pakan', 'bibit'])) defaultK5 = '47763';
+            else if (hasAny(wordSet, ['pakaian', 'baju', 'busana', 'distro', 'butik', 'jilbab'])) defaultK5 = '47711';
+            else if (hasAny(wordSet, ['sepatu', 'sandal', 'sendal'])) defaultK5 = '47712';
+            else if (hasAny(wordSet, ['emas', 'perhiasan'])) defaultK5 = '47735';
+            else if (hasAny(wordSet, ['obat', 'apotek', 'apotik'])) defaultK5 = '47721';
+            else if (hasAny(wordSet, ['kosmetik', 'skincare', 'parfum'])) defaultK5 = '47724';
+            else if (hasAny(wordSet, ['elektronik', 'listrik', 'lampu'])) defaultK5 = '47592';
+            else if (hasAny(wordSet, ['perabot', 'perabotan', 'plastik'])) defaultK5 = '47599';
+            else if (hasAny(wordSet, ['pulsa', 'kuota', 'konter', 'counter', 'hp', 'ponsel'])) defaultK5 = '47404';
+            else if (hasAny(wordSet, ['gas', 'lpg', 'elpiji', 'pangkalan'])) defaultK5 = '47772';
+            else if (hasAny(wordSet, ['bensin', 'pertalite', 'pertamini', 'spbu', 'bbm'])) defaultK5 = '47302';
+            else if (hasAny(wordSet, ['sayur', 'sayuran'])) defaultK5 = '47213';
+            else if (wordSet.has('ikan')) defaultK5 = '47215';
+            else if (hasAny(wordSet, ['buah', 'buahan'])) defaultK5 = '47212';
+            else if (hasAny(wordSet, ['sawit', 'karet', 'kelapa', 'pinang', 'pengepul'])) defaultK5 = '46202';
+            else if (hasAny(wordSet, ['motor', 'sparepart', 'onderdil'])) defaultK5 = '47833';
+            addVote('G', defaultK5, firstWord, 500, 420.0);
+        }
+    } else if (['jual', 'jualan', 'penjual'].includes(firstWord)) {
+        if (
+            hasAny(wordSet, [
+                'pentol', 'bakso', 'mie', 'mi', 'nasi', 'soto', 'sate', 'gorengan',
+                'sarapan', 'minuman', 'kopi', 'teh', 'boba', 'jus', 'cendol', 'rujak',
+                'gado', 'seblak', 'geprek', 'bubur', 'lontong', 'jajanan', 'jajan', 'kantin'
+            ])
+        ) {
+            const k5 =
+                wordSet.has('keliling') || wordSet.has('pentol')
+                    ? '56102'
+                    : hasAny(wordSet, ['minuman', 'kopi', 'teh', 'boba', 'jus', 'cendol'])
+                    ? '56304'
+                    : '56101';
+            addVote('I', k5, `${firstWord} kuliner`, 150, 400.0);
+        } else if (wordSet.has('es') && (wordSet.has('batu') || wordSet.has('balok'))) {
+            addVote('D', '35302', 'jual es batu', 35, 450.0);
+        } else if (wordSet.has('kue') && (wordSet.has('basah') || wordSet.has('tradisional'))) {
+            addVote('C', '10792', 'jual kue basah', 30, 380.0);
+        } else {
+            let k5 = '47213';
+            if (wordSet.has('ikan')) k5 = wordSet.has('asin') ? '47246' : '47215';
+            else if (wordSet.has('ayam')) k5 = '47214';
+            else if (wordSet.has('buah')) k5 = '47212';
+            else if (wordSet.has('sembako')) k5 = '47112';
+            else if (hasAny(wordSet, ['bensin', 'pertalite'])) k5 = '47302';
+            else if (hasAny(wordSet, ['gas', 'lpg', 'tabung'])) k5 = '47772';
+            else if (hasAny(wordSet, ['sawit', 'karet', 'kelapa', 'pinang', 'beli'])) k5 = '46202';
+            addVote('G', k5, firstWord, 300, 420.0);
+        }
+    } else if (
+        [
+            'warung', 'warkop', 'kedai', 'kafe', 'cafe', 'coffee', 'coffe',
+            'resto', 'restoran', 'rm', 'kantin', 'angkringan', 'lesehan', 'catering', 'katering'
+        ].includes(firstWord) ||
+        condensed.startsWith('rumah makan')
+    ) {
+        if (
+            firstWord === 'warung' &&
+            hasAny(wordSet, ['sembako', 'kelontong', 'harian', 'bensin', 'pertalite', 'gas', 'eceran'])
+        ) {
+            const k5 = hasAny(wordSet, ['bensin', 'pertalite']) ? '47302' : '47112';
+            addVote('G', k5, 'warung sembako', 800, 420.0);
+        } else if (firstWord === 'warung' && actWords.length === 1) {
+            addVote('G', '47112', 'warung', 1200, 260.0);
+        } else {
+            let k5 = '56101';
+            if (
+                ['warkop', 'kafe', 'cafe', 'coffee', 'coffe'].includes(firstWord) ||
+                (hasAny(wordSet, ['kopi', 'minuman', 'es', 'jus', 'boba', 'teh']) &&
+                    !wordSet.has('makan') &&
+                    !wordSet.has('nasi'))
+            ) {
+                k5 = ['kafe', 'cafe', 'coffee', 'coffe'].includes(firstWord) ? '56303' : '56304';
+            } else if (firstWord === 'angkringan') {
+                k5 = '56102';
+            } else if (['catering', 'katering'].includes(firstWord)) {
+                k5 = '56210';
+            }
+            addVote('I', k5, firstWord, 400, 420.0);
+        }
+    } else if (['bengkel', 'servis', 'service', 'reparasi'].includes(firstWord)) {
+        if (
+            hasAny(wordSet, [
+                'las', 'bubut', 'teralis', 'tralis', 'kanopi', 'kanopy', 'besi', 'baja', 'karoseri', 'logam'
+            ])
+        ) {
+            addVote('C', '25920', `${firstWord} las`, 85, 450.0);
+        } else if (
+            hasAny(wordSet, [
+                'elektronik', 'tv', 'televisi', 'kulkas', 'ac', 'kipas', 'kompor',
+                'mesin', 'hp', 'handphone', 'ponsel', 'laptop', 'komputer', 'jam', 'sepatu'
+            ])
+        ) {
+            const k5 = hasAny(wordSet, ['hp', 'handphone', 'ponsel'])
+                ? '95120'
+                : hasAny(wordSet, ['laptop', 'komputer'])
+                ? '95110'
+                : '95210';
+            addVote('S', k5, `${firstWord} elektronik`, 60, 450.0);
+        } else {
+            const k5 = wordSet.has('mobil') ? '95311' : '95320';
+            addVote('G', k5, firstWord, 450, 420.0);
+        }
+    } else if (
+        [
+            'pabrik', 'industri', 'penggilingan', 'gilingan', 'pembuatan', 'membuat',
+            'produksi', 'pengolahan', 'pengeringan', 'penggaraman', 'percetakan',
+            'konveksi', 'penjahit', 'tailor', 'taylor', 'mebel', 'meubel', 'furnitur',
+            'somel', 'sawmill', 'depot', 'cetak'
+        ].includes(firstWord)
+    ) {
+        if (wordSet.has('es') && (wordSet.has('batu') || wordSet.has('balok'))) {
+            addVote('D', '35302', `${firstWord} es batu`, 50, 460.0);
+        } else {
+            let k5 = '10792';
+            if (wordSet.has('padi') || wordSet.has('beras') || ['penggilingan', 'gilingan'].includes(firstWord)) k5 = '10631';
+            else if (hasAny(wordSet, ['tahu', 'tempe', 'kedelai'])) k5 = '10307';
+            else if (wordSet.has('ikan') && wordSet.has('asin')) k5 = '10211';
+            else if (hasAny(wordSet, ['kerupuk', 'keripik', 'peyek'])) k5 = '10794';
+            else if (hasAny(wordSet, ['roti', 'bakery', 'kering'])) k5 = '10710';
+            else if (wordSet.has('gula')) k5 = '10722';
+            else if (wordSet.has('air') || wordSet.has('galon') || firstWord === 'depot') k5 = '11052';
+            else if (['konveksi', 'penjahit', 'tailor', 'taylor'].includes(firstWord) || hasAny(wordSet, ['jahit', 'pakaian', 'baju'])) k5 = '14120';
+            else if (['mebel', 'meubel', 'furnitur'].includes(firstWord) || hasAny(wordSet, ['kursi', 'lemari', 'kusen'])) k5 = '31011';
+            else if (['somel', 'sawmill'].includes(firstWord) || wordSet.has('kayu')) k5 = '16221';
+            else if (['percetakan', 'cetak'].includes(firstWord) || hasAny(wordSet, ['sablon', 'fotocopy', 'fotokopi'])) {
+                k5 = hasAny(wordSet, ['batako', 'bata', 'paving', 'gorong']) ? '23951' : '18111';
+            } else if (hasAny(wordSet, ['batako', 'bata', 'paving', 'tempayan', 'gorong'])) {
+                k5 = '23951';
+            }
+            addVote('C', k5, firstWord, 300, 440.0);
+        }
+    } else if (
+        [
+            'angkutan', 'angkut', 'transportasi', 'truk', 'truck', 'dump', 'dam',
+            'pickup', 'ekspedisi', 'kurir', 'kargo', 'ojek', 'ojol', 'taksi', 'taxi', 'travel'
+        ].includes(firstWord) ||
+        wordSet.has('angkutan')
+    ) {
+        const k5 = ['ojek', 'ojol'].includes(firstWord)
+            ? '49296'
+            : ['ekspedisi', 'kurir'].includes(firstWord)
+            ? '53200'
+            : ['taksi', 'taxi', 'travel'].includes(firstWord)
+            ? '49293'
+            : '49231';
+        addVote('H', k5, 'angkutan', 250, 460.0);
+    } else if (
+        [
+            'sewa', 'penyewaan', 'persewaan', 'rental', 'kontrakan',
+            'kost', 'kos', 'kosan', 'kostan', 'indekos'
+        ].includes(firstWord)
+    ) {
+        if (
+            ['kontrakan', 'kost', 'kos', 'kosan', 'kostan', 'indekos'].includes(firstWord) ||
+            hasAny(wordSet, [
+                'kontrakan', 'kost', 'kos', 'kosan', 'kostan', 'indekos',
+                'rumah', 'ruko', 'gedung', 'kamar', 'lahan', 'tanah', 'properti'
+            ])
+        ) {
+            const k5 = hasAny(wordSet, ['lahan', 'tanah', 'ruko', 'gedung']) ? '68129' : '68112';
+            addVote('L', k5, firstWord, 180, 460.0);
+        } else if (hasAny(wordSet, ['ps', 'playstation'])) {
+            addVote('R', '93299', 'rental ps', 20, 450.0);
+        } else {
+            const k5 = hasAny(wordSet, ['mobil', 'motor'])
+                ? '77100'
+                : hasAny(wordSet, ['sampan', 'perahu'])
+                ? '77312'
+                : '77291';
+            addVote('N', k5, firstWord, 80, 440.0);
+        }
+    } else if (
+        hasAny(wordSet, ['konstruksi', 'kontruksi', 'kontraktor', 'pemborong', 'instalasi', 'gypsum', 'plafon']) ||
+        (wordSet.has('tukang') && wordSet.has('bangunan')) ||
+        (wordSet.has('sumur') && wordSet.has('bor'))
+    ) {
+        const k5 =
+            wordSet.has('instalasi') || wordSet.has('listrik')
+                ? '43211'
+                : wordSet.has('gypsum') || wordSet.has('plafon')
+                ? '43302'
+                : wordSet.has('bor')
+                ? '43120'
+                : '41011';
+        addVote('F', k5, 'konstruksi/instalasi', 60, 450.0);
+    } else if (
+        hasAny(wordSet, ['pdam', 'rongsokan', 'pemulung', 'limbah', 'sampah']) ||
+        (wordSet.has('barang') && wordSet.has('bekas')) ||
+        (wordSet.has('sedot') && wordSet.has('wc'))
+    ) {
+        const k5 = wordSet.has('pdam') ? '36001' : wordSet.has('wc') ? '37000' : '38110';
+        addVote('E', k5, 'pengelolaan air/sampah', 35, 450.0);
+    } else if (
+        hasAny(wordSet, ['koperasi', 'ksp', 'bmt', 'brilink', 'pegadaian', 'asuransi', 'bank']) ||
+        (wordSet.has('simpan') && wordSet.has('pinjam')) ||
+        (wordSet.has('credit') && wordSet.has('union')) ||
+        (wordSet.has('transfer') && wordSet.has('dana'))
+    ) {
+        const k5 =
+            wordSet.has('brilink') || wordSet.has('transfer')
+                ? '66141'
+                : wordSet.has('bmt')
+                ? '64192'
+                : wordSet.has('asuransi')
+                ? '65110'
+                : '64191';
+        addVote('K', k5, 'jasa keuangan', 65, 450.0);
+    } else if (
+        hasAny(wordSet, [
+            'futsal', 'gym', 'fitness', 'biliar', 'billiard', 'karaoke',
+            'sanggar', 'pemancingan', 'playstation', 'youtuber'
+        ]) ||
+        (wordSet.has('kolam') && wordSet.has('renang')) ||
+        (wordSet.has('tempat') && wordSet.has('wisata'))
+    ) {
+        const k5 = wordSet.has('futsal')
+            ? '93112'
+            : wordSet.has('gym') || wordSet.has('fitness')
+            ? '93120'
+            : wordSet.has('sanggar')
+            ? '90002'
+            : '93299';
+        addVote('R', k5, 'olahraga/rekreasi/seni', 35, 450.0);
+    } else if (
+        hasAny(wordSet, ['notaris', 'ppat', 'pengacara', 'advokat', 'arsitek', 'fotografer']) ||
+        (wordSet.has('studio') && wordSet.has('foto')) ||
+        (wordSet.has('dokter') && wordSet.has('hewan'))
+    ) {
+        const k5 =
+            wordSet.has('notaris') || wordSet.has('ppat')
+                ? '69104'
+                : wordSet.has('foto') || wordSet.has('fotografer')
+                ? '74209'
+                : '69101';
+        addVote('M', k5, 'jasa profesional', 35, 450.0);
+    } else if (
+        hasAny(wordSet, ['bidan', 'puskesmas', 'posyandu', 'polindes', 'klinik']) ||
+        (wordSet.has('praktek') && wordSet.has('dokter')) ||
+        (wordSet.has('praktik') && wordSet.has('dokter')) ||
+        (wordSet.has('rumah') && wordSet.has('sakit')) ||
+        (wordSet.has('pengobatan') && wordSet.has('tradisional')) ||
+        (wordSet.has('jasa') && wordSet.has('urut')) ||
+        (wordSet.has('tukang') && (wordSet.has('urut') || wordSet.has('pijat')))
+    ) {
+        const k5 = wordSet.has('bidan')
+            ? '86991'
+            : hasAny(wordSet, ['urut', 'pijat', 'tradisional'])
+            ? '86992'
+            : wordSet.has('dokter')
+            ? '86201'
+            : '86105';
+        addVote('Q', k5, 'kesehatan', 50, 450.0);
+    } else if (
+        [
+            'sd', 'sdn', 'sds', 'smp', 'smpn', 'sma', 'sman', 'smk', 'smkn',
+            'mi', 'mis', 'min', 'mts', 'mtsn', 'ma', 'man', 'tk', 'tkn',
+            'paud', 'kb', 'ra', 'tpq', 'tpa', 'mda', 'pondok', 'pesantren',
+            'sekolah', 'madrasah', 'bimbel', 'kursus', 'les'
+        ].includes(firstWord)
+    ) {
+        const k5 = ['sd', 'sdn', 'sds', 'sekolah'].includes(firstWord)
+            ? '85201'
+            : ['pondok', 'pesantren'].includes(firstWord)
+            ? '85541'
+            : ['bimbel', 'kursus', 'les'].includes(firstWord)
+            ? '85595'
+            : '85311';
+        addVote('P', k5, firstWord, 65, 450.0);
+    } else if (
+        hasAny(wordSet, ['pangkas', 'salon', 'laundry', 'londri', 'barbershop', 'permak', 'vermak']) ||
+        (wordSet.has('potong') && wordSet.has('rambut')) ||
+        (wordSet.has('cukur') && wordSet.has('rambut')) ||
+        (wordSet.has('rias') && wordSet.has('pengantin'))
+    ) {
+        const k5 =
+            wordSet.has('laundry') || wordSet.has('londri')
+                ? '96100'
+                : wordSet.has('permak') || wordSet.has('vermak')
+                ? '95291'
+                : '96210';
+        addVote('S', k5, 'jasa perorangan', 95, 450.0);
+    } else if (
+        (wordSet.has('asisten') && wordSet.has('rumah')) ||
+        (wordSet.has('pembantu') && wordSet.has('rumah')) ||
+        wordSet.has('babysitter') ||
+        (wordSet.has('pengasuh') && wordSet.has('anak'))
+    ) {
+        addVote('T', '97000', 'jasa perorangan rumah tangga', 35, 460.0);
+    } else if (
+        [
+            'utp', 'kebun', 'perkebunan', 'pertanian', 'petani', 'sawah', 'ladang',
+            'hortikultura', 'holtikultura', 'peternakan', 'peternak', 'ternak',
+            'kandang', 'perikanan', 'nelayan', 'tambak', 'kolam', 'budidaya',
+            'pembibitan', 'pembenihan', 'penggemukan'
+        ].includes(firstWord)
+    ) {
+        let k5 = '01122';
+        if (wordSet.has('sawit')) k5 = '01262';
+        else if (wordSet.has('kelapa')) k5 = '01261';
+        else if (wordSet.has('karet')) k5 = '01291';
+        else if (wordSet.has('pinang')) k5 = '01289';
+        else if (wordSet.has('jagung')) k5 = '01111';
+        else if (hasAny(wordSet, ['ubi', 'keladi'])) k5 = '01135';
+        else if (hasAny(wordSet, ['cabai', 'cabe', 'rawit'])) k5 = '01138';
+        else if (hasAny(wordSet, ['kangkung', 'bayam', 'sayur'])) k5 = '01131';
+        else if (wordSet.has('semangka')) k5 = '01132';
+        else if (hasAny(wordSet, ['hortikultura', 'holtikultura', 'pisang', 'nanas', 'nenas', 'durian', 'rambutan', 'langsat'])) k5 = '01220';
+        else if (wordSet.has('sapi')) k5 = '01411';
+        else if (wordSet.has('kambing')) k5 = '01442';
+        else if (wordSet.has('babi')) k5 = '01450';
+        else if (wordSet.has('ayam')) {
+            k5 = hasAny(wordSet, ['broiler', 'boiler', 'pedaging', 'potong'])
+                ? '01461'
+                : wordSet.has('petelur')
+                ? '01462'
+                : '01464';
+        } else if (hasAny(wordSet, ['bebek', 'itik'])) k5 = '01465';
+        else if (hasAny(wordSet, ['walet', 'burung'])) k5 = '01497';
+        else if (hasAny(wordSet, ['ikan', 'perikanan', 'nelayan', 'tambak', 'kolam', 'lele', 'nila'])) {
+            k5 = hasAny(wordSet, ['tawar', 'kolam', 'lele', 'nila', 'patin', 'bawal', 'pembenihan', 'budidaya'])
+                ? '03221'
+                : wordSet.has('tambak')
+                ? '03211'
+                : '03110';
+        } else if (['kebun', 'perkebunan'].includes(firstWord)) k5 = '01262';
+        else if (['peternakan', 'peternak', 'ternak'].includes(firstWord)) k5 = '01411';
+        addVote('A', k5, firstWord, 1500, 420.0);
+    }
+
+    // 3. Token & Prefix Stem Evaluation
+    for (let idx = 0; idx < meaningful.length; idx++) {
+        const w = meaningful[idx];
+        let matchedTok = namaUsahaTokenMap.get(w);
+        if (!matchedTok && w.length >= 4) {
+            for (let j = 0; j < namaUsahaTokens.length; j++) {
+                const tkEntry = namaUsahaTokens[j];
+                const tkStr = tkEntry[0];
+                if (tkStr.length >= 4 && (w.startsWith(tkStr) || tkStr.startsWith(w))) {
+                    matchedTok = tkEntry;
+                    break;
+                }
+            }
+        }
+        if (matchedTok) {
+            const [tkStr, kat, kbli5, cnt, prec] = matchedTok;
+            let tokScore = 70.0 * prec + Math.log10(cnt + 1) * 22.0;
+            if (idx === 0 || w === firstWord) {
+                tokScore += 45.0;
+            }
+            addVote(kat, kbli5, tkStr, cnt, tokScore);
+        }
+    }
+
+    const katKeys = Object.keys(catScores);
+    if (katKeys.length === 0) {
+        return {
+            meaningfulTokens: meaningful,
+            hasNonAgriHead,
+            hasExplicitAgri,
+            bestRec: null,
+            kbli5Scores
+        };
+    }
+
+    let bestKat = katKeys[0];
+    let totalScore = 0;
+    for (let i = 0; i < katKeys.length; i++) {
+        const k = katKeys[i];
+        totalScore += catScores[k];
+        if (catScores[k] > catScores[bestKat]) {
+            bestKat = k;
+        }
+    }
+
+    const bestDetail = catBestKbli[bestKat];
+    const kbli5Code = bestDetail?.kbli5 || null;
+    const kbliItem = kbli5Code ? itemMap.get(kbli5Code) : null;
+    const kbli5Title = kbliItem?.judul || (kbli5Code ? kbli5TitlesMap[kbli5Code] : '') || '';
+    const actualKategoriKode = kbliItem?.kategori_kode || bestKat;
+    const confidencePct = totalScore > 0 ? Math.min(99, Math.round((catScores[bestKat] / totalScore) * 100)) : 85;
+
+    return {
+        meaningfulTokens: meaningful,
+        hasNonAgriHead,
+        hasExplicitAgri,
+        bestRec: {
+            kategori: actualKategoriKode,
+            ntbKategori: bestKat,
+            kbli: kbli5Code,
+            judul: kbli5Title,
+            matchedKeyword: bestDetail?.matchedKw || firstWord,
+            count: bestDetail?.count || 1,
+            confidence: confidencePct
+        },
+        kbli5Scores
+    };
+}
+
 // Compatibility middleware for both Express and Vite/Connect dev server middleware
 router.use((req, res, next) => {
-    // 1. Ensure req.query exists and is populated
     if (!req.query && req.url) {
         try {
             const parsedUrl = new URL(req.url, 'http://localhost');
@@ -162,7 +748,6 @@ router.use((req, res, next) => {
         req.query = {};
     }
 
-    // 2. Ensure res.json and res.status exist in Connect/Node HTTP
     if (typeof res.json !== 'function') {
         res.json = function(data) {
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -193,7 +778,6 @@ function createSnippet(text, query, maxLength = 180) {
     let idx = lowerText.indexOf(lowerQuery);
 
     if (idx === -1) {
-        // If exact phrase not found, find position of any significant keyword token (length >= 3)
         const tokens = lowerQuery.split(/\s+/).filter(t => t.length >= 3);
         for (const token of tokens) {
             const tokenIdx = lowerText.indexOf(token);
@@ -219,7 +803,6 @@ function createSnippet(text, query, maxLength = 180) {
 
 /**
  * GET /api/kbli/stats
- * Overview counts of KBLI 2025 items per level
  */
 router.get('/stats', (req, res) => {
     loadKbliData();
@@ -239,7 +822,6 @@ router.get('/stats', (req, res) => {
 
 /**
  * GET /api/kbli/categories
- * Returns list of 22 categories with metadata
  */
 router.get('/categories', (req, res) => {
     loadKbliData();
@@ -260,14 +842,7 @@ router.get('/categories', (req, res) => {
 
 /**
  * GET /api/kbli/search
- * Smart search with category & hierarchy filters + pagination
- * Params:
- * - q: keyword (code, title, or definition text)
- * - kategori: 'ALL' or 'A'..'U'
- * - level: 'all' | 'kategori' | 'golongan_pokok' | 'golongan' | 'subgolongan' | 'kelompok'
- * - sort: 'code' | 'title' | 'relevance'
- * - page: integer (default 1)
- * - limit: integer (default 20, max 100)
+ * Smart search with SE2026 Nama Usaha Multi-Signal Recommender + Category & Hierarchy filters
  */
 router.get('/search', (req, res) => {
     loadKbliData();
@@ -283,17 +858,14 @@ router.get('/search', (req, res) => {
 
     let pool = allItems;
 
-    // Fast filter by Kategori
     if (kategori && kategori !== 'ALL') {
         pool = pool.filter(item => item.kategori_kode === kategori);
     }
 
-    // Fast filter by Hierarchy Level
     if (level && level !== 'all') {
         pool = pool.filter(item => item.level === level);
     }
 
-    // Level priority: 5-digit Kelompok items ALWAYS displayed first!
     const levelPriority = {
         kelompok: 1,       // 5 digit (Kelompok) - highest operational priority
         subgolongan: 2,    // 4 digit
@@ -303,12 +875,23 @@ router.get('/search', (req, res) => {
     };
 
     let filtered = pool;
+    let namaAnalysis = null;
 
-    // Filter & Score by Search Query (Ultra-Fast Pre-Indexed Matching)
     if (q) {
         const queryLower = q.toLowerCase();
-        // Ignore single-character noise unless valid KBLI category letter A-U or single digit 0-9
-        const queryTokens = queryLower.split(/\s+/).filter(t => t.length > 1 || /^[a-u0-9]$/i.test(t));
+        // Run SE2026 Nama Usaha Multi-Signal Recommender on query
+        namaAnalysis = analyzeNamaUsahaQuery(q);
+
+        // Use cleaned meaningful tokens (stripped of Pak/Bu/Hj, CV/PT/UD, Mempawah village names) so personal/owner names don't dilute token matching!
+        const rawTokens = queryLower.split(/\s+/).filter(t => t.length > 1 || /^[a-v0-9]$/i.test(t));
+        const queryTokens = (namaAnalysis && namaAnalysis.meaningfulTokens && namaAnalysis.meaningfulTokens.length > 0)
+            ? namaAnalysis.meaningfulTokens
+            : rawTokens;
+
+        const bestRec = namaAnalysis?.bestRec || null;
+        const kbli5Scores = namaAnalysis?.kbli5Scores || new Map();
+        const hasNonAgriHead = Boolean(namaAnalysis?.hasNonAgriHead);
+        const hasExplicitAgri = Boolean(namaAnalysis?.hasExplicitAgri);
 
         const scored = [];
         const poolLen = pool.length;
@@ -318,9 +901,19 @@ router.get('/search', (req, res) => {
             let score = 0;
             let matchedTokensCount = 0;
 
+            // 0. Direct boost from SE2026 Nama Usaha Multi-Signal Recommender
+            if (bestRec && bestRec.kbli && item.kode === bestRec.kbli) {
+                score += 38000;
+                matchedTokensCount = queryTokens.length;
+            } else if (kbli5Scores.has(item.kode)) {
+                const k5Entry = kbli5Scores.get(item.kode);
+                score += Math.min(22000, Math.round(k5Entry.score * 28));
+                matchedTokensCount = Math.max(matchedTokensCount, Math.min(queryTokens.length, 2));
+            }
+
             // 1. Exact match on Code (Highest instant pinpoint)
             if (item._kodeLower === queryLower) {
-                score += 25000;
+                score += 45000;
             } else if (item._kodeLower.startsWith(queryLower)) {
                 score += 5000;
             } else if (item._kodeLower.includes(queryLower)) {
@@ -331,10 +924,9 @@ router.get('/search', (req, res) => {
             if (item._judulLower === queryLower) {
                 score += 15000;
             } else if (item._judulLower.includes(queryLower)) {
-                score += 6000;
+                score += 6500;
             }
 
-            // Penalty if title specifically says "selain [query]" (negative exclusion in title)
             if (item._judulLower.includes('selain ' + queryLower)) {
                 score -= 3500;
             }
@@ -343,7 +935,7 @@ router.get('/search', (req, res) => {
             if (item._inclusionLower.includes(queryLower)) {
                 score += 4000;
             } else if (item._exclusionLower.includes(queryLower)) {
-                score += 200; // Small score for exclusion mention
+                score += 150;
             }
 
             // 4. Token-by-token matching across Title & Description
@@ -357,7 +949,7 @@ router.get('/search', (req, res) => {
 
                 if (item._judulLower.includes(token)) {
                     if (item._judulLower.includes('selain ' + token)) {
-                        score += 30; // Negative context in title
+                        score += 20;
                     } else {
                         titleHits++;
                         hit = true;
@@ -374,29 +966,37 @@ router.get('/search', (req, res) => {
                 if (hit) matchedTokensCount++;
             }
 
-            score += titleHits * 700;
-            score += inclusionHits * 250;
-            score += exclusionHits * 30;
+            score += titleHits * 750;
+            score += inclusionHits * 260;
+            score += exclusionHits * 25;
 
-            // 5. Match in SE2026 Empirical Training Data (Real field commodities, business names, activities)
-            let empiricalHits = 0;
+            // 5. Match in SE2026 Empirical Training Data weighted by empirical log-frequency!
             if (item._empiricalLower) {
+                const freqMultiplier = Math.max(0.4, Math.log10((item._empCount || 1) + 1));
                 if (item._empiricalLower.includes(queryLower)) {
-                    score += 8500; // Strong match on empirical phrase in Mempawah census!
-                    empiricalHits += 2;
+                    score += Math.round(4500 * freqMultiplier);
+                    matchedTokensCount = Math.max(matchedTokensCount, queryTokens.length);
                 } else {
                     for (let j = 0; j < queryTokens.length; j++) {
                         if (item._empiricalLower.includes(queryTokens[j])) {
-                            score += 1500;
-                            empiricalHits++;
+                            score += Math.round(750 * freqMultiplier);
+                            matchedTokensCount++;
                         }
                     }
                 }
             }
 
-            // Bonus if ALL query tokens match
-            if (queryTokens.length > 1 && matchedTokensCount === queryTokens.length) {
-                score += 3000;
+            // Bonus if ALL meaningful query tokens match
+            if (queryTokens.length > 1 && matchedTokensCount >= queryTokens.length) {
+                score += 3200;
+            }
+
+            // Head-Word Disambiguation: If query starts with a non-agricultural head word (Toko, Angkutan, Penggilingan, Jual, Sewa),
+            // penalize raw Kategori A items so commodity tokens (sawit, padi, ikan) don't hijack non-agricultural business searches!
+            if (hasNonAgriHead && !hasExplicitAgri && item.kategori_kode === 'A') {
+                score = Math.round(score * 0.18);
+            } else if (bestRec && item.kategori_kode === bestRec.kategori && score > 0) {
+                score += 1800;
             }
 
             if (score > 0) {
@@ -404,40 +1004,35 @@ router.get('/search', (req, res) => {
             }
         }
 
-        // Sort by Priority:
-        // 1. Exact code match is absolute #1 (e.g. typing '01' or '01111')
-        // 2. 5-digit Kelompok items ALWAYS displayed first!
-        // 3. Number of matched tokens
-        // 4. Relevance score descending
         scored.sort((a, b) => {
             const aExactCode = a.item._kodeLower === queryLower;
             const bExactCode = b.item._kodeLower === queryLower;
             if (aExactCode && !bExactCode) return -1;
             if (!aExactCode && bExactCode) return 1;
 
+            // If one item is the #1 SE2026 Nama Usaha recommended 5-digit KBLI, put it at #1!
+            if (bestRec && bestRec.kbli) {
+                const aIsBestRec = a.item.kode === bestRec.kbli;
+                const bIsBestRec = b.item.kode === bestRec.kbli;
+                if (aIsBestRec && !bIsBestRec) return -1;
+                if (!aIsBestRec && bIsBestRec) return 1;
+            }
+
             // Prioritize 5-digit (kelompok) first!
             const rankA = levelPriority[a.item.level] || 99;
             const rankB = levelPriority[b.item.level] || 99;
             if (rankA !== rankB) {
-                return rankA - rankB; // Rank 1 (kelompok 5-digit) comes first!
+                return rankA - rankB;
             }
 
-            // Within same level, prioritize more tokens matched
-            if (a.matchedTokensCount !== b.matchedTokensCount && queryTokens.length > 1) {
-                return b.matchedTokensCount - a.matchedTokensCount;
-            }
-
-            // Within same level, sort by relevance score
             return b.score - a.score;
         });
 
         filtered = scored.map(s => s.item);
     } else {
-        // Default sorting
         if (sort === 'title') {
             filtered = [...pool].sort((a, b) => a.judul.localeCompare(b.judul));
         } else {
-            // Sort by level priority (5-digit first) or code
             filtered = [...pool].sort((a, b) => {
                 const rankA = levelPriority[a.level] || 99;
                 const rankB = levelPriority[b.level] || 99;
@@ -456,7 +1051,6 @@ router.get('/search', (req, res) => {
     const startIndex = (page - 1) * limit;
     const paginatedItems = filtered.slice(startIndex, startIndex + limit);
 
-    // Return lightweight payload for list view (prevents excessive network bandwidth)
     const resultItems = paginatedItems.map(item => {
         let snippetText = createSnippet(item.deskripsi, q, 180);
         let empiricalMatch = null;
@@ -468,7 +1062,6 @@ router.get('/search', (req, res) => {
                 top_kegiatan: emp.top_kegiatan || [],
                 top_nama: emp.top_nama || []
             };
-            // If user query matched empirical field data, enrich snippet
             const queryHitEmpirical = q && item._empiricalLower && (
                 item._empiricalLower.includes(q.toLowerCase()) ||
                 q.toLowerCase().split(/\s+/).some(t => t.length >= 3 && item._empiricalLower.includes(t))
@@ -500,13 +1093,14 @@ router.get('/search', (req, res) => {
         page,
         limit,
         totalPages,
+        recommended_kbli: namaAnalysis?.bestRec || null,
         items: resultItems
     });
 });
 
 /**
  * GET /api/kbli/recommend
- * Recommend KBLI category & 5-digit code based on SE2026 empirical trained models
+ * Recommend KBLI category & 5-digit code based on SE2026 Nama Usaha Multi-Signal Model
  */
 router.get('/recommend', (req, res) => {
     loadKbliData();
@@ -514,48 +1108,27 @@ router.get('/recommend', (req, res) => {
     if (!rawName || rawName.length < 2) {
         return res.json({ suggestion: null });
     }
-    const clean = rawName
-        .replace(/\(.*?\)|<.*?>|\[.*?\]/g, ' ')
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-    const tokens = clean.split(' ').filter(t => t.length >= 3);
 
-    for (const rule of se2026Rules) {
-        if (rule.isPhrase) {
-            if (clean.includes(rule.pattern)) {
-                return res.json({
-                    suggestion: {
-                        kategori: rule.kategori,
-                        kbli: rule.kbli,
-                        matchedKeyword: rule.pattern,
-                        count: rule.count,
-                        precision: rule.prec
-                    }
-                });
+    const analysis = analyzeNamaUsahaQuery(rawName);
+    if (analysis && analysis.bestRec && analysis.bestRec.kbli) {
+        return res.json({
+            suggestion: {
+                kategori: analysis.bestRec.kategori,
+                ntbKategori: analysis.bestRec.ntbKategori,
+                kbli: analysis.bestRec.kbli,
+                judul: analysis.bestRec.judul,
+                matchedKeyword: analysis.bestRec.matchedKeyword,
+                count: analysis.bestRec.count,
+                confidence: analysis.bestRec.confidence
             }
-        } else {
-            if (tokens.includes(rule.pattern) || (rule.pattern.length >= 4 && clean.includes(rule.pattern))) {
-                return res.json({
-                    suggestion: {
-                        kategori: rule.kategori,
-                        kbli: rule.kbli,
-                        matchedKeyword: rule.pattern,
-                        count: rule.count,
-                        precision: rule.prec
-                    }
-                });
-            }
-        }
+        });
     }
+
     res.json({ suggestion: null });
 });
 
 /**
  * GET /api/kbli/detail/:kode
- * Full detailed view of an item including complete description,
- * breadcrumbs, children, and cross-reference links
  */
 router.get('/detail/:kode', (req, res) => {
     loadKbliData();
@@ -566,7 +1139,6 @@ router.get('/detail/:kode', (req, res) => {
         return res.status(404).json({ message: `Kode KBLI '${kode}' tidak ditemukan.` });
     }
 
-    // Find direct children
     const children = allItems
         .filter(it => it.induk === kode)
         .map(it => ({
@@ -580,7 +1152,6 @@ router.get('/detail/:kode', (req, res) => {
             child_count: allItems.filter(c => c.induk === it.kode).length
         }));
 
-    // Find siblings (same parent)
     const siblings = item.induk 
         ? allItems
             .filter(it => it.induk === item.induk && it.kode !== kode)
