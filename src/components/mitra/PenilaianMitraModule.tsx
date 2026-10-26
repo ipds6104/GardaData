@@ -5,7 +5,8 @@ import {
   UserCheck, Users, BarChart3, HelpCircle, Save, Check, X, 
   SlidersHorizontal, Star, ThumbsUp, Smile, Ban, ArrowUpDown, 
   FileSpreadsheet, Sparkles, ShieldAlert, RefreshCw, Briefcase,
-  MessageSquare, Copy, CheckCheck, FileDown, CheckSquare, Square, ListChecks
+  MessageSquare, Copy, CheckCheck, FileDown, CheckSquare, Square, ListChecks,
+  Edit3, FileText, Pencil
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -306,6 +307,24 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     details?: { label: string; val: string }[];
   } | null>(null);
 
+  // State Pop Up Modal Catatan Kinerja
+  const [notePopupMitra, setNotePopupMitra] = useState<MitraRecord | null>(null);
+  const [isEditingNoteModal, setIsEditingNoteModal] = useState(false);
+  const [draftNoteModal, setDraftNoteModal] = useState('');
+  const [isSavingNoteModal, setIsSavingNoteModal] = useState(false);
+
+  const openNotePopup = (m: MitraRecord) => {
+    setNotePopupMitra(m);
+    setIsEditingNoteModal(false);
+    setDraftNoteModal(m.catatan || '');
+  };
+
+  const closeNotePopup = () => {
+    setNotePopupMitra(null);
+    setIsEditingNoteModal(false);
+    setDraftNoteModal('');
+  };
+
   // Auto-dismiss popup setelah 5 detik jika tidak ditutup manual
   useEffect(() => {
     if (saveSuccessPopup?.isOpen) {
@@ -317,7 +336,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
   }, [saveSuccessPopup]);
 
   // Tab aktif: 'form' (Form Penilaian Per PJ) | 'direktori' (Direktori Rekomendasi Kerja)
-  const [activeTab, setActiveTab] = useState<'form' | 'direktori'>('form');
+  const [activeTab, setActiveTab] = useState<'form' | 'direktori'>('direktori');
 
   // State filter & pencarian form penilaian
   const [searchQuery, setSearchQuery] = useState('');
@@ -773,6 +792,34 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         ...(record.catatan ? [{ label: 'Catatan Kinerja', val: record.catatan }] : [])
       ]
     });
+  };
+
+  // Simpan catatan kualitatif langsung dari modal Pop Up Catatan Kinerja
+  const handleSaveNoteFromModal = async () => {
+    if (!notePopupMitra) return;
+    const trimmed = draftNoteModal.trim();
+
+    // Validasi catatan wajib diisi minimal 10 karakter jika nilai diberikan
+    if (notePopupMitra.nilai !== null && notePopupMitra.nilai !== undefined && trimmed.length < 10) {
+      alert(`⚠️ Catatan kinerja wajib diisi minimal 10 karakter untuk mitra "${notePopupMitra.nama}"!\n\nSaat ini baru ${trimmed.length} karakter. Silakan lengkapi catatan evaluasi kualitatif sebelum menyimpan.`);
+      return;
+    }
+
+    setIsSavingNoteModal(true);
+    const itemKey = getRecordKey(notePopupMitra);
+
+    // Update state utama
+    handleNoteChange(itemKey, trimmed);
+
+    const updatedMitra: MitraRecord = {
+      ...notePopupMitra,
+      catatan: trimmed
+    };
+
+    setNotePopupMitra(updatedMitra);
+    await saveSingleMitra(updatedMitra);
+    setIsSavingNoteModal(false);
+    setIsEditingNoteModal(false);
   };
 
   // Simpan semua nilai dalam 1 grup PJ
@@ -1312,19 +1359,6 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200/80">
           <button
             type="button"
-            onClick={() => setActiveTab('form')}
-            className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
-              activeTab === 'form'
-                ? 'bg-white text-primary-700 shadow-xs border border-slate-200/60'
-                : 'text-slate-600 hover:text-slate-900 font-bold'
-            }`}
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Form Penilaian (Per PJ)</span>
-          </button>
-          
-          <button
-            type="button"
             onClick={() => setActiveTab('direktori')}
             className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === 'direktori'
@@ -1339,6 +1373,19 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
             }`}>
               {stats.total} Mitra
             </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('form')}
+            className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === 'form'
+                ? 'bg-white text-primary-700 shadow-xs border border-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900 font-bold'
+            }`}
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Form Penilaian (Per PJ)</span>
           </button>
         </div>
 
@@ -2003,32 +2050,47 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                                           </span>
                                         </td>
 
-                                        {/* Kolom Catatan Penilaian (Kualitatif) */}
+                                        {/* Kolom Catatan Penilaian (Kualitatif) -> Pop Up Modal */}
                                         <td className="py-3 px-3">
                                           <div className="space-y-1">
-                                            <div className="relative flex items-center">
-                                              <input
-                                                type="text"
-                                                placeholder="Tulis catatan evaluasi (Wajib, min. 10 karakter)..."
-                                                value={m.catatan || ''}
-                                                onChange={(e) => handleNoteChange(itemKey, e.target.value)}
-                                                className={`w-full bg-slate-50 hover:bg-white focus:bg-white border rounded-xl pl-3 pr-14 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 outline-none transition-all ${
+                                            <button
+                                              type="button"
+                                              onClick={() => openNotePopup(m)}
+                                              className={`w-full text-left p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 group ${
+                                                noteLength >= 10
+                                                  ? 'bg-slate-50 hover:bg-primary-50/60 border-slate-200/90 hover:border-primary-300'
+                                                  : noteLength > 0
+                                                    ? 'bg-amber-50/70 hover:bg-amber-100/70 border-amber-200 text-amber-900'
+                                                    : 'bg-slate-50/50 hover:bg-slate-100 border-dashed border-slate-300 text-slate-400'
+                                              }`}
+                                              title="Klik untuk membuka pop up Catatan Kinerja"
+                                            >
+                                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${
+                                                  noteLength >= 10 ? 'text-primary-600' : noteLength > 0 ? 'text-amber-600' : 'text-slate-400'
+                                                }`} />
+                                                <span className={`text-xs truncate ${
+                                                  noteLength > 0 ? 'font-medium text-slate-800' : 'italic text-slate-400'
+                                                }`}>
+                                                  {m.catatan && m.catatan.trim() ? m.catatan : 'Belum ada catatan...'}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-1 shrink-0">
+                                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md font-bold ${
                                                   noteLength >= 10
-                                                    ? 'border-emerald-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                                                    ? 'bg-emerald-100 text-emerald-800'
                                                     : noteLength > 0
-                                                      ? 'border-amber-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
-                                                      : 'border-slate-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
-                                                }`}
-                                              />
-                                              <span className={`absolute right-2.5 text-[10px] font-mono font-bold select-none ${
-                                                noteLength >= 10 ? 'text-emerald-600 font-black' : noteLength > 0 ? 'text-amber-600' : 'text-slate-400'
-                                              }`}>
-                                                {noteLength}/10
-                                              </span>
-                                            </div>
+                                                      ? 'bg-amber-100 text-amber-800'
+                                                      : 'bg-slate-200 text-slate-600'
+                                                }`}>
+                                                  {noteLength > 0 ? `${noteLength} krt` : '+ Isi'}
+                                                </span>
+                                                <Pencil className="w-3 h-3 text-slate-400 group-hover:text-primary-600 transition-colors ml-0.5" />
+                                              </div>
+                                            </button>
                                             {m.nilai !== null && noteLength < 10 && (
                                               <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 pl-1">
-                                                <span>⚠️ Wajib min. 10 karakter (kurang {10 - noteLength} lagi)</span>
+                                                <span>⚠️ Kurang {10 - noteLength} karakter lagi</span>
                                               </p>
                                             )}
                                           </div>
@@ -2427,27 +2489,49 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                             </span>
                           </td>
 
-                          {/* Catatan Kinerja Lapangan (Kualitatif) */}
+                          {/* Catatan Kinerja Lapangan (Kualitatif) -> Pop Up Modal */}
                           <td className="py-3.5 px-4">
-                            <div className="relative flex items-center">
-                              <input
-                                type="text"
-                                placeholder="Tulis catatan pertimbangan (Wajib, min. 10 karakter)..."
-                                value={m.catatan || ''}
-                                onChange={(e) => handleNoteChange(itemKey, e.target.value)}
-                                className={`w-full bg-slate-50 hover:bg-white focus:bg-white border rounded-xl pl-3 pr-14 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 outline-none transition-all ${
+                            <div className="space-y-1">
+                              <button
+                                type="button"
+                                onClick={() => openNotePopup(m)}
+                                className={`w-full text-left p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 group ${
                                   noteLength >= 10
-                                    ? 'border-emerald-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                                    ? 'bg-slate-50 hover:bg-primary-50/60 border-slate-200/90 hover:border-primary-300'
                                     : noteLength > 0
-                                      ? 'border-amber-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
-                                      : 'border-slate-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-100'
+                                      ? 'bg-amber-50/70 hover:bg-amber-100/70 border-amber-200 text-amber-900'
+                                      : 'bg-slate-50/50 hover:bg-slate-100 border-dashed border-slate-300 text-slate-400'
                                 }`}
-                              />
-                              <span className={`absolute right-2.5 text-[10px] font-mono font-bold select-none ${
-                                noteLength >= 10 ? 'text-emerald-600 font-black' : noteLength > 0 ? 'text-amber-600' : 'text-slate-400'
-                              }`}>
-                                {noteLength}/10
-                              </span>
+                                title="Klik untuk melihat / mengedit catatan kinerja"
+                              >
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${
+                                    noteLength >= 10 ? 'text-primary-600' : noteLength > 0 ? 'text-amber-600' : 'text-slate-400'
+                                  }`} />
+                                  <span className={`text-xs truncate ${
+                                    noteLength > 0 ? 'font-medium text-slate-800' : 'italic text-slate-400'
+                                  }`}>
+                                    {m.catatan && m.catatan.trim() ? m.catatan : 'Belum ada catatan...'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md font-bold ${
+                                    noteLength >= 10
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : noteLength > 0
+                                        ? 'bg-amber-100 text-amber-800'
+                                        : 'bg-slate-200 text-slate-600'
+                                  }`}>
+                                    {noteLength > 0 ? `${noteLength} krt` : '+ Isi'}
+                                  </span>
+                                  <Pencil className="w-3 h-3 text-slate-400 group-hover:text-primary-600 transition-colors ml-0.5" />
+                                </div>
+                              </button>
+                              {m.nilai !== null && noteLength < 10 && (
+                                <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 pl-1">
+                                  <span>⚠️ Kurang {10 - noteLength} karakter</span>
+                                </p>
+                              )}
                             </div>
                           </td>
 
@@ -3040,7 +3124,226 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         )}
       </AnimatePresence>
 
-      {/* MODAL POP UP: DATA TELAH TERSIMPAN DI DATABASE */}
+            {/* ========================================================= */}
+      {/* MODAL POP UP: DETAIL & EDIT CATATAN KINERJA MITRA */}
+      {/* ========================================================= */}
+      <AnimatePresence>
+        {notePopupMitra && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeNotePopup}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 16 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-lg w-full p-6 sm:p-7 overflow-hidden z-10 flex flex-col max-h-[90vh]"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0 shadow-2xs">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                      Catatan Kinerja Mitra
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">
+                      Evaluasi kualitatif dan pertimbangan mutu kerja lapangan
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeNotePopup}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                  title="Tutup Modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Identity Pill Card */}
+              <div className="my-4 p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/70 space-y-2">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-sm text-slate-900">{notePopupMitra.nama}</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                      notePopupMitra.role === 'PML' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {notePopupMitra.role}
+                    </span>
+                  </div>
+                  {notePopupMitra.nilai !== null && notePopupMitra.nilai !== undefined && (
+                    <span className="text-xs font-black text-slate-900 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
+                      Nilai: {notePopupMitra.nilai}/100
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 font-medium">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Wilayah Tugas:</span>
+                    <span>Kec. {notePopupMitra.kecamatan || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">PJ Pembina:</span>
+                    <span className="truncate block">{notePopupMitra.pj || '-'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content: View Mode vs Edit Mode */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pb-2">
+                {!isEditingNoteModal ? (
+                  /* VIEW MODE */
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Isi Catatan Kinerja
+                      </span>
+                      {notePopupMitra.catatan && (
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold ${
+                          notePopupMitra.catatan.trim().length >= 10
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          {notePopupMitra.catatan.trim().length} Karakter
+                        </span>
+                      )}
+                    </div>
+
+                    {notePopupMitra.catatan && notePopupMitra.catatan.trim() ? (
+                      <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/90 text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-wrap shadow-2xs min-h-[110px]">
+                        {notePopupMitra.catatan}
+                      </div>
+                    ) : (
+                      <div className="p-6 rounded-2xl bg-slate-50/50 border border-dashed border-slate-300 text-center space-y-1.5">
+                        <MessageSquare className="w-8 h-8 text-slate-300 mx-auto" />
+                        <p className="text-xs font-bold text-slate-600">Belum ada catatan kinerja</p>
+                        <p className="text-[11px] text-slate-400">
+                          Klik tombol <strong>Edit Catatan</strong> di bawah untuk menambahkan evaluasi kualitatif.
+                        </p>
+                      </div>
+                    )}
+
+                    {notePopupMitra.nilai !== null && notePopupMitra.nilai !== undefined && (!notePopupMitra.catatan || notePopupMitra.catatan.trim().length < 10) && (
+                      <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>Mitra ini sudah memiliki nilai, sehingga wajib dilengkapi catatan minimal 10 karakter.</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* EDIT MODE */
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <Edit3 className="w-3.5 h-3.5 text-primary-600" />
+                        <span>Formulir Edit Catatan Kinerja:</span>
+                      </label>
+                      <span className={`text-[11px] font-mono font-bold ${
+                        draftNoteModal.trim().length >= 10 ? 'text-emerald-600' : 'text-amber-600'
+                      }`}>
+                        {draftNoteModal.trim().length}/10 Karakter (Min. 10)
+                      </span>
+                    </div>
+
+                    <textarea
+                      rows={6}
+                      value={draftNoteModal}
+                      onChange={(e) => setDraftNoteModal(e.target.value)}
+                      placeholder="Tuliskan catatan evaluasi kualitatif kinerja mitra (Wajib, minimal 10 karakter)..."
+                      className="w-full bg-slate-50 focus:bg-white border border-slate-300 focus:border-primary-500 rounded-2xl p-3.5 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:ring-3 focus:ring-primary-100 transition-all resize-y custom-scrollbar"
+                      autoFocus
+                    />
+
+                    {draftNoteModal.trim().length < 10 ? (
+                      <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center gap-1.5 font-medium">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>Wajib minimal 10 karakter (kurang {Math.max(0, 10 - draftNoteModal.trim().length)} karakter lagi).</span>
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 flex items-center gap-1.5 font-medium">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>Panjang catatan memenuhi kriteria evaluasi BPS.</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0">
+                {!isEditingNoteModal ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={closeNotePopup}
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      Tutup
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraftNoteModal(notePopupMitra.catatan || '');
+                        setIsEditingNoteModal(true);
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer hover:shadow-lg active:scale-98"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      <span>Edit Catatan</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingNoteModal(false);
+                        setDraftNoteModal(notePopupMitra.catatan || '');
+                      }}
+                      disabled={isSavingNoteModal}
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveNoteFromModal}
+                      disabled={isSavingNoteModal || (notePopupMitra.nilai !== null && draftNoteModal.trim().length < 10)}
+                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer hover:shadow-lg active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSavingNoteModal ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Menyimpan...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" />
+                          <span>Simpan Catatan</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+{/* MODAL POP UP: DATA TELAH TERSIMPAN DI DATABASE */}
       <AnimatePresence>
         {saveSuccessPopup?.isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
