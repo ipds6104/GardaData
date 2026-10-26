@@ -1170,4 +1170,79 @@ router.get('/detail/:kode', (req, res) => {
     });
 });
 
+/**
+ * POST /api/kbli/log-selection
+ * Simpan setiap keyword pencarian beserta hasil KBLI yang dipilih user
+ * secara otomatis dibelakang layar ke server agar data tidak hilang dan
+ * dapat digunakan untuk pengembangan/training search engine masa depan.
+ */
+router.post('/log-selection', (req, res) => {
+    try {
+        const { keyword, selected_code, selected_title, selected_level, timestamp } = req.body || {};
+        const cleanKeyword = String(keyword || '').trim();
+        const cleanCode = String(selected_code || '').trim();
+
+        if (!cleanKeyword || !cleanCode) {
+            return res.status(400).json({ error: 'Keyword and selected_code are required' });
+        }
+
+        const dataDir = path.join(__dirname, '../kbli_data');
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+
+        const logPath = path.join(dataDir, 'search_feedback_dataset.json');
+        let logs = [];
+        if (fs.existsSync(logPath)) {
+            try {
+                logs = JSON.parse(fs.readFileSync(logPath, 'utf8'));
+                if (!Array.isArray(logs)) logs = [];
+            } catch (e) {
+                logs = [];
+            }
+        }
+
+        const newEntry = {
+            id: Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
+            keyword: cleanKeyword,
+            selected_code: cleanCode,
+            selected_title: selected_title || '',
+            selected_level: selected_level || '',
+            timestamp: timestamp || new Date().toISOString(),
+            source: 'user_selection'
+        };
+
+        logs.push(newEntry);
+
+        // Tulis kembali ke disk secara aman
+        fs.writeFileSync(logPath, JSON.stringify(logs, null, 2), 'utf8');
+
+        return res.json({ 
+            success: true, 
+            message: 'Search feedback logged successfully',
+            total_logged: logs.length 
+        });
+    } catch (err) {
+        console.error('Error logging search selection:', err.message);
+        return res.status(500).json({ error: 'Failed to persist search feedback' });
+    }
+});
+
+/**
+ * GET /api/kbli/feedback-dataset
+ * Mengambil dataset keyword dan hasil yang dipilih user
+ */
+router.get('/feedback-dataset', (req, res) => {
+    try {
+        const logPath = path.join(__dirname, '../kbli_data/search_feedback_dataset.json');
+        if (fs.existsSync(logPath)) {
+            const logs = JSON.parse(fs.readFileSync(logPath, 'utf8'));
+            return res.json({ total: logs.length, dataset: logs });
+        }
+        res.json({ total: 0, dataset: [] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;

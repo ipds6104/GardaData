@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  LogOut, BookOpenCheck, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, 
+import { LogOut, Settings, BookOpenCheck, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, 
   MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database, WifiOff, RefreshCw, 
   MapPin, ScanLine, Award, ChevronLeft, ChevronRight, HelpCircle, Sun, Palette, Sparkles,
   Maximize2, Minimize2, Calculator
@@ -27,6 +26,36 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
   });
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [isFeatureFullscreen, setIsFeatureFullscreen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = React.useRef<HTMLDivElement>(null);
+
+  const getGreeting = (fullName?: string) => {
+    const hour = new Date().getHours();
+    let timeGreeting = 'Good morning';
+    if (hour >= 12 && hour < 17) {
+      timeGreeting = 'Good afternoon';
+    } else if (hour >= 17 && hour < 21) {
+      timeGreeting = 'Good evening';
+    } else if (hour >= 21 || hour < 4) {
+      timeGreeting = 'Good night';
+    }
+    const firstName = fullName ? fullName.split(' ')[0] : 'User';
+    return `${timeGreeting}, ${firstName}!`;
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserMenu]);
 
   const toggleSidebarCollapse = () => {
     setIsSidebarCollapsed(prev => {
@@ -123,9 +152,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     };
   }, []);
 
-  // Otomatis minimalkan (collapse) sidebar Garda Data saat membuka fitur laporan pendataan, peta responden SE2026, atau rasionalitas NTB agar ruang kerja maksimal
+  // Otomatis minimalkan (collapse) sidebar Garda Data saat membuka fitur laporan pendataan, peta responden SE2026, rasionalitas NTB, atau KBLI 2025 agar ruang kerja maksimal
   useEffect(() => {
-    if (currentPage === 'laporan-pendataan' || currentPage === 'peta-responden-se2026' || currentPage === 'rasionalitas-ntb') {
+    if (
+      currentPage === 'laporan-pendataan' || 
+      currentPage === 'peta-responden-se2026' || 
+      currentPage === 'rasionalitas-ntb' ||
+      currentPage === 'kbli-2025'
+    ) {
       setIsSidebarCollapsed(true);
     }
   }, [currentPage]);
@@ -233,10 +267,26 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     onClose?: () => void; 
   }) => {
     const [showThemePopover, setShowThemePopover] = useState(false);
+    const scrollRef = React.useRef<HTMLDivElement>(null);
+    const [canScrollUp, setCanScrollUp] = useState(false);
+    const [canScrollDown, setCanScrollDown] = useState(true);
+
+    const handleSidebarScroll = () => {
+      if (scrollRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+        setCanScrollUp(scrollTop > 4);
+        setCanScrollDown(scrollTop + clientHeight < scrollHeight - 4);
+      }
+    };
+
+    useEffect(() => {
+      const timer = setTimeout(handleSidebarScroll, 100);
+      return () => clearTimeout(timer);
+    }, [isCollapsed]);
 
     return (
       <div 
-        className={`h-full flex flex-col justify-between bg-white dark:bg-slate-900 rounded-[28px] border border-slate-200/80 dark:border-slate-800 shadow-md overflow-hidden relative transition-all duration-300 ${
+        className={`h-full flex flex-col justify-between bg-white dark:bg-slate-900 rounded-[28px] border border-slate-200/60 dark:border-slate-800 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)] overflow-hidden relative transition-all duration-300 ${
           isCollapsed ? 'w-[76px]' : 'w-full'
         }`}
       >
@@ -309,8 +359,20 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
           </div>
         )}
 
-        {/* MIDDLE: SCROLLABLE MENU ITEMS (Clean without bulky Windows scrollbar) */}
-        <div className="flex-1 overflow-y-auto px-2.5 py-2 no-scrollbar space-y-3 select-none">
+        {/* MIDDLE: SCROLLABLE MENU ITEMS WITH SCROLL AFFORDANCE SHADOWS */}
+        <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Top Shadow Gradient Indicator (Tipis & Sempit) */}
+          <div 
+            className={`pointer-events-none absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-b from-slate-900/5 dark:from-black/20 to-transparent z-10 transition-opacity duration-200 ${
+              canScrollUp ? 'opacity-100' : 'opacity-0'
+            }`} 
+          />
+
+          <div 
+            ref={scrollRef}
+            onScroll={handleSidebarScroll}
+            className="flex-1 overflow-y-auto px-2.5 py-2 no-scrollbar space-y-3 select-none"
+          >
           {menuGroups.map((group, gIdx) => (
             <div key={gIdx}>
               {!isCollapsed && (
@@ -332,7 +394,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
                           onClick={() => handleNav(item.id)}
                           style={isActive ? {
                             backgroundColor: presetInfo.colors.primary,
-                            boxShadow: `0 8px 18px -3px ${presetInfo.colors.primary}60`
+                            boxShadow: `0 2px 6px -1px ${presetInfo.colors.primary}35`
                           } : undefined}
                           className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
                             isActive
@@ -353,7 +415,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
                         onClick={() => handleNav(item.id)}
                         style={isActive ? {
                           backgroundColor: presetInfo.colors.primary,
-                          boxShadow: `0 8px 20px -4px ${presetInfo.colors.primary}55`
+                          boxShadow: `0 2px 6px -1px ${presetInfo.colors.primary}35`
                         } : undefined}
                         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-semibold transition-all cursor-pointer ${
                           isActive
@@ -378,124 +440,101 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
               </ul>
             </div>
           ))}
+          </div>
+
+          {/* Bottom Shadow Gradient Indicator (Tipis & Sempit) */}
+          <div 
+            className={`pointer-events-none absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-slate-900/5 dark:from-black/20 to-transparent z-10 transition-opacity duration-200 ${
+              canScrollDown ? 'opacity-100' : 'opacity-0'
+            }`} 
+          />
         </div>
 
-        {/* BOTTOM PINNED SECTION */}
+        {/* BOTTOM PINNED SECTION (PENGATURAN TEMA & TAMPILAN TERPADU) */}
         {isCollapsed ? (
-          <div className="p-2 pt-2 border-t border-slate-100/80 shrink-0 space-y-1.5 flex flex-col items-center relative">
+          <div className="p-2 pt-2 border-t border-slate-100/80 dark:border-slate-800 shrink-0 space-y-2 flex flex-col items-center relative">
+            {/* Settings & Theme Button */}
+            <button
+              onClick={() => setShowThemePopover(!showThemePopover)}
+              style={{ 
+                backgroundColor: presetInfo.colors.primary,
+                boxShadow: `0 2px 6px -1px ${presetInfo.colors.primary}35`
+              }}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-xs transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+              title={`Pengaturan Tema & Mode Tampilan (${presetInfo.name} • ${mode === 'dark' ? 'Gelap' : 'Terang'})`}
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+
             {/* Help Button */}
             <button
               onClick={() => setShowHelpModal(true)}
-              className="w-11 h-11 rounded-2xl flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 transition-all cursor-pointer"
+              className="w-10 h-10 rounded-2xl flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-all cursor-pointer"
               title="Bantuan & Panduan"
             >
               <HelpCircle className="w-5 h-5" />
             </button>
 
-            {/* Logout Button */}
-            {user && (
-              <button
-                onClick={() => logout()}
-                className="w-11 h-11 rounded-2xl flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
-                title={`Keluar (${user.username})`}
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
-            )}
-
-            {/* Collapsed Theme Button (Matching the purple sun pill in FinSet reference image) */}
-            <button
-              onClick={() => {
-                const nextIdx = (PRESET_LIST.findIndex(p => p.id === preset) + 1) % PRESET_LIST.length;
-                setPreset(PRESET_LIST[nextIdx].id);
-              }}
-              style={{ 
-                backgroundColor: presetInfo.colors.primary,
-                boxShadow: `0 6px 16px -2px ${presetInfo.colors.primary}60`
-              }}
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md transition-transform hover:scale-110 active:scale-95 cursor-pointer mt-1"
-              title={`Ganti Tema Warna (Saat ini: ${presetInfo.name})`}
-            >
-              <Sun className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          <div className="p-3 pt-2 border-t border-slate-100/80 shrink-0 space-y-1 relative">
-            {/* Help Button */}
-            <button
-              onClick={() => setShowHelpModal(true)}
-              className="w-full flex items-center gap-3 px-3.5 py-2 rounded-2xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 transition-colors cursor-pointer"
-            >
-              <HelpCircle className="w-5 h-5 text-slate-400 shrink-0" />
-              <span>Bantuan</span>
-            </button>
-
-            {/* Logout Button */}
-            {user && (
-              <button
-                onClick={() => logout()}
-                className="w-full flex items-center gap-3 px-3.5 py-2 rounded-2xl text-sm font-semibold text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-5 h-5 text-slate-400 hover:text-rose-600 shrink-0" />
-                <span className="truncate">Keluar ({user.username})</span>
-              </button>
-            )}
-
-            {/* Segmented Theme Switcher (Matching bottom pill in reference screenshot) */}
-            <div className="pt-2 px-1 flex items-center justify-between relative">
-              <div className="p-1 bg-slate-100/90 rounded-full inline-flex items-center gap-1 border border-slate-200/50 shadow-2xs">
-                {/* Segment 1: Active Theme Color Dot with Sun */}
-                <button
-                  type="button"
-                  onClick={() => setShowThemePopover(!showThemePopover)}
-                  style={{ backgroundColor: presetInfo.colors.primary }}
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-white shadow-xs cursor-pointer hover:scale-105 transition-transform"
-                  title={`Tema Aktif: ${presetInfo.name} (Klik untuk ganti)`}
+            {/* Popover Settings in Collapsed Mode */}
+            <AnimatePresence>
+              {showThemePopover && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: -10, scale: 0.95 }}
+                  className="absolute left-full bottom-0 ml-3 w-80 bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200 dark:border-slate-800 shadow-2xl z-50 space-y-3.5"
                 >
-                  <Sun className="w-3.5 h-3.5" />
-                </button>
-                
-                {/* Segment 2: Palette / Mode Icon */}
-                <button
-                  type="button"
-                  onClick={() => setShowThemePopover(!showThemePopover)}
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-white/80 transition-colors cursor-pointer"
-                  title="Pilih Preset Tema Warna"
-                >
-                  <Palette className="w-3.5 h-3.5" />
-                </button>
-              </div>
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Settings className="w-4 h-4 text-primary-600" />
+                      <span className="text-xs font-black text-slate-800 dark:text-slate-100">Pengaturan Tampilan</span>
+                    </div>
+                    <button 
+                      onClick={() => setShowThemePopover(false)} 
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
 
-              <button
-                type="button"
-                onClick={() => setShowThemePopover(!showThemePopover)}
-                className="text-[11px] font-bold text-slate-500 hover:text-slate-800 truncate mr-1 cursor-pointer flex items-center gap-1.5"
-              >
-                <span 
-                  className="w-2 h-2 rounded-full shadow-2xs" 
-                  style={{ backgroundColor: presetInfo.colors.primary }} 
-                />
-                <span className="truncate">{presetInfo.name}</span>
-              </button>
-
-              {/* Compact Theme Preset Popover */}
-              <AnimatePresence>
-                {showThemePopover && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute bottom-full mb-3 left-0 right-0 bg-white rounded-3xl p-3 border border-slate-200 shadow-2xl shadow-slate-900/15 z-50 space-y-2"
-                  >
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                      <span className="text-xs font-black text-slate-800">Pilih Warna Tema</span>
-                      <button 
-                        onClick={() => setShowThemePopover(false)} 
-                        className="text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                  {/* Mode Gelap / Terang */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mode Tampilan</span>
+                    <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (mode !== 'light') toggleMode();
+                        }}
+                        className={`py-1.5 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          mode === 'light'
+                            ? 'bg-white text-amber-600 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                        }`}
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <Sun className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Terang</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (mode !== 'dark') toggleMode();
+                        }}
+                        className={`py-1.5 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          mode === 'dark'
+                            ? 'bg-slate-700 text-primary-300 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                        }`}
+                      >
+                        <Moon className="w-3.5 h-3.5 text-primary-400" />
+                        <span>Gelap</span>
                       </button>
                     </div>
+                  </div>
+
+                  {/* Pilihan Warna Tema */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Warna Tema</span>
                     <div className="grid grid-cols-3 gap-1.5">
                       {PRESET_LIST.map(item => (
                         <button
@@ -506,22 +545,141 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
                           }}
                           className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] font-bold transition-all cursor-pointer ${
                             preset === item.id 
-                              ? 'border-primary-500 bg-primary-50/60 ring-2 ring-primary-200 shadow-xs' 
-                              : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                              ? 'border-primary-500 bg-primary-50/60 dark:bg-primary-950/60 ring-2 ring-primary-200 dark:ring-primary-900 shadow-xs text-primary-700 dark:text-primary-300' 
+                              : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
                           }`}
                         >
                           <div 
-                            className="w-5 h-5 rounded-full shadow-xs border border-white"
+                            className="w-5 h-5 rounded-full shadow-xs border border-white dark:border-slate-800"
                             style={{ backgroundColor: item.colors.primary }}
                           />
                           <span className="truncate w-full text-center">{item.name}</span>
                         </button>
                       ))}
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="p-3 pt-2 border-t border-slate-100/80 dark:border-slate-800 shrink-0 space-y-1 relative">
+            {/* Settings & Theme Button */}
+            <button
+              type="button"
+              onClick={() => setShowThemePopover(!showThemePopover)}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/70 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-3">
+                <Settings className="w-5 h-5 text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 shrink-0 transition-colors" />
+                <span>Pengaturan Tampilan</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span 
+                  className="w-2.5 h-2.5 rounded-full shadow-2xs" 
+                  style={{ backgroundColor: presetInfo.colors.primary }} 
+                />
+                <span className="text-[11px] font-bold text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200">
+                  {mode === 'dark' ? '🌙' : '☀️'}
+                </span>
+              </div>
+            </button>
+
+            {/* Help Button */}
+            <button
+              onClick={() => setShowHelpModal(true)}
+              className="w-full flex items-center gap-3 px-3.5 py-2 rounded-2xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/70 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <HelpCircle className="w-5 h-5 text-slate-400 shrink-0" />
+              <span>Bantuan &amp; Panduan</span>
+            </button>
+
+            {/* Popover Settings in Expanded Mode */}
+            <AnimatePresence>
+              {showThemePopover && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute bottom-full mb-3 left-0 right-0 bg-white dark:bg-slate-900 rounded-3xl p-4 border border-slate-200 dark:border-slate-800 shadow-2xl z-50 space-y-3.5"
+                >
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Settings className="w-4 h-4 text-primary-600" />
+                      <span className="text-xs font-black text-slate-800 dark:text-slate-100">Pengaturan Tampilan</span>
+                    </div>
+                    <button 
+                      onClick={() => setShowThemePopover(false)} 
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Mode Gelap / Terang */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mode Tampilan</span>
+                    <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (mode !== 'light') toggleMode();
+                        }}
+                        className={`py-1.5 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          mode === 'light'
+                            ? 'bg-white text-amber-600 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                        }`}
+                      >
+                        <Sun className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Terang</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (mode !== 'dark') toggleMode();
+                        }}
+                        className={`py-1.5 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          mode === 'dark'
+                            ? 'bg-slate-700 text-primary-300 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                        }`}
+                      >
+                        <Moon className="w-3.5 h-3.5 text-primary-400" />
+                        <span>Gelap</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pilihan Warna Tema */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Warna Tema</span>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {PRESET_LIST.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setPreset(item.id);
+                            setShowThemePopover(false);
+                          }}
+                          className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-[10px] font-bold transition-all cursor-pointer ${
+                            preset === item.id 
+                              ? 'border-primary-500 bg-primary-50/60 dark:bg-primary-950/60 ring-2 ring-primary-200 dark:ring-primary-900 shadow-xs text-primary-700 dark:text-primary-300' 
+                              : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          <div 
+                            className="w-5 h-5 rounded-full shadow-xs border border-white dark:border-slate-800"
+                            style={{ backgroundColor: item.colors.primary }}
+                          />
+                          <span className="truncate w-full text-center">{item.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
       </div>
@@ -690,22 +848,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
               <span className="hidden xl:inline">{isUpdatingApp ? 'Memperbarui...' : 'Perbarui Web'}</span>
             </button>
 
-            {/* Theme / Preset Selector Button */}
-            <ThemeSelector />
-
-            {/* Quick Dark Mode Toggle */}
-            <button
-              type="button"
-              onClick={toggleMode}
-              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all shadow-2xs cursor-pointer"
-              title={mode === 'dark' ? 'Ganti ke Mode Terang (Light)' : 'Ganti ke Mode Gelap (Dark)'}
-            >
-              {mode === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
-                <Moon className="w-4 h-4 text-primary-600" />
-              )}
-            </button>
+            
 
             {/* Fullscreen Mode Toggle */}
             <button
@@ -734,30 +877,72 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
             <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
 
             {user && (
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-600 to-secondary-500 flex items-center justify-center text-white shrink-0 shadow-xs">
-                  <User className="w-4 h-4" />
-                </div>
-                <div className="hidden sm:flex flex-col">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight">
-                    {user.name || user.username}
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase flex items-center gap-1">
-                    {user.nip ? `NIP. ${user.nip}` : user.role}
-                    {user.role === 'admin' && (
-                      <span className="text-[9px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/60 dark:text-blue-300 px-1 rounded">
-                        Admin SSO
-                      </span>
-                    )}
-                  </span>
-                </div>
+              <div className="relative" ref={userMenuRef}>
                 <button
-                  onClick={() => logout()}
-                  className="ml-1 p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
-                  title="Keluar"
+                  type="button"
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2.5 px-2 py-1 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
+                  title="Klik profil untuk melihat NIP, Role & Logout"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-600 to-secondary-500 flex items-center justify-center text-white shrink-0 shadow-xs ring-2 ring-primary-100 dark:ring-primary-900/40 group-hover:scale-105 transition-transform">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div className="hidden sm:flex flex-col text-left">
+                    <span className="text-xs font-black text-slate-800 dark:text-slate-100 leading-tight">
+                      {getGreeting(user.name || user.username)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                      BPS Kab. Mempawah
+                    </span>
+                  </div>
                 </button>
+
+                {/* Dropdown Popover on Profile Click */}
+                <AnimatePresence>
+                  {showUserMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 z-50 space-y-3"
+                    >
+                      <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-600 to-secondary-500 flex items-center justify-center text-white shrink-0 shadow-xs font-black text-sm">
+                          {(user.name || user.username || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-black text-slate-900 dark:text-slate-100 truncate">
+                            {user.name || user.username}
+                          </h4>
+                          {user.nip ? (
+                            <p className="text-[11px] font-mono font-medium text-slate-500 dark:text-slate-400 truncate">
+                              NIP. {user.nip}
+                            </p>
+                          ) : null}
+                          <div className="mt-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800 uppercase tracking-wider">
+                              {user.role === 'admin' ? 'ADMIN SSO' : user.role}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Logout Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          logout();
+                        }}
+                        className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 dark:text-rose-300 transition-colors cursor-pointer"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Keluar (Logout)</span>
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
           </div>
