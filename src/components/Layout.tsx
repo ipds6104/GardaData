@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, Settings, BookOpenCheck, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, 
   MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database, WifiOff, RefreshCw, 
   MapPin, ScanLine, Award, ChevronLeft, ChevronRight, HelpCircle, Sun, Palette, Sparkles,
-  Maximize2, Minimize2, Calculator
+  Maximize2, Minimize2, Calculator, BarChart3
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useAuth } from '../lib/auth';
+import { useAuth, isAhmadAuliaUser } from '../lib/auth';
 import { useTheme, PRESET_LIST } from '../lib/theme';
 import { ThemeSelector } from './ThemeSelector';
 import { clearAppCacheAndReload } from '../lib/pwaUpdater';
@@ -185,6 +185,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     ...((user?.role === 'admin' || user?.role === 'petugas_pengolahan') ? [
       { id: 'peta-responden-se2026', title: 'Peta Responden SE2026', desc: 'Visualisasi sebaran koordinat responden SE2026 di Kabupaten Mempawah dengan overlay batas SLS, Desa, dan Kecamatan', keywords: ['peta', 'responden', 'se2026', 'pengolahan', 'koordinat', 'rumah', 'sls', 'desa', 'mempawah', 'geospasial'] }
     ] : []),
+    ...(isAhmadAuliaUser(user) ? [
+      { id: 'analytics-ahmad', title: 'Statistik & Analisis Pengunjung', desc: 'Monitoring volume trafik, pengunjung unik, popularitas fitur, serta analisis kunjungan per hari dan jam khusus akun ahmad.aulia', keywords: ['statistik', 'analisis', 'pengunjung', 'traffic', 'ahmad', 'aulia', 'jam', 'hari', 'views', 'populer', 'telemetri'] }
+    ] : []),
   ];
 
   const searchResults = searchIndex.filter(item => {
@@ -245,7 +248,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         { id: 'social-phenomenon', label: 'Fenomena Sosial Ekonomi', icon: Users },
         { id: 'admin-strategic-data', label: 'Data Strategis BPS', icon: TrendingUp }
       ]
-    }
+    },
+    ...(isAhmadAuliaUser(user) ? [{
+      title: 'HALAMAN DEVELOPER',
+      items: [
+        { id: 'analytics-ahmad', label: 'Statistik Pengunjung', icon: BarChart3 }
+      ]
+    }] : [])
   ];
 
   const handleNav = (id: string) => {

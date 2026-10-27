@@ -1,6 +1,6 @@
 import React from 'react';
-import { BookOpen, BookOpenCheck, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity, MapPin, ScanLine, Award, Calculator } from 'lucide-react';
-import { useAuth } from '../lib/auth';
+import { BookOpen, BookOpenCheck, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity, MapPin, ScanLine, Award, Calculator, BarChart3 } from 'lucide-react';
+import { useAuth, isAhmadAuliaUser } from '../lib/auth';
 
 interface FeatureCardProps {
   title: string;
@@ -102,6 +102,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
       {/* Categories Grid */}
       <div className="space-y-10 pt-4">
         
+        {/* Kategori Khusus: Halaman Developer Akun ahmad.aulia */}
+        {isAhmadAuliaUser(user) && (
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+              <h2 className="text-lg font-black text-slate-800 dark:text-slate-100">
+                Halaman Developer
+              </h2>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 uppercase tracking-wide border border-indigo-200 dark:border-indigo-800/60">
+                Khusus Akun ahmad.aulia
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <FeatureCard
+                title="Statistik & Analisis Pengunjung"
+                description="Pantau berapa kali Garda Data dibuka, pengunjung unik, popularitas fitur, serta visualisasi analitis menurut hari dan jam operasional."
+                icon={BarChart3}
+                iconColor="text-indigo-600 dark:text-indigo-400"
+                bgColor="bg-indigo-50"
+                badge="Analitik Live"
+                onClick={() => onNavigate('analytics-ahmad')}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Kategori: Persiapan Kegiatan (Khusus Admin) */}
         {user?.role === 'admin' && (
           <div>

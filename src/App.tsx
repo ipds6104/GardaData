@@ -24,9 +24,12 @@ const AdminSLSDashboard = lazy(() => import('./components/sls/AdminSLSDashboard'
 const PenilaianMitraModule = lazy(() => import('./components/mitra/PenilaianMitraModule').then(m => ({ default: m.PenilaianMitraModule })));
 const PetaRespondenSE2026 = lazy(() => import('./components/pengolahan/PetaRespondenSE2026').then(m => ({ default: m.PetaRespondenSE2026 })));
 const RasionalitasNtbModule = lazy(() => import('./components/pengolahan/rasionalitas/RasionalitasNtbModule').then(m => ({ default: m.RasionalitasNtbModule })));
+const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard })));
 import { Login } from './components/Login';
 import { AuthCallback } from './components/AuthCallback';
 import { syncImputationFromFirebase } from './services/imputationService';
+import { isAhmadAuliaUser } from './lib/auth';
+import { trackPageView } from './services/analyticsService';
 
 const VALID_PAGES = new Set([
   'landing',
@@ -44,7 +47,8 @@ const VALID_PAGES = new Set([
   'penilaian-mitra',
   'rasionalitas-ntb',
   'peta-responden-se2026',
-  'monitoring'
+  'monitoring',
+  'analytics-ahmad'
 ]);
 
 function AppContent() {
@@ -75,7 +79,9 @@ function AppContent() {
 
   useEffect(() => {
     sessionStorage.setItem('garda_current_page', currentPage);
-  }, [currentPage]);
+    // Rekam perpindahan halaman / kunjungan fitur di latar belakang
+    trackPageView(currentPage, user);
+  }, [currentPage, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -245,6 +251,22 @@ function AppContent() {
           );
         }
         return <PenilaianMitraModule onBack={() => setCurrentPage('landing')} />;
+      case 'analytics-ahmad':
+        if (!isAhmadAuliaUser(user)) {
+          return (
+            <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6">
+              <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Akses Ditolak</h2>
+              <p className="text-sm text-slate-500 mt-2">Halaman Statistik & Analisis Pengunjung khusus untuk akun ahmad.aulia.</p>
+              <button 
+                onClick={() => setCurrentPage('landing')} 
+                className="mt-4 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+              >
+                Kembali ke Beranda
+              </button>
+            </div>
+          );
+        }
+        return <AnalyticsDashboard onBack={() => setCurrentPage('landing')} />;
       default:
         // Jika pengunjung, paksa tampilan Visitor Dashboard
         if (user.role === 'pengunjung') {

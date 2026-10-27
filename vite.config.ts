@@ -14,14 +14,29 @@ export default defineConfig(({mode}) => {
       react(), 
       tailwindcss(),
       {
-        name: 'kbli-dev-server-middleware',
+        name: 'garda-dev-server-middleware',
         configureServer(server: any) {
           try {
-            const kbliRouter = require('./server/routes/kbli');
-            server.middlewares.use('/api/kbli', kbliRouter);
-            console.log('✔ [Vite Dev] KBLI 2025 API middleware mounted at /api/kbli');
+            const express = require('express');
+
+            server.middlewares.use((req: any, res: any, next: any) => {
+              if (req.url && (req.url.startsWith('/api/kbli') || req.url.startsWith('/api/analytics'))) {
+                try {
+                  delete require.cache[require.resolve('./server/routes/analytics')];
+                  delete require.cache[require.resolve('./server/routes/kbli')];
+                } catch {}
+
+                const apiApp = express();
+                apiApp.use(express.json());
+                apiApp.use('/api/kbli', require('./server/routes/kbli'));
+                apiApp.use('/api/analytics', require('./server/routes/analytics'));
+                return apiApp(req, res, next);
+              }
+              next();
+            });
+            console.log('✔ [Vite Dev] KBLI 2025 & Analytics API middleware mounted at /api/kbli and /api/analytics');
           } catch (e: any) {
-            console.warn('Note on KBLI dev middleware:', e.message);
+            console.warn('Note on dev middleware:', e.message);
           }
         }
       },

@@ -69,6 +69,7 @@ const imputationRoutes = require('./routes/imputations');
 const phenomenaRoutes = require('./routes/phenomena');
 const laporanRoutes = require('./routes/laporan');
 const kbliRoutes = require('./routes/kbli');
+const analyticsRoutes = require('./routes/analytics');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -77,6 +78,7 @@ app.use('/api/imputations', imputationRoutes);
 app.use('/api/phenomena', phenomenaRoutes);
 app.use('/api/laporan', laporanRoutes);
 app.use('/api/kbli', kbliRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

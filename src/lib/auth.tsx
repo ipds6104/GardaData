@@ -19,6 +19,32 @@ export interface PasswordValidationResult {
 }
 
 /**
+ * Helper untuk verifikasi hak akses eksklusif akun ahmad.aulia
+ */
+export function isAhmadAuliaUser(user: AuthUser | null | undefined): boolean {
+  if (!user) return false;
+  const username = (user.username || '').toLowerCase().trim();
+  const email = (user.email || '').toLowerCase().trim();
+  const name = (user.name || '').toLowerCase().trim();
+  
+  const cleanU = username.replace(/[\s._-]+/g, '');
+  const cleanE = email.replace(/[\s._-]+/g, '');
+  const cleanN = name.replace(/[\s._-]+/g, '');
+
+  return (
+    cleanU.includes('ahmadaulia') ||
+    cleanE.includes('ahmadaulia') ||
+    cleanN.includes('ahmadaulia') ||
+    username === 'ahmad.aulia' ||
+    username === 'ahmadaulia' ||
+    email.startsWith('ahmad.aulia') ||
+    email.startsWith('ahmadaulia') ||
+    name.includes('ahmad aulia') ||
+    name.includes('ahmadaulia')
+  );
+}
+
+/**
  * Validates password:
  * Memperbolehkan sandi sederhana agar mudah diingat sesuai kebutuhan pengguna.
  */
