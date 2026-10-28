@@ -13,6 +13,11 @@ let mempawahTrainingData = null;
 let mempawahRules = [];
 let mempawahSummary = new Map();
 
+// Learned Model from 500+ High-Confidence Field Confirmations
+let kbjiLearnedModel = null;
+let kbjiLearnedRules = [];
+const HIGH_CONFIDENCE_THRESHOLD = 500;
+
 // Level Priority (Operational specificity: Jabatan 5-digit and Sub-Golongan 4-digit highest)
 const LEVEL_PRIORITY = {
     'jabatan': 1,
@@ -86,6 +91,20 @@ function loadKbjiData() {
                 }
             } catch (trErr) {
                 console.warn('Note on loading Mempawah training data:', trErr.message);
+            }
+        }
+
+        // Load Field-Learned Model (Aktif otomatis setelah 500+ Konfirmasi Lapangan)
+        const learnedPath = path.join(dataPath, 'kbji_learned_field_model.json');
+        if (fs.existsSync(learnedPath)) {
+            try {
+                kbjiLearnedModel = JSON.parse(fs.readFileSync(learnedPath, 'utf8'));
+                if (Array.isArray(kbjiLearnedModel?.rules)) {
+                    kbjiLearnedRules = kbjiLearnedModel.rules;
+                    console.log(`🎯 [KBJI 2014] Loaded Learned Model: ${kbjiLearnedRules.length} aturan hasil 500+ konfirmasi lapangan.`);
+                }
+            } catch (lErr) {
+                console.warn('Note on loading KBJI learned model:', lErr.message);
             }
         }
 
@@ -252,12 +271,39 @@ router.get('/search', (req, res) => {
         const rawTokens = queryLower.split(/\s+/).filter(t => t.length > 1 || /^[0-9]$/.test(t));
         const queryTokens = rawTokens.length > 0 ? rawTokens : [queryLower];
 
+        // 0. Check Learned Model Lapangan (500+ Konfirmasi Petugas)
+        let learnedMatch = null;
+        if (kbjiLearnedRules.length > 0) {
+            for (const rule of kbjiLearnedRules) {
+                if (rule.pattern === queryLower || queryLower.includes(rule.pattern) || rule.pattern.includes(queryLower)) {
+                    learnedMatch = rule;
+                    break;
+                }
+            }
+        }
+
         // 1. Check Mempawah Empirical Match for the query
         for (const rule of mempawahRules) {
             if (rule.pattern === queryLower || queryLower.includes(rule.pattern) || rule.pattern.includes(queryLower)) {
                 bestRec = rule;
                 break;
             }
+        }
+
+        // Jika ada learnedMatch, jadikan sebagai bestRec utama
+        if (learnedMatch) {
+            const targetItem = itemMap.get(learnedMatch.kbji);
+            bestRec = {
+                pattern: learnedMatch.pattern,
+                kategori: targetItem?.golongan_pokok || '5',
+                kbji: learnedMatch.kbji,
+                job_title: learnedMatch.judul || targetItem?.judul || '',
+                pekerjaan: learnedMatch.judul || targetItem?.judul || '',
+                bidang: 'Terverifikasi Lapangan (500+ Konfirmasi)',
+                count: learnedMatch.sample_count,
+                confidence: learnedMatch.confidence,
+                badge: 'Hasil Pembelajaran Lapangan (500+ Konfirmasi)'
+            };
         }
 
         const scored = [];
@@ -268,8 +314,13 @@ router.get('/search', (req, res) => {
             let score = 0;
             let matchedTokensCount = 0;
 
-            // 0. Boost from Mempawah Empirical Match
-            if (bestRec && bestRec.kbji) {
+            // 0. Super Boost dari Field Learned Model (500+ Konfirmasi Lapangan)
+            if (learnedMatch && learnedMatch.kbji) {
+                if (item.kode === learnedMatch.kbji || item.induk === learnedMatch.kbji) {
+                    score += 55000;
+                    matchedTokensCount = queryTokens.length;
+                }
+            } else if (bestRec && bestRec.kbji) {
                 if (item.kode === bestRec.kbji || item.induk === bestRec.kbji) {
                     score += 35000;
                     matchedTokensCount = queryTokens.length;
@@ -493,17 +544,347 @@ router.get('/detail/:kode', (req, res) => {
     });
 });
 
+function computeConfidence(isCopied, isLast, dwellSeconds) {
+    if (isCopied) return 'VERY_HIGH'; // Opsi 1: User menyalin kode, konfirmasi 99%
+    if (isLast && dwellSeconds >= 15) return 'HIGH'; // Opsi 2 & 3: Card terakhir dan dibaca mendalam
+    if (isLast && dwellSeconds >= 5) return 'MEDIUM_HIGH';
+    if (dwellSeconds >= 15) return 'MEDIUM';
+    if (isLast) return 'MEDIUM_LOW';
+    return 'LOW'; // Browsing/inspeksi sekilas (< 5 detik)
+}
+
 /**
  * POST /api/kbji/log-selection
- * Telemetry logging for searched & selected KBJI codes
+ * Telemetry logging with Options 1 (Copy Code), 2 (Last-in-Session), and 3 (Dwell Time)
  */
 router.post('/log-selection', (req, res) => {
     try {
-        const { query, kode, judul, level, timestamp } = req.body || {};
-        // Can be stored or monitored as needed
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
+        const {
+            session_id,
+            query,
+            keyword,
+            kode,
+            selected_code,
+            judul,
+            selected_title,
+            level,
+            selected_level,
+            action, // 'view' | 'copy_code'
+            is_copied,
+            dwell_time_seconds,
+            is_last_in_session,
+            timestamp
+        } = req.body || {};
+
+        const cleanKeyword = String(keyword || query || '').trim();
+        const cleanCode = String(selected_code || kode || '').trim();
+        const cleanSessionId = String(session_id || '').trim();
+
+        if (!cleanKeyword || !cleanCode) {
+            return res.status(400).json({ error: 'Keyword and selected_code are required' });
+        }
+
+        const dataDir = path.join(__dirname, '../kbji_data');
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+
+        const logPath = path.join(dataDir, 'kbji_feedback_dataset.json');
+        let logs = [];
+        if (fs.existsSync(logPath)) {
+            try {
+                logs = JSON.parse(fs.readFileSync(logPath, 'utf8'));
+                if (!Array.isArray(logs)) logs = [];
+            } catch (e) {
+                logs = [];
+            }
+        }
+
+        // Cari apakah sesi dan kode ini sudah pernah dicatat sebelumnya
+        let existing = cleanSessionId ? logs.find(l => l.session_id === cleanSessionId && l.selected_code === cleanCode) : null;
+
+        if (existing) {
+            // Update rekaman yang sudah ada
+            if (action === 'copy_code' || is_copied) {
+                existing.action = 'copy_code';
+                existing.is_copied = true;
+            }
+            if (dwell_time_seconds !== undefined && Number(dwell_time_seconds) > (existing.dwell_time_seconds || 0)) {
+                existing.dwell_time_seconds = Number(dwell_time_seconds);
+            }
+            if (is_last_in_session !== undefined) {
+                existing.is_last_in_session = Boolean(is_last_in_session);
+            }
+            existing.confidence_level = computeConfidence(existing.is_copied, existing.is_last_in_session, existing.dwell_time_seconds || 0);
+            existing.updated_at = new Date().toISOString();
+        } else {
+            // Jika ada card baru dalam sesi yang sama, tandai card-card sebelumnya sebagai bukan kartu terakhir
+            if (cleanSessionId) {
+                logs.forEach(l => {
+                    if (l.session_id === cleanSessionId) {
+                        l.is_last_in_session = false;
+                        l.confidence_level = computeConfidence(l.is_copied, false, l.dwell_time_seconds || 0);
+                    }
+                });
+            }
+
+            const copiedFlag = action === 'copy_code' || Boolean(is_copied);
+            const dwellVal = Math.max(0, Number(dwell_time_seconds) || 0);
+            const isLastVal = is_last_in_session !== undefined ? Boolean(is_last_in_session) : true;
+
+            const newEntry = {
+                id: Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
+                session_id: cleanSessionId || ('sess_' + Date.now().toString(36)),
+                keyword: cleanKeyword,
+                selected_code: cleanCode,
+                selected_title: selected_title || judul || '',
+                selected_level: selected_level || level || '',
+                action: copiedFlag ? 'copy_code' : (action || 'view'),
+                is_copied: copiedFlag,
+                dwell_time_seconds: dwellVal,
+                is_last_in_session: isLastVal,
+                confidence_level: computeConfidence(copiedFlag, isLastVal, dwellVal),
+                timestamp: timestamp || new Date().toISOString(),
+                source: 'user_telemetry'
+            };
+
+            logs.push(newEntry);
+        }
+
+        // Tulis kembali ke disk secara aman
+        fs.writeFileSync(logPath, JSON.stringify(logs, null, 2), 'utf8');
+
+        // Otomatis evaluasi & perbaiki model jika sudah mencapai ambang batas 500 data VERY_HIGH dan HIGH
+        try {
+            checkAndImproveKbjiModel();
+        } catch (_) {}
+
+        return res.json({ 
+            success: true, 
+            message: 'KBJI Search feedback logged successfully',
+            total_logged: logs.length 
+        });
+    } catch (err) {
+        console.error('Error logging KBJI search selection:', err.message);
+        return res.status(500).json({ error: 'Failed to persist search feedback' });
+    }
+});
+
+/**
+ * Evaluasi & perbaiki model klasifikasi KBJI otomatis saat mencapai ambang batas 500 data
+ */
+function checkAndImproveKbjiModel(force = false) {
+    try {
+        const dataDir = path.join(__dirname, '../kbji_data');
+        const logPath = path.join(dataDir, 'kbji_feedback_dataset.json');
+        if (!fs.existsSync(logPath)) return { updated: false, reason: 'File feedback belum ada' };
+
+        const logs = JSON.parse(fs.readFileSync(logPath, 'utf8'));
+        if (!Array.isArray(logs)) return { updated: false, reason: 'Format logs tidak valid' };
+
+        // Ambil data yang berstatus VERY_HIGH dan HIGH (atau is_copied)
+        const eligibleLogs = logs.filter(l => l.confidence_level === 'VERY_HIGH' || l.confidence_level === 'HIGH' || l.is_copied);
+        const totalEligible = eligibleLogs.length;
+
+        const learnedPath = path.join(dataDir, 'kbji_learned_field_model.json');
+        let prevModel = null;
+        if (fs.existsSync(learnedPath)) {
+            try {
+                prevModel = JSON.parse(fs.readFileSync(learnedPath, 'utf8'));
+            } catch (_) {}
+        }
+
+        const lastTrainedCount = prevModel?.total_eligible_samples || 0;
+
+        // Cek apakah sudah memenuhi ambang batas 500 data
+        if (!force && totalEligible < HIGH_CONFIDENCE_THRESHOLD) {
+            return {
+                updated: false,
+                threshold: HIGH_CONFIDENCE_THRESHOLD,
+                total_eligible: totalEligible,
+                progress_percent: Number(((totalEligible / HIGH_CONFIDENCE_THRESHOLD) * 100).toFixed(1)),
+                message: `Ambang batas belum tercapai (${totalEligible}/${HIGH_CONFIDENCE_THRESHOLD})`
+            };
+        }
+
+        // Jika sudah pernah ditraining pada >= 500, tunggu setidaknya 25 data baru berikutnya sebelum batch retrain
+        if (!force && prevModel && (totalEligible - lastTrainedCount < 25)) {
+            return {
+                updated: false,
+                threshold: HIGH_CONFIDENCE_THRESHOLD,
+                total_eligible: totalEligible,
+                already_up_to_date: true,
+                message: 'Model sudah up-to-date dengan data feedback saat ini'
+            };
+        }
+
+        // --- PROSES PERBAIKAN MODEL KBJI DARI 500+ DATA KONSENSUS LAPANGAN ---
+        const keywordGroups = new Map();
+        for (const log of eligibleLogs) {
+            const rawKw = String(log.keyword || '').toLowerCase().trim();
+            const cleanKw = rawKw.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (cleanKw.length < 2) continue;
+
+            if (!keywordGroups.has(cleanKw)) {
+                keywordGroups.set(cleanKw, []);
+            }
+            keywordGroups.get(cleanKw).push(log);
+        }
+
+        const learnedRules = [];
+
+        for (const [kw, items] of keywordGroups.entries()) {
+            const codeCounts = new Map();
+            const codeDetails = new Map();
+
+            for (const item of items) {
+                const code = item.selected_code;
+                if (!code) continue;
+                // Beri bobot 2x untuk konfirmasi 'copy_code' / VERY_HIGH
+                const weight = (item.is_copied || item.confidence_level === 'VERY_HIGH') ? 2 : 1;
+                codeCounts.set(code, (codeCounts.get(code) || 0) + weight);
+                if (!codeDetails.has(code)) {
+                    codeDetails.set(code, {
+                        title: item.selected_title || '',
+                        level: item.selected_level || ''
+                    });
+                }
+            }
+
+            let winnerCode = null;
+            let maxWeight = 0;
+            let totalWeight = 0;
+
+            for (const [code, w] of codeCounts.entries()) {
+                totalWeight += w;
+                if (w > maxWeight) {
+                    maxWeight = w;
+                    winnerCode = code;
+                }
+            }
+
+            const consensusRatio = totalWeight > 0 ? maxWeight / totalWeight : 0;
+            if (winnerCode && maxWeight >= 2 && consensusRatio >= 0.6) {
+                const details = codeDetails.get(winnerCode) || {};
+                learnedRules.push({
+                    pattern: kw,
+                    kbji: winnerCode,
+                    judul: details.title,
+                    level: details.level,
+                    sample_count: items.length,
+                    confidence: Number((consensusRatio * (items.length >= 3 ? 0.99 : 0.93)).toFixed(3)),
+                    source: 'Hasil Pembelajaran 500+ Konfirmasi Lapangan'
+                });
+            }
+        }
+
+        learnedRules.sort((a, b) => b.pattern.length - a.pattern.length);
+
+        const newModel = {
+            version: '2.0.0-learned',
+            trained_at: new Date().toISOString(),
+            threshold: HIGH_CONFIDENCE_THRESHOLD,
+            total_eligible_samples: totalEligible,
+            total_rules: learnedRules.length,
+            rules: learnedRules
+        };
+
+        fs.writeFileSync(learnedPath, JSON.stringify(newModel, null, 2), 'utf8');
+
+        // Sinkronkan ke folder backend jika ada
+        const backendPath = path.join(__dirname, '../../backend/kbji_data');
+        if (fs.existsSync(backendPath)) {
+            try {
+                fs.writeFileSync(path.join(backendPath, 'kbji_learned_field_model.json'), JSON.stringify(newModel, null, 2), 'utf8');
+            } catch (_) {}
+        }
+
+        kbjiLearnedModel = newModel;
+        kbjiLearnedRules = learnedRules;
+
+        console.log(`🚀 [KBJI 2014] Model Berhasil Diperbaiki! ${learnedRules.length} aturan baru diaktifkan dari ${totalEligible} data konfirmasi lapangan.`);
+
+        return {
+            updated: true,
+            total_eligible: totalEligible,
+            rules_generated: learnedRules.length,
+            model_version: newModel.version,
+            trained_at: newModel.trained_at
+        };
+    } catch (err) {
+        console.error('Error improving KBJI model:', err.message);
+        return { updated: false, error: err.message };
+    }
+}
+
+/**
+ * GET /api/kbji/model-status
+ * Status ambang batas 500 data dan model perbaikan
+ */
+router.get('/model-status', (req, res) => {
+    try {
+        const logPath = path.join(__dirname, '../kbji_data/kbji_feedback_dataset.json');
+        let logs = [];
+        if (fs.existsSync(logPath)) {
+            try {
+                logs = JSON.parse(fs.readFileSync(logPath, 'utf8'));
+                if (!Array.isArray(logs)) logs = [];
+            } catch (_) {}
+        }
+
+        const veryHigh = logs.filter(l => l.confidence_level === 'VERY_HIGH').length;
+        const high = logs.filter(l => l.confidence_level === 'HIGH').length;
+        const medium = logs.filter(l => l.confidence_level === 'MEDIUM' || l.confidence_level === 'MEDIUM_HIGH' || l.confidence_level === 'MEDIUM_LOW').length;
+        const low = logs.filter(l => l.confidence_level === 'LOW').length;
+
+        const totalEligible = veryHigh + high;
+        const progressPercent = Math.min(100, Number(((totalEligible / HIGH_CONFIDENCE_THRESHOLD) * 100).toFixed(1)));
+
+        res.json({
+            threshold: HIGH_CONFIDENCE_THRESHOLD,
+            total_eligible_samples: totalEligible,
+            progress_percent: progressPercent,
+            is_ready_or_active: totalEligible >= HIGH_CONFIDENCE_THRESHOLD || kbjiLearnedRules.length > 0,
+            active_learned_rules: kbjiLearnedRules.length,
+            model_version: kbjiLearnedModel?.version || 'baseline-mempawah',
+            last_trained_at: kbjiLearnedModel?.trained_at || null,
+            breakdown: {
+                very_high_copied: veryHigh,
+                high_last_read: high,
+                medium_dwell: medium,
+                low_browsing: low,
+                total_all_logs: logs.length
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * POST /api/kbji/trigger-improvement
+ * Pemicu manual / evaluasi model perbaikan
+ */
+router.post('/trigger-improvement', (req, res) => {
+    const { force } = req.body || {};
+    const result = checkAndImproveKbjiModel(Boolean(force));
+    res.json(result);
+});
+
+/**
+ * GET /api/kbji/feedback-dataset
+ * Mengambil dataset keyword dan hasil yang dipilih user untuk KBJI
+ */
+router.get('/feedback-dataset', (req, res) => {
+    try {
+        const logPath = path.join(__dirname, '../kbji_data/kbji_feedback_dataset.json');
+        if (fs.existsSync(logPath)) {
+            const logs = JSON.parse(fs.readFileSync(logPath, 'utf8'));
+            return res.json({ total: logs.length, dataset: logs });
+        }
+        res.json({ total: 0, dataset: [] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 

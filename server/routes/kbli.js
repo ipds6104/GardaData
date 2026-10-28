@@ -17,6 +17,11 @@ let namaUsahaTokens = [];
 let namaUsahaTokenMap = new Map();
 let kbli5TitlesMap = {};
 
+// Learned Model from 500+ High-Confidence Field Confirmations
+let kbliLearnedModel = null;
+let kbliLearnedRules = [];
+const HIGH_CONFIDENCE_THRESHOLD = 500;
+
 // Honorifics, Stopwords & Corporate Prefixes for SE2026 Business Name Normalization
 const OWNER_HONORIFICS = new Set([
     'pak', 'bu', 'ibu', 'bapak', 'bpk', 'bang', 'bg', 'kak', 'dek', 'om', 'tante',
@@ -112,6 +117,20 @@ function loadKbliData() {
                 console.log(`✔ [KBLI 2025] Loaded SE2026 Nama Usaha Model: ${namaUsahaPhrases.length} phrases, ${namaUsahaTokens.length} tokens.`);
             } catch (nmErr) {
                 console.warn('Note on loading SE2026 Nama Usaha model:', nmErr.message);
+            }
+        }
+
+        // Load Field-Learned Model (Aktif otomatis setelah 500+ Konfirmasi Lapangan)
+        const learnedPath = path.join(dataPath, 'kbli_learned_field_model.json');
+        if (fs.existsSync(learnedPath)) {
+            try {
+                kbliLearnedModel = JSON.parse(fs.readFileSync(learnedPath, 'utf8'));
+                if (Array.isArray(kbliLearnedModel?.rules)) {
+                    kbliLearnedRules = kbliLearnedModel.rules;
+                    console.log(`🎯 [KBLI 2025] Loaded Learned Model: ${kbliLearnedRules.length} aturan hasil 500+ konfirmasi lapangan.`);
+                }
+            } catch (lErr) {
+                console.warn('Note on loading KBLI learned model:', lErr.message);
             }
         }
 
@@ -876,9 +895,21 @@ router.get('/search', (req, res) => {
 
     let filtered = pool;
     let namaAnalysis = null;
+    let learnedMatch = null;
 
     if (q) {
         const queryLower = q.toLowerCase();
+
+        // 0. Cek apakah query cocok dengan model pembelajaran hasil 500+ konfirmasi lapangan
+        if (kbliLearnedRules.length > 0) {
+            for (const rule of kbliLearnedRules) {
+                if (rule.pattern === queryLower || queryLower.includes(rule.pattern) || rule.pattern.includes(queryLower)) {
+                    learnedMatch = rule;
+                    break;
+                }
+            }
+        }
+
         // Run SE2026 Nama Usaha Multi-Signal Recommender on query
         namaAnalysis = analyzeNamaUsahaQuery(q);
 
@@ -901,8 +932,11 @@ router.get('/search', (req, res) => {
             let score = 0;
             let matchedTokensCount = 0;
 
-            // 0. Direct boost from SE2026 Nama Usaha Multi-Signal Recommender
-            if (bestRec && bestRec.kbli && item.kode === bestRec.kbli) {
+            // 0. Super Boost dari Field Learned Model (Hasil 500+ Konfirmasi Lapangan Terverifikasi)
+            if (learnedMatch && learnedMatch.kbli && item.kode === learnedMatch.kbli) {
+                score += 55000;
+                matchedTokensCount = queryTokens.length;
+            } else if (bestRec && bestRec.kbli && item.kode === bestRec.kbli) {
                 score += 38000;
                 matchedTokensCount = queryTokens.length;
             } else if (kbli5Scores.has(item.kode)) {
@@ -1010,6 +1044,14 @@ router.get('/search', (req, res) => {
             if (aExactCode && !bExactCode) return -1;
             if (!aExactCode && bExactCode) return 1;
 
+            // Jika cocok dengan model pembelajaran lapangan (500+ konfirmasi), prioritaskan di posisi paling atas (#1)!
+            if (learnedMatch && learnedMatch.kbli) {
+                const aIsLearned = a.item.kode === learnedMatch.kbli;
+                const bIsLearned = b.item.kode === learnedMatch.kbli;
+                if (aIsLearned && !bIsLearned) return -1;
+                if (!aIsLearned && bIsLearned) return 1;
+            }
+
             // If one item is the #1 SE2026 Nama Usaha recommended 5-digit KBLI, put it at #1!
             if (bestRec && bestRec.kbli) {
                 const aIsBestRec = a.item.kode === bestRec.kbli;
@@ -1086,6 +1128,22 @@ router.get('/search', (req, res) => {
         };
     });
 
+    let activeRecommendedKbli = namaAnalysis?.bestRec || null;
+    if (learnedMatch) {
+        const targetItem = itemMap.get(learnedMatch.kbli);
+        activeRecommendedKbli = {
+            kategori: targetItem?.kategori || '',
+            ntbKategori: targetItem?.kategori || '',
+            kbli: learnedMatch.kbli,
+            judul: learnedMatch.judul || targetItem?.judul || '',
+            judulUsaha: learnedMatch.judul || targetItem?.judul || '',
+            top_kategori: 'Empiris Terverifikasi Lapangan (500+ Konfirmasi)',
+            confidence: learnedMatch.confidence,
+            reason: `Diverifikasi dari ${learnedMatch.sample_count} konfirmasi petugas lapangan`,
+            source: 'Hasil Pembelajaran Lapangan (500+ Konfirmasi)'
+        };
+    }
+
     res.json({
         total,
         total_kelompok: totalKelompok,
@@ -1093,7 +1151,7 @@ router.get('/search', (req, res) => {
         page,
         limit,
         totalPages,
-        recommended_kbli: namaAnalysis?.bestRec || null,
+        recommended_kbli: activeRecommendedKbli,
         items: resultItems
     });
 });
@@ -1170,17 +1228,37 @@ router.get('/detail/:kode', (req, res) => {
     });
 });
 
+function computeConfidence(isCopied, isLast, dwellSeconds) {
+    if (isCopied) return 'VERY_HIGH'; // Opsi 1: User menyalin kode, konfirmasi 99%
+    if (isLast && dwellSeconds >= 15) return 'HIGH'; // Opsi 2 & 3: Card terakhir dan dibaca mendalam
+    if (isLast && dwellSeconds >= 5) return 'MEDIUM_HIGH';
+    if (dwellSeconds >= 15) return 'MEDIUM';
+    if (isLast) return 'MEDIUM_LOW';
+    return 'LOW'; // Browsing/inspeksi sekilas (< 5 detik)
+}
+
 /**
  * POST /api/kbli/log-selection
- * Simpan setiap keyword pencarian beserta hasil KBLI yang dipilih user
- * secara otomatis dibelakang layar ke server agar data tidak hilang dan
- * dapat digunakan untuk pengembangan/training search engine masa depan.
+ * Telemetry logging with Options 1 (Copy Code), 2 (Last-in-Session), and 3 (Dwell Time)
  */
 router.post('/log-selection', (req, res) => {
     try {
-        const { keyword, selected_code, selected_title, selected_level, timestamp } = req.body || {};
+        const {
+            session_id,
+            keyword,
+            selected_code,
+            selected_title,
+            selected_level,
+            action, // 'view' | 'copy_code'
+            is_copied,
+            dwell_time_seconds,
+            is_last_in_session,
+            timestamp
+        } = req.body || {};
+
         const cleanKeyword = String(keyword || '').trim();
         const cleanCode = String(selected_code || '').trim();
+        const cleanSessionId = String(session_id || '').trim();
 
         if (!cleanKeyword || !cleanCode) {
             return res.status(400).json({ error: 'Keyword and selected_code are required' });
@@ -1202,20 +1280,64 @@ router.post('/log-selection', (req, res) => {
             }
         }
 
-        const newEntry = {
-            id: Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
-            keyword: cleanKeyword,
-            selected_code: cleanCode,
-            selected_title: selected_title || '',
-            selected_level: selected_level || '',
-            timestamp: timestamp || new Date().toISOString(),
-            source: 'user_selection'
-        };
+        // Cari apakah sesi dan kode ini sudah pernah dicatat sebelumnya
+        let existing = cleanSessionId ? logs.find(l => l.session_id === cleanSessionId && l.selected_code === cleanCode) : null;
 
-        logs.push(newEntry);
+        if (existing) {
+            // Update rekaman yang sudah ada
+            if (action === 'copy_code' || is_copied) {
+                existing.action = 'copy_code';
+                existing.is_copied = true;
+            }
+            if (dwell_time_seconds !== undefined && Number(dwell_time_seconds) > (existing.dwell_time_seconds || 0)) {
+                existing.dwell_time_seconds = Number(dwell_time_seconds);
+            }
+            if (is_last_in_session !== undefined) {
+                existing.is_last_in_session = Boolean(is_last_in_session);
+            }
+            existing.confidence_level = computeConfidence(existing.is_copied, existing.is_last_in_session, existing.dwell_time_seconds || 0);
+            existing.updated_at = new Date().toISOString();
+        } else {
+            // Jika ada card baru dalam sesi yang sama, tandai card-card sebelumnya sebagai bukan kartu terakhir
+            if (cleanSessionId) {
+                logs.forEach(l => {
+                    if (l.session_id === cleanSessionId) {
+                        l.is_last_in_session = false;
+                        l.confidence_level = computeConfidence(l.is_copied, false, l.dwell_time_seconds || 0);
+                    }
+                });
+            }
+
+            const copiedFlag = action === 'copy_code' || Boolean(is_copied);
+            const dwellVal = Math.max(0, Number(dwell_time_seconds) || 0);
+            const isLastVal = is_last_in_session !== undefined ? Boolean(is_last_in_session) : true;
+
+            const newEntry = {
+                id: Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
+                session_id: cleanSessionId || ('sess_' + Date.now().toString(36)),
+                keyword: cleanKeyword,
+                selected_code: cleanCode,
+                selected_title: selected_title || '',
+                selected_level: selected_level || '',
+                action: copiedFlag ? 'copy_code' : (action || 'view'),
+                is_copied: copiedFlag,
+                dwell_time_seconds: dwellVal,
+                is_last_in_session: isLastVal,
+                confidence_level: computeConfidence(copiedFlag, isLastVal, dwellVal),
+                timestamp: timestamp || new Date().toISOString(),
+                source: 'user_telemetry'
+            };
+
+            logs.push(newEntry);
+        }
 
         // Tulis kembali ke disk secara aman
         fs.writeFileSync(logPath, JSON.stringify(logs, null, 2), 'utf8');
+
+        // Otomatis evaluasi & perbaiki model jika sudah mencapai ambang batas 500 data VERY_HIGH dan HIGH
+        try {
+            checkAndImproveKbliModel();
+        } catch (_) {}
 
         return res.json({ 
             success: true, 
@@ -1226,6 +1348,210 @@ router.post('/log-selection', (req, res) => {
         console.error('Error logging search selection:', err.message);
         return res.status(500).json({ error: 'Failed to persist search feedback' });
     }
+});
+
+/**
+ * Evaluasi & perbaiki model klasifikasi KBLI otomatis saat mencapai ambang batas 500 data
+ */
+function checkAndImproveKbliModel(force = false) {
+    try {
+        const dataDir = path.join(__dirname, '../kbli_data');
+        const logPath = path.join(dataDir, 'search_feedback_dataset.json');
+        if (!fs.existsSync(logPath)) return { updated: false, reason: 'File feedback belum ada' };
+
+        const logs = JSON.parse(fs.readFileSync(logPath, 'utf8'));
+        if (!Array.isArray(logs)) return { updated: false, reason: 'Format logs tidak valid' };
+
+        // Ambil data yang berstatus VERY_HIGH dan HIGH (atau is_copied)
+        const eligibleLogs = logs.filter(l => l.confidence_level === 'VERY_HIGH' || l.confidence_level === 'HIGH' || l.is_copied);
+        const totalEligible = eligibleLogs.length;
+
+        const learnedPath = path.join(dataDir, 'kbli_learned_field_model.json');
+        let prevModel = null;
+        if (fs.existsSync(learnedPath)) {
+            try {
+                prevModel = JSON.parse(fs.readFileSync(learnedPath, 'utf8'));
+            } catch (_) {}
+        }
+
+        const lastTrainedCount = prevModel?.total_eligible_samples || 0;
+
+        // Cek apakah sudah memenuhi ambang batas 500 data
+        if (!force && totalEligible < HIGH_CONFIDENCE_THRESHOLD) {
+            return {
+                updated: false,
+                threshold: HIGH_CONFIDENCE_THRESHOLD,
+                total_eligible: totalEligible,
+                progress_percent: Number(((totalEligible / HIGH_CONFIDENCE_THRESHOLD) * 100).toFixed(1)),
+                message: `Ambang batas belum tercapai (${totalEligible}/${HIGH_CONFIDENCE_THRESHOLD})`
+            };
+        }
+
+        // Jika sudah pernah ditraining pada >= 500, tunggu setidaknya 25 data baru berikutnya sebelum batch retrain
+        if (!force && prevModel && (totalEligible - lastTrainedCount < 25)) {
+            return {
+                updated: false,
+                threshold: HIGH_CONFIDENCE_THRESHOLD,
+                total_eligible: totalEligible,
+                already_up_to_date: true,
+                message: 'Model sudah up-to-date dengan data feedback saat ini'
+            };
+        }
+
+        // --- PROSES PERBAIKAN MODEL DARI 500+ DATA KONSENSUS LAPANGAN ---
+        const keywordGroups = new Map();
+        for (const log of eligibleLogs) {
+            const rawKw = String(log.keyword || '').toLowerCase().trim();
+            const cleanKw = rawKw.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (cleanKw.length < 2) continue;
+
+            if (!keywordGroups.has(cleanKw)) {
+                keywordGroups.set(cleanKw, []);
+            }
+            keywordGroups.get(cleanKw).push(log);
+        }
+
+        const learnedRules = [];
+
+        for (const [kw, items] of keywordGroups.entries()) {
+            const codeCounts = new Map();
+            const codeDetails = new Map();
+
+            for (const item of items) {
+                const code = item.selected_code;
+                if (!code) continue;
+                // Beri bobot 2x untuk konfirmasi 'copy_code' / VERY_HIGH
+                const weight = (item.is_copied || item.confidence_level === 'VERY_HIGH') ? 2 : 1;
+                codeCounts.set(code, (codeCounts.get(code) || 0) + weight);
+                if (!codeDetails.has(code)) {
+                    codeDetails.set(code, {
+                        title: item.selected_title || '',
+                        level: item.selected_level || ''
+                    });
+                }
+            }
+
+            let winnerCode = null;
+            let maxWeight = 0;
+            let totalWeight = 0;
+
+            for (const [code, w] of codeCounts.entries()) {
+                totalWeight += w;
+                if (w > maxWeight) {
+                    maxWeight = w;
+                    winnerCode = code;
+                }
+            }
+
+            const consensusRatio = totalWeight > 0 ? maxWeight / totalWeight : 0;
+            // Syarat masuk model perbaikan:
+            // 1. Minimal total bobot 2
+            // 2. Konsensus mayoritas minimal 60%
+            if (winnerCode && maxWeight >= 2 && consensusRatio >= 0.6) {
+                const details = codeDetails.get(winnerCode) || {};
+                learnedRules.push({
+                    pattern: kw,
+                    kbli: winnerCode,
+                    judul: details.title,
+                    level: details.level,
+                    sample_count: items.length,
+                    confidence: Number((consensusRatio * (items.length >= 3 ? 0.99 : 0.93)).toFixed(3)),
+                    source: 'Hasil Pembelajaran 500+ Konfirmasi Lapangan'
+                });
+            }
+        }
+
+        learnedRules.sort((a, b) => b.pattern.length - a.pattern.length);
+
+        const newModel = {
+            version: '2.0.0-learned',
+            trained_at: new Date().toISOString(),
+            threshold: HIGH_CONFIDENCE_THRESHOLD,
+            total_eligible_samples: totalEligible,
+            total_rules: learnedRules.length,
+            rules: learnedRules
+        };
+
+        fs.writeFileSync(learnedPath, JSON.stringify(newModel, null, 2), 'utf8');
+
+        // Sinkronkan ke folder backend jika ada
+        const backendPath = path.join(__dirname, '../../backend/kbli_data');
+        if (fs.existsSync(backendPath)) {
+            try {
+                fs.writeFileSync(path.join(backendPath, 'kbli_learned_field_model.json'), JSON.stringify(newModel, null, 2), 'utf8');
+            } catch (_) {}
+        }
+
+        kbliLearnedModel = newModel;
+        kbliLearnedRules = learnedRules;
+
+        console.log(`🚀 [KBLI 2025] Model Berhasil Diperbaiki! ${learnedRules.length} aturan baru diaktifkan dari ${totalEligible} data konfirmasi lapangan.`);
+
+        return {
+            updated: true,
+            total_eligible: totalEligible,
+            rules_generated: learnedRules.length,
+            model_version: newModel.version,
+            trained_at: newModel.trained_at
+        };
+    } catch (err) {
+        console.error('Error improving KBLI model:', err.message);
+        return { updated: false, error: err.message };
+    }
+}
+
+/**
+ * GET /api/kbli/model-status
+ * Status ambang batas 500 data dan model perbaikan
+ */
+router.get('/model-status', (req, res) => {
+    try {
+        const logPath = path.join(__dirname, '../kbli_data/search_feedback_dataset.json');
+        let logs = [];
+        if (fs.existsSync(logPath)) {
+            try {
+                logs = JSON.parse(fs.readFileSync(logPath, 'utf8'));
+                if (!Array.isArray(logs)) logs = [];
+            } catch (_) {}
+        }
+
+        const veryHigh = logs.filter(l => l.confidence_level === 'VERY_HIGH').length;
+        const high = logs.filter(l => l.confidence_level === 'HIGH').length;
+        const medium = logs.filter(l => l.confidence_level === 'MEDIUM' || l.confidence_level === 'MEDIUM_HIGH' || l.confidence_level === 'MEDIUM_LOW').length;
+        const low = logs.filter(l => l.confidence_level === 'LOW').length;
+
+        const totalEligible = veryHigh + high;
+        const progressPercent = Math.min(100, Number(((totalEligible / HIGH_CONFIDENCE_THRESHOLD) * 100).toFixed(1)));
+
+        res.json({
+            threshold: HIGH_CONFIDENCE_THRESHOLD,
+            total_eligible_samples: totalEligible,
+            progress_percent: progressPercent,
+            is_ready_or_active: totalEligible >= HIGH_CONFIDENCE_THRESHOLD || kbliLearnedRules.length > 0,
+            active_learned_rules: kbliLearnedRules.length,
+            model_version: kbliLearnedModel?.version || 'baseline-se2026',
+            last_trained_at: kbliLearnedModel?.trained_at || null,
+            breakdown: {
+                very_high_copied: veryHigh,
+                high_last_read: high,
+                medium_dwell: medium,
+                low_browsing: low,
+                total_all_logs: logs.length
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * POST /api/kbli/trigger-improvement
+ * Pemicu manual / evaluasi model perbaikan
+ */
+router.post('/trigger-improvement', (req, res) => {
+    const { force } = req.body || {};
+    const result = checkAndImproveKbliModel(Boolean(force));
+    res.json(result);
 });
 
 /**

@@ -19,34 +19,56 @@ export default defineConfig(({mode}) => {
           try {
             const express = require('express');
 
-            server.middlewares.use((req: any, res: any, next: any) => {
-              if (req.url && (req.url.startsWith('/api/kbli') || req.url.startsWith('/api/kbji') || req.url.startsWith('/api/analytics') || req.url.startsWith('/api/mitra'))) {
+            // Initialize Express app & routers once in-memory for instant sub-millisecond responses
+            const apiApp = express();
+            apiApp.use((_req: any, res: any, nextFn: any) => {
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+              res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, x-api-key, X-API-Token, x-api-token');
+              if (_req.method === 'OPTIONS') return res.sendStatus(204);
+              nextFn();
+            });
+            apiApp.use(express.json());
+
+            let kbliRouter = require('./server/routes/kbli');
+            let kbjiRouter = require('./server/routes/kbji');
+            let analyticsRouter = require('./server/routes/analytics');
+            let mitraRouter = require('./server/routes/mitra');
+
+            apiApp.use('/api/kbli', (req: any, res: any, next: any) => kbliRouter(req, res, next));
+            apiApp.use('/api/kbji', (req: any, res: any, next: any) => kbjiRouter(req, res, next));
+            apiApp.use('/api/analytics', (req: any, res: any, next: any) => analyticsRouter(req, res, next));
+            apiApp.use('/api/mitra', (req: any, res: any, next: any) => mitraRouter(req, res, next));
+
+            // Reload ONLY when a developer actually edits a file in server/, NOT on every search request!
+            server.watcher.on('change', (file: string) => {
+              const normalized = file.replace(/\\/g, '/');
+              if (normalized.includes('/server/') && normalized.endsWith('.js')) {
                 try {
                   delete require.cache[require.resolve('./server/routes/analytics')];
                   delete require.cache[require.resolve('./server/routes/kbli')];
                   delete require.cache[require.resolve('./server/routes/kbji')];
                   delete require.cache[require.resolve('./server/routes/mitra')];
                   delete require.cache[require.resolve('./server/middleware/apiKeyAuth')];
-                } catch {}
 
-                const apiApp = express();
-                apiApp.use((_req: any, res: any, nextFn: any) => {
-                  res.setHeader('Access-Control-Allow-Origin', '*');
-                  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-                  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, x-api-key, X-API-Token, x-api-token');
-                  if (_req.method === 'OPTIONS') return res.sendStatus(204);
-                  nextFn();
-                });
-                apiApp.use(express.json());
-                apiApp.use('/api/kbli', require('./server/routes/kbli'));
-                apiApp.use('/api/kbji', require('./server/routes/kbji'));
-                apiApp.use('/api/analytics', require('./server/routes/analytics'));
-                apiApp.use('/api/mitra', require('./server/routes/mitra'));
+                  kbliRouter = require('./server/routes/kbli');
+                  kbjiRouter = require('./server/routes/kbji');
+                  analyticsRouter = require('./server/routes/analytics');
+                  mitraRouter = require('./server/routes/mitra');
+                  console.log('🔄 [Vite Dev] Server routes reloaded on code change:', path.basename(file));
+                } catch (e: any) {
+                  console.warn('Failed to hot-reload server route:', e.message);
+                }
+              }
+            });
+
+            server.middlewares.use((req: any, res: any, next: any) => {
+              if (req.url && (req.url.startsWith('/api/kbli') || req.url.startsWith('/api/kbji') || req.url.startsWith('/api/analytics') || req.url.startsWith('/api/mitra'))) {
                 return apiApp(req, res, next);
               }
               next();
             });
-            console.log('✔ [Vite Dev] KBLI 2025, Analytics & Mitra API middleware mounted at /api/kbli, /api/analytics, and /api/mitra');
+            console.log('✔ [Vite Dev] High-performance in-memory API middleware mounted at /api/kbli, /api/kbji, /api/analytics, /api/mitra');
           } catch (e: any) {
             console.warn('Note on dev middleware:', e.message);
           }

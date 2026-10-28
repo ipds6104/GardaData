@@ -431,8 +431,139 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
     }
   };
 
+  // Telemetry Tracking State (Opsi 1: Copy Code, Opsi 2: Last-in-Session, Opsi 3: Dwell Time)
+  const activeSessionIdRef = useRef<string>('');
+  const activeViewTrackingRef = useRef<{
+    sessionId: string;
+    keyword: string;
+    code: string;
+    title: string;
+    level?: string;
+    openedAt: number;
+  } | null>(null);
+
+  // Buat session ID baru untuk setiap query pencarian baru
+  useEffect(() => {
+    if (debouncedQuery.trim()) {
+      activeSessionIdRef.current = 'kbji_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+    }
+  }, [debouncedQuery]);
+
+  // Simpan & perbarui status pilihan pengguna ke server
+  const sendSearchTelemetry = (payload: {
+    keyword: string;
+    code: string;
+    title?: string;
+    level?: string;
+    sessionId?: string;
+    action?: 'view' | 'copy_code';
+    isCopied?: boolean;
+    dwellTimeSeconds?: number;
+    isLastInSession?: boolean;
+  }) => {
+    const trimmedKw = (payload.keyword || '').trim();
+    const trimmedCode = (payload.code || '').trim();
+    if (!trimmedKw || !trimmedCode) return;
+
+    try {
+      fetch('/api/kbji/log-selection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: payload.sessionId || activeSessionIdRef.current || ('kbji_' + Date.now().toString(36)),
+          keyword: trimmedKw,
+          selected_code: trimmedCode,
+          selected_title: payload.title || '',
+          selected_level: payload.level || '',
+          action: payload.action || 'view',
+          is_copied: payload.isCopied || payload.action === 'copy_code',
+          dwell_time_seconds: payload.dwellTimeSeconds || 0,
+          is_last_in_session: payload.isLastInSession !== undefined ? payload.isLastInSession : true,
+          timestamp: new Date().toISOString()
+        })
+      }).catch(() => {});
+    } catch (_) {}
+  };
+
+  // Simpan durasi membaca kartu yang sedang aktif sebelum berpindah atau ditutup
+  const flushCurrentTracking = (isLast: boolean = true) => {
+    if (activeViewTrackingRef.current) {
+      const curr = activeViewTrackingRef.current;
+      const dwell = Math.max(1, Math.round((Date.now() - curr.openedAt) / 1000));
+      sendSearchTelemetry({
+        keyword: curr.keyword,
+        code: curr.code,
+        title: curr.title,
+        level: curr.level,
+        sessionId: curr.sessionId,
+        action: 'view',
+        dwellTimeSeconds: dwell,
+        isLastInSession: isLast
+      });
+      activeViewTrackingRef.current = null;
+    }
+  };
+
+  // Bersihkan dan rekam dwell time saat halaman ditutup / berpindah
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      flushCurrentTracking(true);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      flushCurrentTracking(true);
+    };
+  }, []);
+
   // Drill-Down to Detail Node (VIEW 2)
-  const handleSelectCode = async (kode: string) => {
+  const handleSelectCode = async (kode: string, title?: string, level?: string) => {
+    const activeKw = debouncedQuery || searchQuery;
+
+    // Opsi 2 & 3: Jika ada kartu yang sedang dibaca sebelumnya dalam sesi ini, tandai bukan kartu terakhir dan kirim dwell time-nya
+    if (activeViewTrackingRef.current) {
+      const prev = activeViewTrackingRef.current;
+      const dwell = Math.max(1, Math.round((Date.now() - prev.openedAt) / 1000));
+      sendSearchTelemetry({
+        keyword: prev.keyword,
+        code: prev.code,
+        title: prev.title,
+        level: prev.level,
+        sessionId: prev.sessionId,
+        action: 'view',
+        dwellTimeSeconds: dwell,
+        isLastInSession: false
+      });
+      activeViewTrackingRef.current = null;
+    }
+
+    if (activeKw) {
+      if (!activeSessionIdRef.current) {
+        activeSessionIdRef.current = 'kbji_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+      }
+      const sessId = activeSessionIdRef.current;
+      activeViewTrackingRef.current = {
+        sessionId: sessId,
+        keyword: activeKw,
+        code: kode,
+        title: title || '',
+        level: level || '',
+        openedAt: Date.now()
+      };
+
+      // Catat awal dibuka sebagai kandidat kartu terakhir
+      sendSearchTelemetry({
+        keyword: activeKw,
+        code: kode,
+        title,
+        level,
+        sessionId: sessId,
+        action: 'view',
+        dwellTimeSeconds: 0,
+        isLastInSession: true
+      });
+    }
+
     setLoadingNode(true);
     try {
       const res = await fetch(`/api/kbji/detail/${encodeURIComponent(kode)}`);
@@ -453,6 +584,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
   };
 
   const handleBackToAllCategories = () => {
+    flushCurrentTracking(true);
     setCurrentNode(null);
     setSearchQuery('');
     setDebouncedQuery('');
@@ -467,7 +599,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
     const parentIndex = currentNode.breadcrumbs.length - 2;
     const parentNode = currentNode.breadcrumbs[parentIndex];
     if (parentNode) {
-      handleSelectCode(parentNode.kode);
+      handleSelectCode(parentNode.kode, parentNode.judul);
     } else {
       handleBackToAllCategories();
     }
@@ -481,6 +613,26 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
     setTimeout(() => {
       setCopiedCode(null);
     }, 2000);
+
+    // Opsi 1: Aksi Salin Kode -> Konfirmasi pilihan paling valid
+    const activeKw = activeViewTrackingRef.current?.keyword || debouncedQuery || searchQuery;
+    if (activeKw) {
+      const dwell = activeViewTrackingRef.current && activeViewTrackingRef.current.code === code
+        ? Math.max(1, Math.round((Date.now() - activeViewTrackingRef.current.openedAt) / 1000))
+        : 0;
+
+      sendSearchTelemetry({
+        keyword: activeKw,
+        code: code,
+        title: currentNode?.judul || '',
+        level: currentNode?.level || 'jabatan',
+        sessionId: activeSessionIdRef.current || activeViewTrackingRef.current?.sessionId,
+        action: 'copy_code',
+        isCopied: true,
+        dwellTimeSeconds: dwell,
+        isLastInSession: true
+      });
+    }
   };
 
   // Keyboard shortcut Ctrl+K
@@ -797,7 +949,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
 
                 <button
                   type="button"
-                  onClick={() => handleSelectCode(bestRec.kbji)}
+                  onClick={() => handleSelectCode(bestRec.kbji, bestRec.judul, 'rekomendasi_mempawah')}
                   className="px-5 py-2.5 rounded-full bg-[#181829] text-white text-xs font-black hover:bg-black transition-all shadow-xs shrink-0 self-start md:self-auto cursor-pointer"
                 >
                   Buka Rincian Tugas [{bestRec.kbji}]
@@ -860,7 +1012,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                     layout
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    onClick={() => handleSelectCode(item.kode)}
+                    onClick={() => handleSelectCode(item.kode, item.judul, item.level)}
                     className="p-5 sm:p-6 bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 transition-all cursor-pointer group space-y-3"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1135,7 +1287,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                 {currentNode.children.map(child => (
                   <div
                     key={child.kode}
-                    onClick={() => handleSelectCode(child.kode)}
+                    onClick={() => handleSelectCode(child.kode, child.judul, child.level)}
                     className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3 group"
                   >
                     <div className="space-y-1 min-w-0">

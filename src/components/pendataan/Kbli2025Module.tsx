@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   TrendingUp,
   Flame,
@@ -566,10 +566,38 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
     };
   }, [debouncedQuery]);
 
-  // Simpan keyword dan kode yang dipilih user ke server secara otomatis dibelakang layar
-  const logSearchSelection = (kw: string, code: string, title?: string, level?: string) => {
-    const trimmedKw = (kw || '').trim();
-    const trimmedCode = (code || '').trim();
+  // Telemetry Tracking State (Opsi 1: Copy Code, Opsi 2: Last-in-Session, Opsi 3: Dwell Time)
+  const activeSessionIdRef = useRef<string>('');
+  const activeViewTrackingRef = useRef<{
+    sessionId: string;
+    keyword: string;
+    code: string;
+    title: string;
+    level?: string;
+    openedAt: number;
+  } | null>(null);
+
+  // Buat session ID baru untuk setiap query pencarian baru
+  useEffect(() => {
+    if (debouncedQuery.trim()) {
+      activeSessionIdRef.current = 'kbli_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+    }
+  }, [debouncedQuery]);
+
+  // Simpan & perbarui status pilihan pengguna ke server
+  const sendSearchTelemetry = (payload: {
+    keyword: string;
+    code: string;
+    title?: string;
+    level?: string;
+    sessionId?: string;
+    action?: 'view' | 'copy_code';
+    isCopied?: boolean;
+    dwellTimeSeconds?: number;
+    isLastInSession?: boolean;
+  }) => {
+    const trimmedKw = (payload.keyword || '').trim();
+    const trimmedCode = (payload.code || '').trim();
     if (!trimmedKw || !trimmedCode) return;
 
     try {
@@ -577,21 +605,97 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          session_id: payload.sessionId || activeSessionIdRef.current || ('kbli_' + Date.now().toString(36)),
           keyword: trimmedKw,
           selected_code: trimmedCode,
-          selected_title: title || '',
-          selected_level: level || '',
+          selected_title: payload.title || '',
+          selected_level: payload.level || '',
+          action: payload.action || 'view',
+          is_copied: payload.isCopied || payload.action === 'copy_code',
+          dwell_time_seconds: payload.dwellTimeSeconds || 0,
+          is_last_in_session: payload.isLastInSession !== undefined ? payload.isLastInSession : true,
           timestamp: new Date().toISOString()
         })
       }).catch(() => {});
     } catch (_) {}
   };
 
+  // Simpan durasi membaca kartu yang sedang aktif sebelum berpindah atau ditutup
+  const flushCurrentTracking = (isLast: boolean = true) => {
+    if (activeViewTrackingRef.current) {
+      const curr = activeViewTrackingRef.current;
+      const dwell = Math.max(1, Math.round((Date.now() - curr.openedAt) / 1000));
+      sendSearchTelemetry({
+        keyword: curr.keyword,
+        code: curr.code,
+        title: curr.title,
+        level: curr.level,
+        sessionId: curr.sessionId,
+        action: 'view',
+        dwellTimeSeconds: dwell,
+        isLastInSession: isLast
+      });
+      activeViewTrackingRef.current = null;
+    }
+  };
+
+  // Bersihkan dan rekam dwell time saat halaman ditutup / berpindah
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      flushCurrentTracking(true);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      flushCurrentTracking(true);
+    };
+  }, []);
+
   const handleSelectCode = async (kode: string, title?: string, level?: string) => {
-    // Jika ada keyword pencarian saat user memilih kode KBLI, simpan ke database server
     const activeKw = debouncedQuery || searchQuery;
+
+    // Opsi 2 & 3: Jika ada kartu yang sedang dibaca sebelumnya dalam sesi ini, tandai bukan kartu terakhir dan kirim dwell time-nya
+    if (activeViewTrackingRef.current) {
+      const prev = activeViewTrackingRef.current;
+      const dwell = Math.max(1, Math.round((Date.now() - prev.openedAt) / 1000));
+      sendSearchTelemetry({
+        keyword: prev.keyword,
+        code: prev.code,
+        title: prev.title,
+        level: prev.level,
+        sessionId: prev.sessionId,
+        action: 'view',
+        dwellTimeSeconds: dwell,
+        isLastInSession: false
+      });
+      activeViewTrackingRef.current = null;
+    }
+
     if (activeKw) {
-      logSearchSelection(activeKw, kode, title, level);
+      if (!activeSessionIdRef.current) {
+        activeSessionIdRef.current = 'kbli_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+      }
+      const sessId = activeSessionIdRef.current;
+      activeViewTrackingRef.current = {
+        sessionId: sessId,
+        keyword: activeKw,
+        code: kode,
+        title: title || '',
+        level: level || '',
+        openedAt: Date.now()
+      };
+
+      // Catat awal dibuka sebagai kandidat kartu terakhir
+      sendSearchTelemetry({
+        keyword: activeKw,
+        code: kode,
+        title,
+        level,
+        sessionId: sessId,
+        action: 'view',
+        dwellTimeSeconds: 0,
+        isLastInSession: true
+      });
     }
 
     setActiveCode(kode);
@@ -633,6 +737,7 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
   };
 
   const handleBackToAllCategories = () => {
+    flushCurrentTracking(true);
     setCurrentNode(null);
     setIsExpandedDefinition(false);
     setSearchQuery('');
@@ -649,7 +754,7 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
     const parentIndex = currentNode.breadcrumb.length - 2;
     const parentNode = currentNode.breadcrumb[parentIndex];
     if (parentNode) {
-      handleSelectCode(parentNode.kode);
+      handleSelectCode(parentNode.kode, parentNode.judul);
     } else {
       handleBackToAllCategories();
     }
@@ -659,6 +764,26 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
     navigator.clipboard.writeText(text);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
+
+    // Opsi 1: Aksi Salin Kode -> Konfirmasi pilihan paling valid
+    const activeKw = activeViewTrackingRef.current?.keyword || debouncedQuery || searchQuery;
+    if (activeKw) {
+      const dwell = activeViewTrackingRef.current && activeViewTrackingRef.current.code === code
+        ? Math.max(1, Math.round((Date.now() - activeViewTrackingRef.current.openedAt) / 1000))
+        : 0;
+
+      sendSearchTelemetry({
+        keyword: activeKw,
+        code: code,
+        title: currentNode?.judul || activeRecommendation?.judulUsaha || '',
+        level: currentNode?.level || '5',
+        sessionId: activeSessionIdRef.current || activeViewTrackingRef.current?.sessionId,
+        action: 'copy_code',
+        isCopied: true,
+        dwellTimeSeconds: dwell,
+        isLastInSession: true
+      });
+    }
   };
 
   const parsedDefinition = useMemo(() => {
@@ -1364,7 +1489,7 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                           key={child.kode}
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
-                          onClick={() => handleSelectCode(child.kode)}
+                          onClick={() => handleSelectCode(child.kode, child.judul, child.level)}
                           className="bg-white rounded-2xl border border-slate-200/80 p-4 md:p-5 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group"
                         >
                           <div className="flex items-start gap-4 flex-1 min-w-0">
