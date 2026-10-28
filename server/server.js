@@ -70,6 +70,7 @@ const imputationRoutes = require('./routes/imputations');
 const phenomenaRoutes = require('./routes/phenomena');
 const laporanRoutes = require('./routes/laporan');
 const kbliRoutes = require('./routes/kbli');
+const kbjiRoutes = require('./routes/kbji');
 const analyticsRoutes = require('./routes/analytics');
 const mitraRoutes = require('./routes/mitra');
 
@@ -80,6 +81,7 @@ app.use('/api/imputations', imputationRoutes);
 app.use('/api/phenomena', phenomenaRoutes);
 app.use('/api/laporan', laporanRoutes);
 app.use('/api/kbli', kbliRoutes);
+app.use('/api/kbji', kbjiRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/mitra', mitraRoutes);
 

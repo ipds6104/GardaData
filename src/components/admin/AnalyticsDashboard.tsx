@@ -3,7 +3,7 @@ import {
   BarChart3, Users, Eye, Clock, Calendar, ArrowLeft, RefreshCw, 
   TrendingUp, Award, Activity, Shield, ShieldCheck, Sparkles, Filter, 
   Monitor, Smartphone, Tablet, CheckCircle2, AlertCircle, Info,
-  MapPin, Globe, Wifi, RotateCcw, Trash2, PieChart, ChevronLeft, ChevronRight,
+  MapPin, Globe, Wifi, PieChart, ChevronLeft, ChevronRight,
   ChevronDown, X, UserCheck, Briefcase, FileSpreadsheet, User
 } from 'lucide-react';
 import { useAuth, isAhmadAuliaUser } from '../../lib/auth';
@@ -177,12 +177,14 @@ const CustomDateRangePicker: React.FC<CustomDateRangePickerProps> = ({
     setIsOpen(false);
   };
 
-  const handleQuickPreset = (preset: 'today' | '7days' | '14days' | '30days' | 'month') => {
+  const handleQuickPreset = (preset: 'today' | 'yesterday' | '7days' | '14days' | '30days' | 'month') => {
     const end = getTodayString();
     let start = end;
 
     if (preset === 'today') {
       start = end;
+    } else if (preset === 'yesterday') {
+      start = getDaysAgoString(1);
     } else if (preset === '7days') {
       start = getDaysAgoString(6);
     } else if (preset === '14days') {
@@ -220,6 +222,16 @@ const CustomDateRangePicker: React.FC<CustomDateRangePickerProps> = ({
         </button>
 
         <div className="inline-flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-1 text-[11px] font-bold">
+          <button
+            onClick={() => handleQuickPreset('yesterday')}
+            className={`px-2.5 py-1 rounded-xl transition-colors cursor-pointer ${
+              activePreset === 'yesterday'
+                ? 'bg-primary-600 text-white shadow-2xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            Mulai Kemarin
+          </button>
           <button
             onClick={() => handleQuickPreset('today')}
             className={`px-2.5 py-1 rounded-xl transition-colors cursor-pointer ${
@@ -893,20 +905,15 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
   const [searchFeature, setSearchFeature] = useState('');
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
-  // Date Range Filtering (Default: 7 Hari Terakhir)
-  const [startDate, setStartDate] = useState<string>(() => getDaysAgoString(6));
+  // Date Range Filtering (Default: Mulai Kemarin s.d. Hari Ini - Murni data pengumpulan fitur riil)
+  const [startDate, setStartDate] = useState<string>(() => getDaysAgoString(1));
   const [endDate, setEndDate] = useState<string>(() => getTodayString());
-  const [activePreset, setActivePreset] = useState<string>('7days');
+  const [activePreset, setActivePreset] = useState<string>('yesterday');
 
   // Selected date, hour, & feature for interactive drill-downs
   const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null);
   const [selectedHour, setSelectedHour] = useState<number | null>(null);
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null);
-
-  // Reset Modal State
-  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
-  const [resetSuccessNotice, setResetSuccessNotice] = useState<string | null>(null);
 
   const isAuthorized = isAhmadAuliaUser(user);
 
@@ -937,25 +944,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
     setEndDate(newEnd);
     setActivePreset(preset);
     fetchData(newStart, newEnd);
-  };
-
-  const handleExecuteReset = async () => {
-    setIsResetting(true);
-    try {
-      const ok = await resetAnalyticsData(user);
-      if (ok) {
-        setResetSuccessNotice('Data analitik berhasil di-reset murni menjadi 0.');
-        setIsResetModalOpen(false);
-        await fetchData(startDate, endDate);
-        setTimeout(() => setResetSuccessNotice(null), 5000);
-      } else {
-        alert('Gagal mereset data di server.');
-      }
-    } catch (e: any) {
-      alert('Error saat reset data: ' + e.message);
-    } finally {
-      setIsResetting(false);
-    }
   };
 
   if (!isAuthorized) {
@@ -1076,22 +1064,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in max-w-7xl mx-auto px-2 sm:px-4">
-      {/* Notifikasi Reset Sukses */}
-      {resetSuccessNotice && (
-        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center justify-between gap-3 text-emerald-800 dark:text-emerald-200 text-xs font-bold animate-fade-in shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span>{resetSuccessNotice}</span>
-          </div>
-          <button 
-            onClick={() => setResetSuccessNotice(null)}
-            className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 font-black px-2 cursor-pointer"
-          >
-            &times;
-          </button>
-        </div>
-      )}
-
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
         <div className="flex items-start gap-4">
@@ -1133,15 +1105,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
               {lastRefreshed.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} WIB
             </span>
           </div>
-
-          <button
-            onClick={() => setIsResetModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold rounded-2xl transition-all cursor-pointer"
-            title="Reset data ke 0 murni"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-            <span className="hidden sm:inline">Reset Data (0)</span>
-          </button>
 
           <button
             onClick={() => fetchData(startDate, endDate)}
@@ -2574,55 +2537,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
           )}
         </>
       ) : null}
-
-      {/* MODAL DIALOG RESET DATA */}
-      {isResetModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-              <Trash2 className="w-6 h-6" />
-            </div>
-
-            <div>
-              <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">
-                Reset Seluruh Data Analitik ke Nol Murni?
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                Tindakan ini akan mengosongkan seluruh statistik kunjungan, riwayat per jam, distribusi hari, dan log aktivitas real-time. Data akan murni dihitung ulang dari <strong>0 interaksi</strong> mulai saat ini.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsResetModalOpen(false)}
-                disabled={isResetting}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleExecuteReset}
-                disabled={isResetting}
-                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {isResetting ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Mereset...</span>
-                  </>
-                ) : (
-                  <>
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Ya, Reset ke Nol Murni</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

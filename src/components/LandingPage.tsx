@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, BookOpenCheck, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity, MapPin, ScanLine, Award, Calculator, BarChart3 } from 'lucide-react';
+import { BookOpen, BookOpenCheck, Briefcase, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity, MapPin, ScanLine, Award, Calculator, BarChart3 } from 'lucide-react';
 import { useAuth, isAhmadAuliaUser } from '../lib/auth';
 
 interface FeatureCardProps {
@@ -223,14 +223,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               onClick={() => onNavigate('laporan-pendataan')}
             />
             {(user?.role === 'admin' || user?.role === 'petugas' || user?.role === 'petugas_pengolahan') && (
-              <FeatureCard
-                title="KBLI 2025"
-                description="Eksplorasi hierarki kategori, konsep, dan definisi klasifikasi lapangan usaha standar BPS."
-                icon={BookOpenCheck}
-                iconColor="text-blue-600 dark:text-blue-400"
-                bgColor="bg-blue-50"
-                onClick={() => onNavigate('kbli-2025')}
-              />
+              <>
+                <FeatureCard
+                  title="KBLI 2025"
+                  description="Eksplorasi hierarki kategori, konsep, dan definisi klasifikasi lapangan usaha standar BPS."
+                  icon={BookOpenCheck}
+                  iconColor="text-blue-600 dark:text-blue-400"
+                  bgColor="bg-blue-50"
+                  onClick={() => onNavigate('kbli-2025')}
+                />
+                <FeatureCard
+                  title="KBJI 2014"
+                  description="Navigasi cerdas konsep, definisi, dan kode jabatan dengan rekomendasi pekerjaan lapangan Mempawah."
+                  icon={Briefcase}
+                  iconColor="text-emerald-600 dark:text-emerald-400"
+                  bgColor="bg-emerald-50"
+                  onClick={() => onNavigate('kbji-2014')}
+                />
+              </>
             )}
 
             <FeatureCard

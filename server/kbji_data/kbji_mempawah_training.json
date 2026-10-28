@@ -1,0 +1,2169 @@
+{
+  "metadata": {
+    "source": "Klasifikasi Lapangan Mempawah & Registrasi Petugas BPS Kabupaten Mempawah",
+    "total_rules": 142,
+    "total_kbji_mapped": 25,
+    "created_at": "2026-10-28T08:48:03.639Z"
+  },
+  "kbji_summary": {
+    "1112": {
+      "code": "1112",
+      "title": "Pejabat Tinggi Pemerintah / Pengambil Kebijakan",
+      "category": "1",
+      "count": 530,
+      "primary_job": "APARATUR SIPIL NEGARA / PNS PEMDA",
+      "bidang": "ADMINISTRASI PEMERINTAHAN"
+    },
+    "2211": {
+      "code": "2211",
+      "title": "Dokter Umum",
+      "category": "2",
+      "count": 120,
+      "primary_job": "DOKTER UMUM",
+      "bidang": "PELAYANAN MEDIS"
+    },
+    "2221": {
+      "code": "2221",
+      "title": "Profesional Perawat",
+      "category": "2",
+      "count": 340,
+      "primary_job": "PERAWAT KESEHATAN",
+      "bidang": "RUMAH SAKIT / PUSKESMAS"
+    },
+    "2222": {
+      "code": "2222",
+      "title": "Profesional Bidan",
+      "category": "2",
+      "count": 290,
+      "primary_job": "BIDAN",
+      "bidang": "PRAKTIK MANDIRI / PUSKESMAS"
+    },
+    "2330": {
+      "code": "2330",
+      "title": "Guru Pendidikan Menengah",
+      "category": "2",
+      "count": 420,
+      "primary_job": "GURU SMP / SMA",
+      "bidang": "JASA PENDIDIKAN MENENGAH"
+    },
+    "2341": {
+      "code": "2341",
+      "title": "Guru Pendidikan Dasar",
+      "category": "2",
+      "count": 512,
+      "primary_job": "GURU SD",
+      "bidang": "JASA PENDIDIKAN DASAR"
+    },
+    "4110": {
+      "code": "4110",
+      "title": "Pegawai Administrasi Umum",
+      "category": "4",
+      "count": 670,
+      "primary_job": "STAF ADMINISTRASI / TATA USAHA",
+      "bidang": "PERKANTORAN / PEMERINTAHAN"
+    },
+    "4211": {
+      "code": "4211",
+      "title": "Teller Bank dan Petugas Terkait",
+      "category": "4",
+      "count": 240,
+      "primary_job": "KARYAWAN BUMN / BUMD / BANK",
+      "bidang": "JASA KEUANGAN"
+    },
+    "5131": {
+      "code": "5131",
+      "title": "Pramusaji",
+      "category": "5",
+      "count": 48,
+      "primary_job": "KARYAWAN KAFE",
+      "bidang": "PENYEDIA MAKANAN DAN MINUMAN"
+    },
+    "5221": {
+      "code": "5221",
+      "title": "Pedagang Eceran Toko",
+      "category": "5",
+      "count": 1850,
+      "primary_job": "PEDAGANG KELONTONG",
+      "bidang": "PERDAGANGAN ECERAN"
+    },
+    "5230": {
+      "code": "5230",
+      "title": "Kasir dan Petugas Tiket",
+      "category": "5",
+      "count": 310,
+      "primary_job": "KASIR",
+      "bidang": "TOKO / MINIMARKET"
+    },
+    "5414": {
+      "code": "5414",
+      "title": "Penjaga Keamanan (Satpam)",
+      "category": "5",
+      "count": 280,
+      "primary_job": "SATPAM / PETUGAS KEAMANAN",
+      "bidang": "JASA KEAMANAN SWASTA"
+    },
+    "6111": {
+      "code": "6111",
+      "title": "Petani Tanaman Pangan",
+      "category": "6",
+      "count": 1420,
+      "primary_job": "PETANI PADI",
+      "bidang": "TANAMAN PANGAN"
+    },
+    "6112": {
+      "code": "6112",
+      "title": "Pekerja Perkebunan Kelapa Sawit / Pohon Buah",
+      "category": "6",
+      "count": 2310,
+      "primary_job": "PETANI KELAPA SAWIT",
+      "bidang": "PERKEBUNAN KELAPA SAWIT"
+    },
+    "6121": {
+      "code": "6121",
+      "title": "Peternak Sapi dan Ternak Perah Lainnya",
+      "category": "6",
+      "count": 380,
+      "primary_job": "PETERNAK AYAM / SAPI / KAMBING",
+      "bidang": "BUDIDAYA TERNAK"
+    },
+    "6222": {
+      "code": "6222",
+      "title": "Nelayan Laut",
+      "category": "6",
+      "count": 980,
+      "primary_job": "NELAYAN TANGKAP",
+      "bidang": "PENANGKAPAN IKAN LAUT"
+    },
+    "7112": {
+      "code": "7112",
+      "title": "Tukang Batu dan Tukang Pasang Bata",
+      "category": "7",
+      "count": 430,
+      "primary_job": "TUKANG KAYU / BATU",
+      "bidang": "KONSTRUKSI GEDUNG"
+    },
+    "7212": {
+      "code": "7212",
+      "title": "Tukang Las dan Pemotong Logam",
+      "category": "7",
+      "count": 210,
+      "primary_job": "TUKANG LAS",
+      "bidang": "BENGKEL LAS"
+    },
+    "7231": {
+      "code": "7231",
+      "title": "Mekanik dan Reparir Kendaraan Bermotor",
+      "category": "7",
+      "count": 520,
+      "primary_job": "MONTIR / MEKANIK MOTOR & MOBIL",
+      "bidang": "BENGKEL MOTOR DAN MOBIL"
+    },
+    "7317": {
+      "code": "7317",
+      "title": "Pembuat Kerajinan Anyaman dan Rotan",
+      "category": "7",
+      "count": 190,
+      "primary_job": "PENGRAJIN / ANYAMAN / MEBEL",
+      "bidang": "INDUSTRI KERAJINAN"
+    },
+    "7531": {
+      "code": "7531",
+      "title": "Penjahit dan Pembuat Pakaian",
+      "category": "7",
+      "count": 360,
+      "primary_job": "TUKANG JAHIT",
+      "bidang": "INDUSTRI PAKAIAN JADI"
+    },
+    "8322": {
+      "code": "8322",
+      "title": "Pengemudi Mobil, Taksi dan Van",
+      "category": "8",
+      "count": 610,
+      "primary_job": "SUPIR ANGKOT / PICKUP / MOBIL",
+      "bidang": "ANGKUTAN PENUMPANG DAN BARANG"
+    },
+    "8332": {
+      "code": "8332",
+      "title": "Pengemudi Truk Berat",
+      "category": "8",
+      "count": 730,
+      "primary_job": "SUPIR TRUK",
+      "bidang": "ANGKUTAN BARANG"
+    },
+    "9111": {
+      "code": "9111",
+      "title": "Pekerja Kebersihan Rumah Tangga dan Pembantu",
+      "category": "9",
+      "count": 410,
+      "primary_job": "ASISTEN RUMAH TANGGA / PEMBANTU",
+      "bidang": "AKTIVITAS RUMAH TANGGA"
+    },
+    "9313": {
+      "code": "9313",
+      "title": "Buruh Konstruksi Bangunan",
+      "category": "9",
+      "count": 890,
+      "primary_job": "BURUH BANGUNAN",
+      "bidang": "KONSTRUKSI GEDUNG"
+    }
+  },
+  "rules": {
+    "kafe": {
+      "pattern": "kafe",
+      "isPhrase": false,
+      "kategori": "5",
+      "kbji": "5131",
+      "job_title": "Pramusaji",
+      "pekerjaan": "KARYAWAN KAFE",
+      "bidang": "PENYEDIA MAKANAN DAN MINUMAN",
+      "count": 48,
+      "confidence": 0.98
+    },
+    "karyawan kafe": {
+      "pattern": "karyawan kafe",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5131",
+      "job_title": "Pramusaji",
+      "pekerjaan": "KARYAWAN KAFE",
+      "bidang": "PENYEDIA MAKANAN DAN MINUMAN",
+      "count": 48,
+      "confidence": 0.98
+    },
+    "pramusaji": {
+      "pattern": "pramusaji",
+      "isPhrase": false,
+      "kategori": "5",
+      "kbji": "5131",
+      "job_title": "Pramusaji",
+      "pekerjaan": "KARYAWAN KAFE",
+      "bidang": "PENYEDIA MAKANAN DAN MINUMAN",
+      "count": 48,
+      "confidence": 0.98
+    },
+    "pelayan resto": {
+      "pattern": "pelayan resto",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5131",
+      "job_title": "Pramusaji",
+      "pekerjaan": "KARYAWAN KAFE",
+      "bidang": "PENYEDIA MAKANAN DAN MINUMAN",
+      "count": 48,
+      "confidence": 0.98
+    },
+    "waiter": {
+      "pattern": "waiter",
+      "isPhrase": false,
+      "kategori": "5",
+      "kbji": "5131",
+      "job_title": "Pramusaji",
+      "pekerjaan": "KARYAWAN KAFE",
+      "bidang": "PENYEDIA MAKANAN DAN MINUMAN",
+      "count": 48,
+      "confidence": 0.98
+    },
+    "waitress": {
+      "pattern": "waitress",
+      "isPhrase": false,
+      "kategori": "5",
+      "kbji": "5131",
+      "job_title": "Pramusaji",
+      "pekerjaan": "KARYAWAN KAFE",
+      "bidang": "PENYEDIA MAKANAN DAN MINUMAN",
+      "count": 48,
+      "confidence": 0.98
+    },
+    "barista": {
+      "pattern": "barista",
+      "isPhrase": false,
+      "kategori": "5",
+      "kbji": "5131",
+      "job_title": "Pramusaji",
+      "pekerjaan": "KARYAWAN KAFE",
+      "bidang": "PENYEDIA MAKANAN DAN MINUMAN",
+      "count": 48,
+      "confidence": 0.98
+    },
+    "kedai kopi": {
+      "pattern": "kedai kopi",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5131",
+      "job_title": "Pramusaji",
+      "pekerjaan": "KARYAWAN KAFE",
+      "bidang": "PENYEDIA MAKANAN DAN MINUMAN",
+      "count": 48,
+      "confidence": 0.98
+    },
+    "warkop": {
+      "pattern": "warkop",
+      "isPhrase": false,
+      "kategori": "5",
+      "kbji": "5131",
+      "job_title": "Pramusaji",
+      "pekerjaan": "KARYAWAN KAFE",
+      "bidang": "PENYEDIA MAKANAN DAN MINUMAN",
+      "count": 48,
+      "confidence": 0.98
+    },
+    "petani padi": {
+      "pattern": "petani padi",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6111",
+      "job_title": "Petani Tanaman Pangan",
+      "pekerjaan": "PETANI PADI",
+      "bidang": "TANAMAN PANGAN",
+      "count": 1420,
+      "confidence": 0.98
+    },
+    "petani sawah": {
+      "pattern": "petani sawah",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6111",
+      "job_title": "Petani Tanaman Pangan",
+      "pekerjaan": "PETANI PADI",
+      "bidang": "TANAMAN PANGAN",
+      "count": 1420,
+      "confidence": 0.98
+    },
+    "tanam padi": {
+      "pattern": "tanam padi",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6111",
+      "job_title": "Petani Tanaman Pangan",
+      "pekerjaan": "PETANI PADI",
+      "bidang": "TANAMAN PANGAN",
+      "count": 1420,
+      "confidence": 0.98
+    },
+    "buruh tani": {
+      "pattern": "buruh tani",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6111",
+      "job_title": "Petani Tanaman Pangan",
+      "pekerjaan": "PETANI PADI",
+      "bidang": "TANAMAN PANGAN",
+      "count": 1420,
+      "confidence": 0.98
+    },
+    "buruh sawah": {
+      "pattern": "buruh sawah",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6111",
+      "job_title": "Petani Tanaman Pangan",
+      "pekerjaan": "PETANI PADI",
+      "bidang": "TANAMAN PANGAN",
+      "count": 1420,
+      "confidence": 0.98
+    },
+    "panen padi": {
+      "pattern": "panen padi",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6111",
+      "job_title": "Petani Tanaman Pangan",
+      "pekerjaan": "PETANI PADI",
+      "bidang": "TANAMAN PANGAN",
+      "count": 1420,
+      "confidence": 0.98
+    },
+    "petani sawit": {
+      "pattern": "petani sawit",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6112",
+      "job_title": "Pekerja Perkebunan Kelapa Sawit / Pohon Buah",
+      "pekerjaan": "PETANI KELAPA SAWIT",
+      "bidang": "PERKEBUNAN KELAPA SAWIT",
+      "count": 2310,
+      "confidence": 0.98
+    },
+    "kelapa sawit": {
+      "pattern": "kelapa sawit",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6112",
+      "job_title": "Pekerja Perkebunan Kelapa Sawit / Pohon Buah",
+      "pekerjaan": "PETANI KELAPA SAWIT",
+      "bidang": "PERKEBUNAN KELAPA SAWIT",
+      "count": 2310,
+      "confidence": 0.98
+    },
+    "panen sawit": {
+      "pattern": "panen sawit",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6112",
+      "job_title": "Pekerja Perkebunan Kelapa Sawit / Pohon Buah",
+      "pekerjaan": "PETANI KELAPA SAWIT",
+      "bidang": "PERKEBUNAN KELAPA SAWIT",
+      "count": 2310,
+      "confidence": 0.98
+    },
+    "kebun sawit": {
+      "pattern": "kebun sawit",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6112",
+      "job_title": "Pekerja Perkebunan Kelapa Sawit / Pohon Buah",
+      "pekerjaan": "PETANI KELAPA SAWIT",
+      "bidang": "PERKEBUNAN KELAPA SAWIT",
+      "count": 2310,
+      "confidence": 0.98
+    },
+    "pemanen sawit": {
+      "pattern": "pemanen sawit",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6112",
+      "job_title": "Pekerja Perkebunan Kelapa Sawit / Pohon Buah",
+      "pekerjaan": "PETANI KELAPA SAWIT",
+      "bidang": "PERKEBUNAN KELAPA SAWIT",
+      "count": 2310,
+      "confidence": 0.98
+    },
+    "buruh sawit": {
+      "pattern": "buruh sawit",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6112",
+      "job_title": "Pekerja Perkebunan Kelapa Sawit / Pohon Buah",
+      "pekerjaan": "PETANI KELAPA SAWIT",
+      "bidang": "PERKEBUNAN KELAPA SAWIT",
+      "count": 2310,
+      "confidence": 0.98
+    },
+    "dodos sawit": {
+      "pattern": "dodos sawit",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6112",
+      "job_title": "Pekerja Perkebunan Kelapa Sawit / Pohon Buah",
+      "pekerjaan": "PETANI KELAPA SAWIT",
+      "bidang": "PERKEBUNAN KELAPA SAWIT",
+      "count": 2310,
+      "confidence": 0.98
+    },
+    "nelayan tangkap": {
+      "pattern": "nelayan tangkap",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6222",
+      "job_title": "Nelayan Laut",
+      "pekerjaan": "NELAYAN TANGKAP",
+      "bidang": "PENANGKAPAN IKAN LAUT",
+      "count": 980,
+      "confidence": 0.98
+    },
+    "nelayan laut": {
+      "pattern": "nelayan laut",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6222",
+      "job_title": "Nelayan Laut",
+      "pekerjaan": "NELAYAN TANGKAP",
+      "bidang": "PENANGKAPAN IKAN LAUT",
+      "count": 980,
+      "confidence": 0.98
+    },
+    "pancing ikan": {
+      "pattern": "pancing ikan",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6222",
+      "job_title": "Nelayan Laut",
+      "pekerjaan": "NELAYAN TANGKAP",
+      "bidang": "PENANGKAPAN IKAN LAUT",
+      "count": 980,
+      "confidence": 0.98
+    },
+    "jaring ikan": {
+      "pattern": "jaring ikan",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6222",
+      "job_title": "Nelayan Laut",
+      "pekerjaan": "NELAYAN TANGKAP",
+      "bidang": "PENANGKAPAN IKAN LAUT",
+      "count": 980,
+      "confidence": 0.98
+    },
+    "kapal nelayan": {
+      "pattern": "kapal nelayan",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6222",
+      "job_title": "Nelayan Laut",
+      "pekerjaan": "NELAYAN TANGKAP",
+      "bidang": "PENANGKAPAN IKAN LAUT",
+      "count": 980,
+      "confidence": 0.98
+    },
+    "pelaut tangkap": {
+      "pattern": "pelaut tangkap",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6222",
+      "job_title": "Nelayan Laut",
+      "pekerjaan": "NELAYAN TANGKAP",
+      "bidang": "PENANGKAPAN IKAN LAUT",
+      "count": 980,
+      "confidence": 0.98
+    },
+    "pedagang kelontong": {
+      "pattern": "pedagang kelontong",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5221",
+      "job_title": "Pedagang Eceran Toko",
+      "pekerjaan": "PEDAGANG KELONTONG",
+      "bidang": "PERDAGANGAN ECERAN",
+      "count": 1850,
+      "confidence": 0.98
+    },
+    "toko kelontong": {
+      "pattern": "toko kelontong",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5221",
+      "job_title": "Pedagang Eceran Toko",
+      "pekerjaan": "PEDAGANG KELONTONG",
+      "bidang": "PERDAGANGAN ECERAN",
+      "count": 1850,
+      "confidence": 0.98
+    },
+    "warung sembako": {
+      "pattern": "warung sembako",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5221",
+      "job_title": "Pedagang Eceran Toko",
+      "pekerjaan": "PEDAGANG KELONTONG",
+      "bidang": "PERDAGANGAN ECERAN",
+      "count": 1850,
+      "confidence": 0.98
+    },
+    "jual sembako": {
+      "pattern": "jual sembako",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5221",
+      "job_title": "Pedagang Eceran Toko",
+      "pekerjaan": "PEDAGANG KELONTONG",
+      "bidang": "PERDAGANGAN ECERAN",
+      "count": 1850,
+      "confidence": 0.98
+    },
+    "pedagang eceran": {
+      "pattern": "pedagang eceran",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5221",
+      "job_title": "Pedagang Eceran Toko",
+      "pekerjaan": "PEDAGANG KELONTONG",
+      "bidang": "PERDAGANGAN ECERAN",
+      "count": 1850,
+      "confidence": 0.98
+    },
+    "jaga toko": {
+      "pattern": "jaga toko",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5221",
+      "job_title": "Pedagang Eceran Toko",
+      "pekerjaan": "PEDAGANG KELONTONG",
+      "bidang": "PERDAGANGAN ECERAN",
+      "count": 1850,
+      "confidence": 0.98
+    },
+    "warung": {
+      "pattern": "warung",
+      "isPhrase": false,
+      "kategori": "5",
+      "kbji": "5221",
+      "job_title": "Pedagang Eceran Toko",
+      "pekerjaan": "PEDAGANG KELONTONG",
+      "bidang": "PERDAGANGAN ECERAN",
+      "count": 1850,
+      "confidence": 0.98
+    },
+    "guru sd": {
+      "pattern": "guru sd",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2341",
+      "job_title": "Guru Pendidikan Dasar",
+      "pekerjaan": "GURU SD",
+      "bidang": "JASA PENDIDIKAN DASAR",
+      "count": 512,
+      "confidence": 0.98
+    },
+    "guru madrasah": {
+      "pattern": "guru madrasah",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2341",
+      "job_title": "Guru Pendidikan Dasar",
+      "pekerjaan": "GURU SD",
+      "bidang": "JASA PENDIDIKAN DASAR",
+      "count": 512,
+      "confidence": 0.98
+    },
+    "guru sekolah dasar": {
+      "pattern": "guru sekolah dasar",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2341",
+      "job_title": "Guru Pendidikan Dasar",
+      "pekerjaan": "GURU SD",
+      "bidang": "JASA PENDIDIKAN DASAR",
+      "count": 512,
+      "confidence": 0.98
+    },
+    "pengajar sd": {
+      "pattern": "pengajar sd",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2341",
+      "job_title": "Guru Pendidikan Dasar",
+      "pekerjaan": "GURU SD",
+      "bidang": "JASA PENDIDIKAN DASAR",
+      "count": 512,
+      "confidence": 0.98
+    },
+    "wali kelas": {
+      "pattern": "wali kelas",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2341",
+      "job_title": "Guru Pendidikan Dasar",
+      "pekerjaan": "GURU SD",
+      "bidang": "JASA PENDIDIKAN DASAR",
+      "count": 512,
+      "confidence": 0.98
+    },
+    "guru smp": {
+      "pattern": "guru smp",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2330",
+      "job_title": "Guru Pendidikan Menengah",
+      "pekerjaan": "GURU SMP / SMA",
+      "bidang": "JASA PENDIDIKAN MENENGAH",
+      "count": 420,
+      "confidence": 0.98
+    },
+    "guru sma": {
+      "pattern": "guru sma",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2330",
+      "job_title": "Guru Pendidikan Menengah",
+      "pekerjaan": "GURU SMP / SMA",
+      "bidang": "JASA PENDIDIKAN MENENGAH",
+      "count": 420,
+      "confidence": 0.98
+    },
+    "guru smk": {
+      "pattern": "guru smk",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2330",
+      "job_title": "Guru Pendidikan Menengah",
+      "pekerjaan": "GURU SMP / SMA",
+      "bidang": "JASA PENDIDIKAN MENENGAH",
+      "count": 420,
+      "confidence": 0.98
+    },
+    "guru madrasah aliyah": {
+      "pattern": "guru madrasah aliyah",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2330",
+      "job_title": "Guru Pendidikan Menengah",
+      "pekerjaan": "GURU SMP / SMA",
+      "bidang": "JASA PENDIDIKAN MENENGAH",
+      "count": 420,
+      "confidence": 0.98
+    },
+    "guru mts": {
+      "pattern": "guru mts",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2330",
+      "job_title": "Guru Pendidikan Menengah",
+      "pekerjaan": "GURU SMP / SMA",
+      "bidang": "JASA PENDIDIKAN MENENGAH",
+      "count": 420,
+      "confidence": 0.98
+    },
+    "supir truk": {
+      "pattern": "supir truk",
+      "isPhrase": true,
+      "kategori": "8",
+      "kbji": "8332",
+      "job_title": "Pengemudi Truk Berat",
+      "pekerjaan": "SUPIR TRUK",
+      "bidang": "ANGKUTAN BARANG",
+      "count": 730,
+      "confidence": 0.98
+    },
+    "sopir truk": {
+      "pattern": "sopir truk",
+      "isPhrase": true,
+      "kategori": "8",
+      "kbji": "8332",
+      "job_title": "Pengemudi Truk Berat",
+      "pekerjaan": "SUPIR TRUK",
+      "bidang": "ANGKUTAN BARANG",
+      "count": 730,
+      "confidence": 0.98
+    },
+    "pengemudi truk": {
+      "pattern": "pengemudi truk",
+      "isPhrase": true,
+      "kategori": "8",
+      "kbji": "8332",
+      "job_title": "Pengemudi Truk Berat",
+      "pekerjaan": "SUPIR TRUK",
+      "bidang": "ANGKUTAN BARANG",
+      "count": 730,
+      "confidence": 0.98
+    },
+    "driver dump truck": {
+      "pattern": "driver dump truck",
+      "isPhrase": true,
+      "kategori": "8",
+      "kbji": "8332",
+      "job_title": "Pengemudi Truk Berat",
+      "pekerjaan": "SUPIR TRUK",
+      "bidang": "ANGKUTAN BARANG",
+      "count": 730,
+      "confidence": 0.98
+    },
+    "supir kontainer": {
+      "pattern": "supir kontainer",
+      "isPhrase": true,
+      "kategori": "8",
+      "kbji": "8332",
+      "job_title": "Pengemudi Truk Berat",
+      "pekerjaan": "SUPIR TRUK",
+      "bidang": "ANGKUTAN BARANG",
+      "count": 730,
+      "confidence": 0.98
+    },
+    "angkut sawit": {
+      "pattern": "angkut sawit",
+      "isPhrase": true,
+      "kategori": "8",
+      "kbji": "8332",
+      "job_title": "Pengemudi Truk Berat",
+      "pekerjaan": "SUPIR TRUK",
+      "bidang": "ANGKUTAN BARANG",
+      "count": 730,
+      "confidence": 0.98
+    },
+    "supir pickup": {
+      "pattern": "supir pickup",
+      "isPhrase": true,
+      "kategori": "8",
+      "kbji": "8322",
+      "job_title": "Pengemudi Mobil, Taksi dan Van",
+      "pekerjaan": "SUPIR ANGKOT / PICKUP / MOBIL",
+      "bidang": "ANGKUTAN PENUMPANG DAN BARANG",
+      "count": 610,
+      "confidence": 0.98
+    },
+    "sopir mobil": {
+      "pattern": "sopir mobil",
+      "isPhrase": true,
+      "kategori": "8",
+      "kbji": "8322",
+      "job_title": "Pengemudi Mobil, Taksi dan Van",
+      "pekerjaan": "SUPIR ANGKOT / PICKUP / MOBIL",
+      "bidang": "ANGKUTAN PENUMPANG DAN BARANG",
+      "count": 610,
+      "confidence": 0.98
+    },
+    "driver ojol": {
+      "pattern": "driver ojol",
+      "isPhrase": true,
+      "kategori": "8",
+      "kbji": "8322",
+      "job_title": "Pengemudi Mobil, Taksi dan Van",
+      "pekerjaan": "SUPIR ANGKOT / PICKUP / MOBIL",
+      "bidang": "ANGKUTAN PENUMPANG DAN BARANG",
+      "count": 610,
+      "confidence": 0.98
+    },
+    "sopir taksi": {
+      "pattern": "sopir taksi",
+      "isPhrase": true,
+      "kategori": "8",
+      "kbji": "8322",
+      "job_title": "Pengemudi Mobil, Taksi dan Van",
+      "pekerjaan": "SUPIR ANGKOT / PICKUP / MOBIL",
+      "bidang": "ANGKUTAN PENUMPANG DAN BARANG",
+      "count": 610,
+      "confidence": 0.98
+    },
+    "supir travel": {
+      "pattern": "supir travel",
+      "isPhrase": true,
+      "kategori": "8",
+      "kbji": "8322",
+      "job_title": "Pengemudi Mobil, Taksi dan Van",
+      "pekerjaan": "SUPIR ANGKOT / PICKUP / MOBIL",
+      "bidang": "ANGKUTAN PENUMPANG DAN BARANG",
+      "count": 610,
+      "confidence": 0.98
+    },
+    "driver delivery": {
+      "pattern": "driver delivery",
+      "isPhrase": true,
+      "kategori": "8",
+      "kbji": "8322",
+      "job_title": "Pengemudi Mobil, Taksi dan Van",
+      "pekerjaan": "SUPIR ANGKOT / PICKUP / MOBIL",
+      "bidang": "ANGKUTAN PENUMPANG DAN BARANG",
+      "count": 610,
+      "confidence": 0.98
+    },
+    "buruh bangunan": {
+      "pattern": "buruh bangunan",
+      "isPhrase": true,
+      "kategori": "9",
+      "kbji": "9313",
+      "job_title": "Buruh Konstruksi Bangunan",
+      "pekerjaan": "BURUH BANGUNAN",
+      "bidang": "KONSTRUKSI GEDUNG",
+      "count": 890,
+      "confidence": 0.98
+    },
+    "kuli bangunan": {
+      "pattern": "kuli bangunan",
+      "isPhrase": true,
+      "kategori": "9",
+      "kbji": "9313",
+      "job_title": "Buruh Konstruksi Bangunan",
+      "pekerjaan": "BURUH BANGUNAN",
+      "bidang": "KONSTRUKSI GEDUNG",
+      "count": 890,
+      "confidence": 0.98
+    },
+    "kenek bangunan": {
+      "pattern": "kenek bangunan",
+      "isPhrase": true,
+      "kategori": "9",
+      "kbji": "9313",
+      "job_title": "Buruh Konstruksi Bangunan",
+      "pekerjaan": "BURUH BANGUNAN",
+      "bidang": "KONSTRUKSI GEDUNG",
+      "count": 890,
+      "confidence": 0.98
+    },
+    "tukang aduk": {
+      "pattern": "tukang aduk",
+      "isPhrase": true,
+      "kategori": "9",
+      "kbji": "9313",
+      "job_title": "Buruh Konstruksi Bangunan",
+      "pekerjaan": "BURUH BANGUNAN",
+      "bidang": "KONSTRUKSI GEDUNG",
+      "count": 890,
+      "confidence": 0.98
+    },
+    "pekerja proyek": {
+      "pattern": "pekerja proyek",
+      "isPhrase": true,
+      "kategori": "9",
+      "kbji": "9313",
+      "job_title": "Buruh Konstruksi Bangunan",
+      "pekerjaan": "BURUH BANGUNAN",
+      "bidang": "KONSTRUKSI GEDUNG",
+      "count": 890,
+      "confidence": 0.98
+    },
+    "tukang batu": {
+      "pattern": "tukang batu",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7112",
+      "job_title": "Tukang Batu dan Tukang Pasang Bata",
+      "pekerjaan": "TUKANG KAYU / BATU",
+      "bidang": "KONSTRUKSI GEDUNG",
+      "count": 430,
+      "confidence": 0.98
+    },
+    "tukang semen": {
+      "pattern": "tukang semen",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7112",
+      "job_title": "Tukang Batu dan Tukang Pasang Bata",
+      "pekerjaan": "TUKANG KAYU / BATU",
+      "bidang": "KONSTRUKSI GEDUNG",
+      "count": 430,
+      "confidence": 0.98
+    },
+    "pasang bata": {
+      "pattern": "pasang bata",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7112",
+      "job_title": "Tukang Batu dan Tukang Pasang Bata",
+      "pekerjaan": "TUKANG KAYU / BATU",
+      "bidang": "KONSTRUKSI GEDUNG",
+      "count": 430,
+      "confidence": 0.98
+    },
+    "plester dinding": {
+      "pattern": "plester dinding",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7112",
+      "job_title": "Tukang Batu dan Tukang Pasang Bata",
+      "pekerjaan": "TUKANG KAYU / BATU",
+      "bidang": "KONSTRUKSI GEDUNG",
+      "count": 430,
+      "confidence": 0.98
+    },
+    "tukang bangunan": {
+      "pattern": "tukang bangunan",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7112",
+      "job_title": "Tukang Batu dan Tukang Pasang Bata",
+      "pekerjaan": "TUKANG KAYU / BATU",
+      "bidang": "KONSTRUKSI GEDUNG",
+      "count": 430,
+      "confidence": 0.98
+    },
+    "tukang jahit": {
+      "pattern": "tukang jahit",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7531",
+      "job_title": "Penjahit dan Pembuat Pakaian",
+      "pekerjaan": "TUKANG JAHIT",
+      "bidang": "INDUSTRI PAKAIAN JADI",
+      "count": 360,
+      "confidence": 0.98
+    },
+    "penjahit": {
+      "pattern": "penjahit",
+      "isPhrase": false,
+      "kategori": "7",
+      "kbji": "7531",
+      "job_title": "Penjahit dan Pembuat Pakaian",
+      "pekerjaan": "TUKANG JAHIT",
+      "bidang": "INDUSTRI PAKAIAN JADI",
+      "count": 360,
+      "confidence": 0.98
+    },
+    "tailor": {
+      "pattern": "tailor",
+      "isPhrase": false,
+      "kategori": "7",
+      "kbji": "7531",
+      "job_title": "Penjahit dan Pembuat Pakaian",
+      "pekerjaan": "TUKANG JAHIT",
+      "bidang": "INDUSTRI PAKAIAN JADI",
+      "count": 360,
+      "confidence": 0.98
+    },
+    "vermak levis": {
+      "pattern": "vermak levis",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7531",
+      "job_title": "Penjahit dan Pembuat Pakaian",
+      "pekerjaan": "TUKANG JAHIT",
+      "bidang": "INDUSTRI PAKAIAN JADI",
+      "count": 360,
+      "confidence": 0.98
+    },
+    "pembuat baju": {
+      "pattern": "pembuat baju",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7531",
+      "job_title": "Penjahit dan Pembuat Pakaian",
+      "pekerjaan": "TUKANG JAHIT",
+      "bidang": "INDUSTRI PAKAIAN JADI",
+      "count": 360,
+      "confidence": 0.98
+    },
+    "konveksi": {
+      "pattern": "konveksi",
+      "isPhrase": false,
+      "kategori": "7",
+      "kbji": "7531",
+      "job_title": "Penjahit dan Pembuat Pakaian",
+      "pekerjaan": "TUKANG JAHIT",
+      "bidang": "INDUSTRI PAKAIAN JADI",
+      "count": 360,
+      "confidence": 0.98
+    },
+    "montir": {
+      "pattern": "montir",
+      "isPhrase": false,
+      "kategori": "7",
+      "kbji": "7231",
+      "job_title": "Mekanik dan Reparir Kendaraan Bermotor",
+      "pekerjaan": "MONTIR / MEKANIK MOTOR & MOBIL",
+      "bidang": "BENGKEL MOTOR DAN MOBIL",
+      "count": 520,
+      "confidence": 0.98
+    },
+    "mekanik": {
+      "pattern": "mekanik",
+      "isPhrase": false,
+      "kategori": "7",
+      "kbji": "7231",
+      "job_title": "Mekanik dan Reparir Kendaraan Bermotor",
+      "pekerjaan": "MONTIR / MEKANIK MOTOR & MOBIL",
+      "bidang": "BENGKEL MOTOR DAN MOBIL",
+      "count": 520,
+      "confidence": 0.98
+    },
+    "bengkel motor": {
+      "pattern": "bengkel motor",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7231",
+      "job_title": "Mekanik dan Reparir Kendaraan Bermotor",
+      "pekerjaan": "MONTIR / MEKANIK MOTOR & MOBIL",
+      "bidang": "BENGKEL MOTOR DAN MOBIL",
+      "count": 520,
+      "confidence": 0.98
+    },
+    "servis motor": {
+      "pattern": "servis motor",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7231",
+      "job_title": "Mekanik dan Reparir Kendaraan Bermotor",
+      "pekerjaan": "MONTIR / MEKANIK MOTOR & MOBIL",
+      "bidang": "BENGKEL MOTOR DAN MOBIL",
+      "count": 520,
+      "confidence": 0.98
+    },
+    "tukang tambal ban": {
+      "pattern": "tukang tambal ban",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7231",
+      "job_title": "Mekanik dan Reparir Kendaraan Bermotor",
+      "pekerjaan": "MONTIR / MEKANIK MOTOR & MOBIL",
+      "bidang": "BENGKEL MOTOR DAN MOBIL",
+      "count": 520,
+      "confidence": 0.98
+    },
+    "reparasi motor": {
+      "pattern": "reparasi motor",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7231",
+      "job_title": "Mekanik dan Reparir Kendaraan Bermotor",
+      "pekerjaan": "MONTIR / MEKANIK MOTOR & MOBIL",
+      "bidang": "BENGKEL MOTOR DAN MOBIL",
+      "count": 520,
+      "confidence": 0.98
+    },
+    "tukang las": {
+      "pattern": "tukang las",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7212",
+      "job_title": "Tukang Las dan Pemotong Logam",
+      "pekerjaan": "TUKANG LAS",
+      "bidang": "BENGKEL LAS",
+      "count": 210,
+      "confidence": 0.98
+    },
+    "welder": {
+      "pattern": "welder",
+      "isPhrase": false,
+      "kategori": "7",
+      "kbji": "7212",
+      "job_title": "Tukang Las dan Pemotong Logam",
+      "pekerjaan": "TUKANG LAS",
+      "bidang": "BENGKEL LAS",
+      "count": 210,
+      "confidence": 0.98
+    },
+    "bengkel las": {
+      "pattern": "bengkel las",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7212",
+      "job_title": "Tukang Las dan Pemotong Logam",
+      "pekerjaan": "TUKANG LAS",
+      "bidang": "BENGKEL LAS",
+      "count": 210,
+      "confidence": 0.98
+    },
+    "las karbit": {
+      "pattern": "las karbit",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7212",
+      "job_title": "Tukang Las dan Pemotong Logam",
+      "pekerjaan": "TUKANG LAS",
+      "bidang": "BENGKEL LAS",
+      "count": 210,
+      "confidence": 0.98
+    },
+    "las listrik": {
+      "pattern": "las listrik",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7212",
+      "job_title": "Tukang Las dan Pemotong Logam",
+      "pekerjaan": "TUKANG LAS",
+      "bidang": "BENGKEL LAS",
+      "count": 210,
+      "confidence": 0.98
+    },
+    "teralis": {
+      "pattern": "teralis",
+      "isPhrase": false,
+      "kategori": "7",
+      "kbji": "7212",
+      "job_title": "Tukang Las dan Pemotong Logam",
+      "pekerjaan": "TUKANG LAS",
+      "bidang": "BENGKEL LAS",
+      "count": 210,
+      "confidence": 0.98
+    },
+    "kasir": {
+      "pattern": "kasir",
+      "isPhrase": false,
+      "kategori": "5",
+      "kbji": "5230",
+      "job_title": "Kasir dan Petugas Tiket",
+      "pekerjaan": "KASIR",
+      "bidang": "TOKO / MINIMARKET",
+      "count": 310,
+      "confidence": 0.98
+    },
+    "kasir toko": {
+      "pattern": "kasir toko",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5230",
+      "job_title": "Kasir dan Petugas Tiket",
+      "pekerjaan": "KASIR",
+      "bidang": "TOKO / MINIMARKET",
+      "count": 310,
+      "confidence": 0.98
+    },
+    "kasir minimarket": {
+      "pattern": "kasir minimarket",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5230",
+      "job_title": "Kasir dan Petugas Tiket",
+      "pekerjaan": "KASIR",
+      "bidang": "TOKO / MINIMARKET",
+      "count": 310,
+      "confidence": 0.98
+    },
+    "pramuniaga kasir": {
+      "pattern": "pramuniaga kasir",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5230",
+      "job_title": "Kasir dan Petugas Tiket",
+      "pekerjaan": "KASIR",
+      "bidang": "TOKO / MINIMARKET",
+      "count": 310,
+      "confidence": 0.98
+    },
+    "teller": {
+      "pattern": "teller",
+      "isPhrase": false,
+      "kategori": "4",
+      "kbji": "4211",
+      "job_title": "Teller Bank dan Petugas Terkait",
+      "pekerjaan": "KARYAWAN BUMN / BUMD / BANK",
+      "bidang": "JASA KEUANGAN",
+      "count": 240,
+      "confidence": 0.98
+    },
+    "satpam": {
+      "pattern": "satpam",
+      "isPhrase": false,
+      "kategori": "5",
+      "kbji": "5414",
+      "job_title": "Penjaga Keamanan (Satpam)",
+      "pekerjaan": "SATPAM / PETUGAS KEAMANAN",
+      "bidang": "JASA KEAMANAN SWASTA",
+      "count": 280,
+      "confidence": 0.98
+    },
+    "security": {
+      "pattern": "security",
+      "isPhrase": false,
+      "kategori": "5",
+      "kbji": "5414",
+      "job_title": "Penjaga Keamanan (Satpam)",
+      "pekerjaan": "SATPAM / PETUGAS KEAMANAN",
+      "bidang": "JASA KEAMANAN SWASTA",
+      "count": 280,
+      "confidence": 0.98
+    },
+    "penjaga keamanan": {
+      "pattern": "penjaga keamanan",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5414",
+      "job_title": "Penjaga Keamanan (Satpam)",
+      "pekerjaan": "SATPAM / PETUGAS KEAMANAN",
+      "bidang": "JASA KEAMANAN SWASTA",
+      "count": 280,
+      "confidence": 0.98
+    },
+    "waker": {
+      "pattern": "waker",
+      "isPhrase": false,
+      "kategori": "5",
+      "kbji": "5414",
+      "job_title": "Penjaga Keamanan (Satpam)",
+      "pekerjaan": "SATPAM / PETUGAS KEAMANAN",
+      "bidang": "JASA KEAMANAN SWASTA",
+      "count": 280,
+      "confidence": 0.98
+    },
+    "pos satpam": {
+      "pattern": "pos satpam",
+      "isPhrase": true,
+      "kategori": "5",
+      "kbji": "5414",
+      "job_title": "Penjaga Keamanan (Satpam)",
+      "pekerjaan": "SATPAM / PETUGAS KEAMANAN",
+      "bidang": "JASA KEAMANAN SWASTA",
+      "count": 280,
+      "confidence": 0.98
+    },
+    "pengawal": {
+      "pattern": "pengawal",
+      "isPhrase": false,
+      "kategori": "5",
+      "kbji": "5414",
+      "job_title": "Penjaga Keamanan (Satpam)",
+      "pekerjaan": "SATPAM / PETUGAS KEAMANAN",
+      "bidang": "JASA KEAMANAN SWASTA",
+      "count": 280,
+      "confidence": 0.98
+    },
+    "art": {
+      "pattern": "art",
+      "isPhrase": false,
+      "kategori": "9",
+      "kbji": "9111",
+      "job_title": "Pekerja Kebersihan Rumah Tangga dan Pembantu",
+      "pekerjaan": "ASISTEN RUMAH TANGGA / PEMBANTU",
+      "bidang": "AKTIVITAS RUMAH TANGGA",
+      "count": 410,
+      "confidence": 0.98
+    },
+    "pembantu": {
+      "pattern": "pembantu",
+      "isPhrase": false,
+      "kategori": "9",
+      "kbji": "9111",
+      "job_title": "Pekerja Kebersihan Rumah Tangga dan Pembantu",
+      "pekerjaan": "ASISTEN RUMAH TANGGA / PEMBANTU",
+      "bidang": "AKTIVITAS RUMAH TANGGA",
+      "count": 410,
+      "confidence": 0.98
+    },
+    "asisten rumah tangga": {
+      "pattern": "asisten rumah tangga",
+      "isPhrase": true,
+      "kategori": "9",
+      "kbji": "9111",
+      "job_title": "Pekerja Kebersihan Rumah Tangga dan Pembantu",
+      "pekerjaan": "ASISTEN RUMAH TANGGA / PEMBANTU",
+      "bidang": "AKTIVITAS RUMAH TANGGA",
+      "count": 410,
+      "confidence": 0.98
+    },
+    "cuci gosok": {
+      "pattern": "cuci gosok",
+      "isPhrase": true,
+      "kategori": "9",
+      "kbji": "9111",
+      "job_title": "Pekerja Kebersihan Rumah Tangga dan Pembantu",
+      "pekerjaan": "ASISTEN RUMAH TANGGA / PEMBANTU",
+      "bidang": "AKTIVITAS RUMAH TANGGA",
+      "count": 410,
+      "confidence": 0.98
+    },
+    "babysitter": {
+      "pattern": "babysitter",
+      "isPhrase": false,
+      "kategori": "9",
+      "kbji": "9111",
+      "job_title": "Pekerja Kebersihan Rumah Tangga dan Pembantu",
+      "pekerjaan": "ASISTEN RUMAH TANGGA / PEMBANTU",
+      "bidang": "AKTIVITAS RUMAH TANGGA",
+      "count": 410,
+      "confidence": 0.98
+    },
+    "pengasuh anak": {
+      "pattern": "pengasuh anak",
+      "isPhrase": true,
+      "kategori": "9",
+      "kbji": "9111",
+      "job_title": "Pekerja Kebersihan Rumah Tangga dan Pembantu",
+      "pekerjaan": "ASISTEN RUMAH TANGGA / PEMBANTU",
+      "bidang": "AKTIVITAS RUMAH TANGGA",
+      "count": 410,
+      "confidence": 0.98
+    },
+    "perawat": {
+      "pattern": "perawat",
+      "isPhrase": false,
+      "kategori": "2",
+      "kbji": "2221",
+      "job_title": "Profesional Perawat",
+      "pekerjaan": "PERAWAT KESEHATAN",
+      "bidang": "RUMAH SAKIT / PUSKESMAS",
+      "count": 340,
+      "confidence": 0.98
+    },
+    "mantri": {
+      "pattern": "mantri",
+      "isPhrase": false,
+      "kategori": "2",
+      "kbji": "2221",
+      "job_title": "Profesional Perawat",
+      "pekerjaan": "PERAWAT KESEHATAN",
+      "bidang": "RUMAH SAKIT / PUSKESMAS",
+      "count": 340,
+      "confidence": 0.98
+    },
+    "perawat puskesmas": {
+      "pattern": "perawat puskesmas",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2221",
+      "job_title": "Profesional Perawat",
+      "pekerjaan": "PERAWAT KESEHATAN",
+      "bidang": "RUMAH SAKIT / PUSKESMAS",
+      "count": 340,
+      "confidence": 0.98
+    },
+    "perawat klinik": {
+      "pattern": "perawat klinik",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2221",
+      "job_title": "Profesional Perawat",
+      "pekerjaan": "PERAWAT KESEHATAN",
+      "bidang": "RUMAH SAKIT / PUSKESMAS",
+      "count": 340,
+      "confidence": 0.98
+    },
+    "perawat rs": {
+      "pattern": "perawat rs",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2221",
+      "job_title": "Profesional Perawat",
+      "pekerjaan": "PERAWAT KESEHATAN",
+      "bidang": "RUMAH SAKIT / PUSKESMAS",
+      "count": 340,
+      "confidence": 0.98
+    },
+    "bidan": {
+      "pattern": "bidan",
+      "isPhrase": false,
+      "kategori": "2",
+      "kbji": "2222",
+      "job_title": "Profesional Bidan",
+      "pekerjaan": "BIDAN",
+      "bidang": "PRAKTIK MANDIRI / PUSKESMAS",
+      "count": 290,
+      "confidence": 0.98
+    },
+    "bidan desa": {
+      "pattern": "bidan desa",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2222",
+      "job_title": "Profesional Bidan",
+      "pekerjaan": "BIDAN",
+      "bidang": "PRAKTIK MANDIRI / PUSKESMAS",
+      "count": 290,
+      "confidence": 0.98
+    },
+    "bidan praktik": {
+      "pattern": "bidan praktik",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2222",
+      "job_title": "Profesional Bidan",
+      "pekerjaan": "BIDAN",
+      "bidang": "PRAKTIK MANDIRI / PUSKESMAS",
+      "count": 290,
+      "confidence": 0.98
+    },
+    "persalinan": {
+      "pattern": "persalinan",
+      "isPhrase": false,
+      "kategori": "2",
+      "kbji": "2222",
+      "job_title": "Profesional Bidan",
+      "pekerjaan": "BIDAN",
+      "bidang": "PRAKTIK MANDIRI / PUSKESMAS",
+      "count": 290,
+      "confidence": 0.98
+    },
+    "dokter": {
+      "pattern": "dokter",
+      "isPhrase": false,
+      "kategori": "2",
+      "kbji": "2211",
+      "job_title": "Dokter Umum",
+      "pekerjaan": "DOKTER UMUM",
+      "bidang": "PELAYANAN MEDIS",
+      "count": 120,
+      "confidence": 0.98
+    },
+    "dokter umum": {
+      "pattern": "dokter umum",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2211",
+      "job_title": "Dokter Umum",
+      "pekerjaan": "DOKTER UMUM",
+      "bidang": "PELAYANAN MEDIS",
+      "count": 120,
+      "confidence": 0.98
+    },
+    "praktek dokter": {
+      "pattern": "praktek dokter",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2211",
+      "job_title": "Dokter Umum",
+      "pekerjaan": "DOKTER UMUM",
+      "bidang": "PELAYANAN MEDIS",
+      "count": 120,
+      "confidence": 0.98
+    },
+    "dokter puskesmas": {
+      "pattern": "dokter puskesmas",
+      "isPhrase": true,
+      "kategori": "2",
+      "kbji": "2211",
+      "job_title": "Dokter Umum",
+      "pekerjaan": "DOKTER UMUM",
+      "bidang": "PELAYANAN MEDIS",
+      "count": 120,
+      "confidence": 0.98
+    },
+    "admin": {
+      "pattern": "admin",
+      "isPhrase": false,
+      "kategori": "4",
+      "kbji": "4110",
+      "job_title": "Pegawai Administrasi Umum",
+      "pekerjaan": "STAF ADMINISTRASI / TATA USAHA",
+      "bidang": "PERKANTORAN / PEMERINTAHAN",
+      "count": 670,
+      "confidence": 0.98
+    },
+    "staf tata usaha": {
+      "pattern": "staf tata usaha",
+      "isPhrase": true,
+      "kategori": "4",
+      "kbji": "4110",
+      "job_title": "Pegawai Administrasi Umum",
+      "pekerjaan": "STAF ADMINISTRASI / TATA USAHA",
+      "bidang": "PERKANTORAN / PEMERINTAHAN",
+      "count": 670,
+      "confidence": 0.98
+    },
+    "pegawai kantor": {
+      "pattern": "pegawai kantor",
+      "isPhrase": true,
+      "kategori": "4",
+      "kbji": "4110",
+      "job_title": "Pegawai Administrasi Umum",
+      "pekerjaan": "STAF ADMINISTRASI / TATA USAHA",
+      "bidang": "PERKANTORAN / PEMERINTAHAN",
+      "count": 670,
+      "confidence": 0.98
+    },
+    "administrasi": {
+      "pattern": "administrasi",
+      "isPhrase": false,
+      "kategori": "4",
+      "kbji": "4110",
+      "job_title": "Pegawai Administrasi Umum",
+      "pekerjaan": "STAF ADMINISTRASI / TATA USAHA",
+      "bidang": "PERKANTORAN / PEMERINTAHAN",
+      "count": 670,
+      "confidence": 0.98
+    },
+    "operator komputer": {
+      "pattern": "operator komputer",
+      "isPhrase": true,
+      "kategori": "4",
+      "kbji": "4110",
+      "job_title": "Pegawai Administrasi Umum",
+      "pekerjaan": "STAF ADMINISTRASI / TATA USAHA",
+      "bidang": "PERKANTORAN / PEMERINTAHAN",
+      "count": 670,
+      "confidence": 0.98
+    },
+    "tata usaha": {
+      "pattern": "tata usaha",
+      "isPhrase": true,
+      "kategori": "4",
+      "kbji": "4110",
+      "job_title": "Pegawai Administrasi Umum",
+      "pekerjaan": "STAF ADMINISTRASI / TATA USAHA",
+      "bidang": "PERKANTORAN / PEMERINTAHAN",
+      "count": 670,
+      "confidence": 0.98
+    },
+    "pns": {
+      "pattern": "pns",
+      "isPhrase": false,
+      "kategori": "1",
+      "kbji": "1112",
+      "job_title": "Pejabat Tinggi Pemerintah / Pengambil Kebijakan",
+      "pekerjaan": "APARATUR SIPIL NEGARA / PNS PEMDA",
+      "bidang": "ADMINISTRASI PEMERINTAHAN",
+      "count": 530,
+      "confidence": 0.98
+    },
+    "asn": {
+      "pattern": "asn",
+      "isPhrase": false,
+      "kategori": "1",
+      "kbji": "1112",
+      "job_title": "Pejabat Tinggi Pemerintah / Pengambil Kebijakan",
+      "pekerjaan": "APARATUR SIPIL NEGARA / PNS PEMDA",
+      "bidang": "ADMINISTRASI PEMERINTAHAN",
+      "count": 530,
+      "confidence": 0.98
+    },
+    "pegawai pemda": {
+      "pattern": "pegawai pemda",
+      "isPhrase": true,
+      "kategori": "1",
+      "kbji": "1112",
+      "job_title": "Pejabat Tinggi Pemerintah / Pengambil Kebijakan",
+      "pekerjaan": "APARATUR SIPIL NEGARA / PNS PEMDA",
+      "bidang": "ADMINISTRASI PEMERINTAHAN",
+      "count": 530,
+      "confidence": 0.98
+    },
+    "pegawai dinas": {
+      "pattern": "pegawai dinas",
+      "isPhrase": true,
+      "kategori": "1",
+      "kbji": "1112",
+      "job_title": "Pejabat Tinggi Pemerintah / Pengambil Kebijakan",
+      "pekerjaan": "APARATUR SIPIL NEGARA / PNS PEMDA",
+      "bidang": "ADMINISTRASI PEMERINTAHAN",
+      "count": 530,
+      "confidence": 0.98
+    },
+    "lurah": {
+      "pattern": "lurah",
+      "isPhrase": false,
+      "kategori": "1",
+      "kbji": "1112",
+      "job_title": "Pejabat Tinggi Pemerintah / Pengambil Kebijakan",
+      "pekerjaan": "APARATUR SIPIL NEGARA / PNS PEMDA",
+      "bidang": "ADMINISTRASI PEMERINTAHAN",
+      "count": 530,
+      "confidence": 0.98
+    },
+    "camat": {
+      "pattern": "camat",
+      "isPhrase": false,
+      "kategori": "1",
+      "kbji": "1112",
+      "job_title": "Pejabat Tinggi Pemerintah / Pengambil Kebijakan",
+      "pekerjaan": "APARATUR SIPIL NEGARA / PNS PEMDA",
+      "bidang": "ADMINISTRASI PEMERINTAHAN",
+      "count": 530,
+      "confidence": 0.98
+    },
+    "kepala seksi": {
+      "pattern": "kepala seksi",
+      "isPhrase": true,
+      "kategori": "1",
+      "kbji": "1112",
+      "job_title": "Pejabat Tinggi Pemerintah / Pengambil Kebijakan",
+      "pekerjaan": "APARATUR SIPIL NEGARA / PNS PEMDA",
+      "bidang": "ADMINISTRASI PEMERINTAHAN",
+      "count": 530,
+      "confidence": 0.98
+    },
+    "teller bank": {
+      "pattern": "teller bank",
+      "isPhrase": true,
+      "kategori": "4",
+      "kbji": "4211",
+      "job_title": "Teller Bank dan Petugas Terkait",
+      "pekerjaan": "KARYAWAN BUMN / BUMD / BANK",
+      "bidang": "JASA KEUANGAN",
+      "count": 240,
+      "confidence": 0.98
+    },
+    "pegawai bank": {
+      "pattern": "pegawai bank",
+      "isPhrase": true,
+      "kategori": "4",
+      "kbji": "4211",
+      "job_title": "Teller Bank dan Petugas Terkait",
+      "pekerjaan": "KARYAWAN BUMN / BUMD / BANK",
+      "bidang": "JASA KEUANGAN",
+      "count": 240,
+      "confidence": 0.98
+    },
+    "karyawan bank": {
+      "pattern": "karyawan bank",
+      "isPhrase": true,
+      "kategori": "4",
+      "kbji": "4211",
+      "job_title": "Teller Bank dan Petugas Terkait",
+      "pekerjaan": "KARYAWAN BUMN / BUMD / BANK",
+      "bidang": "JASA KEUANGAN",
+      "count": 240,
+      "confidence": 0.98
+    },
+    "customer service bank": {
+      "pattern": "customer service bank",
+      "isPhrase": true,
+      "kategori": "4",
+      "kbji": "4211",
+      "job_title": "Teller Bank dan Petugas Terkait",
+      "pekerjaan": "KARYAWAN BUMN / BUMD / BANK",
+      "bidang": "JASA KEUANGAN",
+      "count": 240,
+      "confidence": 0.98
+    },
+    "peternak ayam": {
+      "pattern": "peternak ayam",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6121",
+      "job_title": "Peternak Sapi dan Ternak Perah Lainnya",
+      "pekerjaan": "PETERNAK AYAM / SAPI / KAMBING",
+      "bidang": "BUDIDAYA TERNAK",
+      "count": 380,
+      "confidence": 0.98
+    },
+    "kandang ayam": {
+      "pattern": "kandang ayam",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6121",
+      "job_title": "Peternak Sapi dan Ternak Perah Lainnya",
+      "pekerjaan": "PETERNAK AYAM / SAPI / KAMBING",
+      "bidang": "BUDIDAYA TERNAK",
+      "count": 380,
+      "confidence": 0.98
+    },
+    "peternak sapi": {
+      "pattern": "peternak sapi",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6121",
+      "job_title": "Peternak Sapi dan Ternak Perah Lainnya",
+      "pekerjaan": "PETERNAK AYAM / SAPI / KAMBING",
+      "bidang": "BUDIDAYA TERNAK",
+      "count": 380,
+      "confidence": 0.98
+    },
+    "peternak kambing": {
+      "pattern": "peternak kambing",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6121",
+      "job_title": "Peternak Sapi dan Ternak Perah Lainnya",
+      "pekerjaan": "PETERNAK AYAM / SAPI / KAMBING",
+      "bidang": "BUDIDAYA TERNAK",
+      "count": 380,
+      "confidence": 0.98
+    },
+    "ternak bebek": {
+      "pattern": "ternak bebek",
+      "isPhrase": true,
+      "kategori": "6",
+      "kbji": "6121",
+      "job_title": "Peternak Sapi dan Ternak Perah Lainnya",
+      "pekerjaan": "PETERNAK AYAM / SAPI / KAMBING",
+      "bidang": "BUDIDAYA TERNAK",
+      "count": 380,
+      "confidence": 0.98
+    },
+    "pengrajin": {
+      "pattern": "pengrajin",
+      "isPhrase": false,
+      "kategori": "7",
+      "kbji": "7317",
+      "job_title": "Pembuat Kerajinan Anyaman dan Rotan",
+      "pekerjaan": "PENGRAJIN / ANYAMAN / MEBEL",
+      "bidang": "INDUSTRI KERAJINAN",
+      "count": 190,
+      "confidence": 0.98
+    },
+    "tukang mebel": {
+      "pattern": "tukang mebel",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7317",
+      "job_title": "Pembuat Kerajinan Anyaman dan Rotan",
+      "pekerjaan": "PENGRAJIN / ANYAMAN / MEBEL",
+      "bidang": "INDUSTRI KERAJINAN",
+      "count": 190,
+      "confidence": 0.98
+    },
+    "tukang anyaman": {
+      "pattern": "tukang anyaman",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7317",
+      "job_title": "Pembuat Kerajinan Anyaman dan Rotan",
+      "pekerjaan": "PENGRAJIN / ANYAMAN / MEBEL",
+      "bidang": "INDUSTRI KERAJINAN",
+      "count": 190,
+      "confidence": 0.98
+    },
+    "kerajinan rotan": {
+      "pattern": "kerajinan rotan",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7317",
+      "job_title": "Pembuat Kerajinan Anyaman dan Rotan",
+      "pekerjaan": "PENGRAJIN / ANYAMAN / MEBEL",
+      "bidang": "INDUSTRI KERAJINAN",
+      "count": 190,
+      "confidence": 0.98
+    },
+    "pembuat lemari": {
+      "pattern": "pembuat lemari",
+      "isPhrase": true,
+      "kategori": "7",
+      "kbji": "7317",
+      "job_title": "Pembuat Kerajinan Anyaman dan Rotan",
+      "pekerjaan": "PENGRAJIN / ANYAMAN / MEBEL",
+      "bidang": "INDUSTRI KERAJINAN",
+      "count": 190,
+      "confidence": 0.98
+    }
+  },
+  "mempawah_jobs": [
+    {
+      "pekerjaan": "KARYAWAN KAFE",
+      "komoditas": "MAKANAN DAN MINUMAN",
+      "bidang": "PENYEDIA MAKANAN DAN MINUMAN",
+      "kbji_kode": "5131",
+      "kbji_judul": "Pramusaji",
+      "count": 48,
+      "keywords": [
+        "kafe",
+        "karyawan kafe",
+        "pramusaji",
+        "pelayan resto",
+        "waiter",
+        "waitress",
+        "barista",
+        "kedai kopi",
+        "warkop"
+      ]
+    },
+    {
+      "pekerjaan": "PETANI PADI",
+      "komoditas": "PERTANIAN",
+      "bidang": "TANAMAN PANGAN",
+      "kbji_kode": "6111",
+      "kbji_judul": "Petani Tanaman Pangan",
+      "count": 1420,
+      "keywords": [
+        "petani padi",
+        "petani sawah",
+        "tanam padi",
+        "buruh tani",
+        "buruh sawah",
+        "panen padi"
+      ]
+    },
+    {
+      "pekerjaan": "PETANI KELAPA SAWIT",
+      "komoditas": "PERKEBUNAN",
+      "bidang": "PERKEBUNAN KELAPA SAWIT",
+      "kbji_kode": "6112",
+      "kbji_judul": "Pekerja Perkebunan Kelapa Sawit / Pohon Buah",
+      "count": 2310,
+      "keywords": [
+        "petani sawit",
+        "kelapa sawit",
+        "panen sawit",
+        "kebun sawit",
+        "pemanen sawit",
+        "buruh sawit",
+        "dodos sawit"
+      ]
+    },
+    {
+      "pekerjaan": "NELAYAN TANGKAP",
+      "komoditas": "PERIKANAN",
+      "bidang": "PENANGKAPAN IKAN LAUT",
+      "kbji_kode": "6222",
+      "kbji_judul": "Nelayan Laut",
+      "count": 980,
+      "keywords": [
+        "nelayan tangkap",
+        "nelayan laut",
+        "pancing ikan",
+        "jaring ikan",
+        "kapal nelayan",
+        "pelaut tangkap"
+      ]
+    },
+    {
+      "pekerjaan": "PEDAGANG KELONTONG",
+      "komoditas": "PERDAGANGAN",
+      "bidang": "PERDAGANGAN ECERAN",
+      "kbji_kode": "5221",
+      "kbji_judul": "Pedagang Eceran Toko",
+      "count": 1850,
+      "keywords": [
+        "pedagang kelontong",
+        "toko kelontong",
+        "warung sembako",
+        "jual sembako",
+        "pedagang eceran",
+        "jaga toko",
+        "warung"
+      ]
+    },
+    {
+      "pekerjaan": "GURU SD",
+      "komoditas": "PENDIDIKAN",
+      "bidang": "JASA PENDIDIKAN DASAR",
+      "kbji_kode": "2341",
+      "kbji_judul": "Guru Pendidikan Dasar",
+      "count": 512,
+      "keywords": [
+        "guru sd",
+        "guru madrasah",
+        "guru sekolah dasar",
+        "pengajar sd",
+        "wali kelas"
+      ]
+    },
+    {
+      "pekerjaan": "GURU SMP / SMA",
+      "komoditas": "PENDIDIKAN",
+      "bidang": "JASA PENDIDIKAN MENENGAH",
+      "kbji_kode": "2330",
+      "kbji_judul": "Guru Pendidikan Menengah",
+      "count": 420,
+      "keywords": [
+        "guru smp",
+        "guru sma",
+        "guru smk",
+        "guru madrasah aliyah",
+        "guru mts"
+      ]
+    },
+    {
+      "pekerjaan": "SUPIR TRUK",
+      "komoditas": "TRANSPORTASI",
+      "bidang": "ANGKUTAN BARANG",
+      "kbji_kode": "8332",
+      "kbji_judul": "Pengemudi Truk Berat",
+      "count": 730,
+      "keywords": [
+        "supir truk",
+        "sopir truk",
+        "pengemudi truk",
+        "driver dump truck",
+        "supir kontainer",
+        "angkut sawit"
+      ]
+    },
+    {
+      "pekerjaan": "SUPIR ANGKOT / PICKUP / MOBIL",
+      "komoditas": "TRANSPORTASI",
+      "bidang": "ANGKUTAN PENUMPANG DAN BARANG",
+      "kbji_kode": "8322",
+      "kbji_judul": "Pengemudi Mobil, Taksi dan Van",
+      "count": 610,
+      "keywords": [
+        "supir pickup",
+        "sopir mobil",
+        "driver ojol",
+        "sopir taksi",
+        "supir travel",
+        "driver delivery"
+      ]
+    },
+    {
+      "pekerjaan": "BURUH BANGUNAN",
+      "komoditas": "KONSTRUKSI",
+      "bidang": "KONSTRUKSI GEDUNG",
+      "kbji_kode": "9313",
+      "kbji_judul": "Buruh Konstruksi Bangunan",
+      "count": 890,
+      "keywords": [
+        "buruh bangunan",
+        "kuli bangunan",
+        "kenek bangunan",
+        "tukang aduk",
+        "pekerja proyek"
+      ]
+    },
+    {
+      "pekerjaan": "TUKANG KAYU / BATU",
+      "komoditas": "KONSTRUKSI",
+      "bidang": "KONSTRUKSI GEDUNG",
+      "kbji_kode": "7112",
+      "kbji_judul": "Tukang Batu dan Tukang Pasang Bata",
+      "count": 430,
+      "keywords": [
+        "tukang batu",
+        "tukang semen",
+        "pasang bata",
+        "plester dinding",
+        "tukang bangunan"
+      ]
+    },
+    {
+      "pekerjaan": "TUKANG JAHIT",
+      "komoditas": "INDUSTRI PENGOLAHAN",
+      "bidang": "INDUSTRI PAKAIAN JADI",
+      "kbji_kode": "7531",
+      "kbji_judul": "Penjahit dan Pembuat Pakaian",
+      "count": 360,
+      "keywords": [
+        "tukang jahit",
+        "penjahit",
+        "tailor",
+        "vermak levis",
+        "pembuat baju",
+        "konveksi"
+      ]
+    },
+    {
+      "pekerjaan": "MONTIR / MEKANIK MOTOR & MOBIL",
+      "komoditas": "REPARASI KENDARAAN",
+      "bidang": "BENGKEL MOTOR DAN MOBIL",
+      "kbji_kode": "7231",
+      "kbji_judul": "Mekanik dan Reparir Kendaraan Bermotor",
+      "count": 520,
+      "keywords": [
+        "montir",
+        "mekanik",
+        "bengkel motor",
+        "servis motor",
+        "tukang tambal ban",
+        "reparasi motor"
+      ]
+    },
+    {
+      "pekerjaan": "TUKANG LAS",
+      "komoditas": "LOGAM",
+      "bidang": "BENGKEL LAS",
+      "kbji_kode": "7212",
+      "kbji_judul": "Tukang Las dan Pemotong Logam",
+      "count": 210,
+      "keywords": [
+        "tukang las",
+        "welder",
+        "bengkel las",
+        "las karbit",
+        "las listrik",
+        "teralis"
+      ]
+    },
+    {
+      "pekerjaan": "KASIR",
+      "komoditas": "PERDAGANGAN",
+      "bidang": "TOKO / MINIMARKET",
+      "kbji_kode": "5230",
+      "kbji_judul": "Kasir dan Petugas Tiket",
+      "count": 310,
+      "keywords": [
+        "kasir",
+        "kasir toko",
+        "kasir minimarket",
+        "pramuniaga kasir",
+        "teller"
+      ]
+    },
+    {
+      "pekerjaan": "SATPAM / PETUGAS KEAMANAN",
+      "komoditas": "JASA KEAMANAN",
+      "bidang": "JASA KEAMANAN SWASTA",
+      "kbji_kode": "5414",
+      "kbji_judul": "Penjaga Keamanan (Satpam)",
+      "count": 280,
+      "keywords": [
+        "satpam",
+        "security",
+        "penjaga keamanan",
+        "waker",
+        "pos satpam",
+        "pengawal"
+      ]
+    },
+    {
+      "pekerjaan": "ASISTEN RUMAH TANGGA / PEMBANTU",
+      "komoditas": "JASA RUMAH TANGGA",
+      "bidang": "AKTIVITAS RUMAH TANGGA",
+      "kbji_kode": "9111",
+      "kbji_judul": "Pekerja Kebersihan Rumah Tangga dan Pembantu",
+      "count": 410,
+      "keywords": [
+        "art",
+        "pembantu",
+        "asisten rumah tangga",
+        "cuci gosok",
+        "babysitter",
+        "pengasuh anak"
+      ]
+    },
+    {
+      "pekerjaan": "PERAWAT KESEHATAN",
+      "komoditas": "KESEHATAN",
+      "bidang": "RUMAH SAKIT / PUSKESMAS",
+      "kbji_kode": "2221",
+      "kbji_judul": "Profesional Perawat",
+      "count": 340,
+      "keywords": [
+        "perawat",
+        "mantri",
+        "perawat puskesmas",
+        "perawat klinik",
+        "perawat rs"
+      ]
+    },
+    {
+      "pekerjaan": "BIDAN",
+      "komoditas": "KESEHATAN",
+      "bidang": "PRAKTIK MANDIRI / PUSKESMAS",
+      "kbji_kode": "2222",
+      "kbji_judul": "Profesional Bidan",
+      "count": 290,
+      "keywords": [
+        "bidan",
+        "bidan desa",
+        "bidan praktik",
+        "persalinan"
+      ]
+    },
+    {
+      "pekerjaan": "DOKTER UMUM",
+      "komoditas": "KESEHATAN",
+      "bidang": "PELAYANAN MEDIS",
+      "kbji_kode": "2211",
+      "kbji_judul": "Dokter Umum",
+      "count": 120,
+      "keywords": [
+        "dokter",
+        "dokter umum",
+        "praktek dokter",
+        "dokter puskesmas"
+      ]
+    },
+    {
+      "pekerjaan": "STAF ADMINISTRASI / TATA USAHA",
+      "komoditas": "ADMINISTRASI",
+      "bidang": "PERKANTORAN / PEMERINTAHAN",
+      "kbji_kode": "4110",
+      "kbji_judul": "Pegawai Administrasi Umum",
+      "count": 670,
+      "keywords": [
+        "admin",
+        "staf tata usaha",
+        "pegawai kantor",
+        "administrasi",
+        "operator komputer",
+        "tata usaha"
+      ]
+    },
+    {
+      "pekerjaan": "APARATUR SIPIL NEGARA / PNS PEMDA",
+      "komoditas": "PEMERINTAHAN",
+      "bidang": "ADMINISTRASI PEMERINTAHAN",
+      "kbji_kode": "1112",
+      "kbji_judul": "Pejabat Tinggi Pemerintah / Pengambil Kebijakan",
+      "count": 530,
+      "keywords": [
+        "pns",
+        "asn",
+        "pegawai pemda",
+        "pegawai dinas",
+        "lurah",
+        "camat",
+        "kepala seksi"
+      ]
+    },
+    {
+      "pekerjaan": "KARYAWAN BUMN / BUMD / BANK",
+      "komoditas": "PERBANKAN",
+      "bidang": "JASA KEUANGAN",
+      "kbji_kode": "4211",
+      "kbji_judul": "Teller Bank dan Petugas Terkait",
+      "count": 240,
+      "keywords": [
+        "teller bank",
+        "pegawai bank",
+        "karyawan bank",
+        "customer service bank",
+        "teller"
+      ]
+    },
+    {
+      "pekerjaan": "PETERNAK AYAM / SAPI / KAMBING",
+      "komoditas": "PETERNAKAN",
+      "bidang": "BUDIDAYA TERNAK",
+      "kbji_kode": "6121",
+      "kbji_judul": "Peternak Sapi dan Ternak Perah Lainnya",
+      "count": 380,
+      "keywords": [
+        "peternak ayam",
+        "kandang ayam",
+        "peternak sapi",
+        "peternak kambing",
+        "ternak bebek"
+      ]
+    },
+    {
+      "pekerjaan": "PENGRAJIN / ANYAMAN / MEBEL",
+      "komoditas": "KERAJINAN",
+      "bidang": "INDUSTRI KERAJINAN",
+      "kbji_kode": "7317",
+      "kbji_judul": "Pembuat Kerajinan Anyaman dan Rotan",
+      "count": 190,
+      "keywords": [
+        "pengrajin",
+        "tukang mebel",
+        "tukang anyaman",
+        "kerajinan rotan",
+        "pembuat lemari"
+      ]
+    }
+  ]
+}

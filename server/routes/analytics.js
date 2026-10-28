@@ -80,6 +80,7 @@ router.use((req, res, next) => {
 const FEATURE_NAMES = {
     'landing': 'Beranda Utama',
     'kbli-2025': 'KBLI 2025 (Klasifikasi Lapangan Usaha)',
+    'kbji-2014': 'KBJI 2014 (Klasifikasi Baku Jabatan)',
     'kbli-kbji': 'KBLI dan KBJI Mempawah',
     'penilaian-mitra': 'Penilaian Kinerja Mitra Statistik',
     'peta-responden-se2026': 'Peta Responden SE2026',
@@ -877,16 +878,13 @@ router.get('/stats', (req, res) => {
 
 /**
  * POST /api/analytics/reset
- * Reset murni data telemetri menjadi 0 bersih
+ * Fitur reset dinonaktifkan permanen untuk menjaga integritas data riil telemetri
  */
 router.post('/reset', (req, res) => {
-    try {
-        analyticsState = createCleanAnalytics();
-        fs.writeFileSync(DATA_FILE, JSON.stringify(analyticsState, null, 2), 'utf8');
-        return sendJson(res, 200, { success: true, message: 'Data analitik berhasil di-reset murni menjadi 0 mulai hari ini.' });
-    } catch (err) {
-        return sendJson(res, 500, { success: false, error: err.message });
-    }
+    return sendJson(res, 403, { 
+        success: false, 
+        error: 'Fitur reset data analitik telah dinonaktifkan secara permanen untuk memproteksi keaslian data kunjungan riil.' 
+    });
 });
 
 module.exports = router;

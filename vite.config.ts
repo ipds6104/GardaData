@@ -20,10 +20,11 @@ export default defineConfig(({mode}) => {
             const express = require('express');
 
             server.middlewares.use((req: any, res: any, next: any) => {
-              if (req.url && (req.url.startsWith('/api/kbli') || req.url.startsWith('/api/analytics') || req.url.startsWith('/api/mitra'))) {
+              if (req.url && (req.url.startsWith('/api/kbli') || req.url.startsWith('/api/kbji') || req.url.startsWith('/api/analytics') || req.url.startsWith('/api/mitra'))) {
                 try {
                   delete require.cache[require.resolve('./server/routes/analytics')];
                   delete require.cache[require.resolve('./server/routes/kbli')];
+                  delete require.cache[require.resolve('./server/routes/kbji')];
                   delete require.cache[require.resolve('./server/routes/mitra')];
                   delete require.cache[require.resolve('./server/middleware/apiKeyAuth')];
                 } catch {}
@@ -38,6 +39,7 @@ export default defineConfig(({mode}) => {
                 });
                 apiApp.use(express.json());
                 apiApp.use('/api/kbli', require('./server/routes/kbli'));
+                apiApp.use('/api/kbji', require('./server/routes/kbji'));
                 apiApp.use('/api/analytics', require('./server/routes/analytics'));
                 apiApp.use('/api/mitra', require('./server/routes/mitra'));
                 return apiApp(req, res, next);

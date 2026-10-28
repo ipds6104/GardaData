@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Settings, BookOpenCheck, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, 
+import { LogOut, Settings, BookOpenCheck, Briefcase, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, 
   MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database, WifiOff, RefreshCw, 
   MapPin, ScanLine, Award, ChevronLeft, ChevronRight, HelpCircle, Sun, Palette, Sparkles,
   Maximize2, Minimize2, Calculator, BarChart3
@@ -152,13 +152,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     };
   }, []);
 
-  // Otomatis minimalkan (collapse) sidebar Garda Data saat membuka fitur laporan pendataan, peta responden SE2026, rasionalitas NTB, atau KBLI 2025 agar ruang kerja maksimal
+  // Otomatis minimalkan (collapse) sidebar Garda Data saat membuka fitur laporan pendataan, peta responden SE2026, rasionalitas NTB, KBLI 2025, atau KBJI 2014 agar ruang kerja maksimal
   useEffect(() => {
     if (
       currentPage === 'laporan-pendataan' || 
       currentPage === 'peta-responden-se2026' || 
       currentPage === 'rasionalitas-ntb' ||
-      currentPage === 'kbli-2025'
+      currentPage === 'kbli-2025' ||
+      currentPage === 'kbji-2014'
     ) {
       setIsSidebarCollapsed(true);
     }
@@ -168,7 +169,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     { id: 'lms', title: 'Learning Management System', desc: 'Pelatihan, e-learning, materi, sakernas agustus', keywords: ['lms', 'pelatihan', 'sakernas', 'susenas', 'agustus', 'materi', 'kuis', 'jadwal'] },
     { id: 'laporan-pendataan', title: 'Laporan Pendataan', desc: 'Laporan progres pendataan lapangan', keywords: ['laporan', 'pendataan', 'formulir', 'progress', 'progres', 'lapangan'] },
     ...((user?.role === 'admin' || user?.role === 'petugas' || user?.role === 'petugas_pengolahan') ? [
-      { id: 'kbli-2025', title: 'KBLI 2025', desc: 'Klasifikasi Baku Lapangan Usaha Indonesia 2025 standar BPS', keywords: ['kbli', 'kbli 2025', 'konsep', 'definisi', 'lapangan usaha', 'se2026', 'sektor', 'industri'] }
+      { id: 'kbli-2025', title: 'KBLI 2025', desc: 'Klasifikasi Baku Lapangan Usaha Indonesia 2025 standar BPS', keywords: ['kbli', 'kbli 2025', 'konsep', 'definisi', 'lapangan usaha', 'se2026', 'sektor', 'industri'] },
+      { id: 'kbji-2014', title: 'KBJI 2014', desc: 'Klasifikasi Baku Jabatan Indonesia 2014 konsep dan definisi tugas', keywords: ['kbji', 'kbji 2014', 'jabatan', 'pekerjaan', 'profesi', 'tugas', 'fungsi', 'mempawah'] }
     ] : []),
     { id: 'kbli-kbji', title: 'KBLI dan KBJI Mempawah', desc: 'Pencarian kode klasifikasi KBLI/KBJI lokal Mempawah', keywords: ['kbli', 'kbji', 'klasifikasi', 'kode', 'industri', 'pekerjaan'] },
     { id: 'building-area', title: 'Pengukuran Luas Bangunan', desc: 'Kalkulator area bangunan via satelit', keywords: ['bangunan', 'luas', 'atap', 'pengukuran', 'peta', 'satelit', 'geospasial'] },
@@ -225,7 +227,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         { id: 'monitoring', label: 'Monitoring Dashboard', icon: Activity },
         { id: 'laporan-pendataan', label: 'Laporan Pendataan', icon: FileEdit, isDev: true },
         ...((user?.role === 'admin' || user?.role === 'petugas' || user?.role === 'petugas_pengolahan') ? [
-          { id: 'kbli-2025', label: 'KBLI 2025', icon: BookOpenCheck }
+          { id: 'kbli-2025', label: 'KBLI 2025', icon: BookOpenCheck },
+          { id: 'kbji-2014', label: 'KBJI 2014', icon: Briefcase }
         ] : []),
         { id: 'kbli-kbji', label: 'KBLI dan KBJI Mempawah', icon: BookOpen },
         { id: 'imputation', label: 'Imputasi Susenas-Seruti', icon: FileEdit },
