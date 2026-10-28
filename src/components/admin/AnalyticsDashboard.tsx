@@ -13,7 +13,8 @@ import {
   AnalyticsDataResponse,
   DailySeriesItem,
   HourStat,
-  FeatureStat
+  FeatureStat,
+  AccountRecapItem
 } from '../../services/analyticsService';
 
 interface AnalyticsDashboardProps {
@@ -901,7 +902,11 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
   const [data, setData] = useState<AnalyticsDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'days' | 'hours' | 'features' | 'locations' | 'logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'accounts' | 'days' | 'hours' | 'features' | 'locations' | 'logs'>('overview');
+  const [searchAccount, setSearchAccount] = useState('');
+  const [filterAccountRole, setFilterAccountRole] = useState<'all' | 'admin' | 'petugas' | 'petugas_pengolahan' | 'pengunjung'>('all');
+  const [sortAccountBy, setSortAccountBy] = useState<'views_desc' | 'views_asc' | 'last_seen_desc' | 'name_asc'>('views_desc');
+  const [selectedAccountModal, setSelectedAccountModal] = useState<AccountRecapItem | null>(null);
   const [searchFeature, setSearchFeature] = useState('');
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
@@ -1052,7 +1057,107 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
     return res;
   }, [data?.roles_summary, data?.recent_logs]);
 
-  const totalRolesCount = useMemo(() => {
+
+  // =========================================================================
+  // REKAPITULASI NAMA AKUN PENGUNJUNG MEMO & HELPERS
+  // =========================================================================
+  const rawAccountRecap = useMemo(() => {
+    return data?.account_recap || [];
+  }, [data?.account_recap]);
+
+  const maxAccountViews = useMemo(() => {
+    if (!rawAccountRecap || rawAccountRecap.length === 0) return 1;
+    return Math.max(...rawAccountRecap.map(a => a.total_views), 1);
+  }, [rawAccountRecap]);
+
+  const filteredAccounts = useMemo(() => {
+    let list = [...rawAccountRecap];
+    if (searchAccount.trim()) {
+      const q = searchAccount.toLowerCase().trim();
+      list = list.filter(a => 
+        a.username.toLowerCase().includes(q) ||
+        a.role.toLowerCase().includes(q) ||
+        (a.top_feature && a.top_feature.toLowerCase().includes(q)) ||
+        a.cities.some(c => c.toLowerCase().includes(q)) ||
+        a.isps.some(i => i.toLowerCase().includes(q))
+      );
+    }
+    if (filterAccountRole !== 'all') {
+      list = list.filter(a => a.role === filterAccountRole);
+    }
+    list.sort((a, b) => {
+      if (sortAccountBy === 'views_desc') return b.total_views - a.total_views;
+      if (sortAccountBy === 'views_asc') return a.total_views - b.total_views;
+      if (sortAccountBy === 'last_seen_desc') return new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime();
+      if (sortAccountBy === 'name_asc') return a.username.localeCompare(b.username);
+      return 0;
+    });
+    return list;
+  }, [rawAccountRecap, searchAccount, filterAccountRole, sortAccountBy]);
+
+  const accountRoleCounts = useMemo(() => {
+    const counts = { all: rawAccountRecap.length, admin: 0, petugas: 0, petugas_pengolahan: 0, pengunjung: 0 };
+    rawAccountRecap.forEach(a => {
+      if (a.role === 'admin') counts.admin++;
+      else if (a.role === 'petugas_pengolahan') counts.petugas_pengolahan++;
+      else if (a.role === 'petugas') counts.petugas++;
+      else counts.pengunjung++;
+    });
+    return counts;
+  }, [rawAccountRecap]);
+
+  const topActiveAccount = useMemo(() => {
+    if (!rawAccountRecap || rawAccountRecap.length === 0) return null;
+    return rawAccountRecap[0];
+  }, [rawAccountRecap]);
+
+  const verifiedAccountsCount = useMemo(() => {
+    return (accountRoleCounts.admin || 0) + (accountRoleCounts.petugas || 0) + (accountRoleCounts.petugas_pengolahan || 0);
+  }, [accountRoleCounts]);
+
+  const formatTimestamp = (isoStr: string) => {
+    if (!isoStr) return '-';
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) + ' WIB';
+    } catch {
+      return isoStr;
+    }
+  };
+
+  const getRoleBadgeStyle = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800/80';
+      case 'petugas':
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800/80';
+      case 'petugas_pengolahan':
+        return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800/80';
+      default:
+        return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'Admin';
+      case 'petugas':
+        return 'Petugas Lapangan';
+      case 'petugas_pengolahan':
+        return 'Petugas Pengolahan';
+      default:
+        return 'Pengunjung / Tamu';
+    }
+  };
+
+    const totalRolesCount = useMemo(() => {
     return Math.max(
       1,
       (activeRolesSummary.admin || 0) +
@@ -1121,6 +1226,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
       <div className="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl overflow-x-auto scrollbar-none text-xs font-bold">
         {[
           { id: 'overview', label: 'Ringkasan & Analisis', icon: Sparkles },
+          { id: 'accounts', label: 'Rekap Akun Pengunjung', icon: UserCheck },
           { id: 'days', label: 'Analisis Hari', icon: Calendar },
           { id: 'hours', label: 'Analisis Waktu', icon: Clock },
           { id: 'features', label: 'Peringkat Fitur', icon: Award },
@@ -1535,6 +1641,98 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                 </div>
               </div>
 
+              {/* TOP AKUN PENGUNJUNG TERAKTIF (RINGKASAN DI OVERVIEW) */}
+              <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                      <UserCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base sm:text-lg font-black text-slate-800 dark:text-slate-100">
+                        Top Akun Pengunjung Teraktif
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Daftar pengguna dengan frekuensi interaksi tertinggi pada rentang tanggal terpilih.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('accounts')}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-primary-600 hover:text-primary-700 hover:underline cursor-pointer self-start sm:self-auto"
+                  >
+                    <span>Lihat Semua Rekap Akun ({rawAccountRecap.length})</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                  {rawAccountRecap.slice(0, 6).map((acc, idx) => (
+                    <div 
+                      key={acc.username}
+                      className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600 transition-all flex flex-col justify-between space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${
+                            acc.role === 'admin' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300' :
+                            acc.role === 'petugas' ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300' :
+                            acc.role === 'petugas_pengolahan' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300' :
+                            'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                          }`}>
+                            {acc.username.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">
+                              {acc.username}
+                            </h4>
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold border mt-0.5 ${getRoleBadgeStyle(acc.role)}`}>
+                              {getRoleLabel(acc.role)}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 shrink-0">
+                          #{idx + 1}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex items-center justify-between text-xs font-bold">
+                          <span className="text-slate-500 dark:text-slate-400 text-[11px]">Total Kunjungan</span>
+                          <span className="text-slate-800 dark:text-slate-100">{acc.total_views} kali ({acc.percentage}%)</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                            style={{ width: `${(acc.total_views / maxAccountViews) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div className="pt-1 border-t border-slate-200/50 dark:border-slate-700/50 text-[10px] text-slate-500 flex items-center justify-between">
+                        <span className="truncate max-w-[170px]" title={acc.top_feature}>
+                          Favorit: <strong className="text-slate-700 dark:text-slate-300 font-semibold">{acc.top_feature}</strong>
+                        </span>
+                        <button
+                          onClick={() => {
+                            setSelectedAccountModal(acc);
+                          }}
+                          className="text-primary-600 dark:text-primary-400 font-bold hover:underline cursor-pointer shrink-0"
+                        >
+                          Rincian
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {rawAccountRecap.length === 0 && (
+                    <div className="col-span-full py-8 text-center text-xs text-slate-400">
+                      Belum ada data kunjungan akun yang terekam pada rentang tanggal ini.
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* RANGKUMAN ANALISIS (DI PALING BAWAH) */}
               <div className="bg-gradient-to-br from-indigo-50/70 via-white to-purple-50/50 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 p-6 sm:p-8 rounded-3xl border border-indigo-100 dark:border-slate-800 shadow-xs">
                 <div className="flex items-center gap-2 mb-2">
@@ -1570,6 +1768,408 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* TAB: REKAP AKUN PENGUNJUNG */}
+          {/* ========================================================= */}
+          {activeTab === 'accounts' && (
+            <div className="space-y-6">
+              {/* Header Tab */}
+              <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                      <UserCheck className="w-5 h-5 text-emerald-500" />
+                      Rekapitulasi Nama Akun Pengunjung
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+                      Ringkasan teragregasi seluruh akun pengguna yang mengakses Garda Data pada rentang tanggal terpilih ({formatDateDisplay(startDate)} s/d {formatDateDisplay(endDate)}), mencakup total views, peran, modul terfavorit, serta riwayat lokasi.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-black text-xs border border-emerald-200/60 dark:border-emerald-800/60">
+                      {rawAccountRecap.length} Akun Terdata
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4 Mini KPI Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">Total Akun Aktif</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100">
+                        {rawAccountRecap.length}
+                      </span>
+                      <span className="text-[10px] text-slate-400">akun</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">Akun Teraktif</span>
+                    <div className="flex items-baseline gap-2 truncate">
+                      <span className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 truncate" title={topActiveAccount?.username || '-'}>
+                        {topActiveAccount?.username || '-'}
+                      </span>
+                      {topActiveAccount && (
+                        <span className="text-[10px] text-slate-400 shrink-0">({topActiveAccount.total_views}x)</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">Akun Dinas (Admin & Petugas)</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400">
+                        {verifiedAccountsCount}
+                      </span>
+                      <span className="text-[10px] text-slate-400">akun</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">Akun Tamu / Publik</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl sm:text-2xl font-black text-slate-700 dark:text-slate-300">
+                        {accountRoleCounts.pengunjung}
+                      </span>
+                      <span className="text-[10px] text-slate-400">akun</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Toolbar: Search, Role Pills, & Sort */}
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  {/* Search Input */}
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input 
+                      type="text"
+                      value={searchAccount}
+                      onChange={e => setSearchAccount(e.target.value)}
+                      placeholder="Cari nama akun, NIP, peran, modul, atau kota..."
+                      className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                    />
+                    {searchAccount && (
+                      <button 
+                        onClick={() => setSearchAccount('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sort Dropdown */}
+                  <div className="flex items-center gap-2 self-end md:self-auto text-xs">
+                    <span className="text-slate-400 font-bold shrink-0">Urutkan:</span>
+                    <select
+                      value={sortAccountBy}
+                      onChange={e => setSortAccountBy(e.target.value as any)}
+                      className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
+                    >
+                      <option value="views_desc">Kunjungan Terbanyak</option>
+                      <option value="views_asc">Kunjungan Paling Sedikit</option>
+                      <option value="last_seen_desc">Aktivitas Terakhir</option>
+                      <option value="name_asc">Nama Akun (A-Z)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Role Filter Pills */}
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pt-1">
+                  {[
+                    { id: 'all', label: 'Semua Peran', count: accountRoleCounts.all },
+                    { id: 'admin', label: 'Admin', count: accountRoleCounts.admin },
+                    { id: 'petugas', label: 'Petugas Lapangan', count: accountRoleCounts.petugas },
+                    { id: 'petugas_pengolahan', label: 'Petugas Pengolahan', count: accountRoleCounts.petugas_pengolahan },
+                    { id: 'pengunjung', label: 'Pengunjung / Tamu', count: accountRoleCounts.pengunjung }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setFilterAccountRole(tab.id as any)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                        filterAccountRole === tab.id
+                          ? 'bg-primary-600 text-white shadow-xs'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                        filterAccountRole === tab.id
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}>
+                        {tab.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Account Table */}
+              <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                        <th className="py-3 px-3">No</th>
+                        <th className="py-3 px-3">Nama Akun / Pengguna</th>
+                        <th className="py-3 px-3">Peran (Role)</th>
+                        <th className="py-3 px-3">Total Kunjungan</th>
+                        <th className="py-3 px-3">Fitur Favorit</th>
+                        <th className="py-3 px-3">Perangkat</th>
+                        <th className="py-3 px-3">Lokasi (IP)</th>
+                        <th className="py-3 px-3">Aktivitas Terakhir</th>
+                        <th className="py-3 px-3 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-700 dark:text-slate-300">
+                      {filteredAccounts.map((acc, index) => (
+                        <tr key={acc.username} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="py-3 px-3 text-slate-400 font-bold text-[11px]">
+                            {index + 1}
+                          </td>
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 ${
+                                acc.role === 'admin' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300' :
+                                acc.role === 'petugas' ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300' :
+                                acc.role === 'petugas_pengolahan' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300' :
+                                'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                              }`}>
+                                {acc.username.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <span className="font-bold text-slate-800 dark:text-slate-100 block">
+                                  {acc.username}
+                                </span>
+                                {acc.active_days_count > 0 && (
+                                  <span className="text-[10px] text-slate-400 block font-normal">
+                                    Aktif di {acc.active_days_count} tanggal berbeda
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getRoleBadgeStyle(acc.role)}`}>
+                              {getRoleLabel(acc.role)}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <div className="space-y-1 min-w-[120px]">
+                              <div className="flex items-center justify-between text-xs font-bold">
+                                <span className="text-slate-800 dark:text-slate-100">{acc.total_views} kali</span>
+                                <span className="text-[10px] text-slate-400">({acc.percentage}%)</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                                  style={{ width: `${(acc.total_views / maxAccountViews) * 100}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-slate-800 dark:text-slate-200 max-w-[180px] truncate" title={acc.top_feature}>
+                                {acc.top_feature}
+                              </span>
+                              {acc.top_feature_count > 0 && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                                  {acc.top_feature_count}x
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 whitespace-nowrap capitalize text-slate-600 dark:text-slate-300">
+                            <div className="flex items-center gap-1.5">
+                              {acc.primary_device === 'mobile' ? (
+                                <Smartphone className="w-3.5 h-3.5 text-slate-400" />
+                              ) : acc.primary_device === 'tablet' ? (
+                                <Tablet className="w-3.5 h-3.5 text-slate-400" />
+                              ) : (
+                                <Monitor className="w-3.5 h-3.5 text-slate-400" />
+                              )}
+                              <span>{acc.primary_device || 'desktop'}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1 text-[11px]">
+                              <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                {acc.cities[0] || 'Kabupaten Mempawah'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 whitespace-nowrap text-slate-500 dark:text-slate-400 text-[11px] font-mono">
+                            {formatTimestamp(acc.last_seen)}
+                          </td>
+                          <td className="py-3 px-3 whitespace-nowrap text-center">
+                            <button
+                              onClick={() => setSelectedAccountModal(acc)}
+                              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-primary-50 dark:bg-slate-800 dark:hover:bg-primary-950/40 text-primary-600 dark:text-primary-400 hover:text-primary-700 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1"
+                            >
+                              <Info className="w-3.5 h-3.5" />
+                              <span>Rincian</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+
+                      {filteredAccounts.length === 0 && (
+                        <tr>
+                          <td colSpan={9} className="py-12 text-center text-slate-400">
+                            <Users className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                            <p className="text-xs font-bold">Tidak ada akun yang sesuai dengan filter atau kata kunci pencarian.</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* MODAL DETAIL BREAKDOWN AKUN */}
+              {selectedAccountModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+                  <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+                    {/* Modal Header */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-base font-black shrink-0 ${
+                          selectedAccountModal.role === 'admin' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300' :
+                          selectedAccountModal.role === 'petugas' ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300' :
+                          selectedAccountModal.role === 'petugas_pengolahan' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300' :
+                          'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                        }`}>
+                          {selectedAccountModal.username.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">
+                              {selectedAccountModal.username}
+                            </h3>
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getRoleBadgeStyle(selectedAccountModal.role)}`}>
+                              {getRoleLabel(selectedAccountModal.role)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Rincian aktivitas & riwayat penjelajahan modul Garda Data
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setSelectedAccountModal(null)}
+                        className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Metric Quick Stats */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                        <span className="text-[10px] font-bold text-slate-400 block">Total Kunjungan</span>
+                        <span className="text-base font-black text-slate-800 dark:text-slate-100">
+                          {selectedAccountModal.total_views} kali ({selectedAccountModal.percentage}%)
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                        <span className="text-[10px] font-bold text-slate-400 block">Perangkat Utama</span>
+                        <span className="text-base font-black text-slate-800 dark:text-slate-100 capitalize">
+                          {selectedAccountModal.primary_device}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 col-span-2 sm:col-span-1">
+                        <span className="text-[10px] font-bold text-slate-400 block">Hari Aktif</span>
+                        <span className="text-base font-black text-slate-800 dark:text-slate-100">
+                          {selectedAccountModal.active_days_count} hari
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Timeline Info */}
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">Pertama Kali Terlihat:</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300 font-mono text-[11px]">
+                          {formatTimestamp(selectedAccountModal.first_seen)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">Terakhir Aktif:</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-[11px]">
+                          {formatTimestamp(selectedAccountModal.last_seen)}
+                        </span>
+                      </div>
+                      {selectedAccountModal.cities.length > 0 && (
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                          <span className="text-slate-500 dark:text-slate-400">Wilayah Akses:</span>
+                          <span className="font-bold text-slate-700 dark:text-slate-300">
+                            {selectedAccountModal.cities.join(', ')}
+                          </span>
+                        </div>
+                      )}
+                      {selectedAccountModal.isps.length > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">Penyedia Jaringan:</span>
+                          <span className="font-bold text-slate-700 dark:text-slate-300">
+                            {selectedAccountModal.isps.join(', ')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Breakdown Fitur yang Diakses */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                        Distribusi Modul yang Dikunjungi ({selectedAccountModal.features.length})
+                      </h4>
+                      <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                        {selectedAccountModal.features.map(f => {
+                          const pct = selectedAccountModal.total_views > 0
+                            ? Math.round((f.count / selectedAccountModal.total_views) * 100)
+                            : 0;
+                          return (
+                            <div key={f.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/50 dark:border-slate-700/50 space-y-1.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-slate-800 dark:text-slate-100 truncate">
+                                  {f.title}
+                                </span>
+                                <span className="font-black text-slate-700 dark:text-slate-300 shrink-0 ml-2">
+                                  {f.count} kali ({pct}%)
+                                </span>
+                              </div>
+                              <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full rounded-full bg-primary-500 transition-all duration-300"
+                                  style={{ width: `${pct}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Modal Actions */}
+                    <div className="flex justify-end pt-2 border-t border-slate-200/60 dark:border-slate-800">
+                      <button
+                        onClick={() => setSelectedAccountModal(null)}
+                        className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        Tutup
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

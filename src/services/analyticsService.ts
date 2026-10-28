@@ -89,6 +89,28 @@ export interface DeviceDistribution {
   tablet: { count: number; percentage: number };
 }
 
+export interface AccountFeatureItem {
+  id: string;
+  title: string;
+  count: number;
+}
+
+export interface AccountRecapItem {
+  username: string;
+  role: string;
+  total_views: number;
+  percentage: number;
+  first_seen: string;
+  last_seen: string;
+  active_days_count: number;
+  top_feature: string;
+  top_feature_count: number;
+  primary_device: string;
+  cities: string[];
+  isps: string[];
+  features: AccountFeatureItem[];
+}
+
 export interface AnalyticsDataResponse {
   success: boolean;
   message?: string;
@@ -113,6 +135,7 @@ export interface AnalyticsDataResponse {
   features: FeatureStat[];
   range_features?: FeatureStat[];
   roles_summary?: HourRoleBreakdown;
+  account_recap?: AccountRecapItem[];
   day_distribution: DayStat[];
   hour_distribution: HourStat[];
   locations: {
@@ -150,7 +173,8 @@ const FEATURE_NAMES: Record<string, string> = {
   'admin-sls': 'Peta Batas SLS Live',
   'social-phenomenon': 'Fenomena Sosial Ekonomi',
   'admin-strategic-data': 'Data Strategis BPS',
-  'identifikasi-sls': 'Identifikasi SLS'
+  'identifikasi-sls': 'Identifikasi SLS',
+    'analytics-ahmad': 'Statistik & Analisis Pengunjung'
 };
 
 const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -448,6 +472,112 @@ function buildOrganicAnalyticsResponse(startDate?: string, endDate?: string): An
     tablet: { count: dev.tablet || 0, percentage: parseFloat((((dev.tablet || 0) / totalDev) * 100).toFixed(1)) }
   };
 
+  // 1b. Rekapitulasi Akun Pengunjung Teragregasi
+  const accountAggregationMap: Record<string, {
+    username: string;
+    role: string;
+    total_views: number;
+    first_seen: string;
+    last_seen: string;
+    active_dates: Set<string>;
+    feature_counts: Record<string, number>;
+    devices: Record<string, number>;
+    cities: Set<string>;
+    isps: Set<string>;
+  }> = {};
+
+  const dateSet = new Set(dateList);
+  (store.recent_logs || []).forEach(log => {
+    const logDate = log.timestamp ? log.timestamp.split('T')[0] : '';
+    if (dateSet.has(logDate)) {
+      const rawUsername = (log.username || '').trim();
+      const uName = rawUsername || (log.role === 'pengunjung' ? 'Tamu' : 'Petugas');
+      if (!accountAggregationMap[uName]) {
+        accountAggregationMap[uName] = {
+          username: uName,
+          role: log.role || 'pengunjung',
+          total_views: 0,
+          first_seen: log.timestamp,
+          last_seen: log.timestamp,
+          active_dates: new Set(),
+          feature_counts: {},
+          devices: { desktop: 0, mobile: 0, tablet: 0 },
+          cities: new Set(),
+          isps: new Set()
+        };
+      }
+
+      const acc = accountAggregationMap[uName];
+      acc.total_views += 1;
+      if (!acc.first_seen || new Date(log.timestamp) < new Date(acc.first_seen)) {
+        acc.first_seen = log.timestamp;
+      }
+      if (!acc.last_seen || new Date(log.timestamp) > new Date(acc.last_seen)) {
+        acc.last_seen = log.timestamp;
+      }
+      if (logDate) acc.active_dates.add(logDate);
+
+      const featKey = log.page || 'landing';
+      acc.feature_counts[featKey] = (acc.feature_counts[featKey] || 0) + 1;
+
+      const devType = log.device_type || 'desktop';
+      acc.devices[devType] = (acc.devices[devType] || 0) + 1;
+
+      if (log.city && log.city !== 'Memproses...') acc.cities.add(log.city);
+      if (log.isp && log.isp !== 'Memproses...') acc.isps.add(log.isp);
+
+      if (log.role && log.role !== 'pengunjung' && acc.role === 'pengunjung') {
+        acc.role = log.role;
+      }
+    }
+  });
+
+  const accountRecap: AccountRecapItem[] = Object.values(accountAggregationMap).map(acc => {
+    let topFeatKey = '';
+    let topFeatCount = 0;
+    const featuresArray: AccountFeatureItem[] = Object.keys(acc.feature_counts).map(fKey => {
+      const count = acc.feature_counts[fKey];
+      if (count > topFeatCount) {
+        topFeatCount = count;
+        topFeatKey = fKey;
+      }
+      return {
+        id: fKey,
+        title: FEATURE_NAMES[fKey] || fKey,
+        count
+      };
+    }).sort((a, b) => b.count - a.count);
+
+    let primaryDev = 'desktop';
+    let maxDevCount = -1;
+    Object.keys(acc.devices).forEach(d => {
+      if (acc.devices[d] > maxDevCount) {
+        maxDevCount = acc.devices[d];
+        primaryDev = d;
+      }
+    });
+
+    const pct = effectiveTotalViews > 0 
+      ? parseFloat(((acc.total_views / effectiveTotalViews) * 100).toFixed(1)) 
+      : 0;
+
+    return {
+      username: acc.username,
+      role: acc.role,
+      total_views: acc.total_views,
+      percentage: pct,
+      first_seen: acc.first_seen,
+      last_seen: acc.last_seen,
+      active_days_count: acc.active_dates.size,
+      top_feature: FEATURE_NAMES[topFeatKey] || topFeatKey || 'Beranda Utama',
+      top_feature_count: topFeatCount,
+      primary_device: primaryDev,
+      cities: Array.from(acc.cities),
+      isps: Array.from(acc.isps),
+      features: featuresArray
+    };
+  }).sort((a, b) => b.total_views - a.total_views);
+
   const insights: SmartInsight[] = [
     {
       type: 'primary',
@@ -522,6 +652,7 @@ function buildOrganicAnalyticsResponse(startDate?: string, endDate?: string): An
       top_isp: topIsp
     },
     device_distribution: deviceDistribution,
+    account_recap: accountRecap,
     work_comparison: {
       working_hours: { count: workingHourViews, percentage: parseFloat(workingHourPct) },
       outside_working_hours: { count: nonWorkingHourViews, percentage: parseFloat((100 - parseFloat(workingHourPct)).toFixed(1)) },

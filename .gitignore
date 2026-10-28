@@ -31,6 +31,8 @@ server/config/
 server/config/**
 server/data/
 server/data/**
+backend/data/
+backend/data/**
 *service-account*.json
 *LAPORAN_ANALISIS_KEAMANAN*
 *ANALISIS_KEAMANAN*

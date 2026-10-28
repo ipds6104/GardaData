@@ -94,7 +94,8 @@ const FEATURE_NAMES = {
     'admin-sls': 'Peta Batas SLS Live',
     'social-phenomenon': 'Fenomena Sosial Ekonomi',
     'admin-strategic-data': 'Data Strategis BPS',
-    'identifikasi-sls': 'Identifikasi SLS'
+    'identifikasi-sls': 'Identifikasi SLS',
+    'analytics-ahmad': 'Statistik & Analisis Pengunjung'
 };
 
 const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -560,6 +561,7 @@ router.get('/stats', (req, res) => {
 
         // Agregasi dari recent_logs untuk tanggal yang masuk dateList
         const dateSet = new Set(dateList);
+        const accountAggregationMap = {};
         analyticsState.recent_logs.forEach(log => {
             if (dateSet.has(log.date)) {
                 const h = typeof log.hour === 'number' ? log.hour : 0;
@@ -588,6 +590,47 @@ router.get('/stats', (req, res) => {
                     hourlyFeatureMaps[h][log.page] = (hourlyFeatureMaps[h][log.page] || 0) + 1;
                 }
                 rangeFeatureMap[log.page] = (rangeFeatureMap[log.page] || 0) + 1;
+
+                // Agregasi per akun pengguna (username)
+                const rawUsername = (log.username || '').trim();
+                const uName = rawUsername || (log.role === 'pengunjung' ? 'Tamu' : 'Petugas');
+                if (!accountAggregationMap[uName]) {
+                    accountAggregationMap[uName] = {
+                        username: uName,
+                        role: log.role || 'pengunjung',
+                        total_views: 0,
+                        first_seen: log.timestamp,
+                        last_seen: log.timestamp,
+                        active_dates: new Set(),
+                        feature_counts: {},
+                        devices: { desktop: 0, mobile: 0, tablet: 0 },
+                        cities: new Set(),
+                        isps: new Set()
+                    };
+                }
+
+                const acc = accountAggregationMap[uName];
+                acc.total_views += 1;
+                if (!acc.first_seen || new Date(log.timestamp) < new Date(acc.first_seen)) {
+                    acc.first_seen = log.timestamp;
+                }
+                if (!acc.last_seen || new Date(log.timestamp) > new Date(acc.last_seen)) {
+                    acc.last_seen = log.timestamp;
+                }
+                if (log.date) acc.active_dates.add(log.date);
+
+                const featKey = log.page || 'landing';
+                acc.feature_counts[featKey] = (acc.feature_counts[featKey] || 0) + 1;
+
+                const dev = log.device_type || 'desktop';
+                acc.devices[dev] = (acc.devices[dev] || 0) + 1;
+
+                if (log.city && log.city !== 'Memproses...') acc.cities.add(log.city);
+                if (log.isp && log.isp !== 'Memproses...') acc.isps.add(log.isp);
+
+                if (log.role && log.role !== 'pengunjung' && acc.role === 'pengunjung') {
+                    acc.role = log.role;
+                }
             }
         });
 
@@ -645,6 +688,53 @@ router.get('/stats', (req, res) => {
         const isRangeFiltered = Boolean(startDate || endDate);
         const effectiveTotalViews = isRangeFiltered ? filteredTotalViews : (analyticsState.summary.total_views || 0);
         const effectiveUniqueCount = isRangeFiltered ? filteredUniqueSet.size : Object.keys(analyticsState.unique_visitors || {}).length;
+
+        // 1b. Rekapitulasi Akun Pengunjung Teragregasi
+        const accountRecap = Object.values(accountAggregationMap).map(acc => {
+            let topFeatKey = '';
+            let topFeatCount = 0;
+            const featuresArray = Object.keys(acc.feature_counts).map(fKey => {
+                const count = acc.feature_counts[fKey];
+                if (count > topFeatCount) {
+                    topFeatCount = count;
+                    topFeatKey = fKey;
+                }
+                return {
+                    id: fKey,
+                    title: FEATURE_NAMES[fKey] || fKey,
+                    count
+                };
+            }).sort((a, b) => b.count - a.count);
+
+            let primaryDev = 'desktop';
+            let maxDevCount = -1;
+            Object.keys(acc.devices).forEach(d => {
+                if (acc.devices[d] > maxDevCount) {
+                    maxDevCount = acc.devices[d];
+                    primaryDev = d;
+                }
+            });
+
+            const pct = effectiveTotalViews > 0 
+                ? parseFloat(((acc.total_views / effectiveTotalViews) * 100).toFixed(1)) 
+                : 0;
+
+            return {
+                username: acc.username,
+                role: acc.role,
+                total_views: acc.total_views,
+                percentage: pct,
+                first_seen: acc.first_seen,
+                last_seen: acc.last_seen,
+                active_days_count: acc.active_dates.size,
+                top_feature: FEATURE_NAMES[topFeatKey] || topFeatKey || 'Beranda Utama',
+                top_feature_count: topFeatCount,
+                primary_device: primaryDev,
+                cities: Array.from(acc.cities),
+                isps: Array.from(acc.isps),
+                features: featuresArray
+            };
+        }).sort((a, b) => b.total_views - a.total_views);
 
         // 2. Rekap Distribusi Jam (00:00 - 23:00) sesuai rentang tanggal yang dipilih
         let maxHourViews = 0;
@@ -860,6 +950,7 @@ router.get('/stats', (req, res) => {
             device_distribution: deviceStats,
             range_features: rangeFeatureList,
             roles_summary: rangeRoleMap,
+            account_recap: accountRecap,
             work_comparison: {
                 working_hours: { count: workingHourViews, percentage: parseFloat(workingHourPct) },
                 outside_working_hours: { count: nonWorkingHourViews, percentage: parseFloat((100 - parseFloat(workingHourPct)).toFixed(1)) },
