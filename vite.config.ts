@@ -20,21 +20,31 @@ export default defineConfig(({mode}) => {
             const express = require('express');
 
             server.middlewares.use((req: any, res: any, next: any) => {
-              if (req.url && (req.url.startsWith('/api/kbli') || req.url.startsWith('/api/analytics'))) {
+              if (req.url && (req.url.startsWith('/api/kbli') || req.url.startsWith('/api/analytics') || req.url.startsWith('/api/mitra'))) {
                 try {
                   delete require.cache[require.resolve('./server/routes/analytics')];
                   delete require.cache[require.resolve('./server/routes/kbli')];
+                  delete require.cache[require.resolve('./server/routes/mitra')];
+                  delete require.cache[require.resolve('./server/middleware/apiKeyAuth')];
                 } catch {}
 
                 const apiApp = express();
+                apiApp.use((_req: any, res: any, nextFn: any) => {
+                  res.setHeader('Access-Control-Allow-Origin', '*');
+                  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+                  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, x-api-key, X-API-Token, x-api-token');
+                  if (_req.method === 'OPTIONS') return res.sendStatus(204);
+                  nextFn();
+                });
                 apiApp.use(express.json());
                 apiApp.use('/api/kbli', require('./server/routes/kbli'));
                 apiApp.use('/api/analytics', require('./server/routes/analytics'));
+                apiApp.use('/api/mitra', require('./server/routes/mitra'));
                 return apiApp(req, res, next);
               }
               next();
             });
-            console.log('✔ [Vite Dev] KBLI 2025 & Analytics API middleware mounted at /api/kbli and /api/analytics');
+            console.log('✔ [Vite Dev] KBLI 2025, Analytics & Mitra API middleware mounted at /api/kbli, /api/analytics, and /api/mitra');
           } catch (e: any) {
             console.warn('Note on dev middleware:', e.message);
           }

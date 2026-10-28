@@ -34,11 +34,12 @@ app.use(cors({
             return callback(null, true);
         }
         
-        const msg = 'CORS Policy: Akses dari origin ini diblokir demi keamanan.';
-        return callback(new Error(msg), false);
+        // Izinkan request untuk integrasi API eksternal dengan API Key
+        return callback(null, true);
+
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'x-api-key', 'X-API-Token', 'x-api-token'],
     credentials: true
 }));
 
@@ -70,6 +71,7 @@ const phenomenaRoutes = require('./routes/phenomena');
 const laporanRoutes = require('./routes/laporan');
 const kbliRoutes = require('./routes/kbli');
 const analyticsRoutes = require('./routes/analytics');
+const mitraRoutes = require('./routes/mitra');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -79,6 +81,7 @@ app.use('/api/phenomena', phenomenaRoutes);
 app.use('/api/laporan', laporanRoutes);
 app.use('/api/kbli', kbliRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/mitra', mitraRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
