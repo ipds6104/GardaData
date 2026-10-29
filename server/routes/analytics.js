@@ -370,7 +370,7 @@ router.post('/track', (req, res) => {
                 first_seen: timestamp,
                 last_seen: timestamp,
                 count: 1,
-                username: String(username).slice(0, 50),
+                username: cleanUsername,
                 role: String(role).slice(0, 30),
                 last_ip: maskedIp
             };
@@ -378,8 +378,8 @@ router.post('/track', (req, res) => {
             analyticsState.unique_visitors[vKey].last_seen = timestamp;
             analyticsState.unique_visitors[vKey].count += 1;
             analyticsState.unique_visitors[vKey].last_ip = maskedIp;
-            if (username && username !== 'Tamu') {
-                analyticsState.unique_visitors[vKey].username = String(username).slice(0, 50);
+            if (cleanUsername && cleanUsername !== 'Tamu') {
+                analyticsState.unique_visitors[vKey].username = cleanUsername;
             }
             if (role) {
                 analyticsState.unique_visitors[vKey].role = String(role).slice(0, 30);
@@ -448,7 +448,7 @@ router.post('/track', (req, res) => {
             page_title: FEATURE_NAMES[cleanPage] || cleanPage,
             visitor_id: vKey,
             role: String(role).slice(0, 30),
-            username: String(username).slice(0, 50),
+            username: cleanUsername,
             device_type: dType,
             day_name: DAY_NAMES[dayIndex],
             hour: hour,
