@@ -177,6 +177,17 @@ const FEATURE_NAMES: Record<string, string> = {
     'analytics-ahmad': 'Statistik & Analisis Pengunjung'
 };
 
+
+export function normalizeAccountUsername(raw: any, role?: string): string {
+  if (!raw) return role === 'pengunjung' ? 'Tamu' : 'Petugas';
+  const s = String(raw).trim();
+  if (s === '200109122024121001') return 'sukma.andini';
+  if (s === '199503112022031001') return 'pegawai.mempawah';
+  if (s.includes('@')) return s.split('@')[0].trim().toLowerCase();
+  if (/^\d{18}$/.test(s)) return 'pegawai.' + s.slice(-4);
+  return s;
+}
+
 const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -490,8 +501,7 @@ function buildOrganicAnalyticsResponse(startDate?: string, endDate?: string): An
   (store.recent_logs || []).forEach(log => {
     const logDate = log.timestamp ? log.timestamp.split('T')[0] : '';
     if (dateSet.has(logDate)) {
-      const rawUsername = (log.username || '').trim();
-      const uName = rawUsername || (log.role === 'pengunjung' ? 'Tamu' : 'Petugas');
+      const uName = normalizeAccountUsername(log.username, log.role);
       if (!accountAggregationMap[uName]) {
         accountAggregationMap[uName] = {
           username: uName,
@@ -660,7 +670,7 @@ function buildOrganicAnalyticsResponse(startDate?: string, endDate?: string): An
       weekend: { count: weekendViews, percentage: parseFloat((100 - parseFloat(weekdayPct)).toFixed(1)) }
     },
     insights,
-    recent_logs: store.recent_logs.slice(0, 100)
+    recent_logs: store.recent_logs.slice(0, 100).map(l => ({ ...l, username: normalizeAccountUsername(l.username, l.role) }))
   };
 }
 
@@ -673,7 +683,20 @@ export async function trackPageView(page: string, user: AuthUser | null | undefi
   try {
     const visitorId = getOrCreateVisitorId();
     const role = user?.role || 'pengunjung';
-    const username = user?.username || (user?.role === 'pengunjung' ? 'Tamu' : 'Petugas');
+    let username = user?.username;
+    if (!username || /^\d{18}$/.test(username)) {
+      if (user?.email && user.email.includes('@')) {
+        username = user.email.split('@')[0].trim().toLowerCase();
+      } else if (username === '200109122024121001' || user?.nip === '200109122024121001') {
+        username = 'sukma.andini';
+      } else if (user?.name) {
+        username = user.name.toLowerCase().replace(/\s+/g, '.');
+      } else {
+        username = role === 'pengunjung' ? 'Tamu' : 'Petugas';
+      }
+    } else {
+      username = normalizeAccountUsername(username, role);
+    }
     const deviceType = getDeviceType();
 
     // 1. Simpan ke local store murni secara instan
@@ -763,7 +786,8 @@ export async function trackPageView(page: string, user: AuthUser | null | undefi
 export async function getAnalyticsStats(
   user: AuthUser | null | undefined,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  refresh?: boolean
 ): Promise<AnalyticsDataResponse> {
   const requestingUser = user?.username || user?.email || 'ahmadaulia';
   const token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('navigasi_token') : null;
@@ -772,6 +796,7 @@ export async function getAnalyticsStats(
     let url = `/api/analytics/stats?user=${encodeURIComponent(requestingUser)}`;
     if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
     if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+    if (refresh) url += `&refresh=true`;
 
     const res = await fetch(url, {
       signal: AbortSignal.timeout(3000),

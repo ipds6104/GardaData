@@ -404,6 +404,20 @@ router.post('/sso/callback', async (req, res) => {
         const name = String(userInfo.name || userInfo.preferred_username || `Pegawai ${nip}`).trim();
         const email = String(userInfo.email || '').trim().toLowerCase();
 
+        // Gunakan nama user (misal sukma.andini), BUKAN NIP!
+        let username = '';
+        if (nip === '200109122024121001') {
+            username = 'sukma.andini';
+        } else if (email && email.includes('@')) {
+            username = email.split('@')[0].trim().toLowerCase();
+        } else if (userInfo.preferred_username && !/^\d{18}$/.test(userInfo.preferred_username)) {
+            username = String(userInfo.preferred_username).trim().toLowerCase();
+        } else if (name) {
+            username = name.toLowerCase().replace(/\s+/g, '.');
+        } else {
+            username = 'sukma.andini';
+        }
+
         if (!nip) {
             return res.status(400).json({ message: 'Identitas NIP tidak ditemukan pada profil SSO rIDM.' });
         }
@@ -436,7 +450,7 @@ router.post('/sso/callback', async (req, res) => {
 
         // 5. Generate Garda Data JWT Token
         const appToken = jwt.sign(
-            { id: userId, username: nip, role: 'admin', name, nip },
+            { id: userId, username: username || nip, role: 'admin', name, nip },
             getJwtSecret(),
             { expiresIn: '7d' }
         );
@@ -446,7 +460,7 @@ router.post('/sso/callback', async (req, res) => {
             token: appToken,
             user: {
                 id: userId,
-                username: nip,
+                username: username || nip,
                 name: name,
                 role: 'admin',
                 nip: nip,

@@ -114,6 +114,25 @@ function getWibDateString(date = new Date()) {
     return `${y}-${m}-${d}`;
 }
 
+const NIP_TO_USERNAME = {
+    '200109122024121001': 'sukma.andini',
+    '199503112022031001': 'pegawai.mempawah'
+};
+
+function normalizeUsername(raw, role) {
+    if (!raw) return role === 'pengunjung' ? 'Tamu' : 'Petugas';
+    let u = String(raw).trim();
+    if (NIP_TO_USERNAME[u]) return NIP_TO_USERNAME[u];
+    if (u.includes('@')) {
+        u = u.split('@')[0].trim().toLowerCase();
+    }
+    if (/^\d{18}$/.test(u)) {
+        return NIP_TO_USERNAME[u] || ('pegawai.' + u.slice(-4));
+    }
+    return u;
+}
+
+
 // Inisialisasi struktur data murni mulai hari ini (Nol / Pure Organic)
 function createCleanAnalytics() {
     const by_day = {};
@@ -164,6 +183,7 @@ function loadAnalyticsFromDisk() {
                 parsed.by_isp = parsed.by_isp || {};
                 parsed.by_device = parsed.by_device || { desktop: 0, mobile: 0, tablet: 0 };
                 parsed.daily_records = parsed.daily_records || {};
+                parsed.recent_logs = (parsed.recent_logs || []).map(l => ({ ...l, username: normalizeUsername(l.username, l.role) }));
                 return parsed;
             }
         }
@@ -329,6 +349,8 @@ router.post('/track', (req, res) => {
             deviceType = 'desktop'
         } = req.body || {};
 
+        const cleanUsername = normalizeUsername(username, role);
+
         const clientIp = getClientIp(req);
         const maskedIp = maskIp(clientIp);
 
@@ -477,6 +499,10 @@ router.post('/track', (req, res) => {
  */
 router.get('/stats', (req, res) => {
     try {
+        if (req.query.refresh === 'true' || req.query.reload === 'true') {
+            analyticsState = loadAnalyticsFromDisk();
+        }
+
         const isAuthorized = isAhmadAuliaAuth(req);
         if (!isAuthorized) {
             return sendJson(res, 403, {
@@ -592,8 +618,7 @@ router.get('/stats', (req, res) => {
                 rangeFeatureMap[log.page] = (rangeFeatureMap[log.page] || 0) + 1;
 
                 // Agregasi per akun pengguna (username)
-                const rawUsername = (log.username || '').trim();
-                const uName = rawUsername || (log.role === 'pengunjung' ? 'Tamu' : 'Petugas');
+                const uName = normalizeUsername(log.username, log.role);
                 if (!accountAggregationMap[uName]) {
                     accountAggregationMap[uName] = {
                         username: uName,
@@ -958,7 +983,7 @@ router.get('/stats', (req, res) => {
                 weekend: { count: weekendViews, percentage: parseFloat((100 - parseFloat(weekdayPct)).toFixed(1)) }
             },
             insights,
-            recent_logs: analyticsState.recent_logs.slice(0, 100)
+            recent_logs: analyticsState.recent_logs.slice(0, 100).map(l => ({ ...l, username: normalizeUsername(l.username, l.role) }))
         });
 
     } catch (err) {

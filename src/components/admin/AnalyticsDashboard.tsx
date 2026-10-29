@@ -922,12 +922,12 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
 
   const isAuthorized = isAhmadAuliaUser(user);
 
-  const fetchData = async (start = startDate, end = endDate) => {
+  const fetchData = async (start = startDate, end = endDate, refresh = false) => {
     if (!isAuthorized) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await getAnalyticsStats(user, start, end);
+      const res = await getAnalyticsStats(user, start, end, refresh);
       setData(res);
       setLastRefreshed(new Date());
     } catch (err: any) {
@@ -1058,12 +1058,26 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
   }, [data?.roles_summary, data?.recent_logs]);
 
 
+
+function normalizeAccountName(raw: any, role?: string): string {
+  if (!raw) return role === 'pengunjung' ? 'Tamu' : 'Petugas';
+  const s = String(raw).trim();
+  if (s === '200109122024121001') return 'sukma.andini';
+  if (s === '199503112022031001') return 'pegawai.mempawah';
+  if (s.includes('@')) return s.split('@')[0].trim().toLowerCase();
+  if (/^\d{18}$/.test(s)) return 'pegawai.' + s.slice(-4);
+  return s;
+}
+
   // =========================================================================
   // REKAPITULASI NAMA AKUN PENGUNJUNG MEMO & HELPERS (ROBUST & FAILSAFE)
   // =========================================================================
   const rawAccountRecap: AccountRecapItem[] = useMemo(() => {
     if (data?.account_recap && Array.isArray(data.account_recap) && data.account_recap.length > 0) {
-      return data.account_recap;
+      return data.account_recap.map(acc => ({
+        ...acc,
+        username: normalizeAccountName(acc.username, acc.role)
+      }));
     }
 
     // Failsafe Otomatis: Jika backend belum me-return account_recap,
@@ -1085,8 +1099,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
       const totalEffectiveViews = data.summary?.filtered_total_views || data.recent_logs.length || 1;
 
       data.recent_logs.forEach(log => {
-        const rawName = String(log.username || '').trim();
-        const uName = rawName || (log.role === 'pengunjung' ? 'Tamu' : 'Petugas');
+        const uName = normalizeAccountName(log.username, log.role);
         if (!accountMap[uName]) {
           accountMap[uName] = {
             username: uName,
@@ -1334,7 +1347,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
           </div>
 
           <button
-            onClick={() => fetchData(startDate, endDate)}
+            onClick={() => fetchData(startDate, endDate, true)}
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-xs font-bold rounded-2xl transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer"
           >
@@ -1385,7 +1398,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
           <AlertCircle className="w-8 h-8 text-rose-600 mx-auto" />
           <h3 className="text-sm font-bold text-rose-800 dark:text-rose-200">{error}</h3>
           <button
-            onClick={() => fetchData(startDate, endDate)}
+            onClick={() => fetchData(startDate, endDate, true)}
             className="px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-rose-700 transition-colors cursor-pointer"
           >
             Coba Lagi
@@ -3212,7 +3225,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                           </td>
                           <td className="py-2.5 px-3 whitespace-nowrap">
                             <span className="font-semibold text-slate-700 dark:text-slate-300">
-                              {log.username || 'Tamu'}
+                              {normalizeAccountName(log.username, log.role)}
                             </span>
                           </td>
                           <td className="py-2.5 px-3 whitespace-nowrap">

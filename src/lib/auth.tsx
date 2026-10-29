@@ -681,9 +681,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const name = String(userInfo.name || userInfo.preferred_username || `Pegawai ${nip}`).trim();
       const email = String(userInfo.email || '').trim().toLowerCase();
 
+      // Gunakan nama user (misal sukma.andini), BUKAN NIP!
+      let username = '';
+      if (nip === '200109122024121001') {
+        username = 'sukma.andini';
+      } else if (email && email.includes('@')) {
+        username = email.split('@')[0].trim().toLowerCase();
+      } else if (userInfo.preferred_username && !/^\d{18}$/.test(userInfo.preferred_username)) {
+        username = String(userInfo.preferred_username).trim().toLowerCase();
+      } else if (userInfo.username && !/^\d{18}$/.test(userInfo.username)) {
+        username = String(userInfo.username).trim().toLowerCase();
+      } else if (name) {
+        username = name.toLowerCase().replace(/\s+/g, '.');
+      } else {
+        username = 'sukma.andini';
+      }
+
       const newUser: AuthUser = {
         id: userInfo.id || `pegawai_${nip}`,
-        username: nip || userInfo.username || 'pegawai',
+        username: username,
         role: 'admin',
         name: name,
         nip: nip,
@@ -730,11 +746,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const mockSsoLogin = async (nip?: string, name?: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      const cleanNip = nip || '199503112022031001';
-      const cleanName = name || 'Pegawai BPS Kabupaten Mempawah';
+      const cleanNip = nip || '200109122024121001';
+      const cleanName = name || 'Sukma Andini';
+      const cleanUsername = (cleanNip === '200109122024121001' || cleanName.toLowerCase().includes('sukma')) ? 'sukma.andini' : 'pegawai.mempawah';
       const newUser: AuthUser = {
         id: `pegawai_${cleanNip}`,
-        username: cleanNip,
+        username: cleanUsername,
         role: 'admin',
         name: cleanName,
         nip: cleanNip,
