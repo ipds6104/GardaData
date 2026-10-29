@@ -216,14 +216,20 @@ function loadAnalyticsFromDisk() {
                 parsed.by_isp = parsed.by_isp || {};
                 parsed.by_device = parsed.by_device || { desktop: 0, mobile: 0, tablet: 0 };
                 parsed.daily_records = parsed.daily_records || {};
-                parsed.recent_logs = (parsed.recent_logs || []).map(l => {
-                    const cleanU = normalizeUsername(l.username, l.role, l.page);
-                    return {
-                        ...l,
-                        username: cleanU,
-                        role: l.page === 'analytics-ahmad' ? 'admin' : (cleanU === 'Tamu' ? 'pengunjung' : l.role)
-                    };
-                });
+                parsed.recent_logs = (parsed.recent_logs || [])
+                    .filter(l => !(l.role === 'pengunjung' && l.page !== 'visitor-dashboard') && !(l.username === 'Tamu' && l.page !== 'visitor-dashboard'))
+                    .map(l => {
+                        const cleanU = normalizeUsername(l.username, l.role, l.page);
+                        return {
+                            ...l,
+                            username: cleanU,
+                            role: l.page === 'analytics-ahmad' ? 'admin' : (cleanU === 'Tamu' ? 'pengunjung' : l.role)
+                        };
+                    });
+                if (parsed.unique_visitors) {
+                    delete parsed.unique_visitors['vid_guest_mempawah'];
+                    delete parsed.unique_visitors['vid_petugas_mempawah'];
+                }
                 return parsed;
             }
         }
@@ -394,6 +400,11 @@ router.post('/track', (req, res) => {
         // Pengunjung yang masih di halaman login jangan dicatat sebagai pengunjung!
         if (page === 'login' || !role) {
             return sendJson(res, 200, { success: true, ignored: true, message: 'Halaman login tidak dicatat sebagai pengunjung.' });
+        }
+
+        // Ketentuan Tamu: Tamu HANYA terhitung jika sudah masuk ke halaman tamu ('visitor-dashboard').
+        if (role === 'pengunjung' && page !== 'visitor-dashboard') {
+            return sendJson(res, 200, { success: true, ignored: true, message: 'Tamu hanya dicatat ketika membuka halaman tamu.' });
         }
 
         const cleanUsername = normalizeUsername(username, role);

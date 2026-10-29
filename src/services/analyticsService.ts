@@ -334,14 +334,16 @@ function getCleanLocalStore(): {
           by_isp: parsed.by_isp || {},
           daily_records: parsed.daily_records || {},
           recent_logs: Array.isArray(parsed.recent_logs) 
-            ? parsed.recent_logs.map((l: any) => {
-                const u = normalizeAccountUsername(l.username, l.role, l.page);
-                return {
-                  ...l,
-                  username: u,
-                  role: l.page === 'analytics-ahmad' ? 'admin' : (u === 'Tamu' ? 'pengunjung' : l.role)
-                };
-              })
+            ? parsed.recent_logs
+                .filter((l: any) => !(l.role === 'pengunjung' && l.page !== 'visitor-dashboard') && !(l.username === 'Tamu' && l.page !== 'visitor-dashboard'))
+                .map((l: any) => {
+                  const u = normalizeAccountUsername(l.username, l.role, l.page);
+                  return {
+                    ...l,
+                    username: u,
+                    role: l.page === 'analytics-ahmad' ? 'admin' : (u === 'Tamu' ? 'pengunjung' : l.role)
+                  };
+                })
             : [],
           first_tracked: parsed.first_tracked || new Date().toISOString()
         };
@@ -726,7 +728,9 @@ export async function trackPageView(page: string, user: AuthUser | null | undefi
   if (typeof window === 'undefined') return;
 
   // Sesuai aturan: jika masih di halaman login / belum login (!user), jangan dicatat sebagai pengunjung!
+  // Ketentuan tamu: Tamu HANYA terhitung jika sudah masuk ke halaman tamu ('visitor-dashboard')
   if (!user || page === 'login') return;
+  if ((!user.role || user.role === 'pengunjung') && page !== 'visitor-dashboard') return;
 
   try {
     const visitorId = getOrCreateVisitorId();

@@ -82,11 +82,12 @@ function AppContent() {
   useEffect(() => {
     sessionStorage.setItem('garda_current_page', currentPage);
     // Rekam perpindahan halaman HANYA jika pengguna sudah masuk/login (jika masih di halaman login jangan dihitung)
+    // Ketentuan tamu: Tamu HANYA terhitung jika sudah masuk ke halaman tamu ('visitor-dashboard')
     if (user) {
-      const pageToTrack = (user.role === 'pengunjung' && (currentPage === 'landing' || currentPage === 'visitor-dashboard')) 
-        ? 'visitor-dashboard' 
-        : currentPage;
-      trackPageView(pageToTrack, user);
+      if (user.role === 'pengunjung' && currentPage !== 'visitor-dashboard') {
+        return;
+      }
+      trackPageView(currentPage, user);
     }
   }, [currentPage, user]);
 
