@@ -140,8 +140,11 @@ const NIP_TO_USERNAME = {
     '198008122006041003': 'abdul.karim'          // Abdul Karim
 };
 
-function normalizeUsername(raw, role) {
-    if (!raw) return role === 'pengunjung' ? 'Tamu' : 'Petugas';
+function normalizeUsername(raw, role, page) {
+    if (page === 'analytics-ahmad') return 'ahmad.aulia';
+    if (!raw || role === 'pengunjung' || String(raw).toLowerCase() === 'pengunjung' || String(raw).toLowerCase() === 'tamu' || (String(raw).toLowerCase() === 'petugas' && role === 'pengunjung')) {
+        return 'Tamu';
+    }
     let u = String(raw).trim();
     if (NIP_TO_USERNAME[u]) return NIP_TO_USERNAME[u];
     if (u.includes('@')) {
@@ -207,7 +210,14 @@ function loadAnalyticsFromDisk() {
                 parsed.by_isp = parsed.by_isp || {};
                 parsed.by_device = parsed.by_device || { desktop: 0, mobile: 0, tablet: 0 };
                 parsed.daily_records = parsed.daily_records || {};
-                parsed.recent_logs = (parsed.recent_logs || []).map(l => ({ ...l, username: normalizeUsername(l.username, l.role) }));
+                parsed.recent_logs = (parsed.recent_logs || []).map(l => {
+                    const cleanU = normalizeUsername(l.username, l.role, l.page);
+                    return {
+                        ...l,
+                        username: cleanU,
+                        role: l.page === 'analytics-ahmad' ? 'admin' : (cleanU === 'Tamu' ? 'pengunjung' : l.role)
+                    };
+                });
                 return parsed;
             }
         }
@@ -528,7 +538,7 @@ router.post('/track', (req, res) => {
  */
 router.get('/stats', (req, res) => {
     try {
-        if (req.query.refresh === 'true' || req.query.reload === 'true') {
+        if (!analyticsState || !isDirty || req.query.refresh === 'true' || req.query.reload === 'true') {
             analyticsState = loadAnalyticsFromDisk();
         }
 
@@ -647,11 +657,12 @@ router.get('/stats', (req, res) => {
                 rangeFeatureMap[log.page] = (rangeFeatureMap[log.page] || 0) + 1;
 
                 // Agregasi per akun pengguna (username)
-                const uName = normalizeUsername(log.username, log.role);
+                const uName = normalizeUsername(log.username, log.role, log.page);
+                const rRole = log.page === 'analytics-ahmad' ? 'admin' : (uName === 'Tamu' ? 'pengunjung' : (log.role || 'pengunjung'));
                 if (!accountAggregationMap[uName]) {
                     accountAggregationMap[uName] = {
                         username: uName,
-                        role: log.role || 'pengunjung',
+                        role: rRole,
                         total_views: 0,
                         first_seen: log.timestamp,
                         last_seen: log.timestamp,
@@ -1012,7 +1023,14 @@ router.get('/stats', (req, res) => {
                 weekend: { count: weekendViews, percentage: parseFloat((100 - parseFloat(weekdayPct)).toFixed(1)) }
             },
             insights,
-            recent_logs: analyticsState.recent_logs.slice(0, 100).map(l => ({ ...l, username: normalizeUsername(l.username, l.role) }))
+            recent_logs: analyticsState.recent_logs.slice(0, 100).map(l => {
+                const u = normalizeUsername(l.username, l.role, l.page);
+                return {
+                    ...l,
+                    username: u,
+                    role: l.page === 'analytics-ahmad' ? 'admin' : (u === 'Tamu' ? 'pengunjung' : l.role)
+                };
+            })
         });
 
     } catch (err) {

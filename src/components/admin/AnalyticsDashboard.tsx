@@ -922,8 +922,15 @@ export const BPS_NIP_TO_EMAIL_MAP: Record<string, string> = {
   '198008122006041003': 'abdul.karim'          // Abdul Karim
 };
 
-export function normalizeAccountName(raw: any, role?: string): string {
-  if (!raw) return role === 'pengunjung' ? 'Tamu' : 'Petugas';
+export function normalizeAccountName(raw: any, role?: string, topFeature?: string): string {
+  if (topFeature === 'Statistik & Analisis Pengunjung') {
+    if (String(raw).toLowerCase().includes('sukma')) {
+      return 'ahmad.aulia';
+    }
+  }
+  if (!raw || role === 'pengunjung' || String(raw).toLowerCase() === 'pengunjung' || String(raw).toLowerCase() === 'tamu' || (String(raw).toLowerCase() === 'petugas' && role === 'pengunjung')) {
+    return 'Tamu';
+  }
   const s = String(raw).trim();
   if (BPS_NIP_TO_EMAIL_MAP[s]) return BPS_NIP_TO_EMAIL_MAP[s];
   if (s.includes('@')) return s.split('@')[0].trim().toLowerCase();
@@ -932,9 +939,11 @@ export function normalizeAccountName(raw: any, role?: string): string {
   return s;
 }
 
-export function getAccountAvatarText(name: string): string {
-  if (!name) return 'P';
-  const clean = normalizeAccountName(name);
+export function getAccountAvatarText(name: string, role?: string): string {
+  if (!name) return role === 'pengunjung' ? 'TM' : 'PT';
+  const clean = normalizeAccountName(name, role);
+  if (clean === 'Tamu' || role === 'pengunjung') return 'TM';
+  if (clean.toLowerCase() === 'petugas') return 'PT';
   if (clean.includes('.')) {
     const parts = clean.split('.');
     const first = parts[0]?.[0] || '';
@@ -1122,17 +1131,39 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
     if (data?.account_recap && Array.isArray(data.account_recap) && data.account_recap.length > 0) {
       const mergedMap: Record<string, AccountRecapItem> = {};
       data.account_recap.forEach(acc => {
-        const u = normalizeAccountName(acc.username, acc.role);
+        let u = normalizeAccountName(acc.username, acc.role, acc.top_feature);
+        let finalRole = acc.role;
+        if (u === 'Tamu' || finalRole === 'pengunjung') {
+          u = 'Tamu';
+          finalRole = 'pengunjung';
+        }
         if (!mergedMap[u]) {
           mergedMap[u] = {
             ...acc,
-            username: u
+            username: u,
+            role: finalRole
           };
         } else {
           mergedMap[u].total_views += (acc.total_views || 0);
           mergedMap[u].active_days_count = Math.max(mergedMap[u].active_days_count || 1, acc.active_days_count || 1);
-          if (acc.role && acc.role !== 'pengunjung') {
-            mergedMap[u].role = acc.role;
+          if (finalRole && finalRole !== 'pengunjung') {
+            mergedMap[u].role = finalRole;
+          }
+          if (acc.features && Array.isArray(acc.features)) {
+            const existingFeatures = mergedMap[u].features || [];
+            const featMap: Record<string, { id: string; title: string; count: number }> = {};
+            existingFeatures.forEach(f => { featMap[f.id || f.title] = { ...f }; });
+            acc.features.forEach(f => {
+              const k = f.id || f.title;
+              if (featMap[k]) featMap[k].count += f.count;
+              else featMap[k] = { ...f };
+            });
+            const mergedFeatures = Object.values(featMap).sort((a, b) => b.count - a.count);
+            mergedMap[u].features = mergedFeatures;
+            if (mergedFeatures[0]) {
+              mergedMap[u].top_feature = mergedFeatures[0].title;
+              mergedMap[u].top_feature_count = mergedFeatures[0].count;
+            }
           }
         }
       });
@@ -1158,11 +1189,19 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
       const totalEffectiveViews = data.summary?.filtered_total_views || data.recent_logs.length || 1;
 
       data.recent_logs.forEach(log => {
-        const uName = normalizeAccountName(log.username, log.role);
+        let uName = normalizeAccountName(log.username, log.role, log.page === 'analytics-ahmad' ? 'Statistik & Analisis Pengunjung' : undefined);
+        let rName = log.role || 'pengunjung';
+        if (log.page === 'analytics-ahmad') {
+          uName = 'ahmad.aulia';
+          rName = 'admin';
+        } else if (uName === 'Tamu' || rName === 'pengunjung') {
+          uName = 'Tamu';
+          rName = 'pengunjung';
+        }
         if (!accountMap[uName]) {
           accountMap[uName] = {
             username: uName,
-            role: log.role || 'pengunjung',
+            role: rName,
             total_views: 0,
             first_seen: log.timestamp || new Date().toISOString(),
             last_seen: log.timestamp || new Date().toISOString(),
@@ -1874,7 +1913,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                             acc.role === 'petugas_pengolahan' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300' :
                             'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
                           }`}>
-                            {getAccountAvatarText(acc?.username)}
+                            {getAccountAvatarText(acc?.username, acc?.role)}
                           </div>
                           <div className="min-w-0">
                             <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">
@@ -2136,7 +2175,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                                 acc.role === 'petugas_pengolahan' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300' :
                                 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
                               }`}>
-                                {getAccountAvatarText(acc?.username)}
+                                {getAccountAvatarText(acc?.username, acc?.role)}
                               </div>
                               <div>
                                 <span className="font-bold text-slate-800 dark:text-slate-100 block">
@@ -2242,7 +2281,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                           selectedAccountModal.role === 'petugas_pengolahan' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300' :
                           'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
                         }`}>
-                          {getAccountAvatarText(selectedAccountModal?.username)}
+                          {getAccountAvatarText(selectedAccountModal?.username, selectedAccountModal?.role)}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">

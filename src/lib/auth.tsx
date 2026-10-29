@@ -695,7 +695,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (name) {
         username = name.toLowerCase().replace(/\s+/g, '.');
       } else {
-        username = 'sukma.andini';
+        username = 'ahmad.aulia';
       }
 
       const newUser: AuthUser = {
@@ -747,8 +747,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const mockSsoLogin = async (nip?: string, name?: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      const cleanNip = nip || '200109122024121001';
-      const cleanName = name || 'Sukma Andini';
+      const cleanNip = nip || '199503112022031001';
+      const cleanName = name || 'Ahmad Aulia Rahman';
       const cleanUsername = BPS_NIP_TO_EMAIL_MAP[cleanNip] || (cleanName.toLowerCase().replace(/\s+/g, '.'));
       const newUser: AuthUser = {
         id: `pegawai_${cleanNip}`,

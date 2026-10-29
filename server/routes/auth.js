@@ -437,7 +437,7 @@ router.post('/sso/callback', async (req, res) => {
         } else if (name) {
             username = name.toLowerCase().replace(/\s+/g, '.');
         } else {
-            username = 'sukma.andini';
+            username = 'ahmad.aulia';
         }
 
         if (!nip) {

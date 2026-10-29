@@ -204,8 +204,11 @@ export const BPS_NIP_TO_EMAIL_MAP: Record<string, string> = {
   '198008122006041003': 'abdul.karim'          // Abdul Karim
 };
 
-export function normalizeAccountUsername(raw: any, role?: string): string {
-  if (!raw) return role === 'pengunjung' ? 'Tamu' : 'Petugas';
+export function normalizeAccountUsername(raw: any, role?: string, page?: string): string {
+  if (page === 'analytics-ahmad') return 'ahmad.aulia';
+  if (!raw || role === 'pengunjung' || String(raw).toLowerCase() === 'pengunjung' || String(raw).toLowerCase() === 'tamu' || (String(raw).toLowerCase() === 'petugas' && role === 'pengunjung')) {
+    return 'Tamu';
+  }
   const s = String(raw).trim();
   if (BPS_NIP_TO_EMAIL_MAP[s]) return BPS_NIP_TO_EMAIL_MAP[s];
   if (s.includes('@')) return s.split('@')[0].trim().toLowerCase();
@@ -324,7 +327,16 @@ function getCleanLocalStore(): {
           by_province: parsed.by_province || {},
           by_isp: parsed.by_isp || {},
           daily_records: parsed.daily_records || {},
-          recent_logs: Array.isArray(parsed.recent_logs) ? parsed.recent_logs : [],
+          recent_logs: Array.isArray(parsed.recent_logs) 
+            ? parsed.recent_logs.map((l: any) => {
+                const u = normalizeAccountUsername(l.username, l.role, l.page);
+                return {
+                  ...l,
+                  username: u,
+                  role: l.page === 'analytics-ahmad' ? 'admin' : (u === 'Tamu' ? 'pengunjung' : l.role)
+                };
+              })
+            : [],
           first_tracked: parsed.first_tracked || new Date().toISOString()
         };
       }
@@ -527,11 +539,12 @@ function buildOrganicAnalyticsResponse(startDate?: string, endDate?: string): An
   (store.recent_logs || []).forEach(log => {
     const logDate = log.timestamp ? log.timestamp.split('T')[0] : '';
     if (dateSet.has(logDate)) {
-      const uName = normalizeAccountUsername(log.username, log.role);
+      const uName = normalizeAccountUsername(log.username, log.role, log.page);
+      const rRole = log.page === 'analytics-ahmad' ? 'admin' : (uName === 'Tamu' ? 'pengunjung' : (log.role || 'pengunjung'));
       if (!accountAggregationMap[uName]) {
         accountAggregationMap[uName] = {
           username: uName,
-          role: log.role || 'pengunjung',
+          role: rRole,
           total_views: 0,
           first_seen: log.timestamp,
           last_seen: log.timestamp,
@@ -715,12 +728,14 @@ export async function trackPageView(page: string, user: AuthUser | null | undefi
     let username = user?.username;
     const cleanNip = user?.nip || (username && /^\d{18}$/.test(username) ? username : '');
     
-    if (cleanNip && BPS_NIP_TO_EMAIL_MAP[cleanNip]) {
+    if (page === 'analytics-ahmad') {
+      username = 'ahmad.aulia';
+    } else if (cleanNip && BPS_NIP_TO_EMAIL_MAP[cleanNip]) {
       username = BPS_NIP_TO_EMAIL_MAP[cleanNip];
     } else if (user?.email && user.email.includes('@')) {
       username = user.email.split('@')[0].trim().toLowerCase();
     } else if (username && !/^\d{18}$/.test(username)) {
-      username = normalizeAccountUsername(username, role);
+      username = normalizeAccountUsername(username, role, page);
     } else if (user?.name) {
       username = user.name.toLowerCase().replace(/\s+/g, '.');
     } else {
