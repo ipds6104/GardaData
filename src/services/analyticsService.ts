@@ -789,6 +789,10 @@ export async function getAnalyticsStats(
           const fallback = buildOrganicAnalyticsResponse(startDate, endDate);
           serverData.daily_series = fallback.daily_series;
         }
+        if (!serverData.account_recap || !Array.isArray(serverData.account_recap) || serverData.account_recap.length === 0) {
+          const fallback = buildOrganicAnalyticsResponse(startDate, endDate);
+          serverData.account_recap = fallback.account_recap;
+        }
         return serverData;
       }
     }

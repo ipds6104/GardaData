@@ -4,7 +4,7 @@ import {
   TrendingUp, Award, Activity, Shield, ShieldCheck, Sparkles, Filter, 
   Monitor, Smartphone, Tablet, CheckCircle2, AlertCircle, Info,
   MapPin, Globe, Wifi, PieChart, ChevronLeft, ChevronRight,
-  ChevronDown, X, UserCheck, Briefcase, FileSpreadsheet, User
+  ChevronDown, X, UserCheck, Briefcase, FileSpreadsheet, User, Search
 } from 'lucide-react';
 import { useAuth, isAhmadAuliaUser } from '../../lib/auth';
 import { 
@@ -1059,37 +1059,155 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
 
 
   // =========================================================================
-  // REKAPITULASI NAMA AKUN PENGUNJUNG MEMO & HELPERS
+  // REKAPITULASI NAMA AKUN PENGUNJUNG MEMO & HELPERS (ROBUST & FAILSAFE)
   // =========================================================================
-  const rawAccountRecap = useMemo(() => {
-    return data?.account_recap || [];
-  }, [data?.account_recap]);
+  const rawAccountRecap: AccountRecapItem[] = useMemo(() => {
+    if (data?.account_recap && Array.isArray(data.account_recap) && data.account_recap.length > 0) {
+      return data.account_recap;
+    }
+
+    // Failsafe Otomatis: Jika backend belum me-return account_recap,
+    // langsung kalkulasi secara dinamis dari data.recent_logs yang ada!
+    if (data?.recent_logs && Array.isArray(data.recent_logs) && data.recent_logs.length > 0) {
+      const accountMap: Record<string, {
+        username: string;
+        role: string;
+        total_views: number;
+        first_seen: string;
+        last_seen: string;
+        active_dates: Set<string>;
+        feature_counts: Record<string, number>;
+        devices: Record<string, number>;
+        cities: Set<string>;
+        isps: Set<string>;
+      }> = {};
+
+      const totalEffectiveViews = data.summary?.filtered_total_views || data.recent_logs.length || 1;
+
+      data.recent_logs.forEach(log => {
+        const rawName = String(log.username || '').trim();
+        const uName = rawName || (log.role === 'pengunjung' ? 'Tamu' : 'Petugas');
+        if (!accountMap[uName]) {
+          accountMap[uName] = {
+            username: uName,
+            role: log.role || 'pengunjung',
+            total_views: 0,
+            first_seen: log.timestamp || new Date().toISOString(),
+            last_seen: log.timestamp || new Date().toISOString(),
+            active_dates: new Set(),
+            feature_counts: {},
+            devices: { desktop: 0, mobile: 0, tablet: 0 },
+            cities: new Set(),
+            isps: new Set()
+          };
+        }
+
+        const acc = accountMap[uName];
+        acc.total_views += 1;
+        if (log.timestamp) {
+          if (!acc.first_seen || new Date(log.timestamp) < new Date(acc.first_seen)) {
+            acc.first_seen = log.timestamp;
+          }
+          if (!acc.last_seen || new Date(log.timestamp) > new Date(acc.last_seen)) {
+            acc.last_seen = log.timestamp;
+          }
+          const dStr = log.timestamp.split('T')[0];
+          if (dStr) acc.active_dates.add(dStr);
+        }
+
+        const fName = log.page_title || log.page || 'Beranda Utama';
+        acc.feature_counts[fName] = (acc.feature_counts[fName] || 0) + 1;
+
+        const dev = log.device_type || 'desktop';
+        acc.devices[dev] = (acc.devices[dev] || 0) + 1;
+
+        if (log.city && log.city !== 'Memproses...') acc.cities.add(log.city);
+        if (log.isp && log.isp !== 'Memproses...') acc.isps.add(log.isp);
+
+        if (log.role && log.role !== 'pengunjung' && acc.role === 'pengunjung') {
+          acc.role = log.role;
+        }
+      });
+
+      return Object.values(accountMap).map(acc => {
+        let topFeat = 'Beranda Utama';
+        let topFeatCount = 0;
+        const features = Object.entries(acc.feature_counts).map(([title, count]) => {
+          if (count > topFeatCount) {
+            topFeatCount = count;
+            topFeat = title;
+          }
+          return { id: title, title, count };
+        }).sort((a, b) => b.count - a.count);
+
+        let primaryDev = 'desktop';
+        let maxDevCount = -1;
+        Object.entries(acc.devices).forEach(([dev, count]) => {
+          if (count > maxDevCount) {
+            maxDevCount = count;
+            primaryDev = dev;
+          }
+        });
+
+        const pct = totalEffectiveViews > 0
+          ? parseFloat(((acc.total_views / totalEffectiveViews) * 100).toFixed(1))
+          : 0;
+
+        return {
+          username: acc.username,
+          role: acc.role,
+          total_views: acc.total_views,
+          percentage: pct,
+          first_seen: acc.first_seen,
+          last_seen: acc.last_seen,
+          active_days_count: acc.active_dates.size || 1,
+          top_feature: topFeat,
+          top_feature_count: topFeatCount,
+          primary_device: primaryDev,
+          cities: Array.from(acc.cities),
+          isps: Array.from(acc.isps),
+          features
+        };
+      }).sort((a, b) => b.total_views - a.total_views);
+    }
+
+    return [];
+  }, [data?.account_recap, data?.recent_logs, data?.summary?.filtered_total_views]);
 
   const maxAccountViews = useMemo(() => {
     if (!rawAccountRecap || rawAccountRecap.length === 0) return 1;
-    return Math.max(...rawAccountRecap.map(a => a.total_views), 1);
+    return Math.max(...rawAccountRecap.map(a => Number(a?.total_views) || 0), 1);
   }, [rawAccountRecap]);
 
   const filteredAccounts = useMemo(() => {
-    let list = [...rawAccountRecap];
+    let list = Array.isArray(rawAccountRecap) ? [...rawAccountRecap] : [];
     if (searchAccount.trim()) {
       const q = searchAccount.toLowerCase().trim();
-      list = list.filter(a => 
-        a.username.toLowerCase().includes(q) ||
-        a.role.toLowerCase().includes(q) ||
-        (a.top_feature && a.top_feature.toLowerCase().includes(q)) ||
-        a.cities.some(c => c.toLowerCase().includes(q)) ||
-        a.isps.some(i => i.toLowerCase().includes(q))
-      );
+      list = list.filter(a => {
+        const u = String(a?.username || '').toLowerCase();
+        const r = String(a?.role || '').toLowerCase();
+        const tf = String(a?.top_feature || '').toLowerCase();
+        const matchCities = Array.isArray(a?.cities) && a.cities.some(c => String(c || '').toLowerCase().includes(q));
+        const matchIsps = Array.isArray(a?.isps) && a.isps.some(i => String(i || '').toLowerCase().includes(q));
+        return u.includes(q) || r.includes(q) || tf.includes(q) || matchCities || matchIsps;
+      });
     }
     if (filterAccountRole !== 'all') {
-      list = list.filter(a => a.role === filterAccountRole);
+      list = list.filter(a => String(a?.role || 'pengunjung') === filterAccountRole);
     }
     list.sort((a, b) => {
-      if (sortAccountBy === 'views_desc') return b.total_views - a.total_views;
-      if (sortAccountBy === 'views_asc') return a.total_views - b.total_views;
-      if (sortAccountBy === 'last_seen_desc') return new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime();
-      if (sortAccountBy === 'name_asc') return a.username.localeCompare(b.username);
+      const viewsA = Number(a?.total_views) || 0;
+      const viewsB = Number(b?.total_views) || 0;
+      if (sortAccountBy === 'views_desc') return viewsB - viewsA;
+      if (sortAccountBy === 'views_asc') return viewsA - viewsB;
+      if (sortAccountBy === 'last_seen_desc') {
+        const timeA = a?.last_seen ? new Date(a.last_seen).getTime() : 0;
+        const timeB = b?.last_seen ? new Date(b.last_seen).getTime() : 0;
+        return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+      }
+      if (sortAccountBy === 'name_asc') {
+        return String(a?.username || '').localeCompare(String(b?.username || ''));
+      }
       return 0;
     });
     return list;
@@ -1098,9 +1216,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
   const accountRoleCounts = useMemo(() => {
     const counts = { all: rawAccountRecap.length, admin: 0, petugas: 0, petugas_pengolahan: 0, pengunjung: 0 };
     rawAccountRecap.forEach(a => {
-      if (a.role === 'admin') counts.admin++;
-      else if (a.role === 'petugas_pengolahan') counts.petugas_pengolahan++;
-      else if (a.role === 'petugas') counts.petugas++;
+      const r = String(a?.role || '');
+      if (r === 'admin') counts.admin++;
+      else if (r === 'petugas_pengolahan') counts.petugas_pengolahan++;
+      else if (r === 'petugas') counts.petugas++;
       else counts.pengunjung++;
     });
     return counts;
@@ -1115,10 +1234,11 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
     return (accountRoleCounts.admin || 0) + (accountRoleCounts.petugas || 0) + (accountRoleCounts.petugas_pengolahan || 0);
   }, [accountRoleCounts]);
 
-  const formatTimestamp = (isoStr: string) => {
+  const formatTimestamp = (isoStr: string | undefined | null) => {
     if (!isoStr) return '-';
     try {
       const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return '-';
       return d.toLocaleString('id-ID', {
         day: '2-digit',
         month: 'short',
@@ -1127,12 +1247,13 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
         minute: '2-digit'
       }) + ' WIB';
     } catch {
-      return isoStr;
+      return '-';
     }
   };
 
-  const getRoleBadgeStyle = (role: string) => {
-    switch (role) {
+  const getRoleBadgeStyle = (role: string | undefined | null) => {
+    const r = String(role || '');
+    switch (r) {
       case 'admin':
         return 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800/80';
       case 'petugas':
@@ -1144,8 +1265,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
     }
   };
 
-  const getRoleLabel = (role: string) => {
-    switch (role) {
+  const getRoleLabel = (role: string | undefined | null) => {
+    const r = String(role || '');
+    switch (r) {
       case 'admin':
         return 'Admin';
       case 'petugas':
@@ -1157,7 +1279,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
     }
   };
 
-    const totalRolesCount = useMemo(() => {
+  const totalRolesCount = useMemo(() => {
     return Math.max(
       1,
       (activeRolesSummary.admin || 0) +
@@ -1680,7 +1802,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                             acc.role === 'petugas_pengolahan' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300' :
                             'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
                           }`}>
-                            {acc.username.substring(0, 2).toUpperCase()}
+                            {String(acc?.username || 'Pengguna').trim().substring(0, 2).toUpperCase() || 'P'}
                           </div>
                           <div className="min-w-0">
                             <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">
@@ -1942,7 +2064,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                                 acc.role === 'petugas_pengolahan' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300' :
                                 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
                               }`}>
-                                {acc.username.substring(0, 2).toUpperCase()}
+                                {String(acc?.username || 'Pengguna').trim().substring(0, 2).toUpperCase() || 'P'}
                               </div>
                               <div>
                                 <span className="font-bold text-slate-800 dark:text-slate-100 block">
@@ -2003,7 +2125,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                             <div className="flex items-center gap-1 text-[11px]">
                               <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                               <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                {acc.cities[0] || 'Kabupaten Mempawah'}
+                                {(Array.isArray(acc?.cities) && acc.cities.length > 0 && acc.cities[0]) ? acc.cities[0] : 'Kabupaten Mempawah'}
                               </span>
                             </div>
                           </td>
@@ -2048,7 +2170,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                           selectedAccountModal.role === 'petugas_pengolahan' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300' :
                           'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
                         }`}>
-                          {selectedAccountModal.username.substring(0, 2).toUpperCase()}
+                          {String(selectedAccountModal?.username || 'Pengguna').trim().substring(0, 2).toUpperCase() || 'P'}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -2108,7 +2230,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                           {formatTimestamp(selectedAccountModal.last_seen)}
                         </span>
                       </div>
-                      {selectedAccountModal.cities.length > 0 && (
+                      {(selectedAccountModal?.cities || []).length > 0 && (
                         <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
                           <span className="text-slate-500 dark:text-slate-400">Wilayah Akses:</span>
                           <span className="font-bold text-slate-700 dark:text-slate-300">
@@ -2116,7 +2238,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                           </span>
                         </div>
                       )}
-                      {selectedAccountModal.isps.length > 0 && (
+                      {(selectedAccountModal?.isps || []).length > 0 && (
                         <div className="flex items-center justify-between">
                           <span className="text-slate-500 dark:text-slate-400">Penyedia Jaringan:</span>
                           <span className="font-bold text-slate-700 dark:text-slate-300">
@@ -2129,10 +2251,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
                     {/* Breakdown Fitur yang Diakses */}
                     <div className="space-y-3">
                       <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                        Distribusi Modul yang Dikunjungi ({selectedAccountModal.features.length})
+                        Distribusi Modul yang Dikunjungi ({(selectedAccountModal?.features || []).length})
                       </h4>
                       <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                        {selectedAccountModal.features.map(f => {
+                        {(selectedAccountModal?.features || []).map(f => {
                           const pct = selectedAccountModal.total_views > 0
                             ? Math.round((f.count / selectedAccountModal.total_views) * 100)
                             : 0;
