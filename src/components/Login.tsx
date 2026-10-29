@@ -68,7 +68,7 @@ export const Login: React.FC = () => {
   const handleSimulatedSsoLogin = async () => {
     setIsSsoLoading(true);
     setShowSsoInfoModal(false);
-    const res = await mockSsoLogin('199503112022031001', 'Pegawai BPS Kabupaten Mempawah');
+    const res = await mockSsoLogin('200109122024121001', 'Ahmad Aulia Rahman');
     setIsSsoLoading(false);
     if (!res.success) {
       setError(res.message || 'Gagal menjalankan simulasi login pegawai.');

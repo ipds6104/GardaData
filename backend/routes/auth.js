@@ -123,11 +123,33 @@ router.post('/sso/callback', async (req, res) => {
     const email = String(userInfo.email || '').trim().toLowerCase();
 
     const BPS_NIP_MAP = {
-      '200109122024121001': 'sukma.andini',
-      '200202152024122003': 'vaniya.wulandari',
-      '200104042026032001': 'akma.batrisyia',
-      '200002042022012003': 'safira.nurrosyid',
-      '199503112022031001': 'ahmad.aulia'
+      '196908031992111001': 'munawir',
+      '196901192007011004': 'abdul.karim',
+      '198603272009021005': 'supandi',
+      '198204042005022005': 'sy.apriani',
+      '198103182011011003': 'firmansyah2',
+      '198407112011011007': 'alhaq',
+      '198007142011011003': 'yulfi.ramanda',
+      '199605222019012001': 'arinif',
+      '199612302019011001': 'listiojati',
+      '199605162019012001': 'sarah.pratiwi',
+      '199101072019032001': 'wantri.mukti',
+      '199606062019122001': 'safira.nurrosyid',
+      '200002042022012003': 'najia.helmiah',
+      '200001062023021001': 'allersilaban',
+      '199910282023021005': 'ihzakarunia',
+      '200109122024121001': 'ahmad.aulia',
+      '200202152024122003': 'sukma.andini',
+      '199907192021042001': 'vaya.difa',
+      '199905272023022001': 'arsita.indah',
+      '200110202023021003': 'mullahrifky',
+      '200306242024122001': 'vaniya.dewi',
+      '200104042026032001': 'akmabatrisyia',
+      '200409072026032001': 'claralagum',
+      '198008112005021004': 'muh.adwin',
+      '197511292025211001': 'iskandar-pppk',
+      '199908082025211024': 'haddadsaputra-pppk',
+      '198805282025211043': 'rizakurniawan-pppk'
     };
 
     let username = '';

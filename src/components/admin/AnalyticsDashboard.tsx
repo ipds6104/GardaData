@@ -898,28 +898,34 @@ const HourlyLineChart: React.FC<HourlyLineChartProps> = ({
 // BPS MEMPAWAH NIP TO USERNAME / EMAIL MAPPING & DISPLAY HELPERS
 // =========================================================================
 export const BPS_NIP_TO_EMAIL_MAP: Record<string, string> = {
-  // Pegawai BPS Mempawah (Sesuai Konfirmasi & Screenshot Pengguna)
-  '200109122024121001': 'sukma.andini',        // Sukma Andini (email: sukma.andini@bps.go.id)
-  '200202152024122003': 'vaniya.wulandari',    // Vaniya Dewi Wulandari (email: vaniya.wulandari@bps.go.id)
-  '200104042026032001': 'akma.batrisyia',      // Akma Batrisyia Jazima (email: akma.batrisyia@bps.go.id)
-  '200002042022012003': 'safira.nurrosyid',    // Safira Nurrosyid (email: safira.nurrosyid@bps.go.id)
-
-  // Pegawai BPS Kabupaten Mempawah lainnya
-  '199503112022031001': 'ahmad.aulia',         // Ahmad Aulia Rahman (email: ahmad.aulia@bps.go.id)
-  '199808142022031001': 'rifky.syadriawan',    // Rifky Mullah Syadriawan
-  '199905202022032001': 'najia.helmiah',       // Najia Helmiah
-  '199701102020121002': 'listio.nandhiko',     // Listio Jati Nandhiko
-  '199812252022031002': 'ihza.karunia',        // Ihza Fikri Zaki Karunia
-  '199607182020121001': 'yulfi.ramanda',       // Yulfi Ramanda
-  '199404122016022001': 'wantri',              // Wantri
-  '199909092022032002': 'arini.faurizah',      // Arini Faurizah
-  '199304212015022001': 'syarifah.apriani',    // Syarifah Apriani
-  '199708282020121001': 'muhammad.syihabuddin', // Muhammad Syihabuddin Alhaq
-  '199511052019011001': 'aller.silaban',       // Aller Budiman Silaban
-  '200102142024122001': 'clara.diva',          // Clara Diva
-  '199912012022032001': 'briggita.difa',       // Briggita Vaya Difa
-  '198506152010121002': 'firmansyah',          // Firmansyah
-  '198008122006041003': 'abdul.karim'          // Abdul Karim
+  // Pegawai & PPPK BPS Kabupaten Mempawah (Sesuai Data Resmi BPS)
+  '196908031992111001': 'munawir',
+  '196901192007011004': 'abdul.karim',
+  '198603272009021005': 'supandi',
+  '198204042005022005': 'sy.apriani',
+  '198103182011011003': 'firmansyah2',
+  '198407112011011007': 'alhaq',
+  '198007142011011003': 'yulfi.ramanda',
+  '199605222019012001': 'arinif',
+  '199612302019011001': 'listiojati',
+  '199605162019012001': 'sarah.pratiwi',
+  '199101072019032001': 'wantri.mukti',
+  '199606062019122001': 'safira.nurrosyid',
+  '200002042022012003': 'najia.helmiah',
+  '200001062023021001': 'allersilaban',
+  '199910282023021005': 'ihzakarunia',
+  '200109122024121001': 'ahmad.aulia',
+  '200202152024122003': 'sukma.andini',
+  '199907192021042001': 'vaya.difa',
+  '199905272023022001': 'arsita.indah',
+  '200110202023021003': 'mullahrifky',
+  '200306242024122001': 'vaniya.dewi',
+  '200104042026032001': 'akmabatrisyia',
+  '200409072026032001': 'claralagum',
+  '198008112005021004': 'muh.adwin',
+  '197511292025211001': 'iskandar-pppk',
+  '199908082025211024': 'haddadsaputra-pppk',
+  '198805282025211043': 'rizakurniawan-pppk'
 };
 
 export function normalizeAccountName(raw: any, role?: string, topFeature?: string): string {

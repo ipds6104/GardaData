@@ -27,7 +27,11 @@ export function isAhmadAuliaUser(user: AuthUser | null | undefined): boolean {
   const username = (user.username || '').toLowerCase().trim();
   const email = (user.email || '').toLowerCase().trim();
   const name = (user.name || '').toLowerCase().trim();
+  const nip = (user.nip || '').trim();
+  const id = (user.id || '').trim();
   
+  if (nip === '200109122024121001' || id.includes('200109122024121001')) return true;
+
   const cleanU = username.replace(/[\s._-]+/g, '');
   const cleanE = email.replace(/[\s._-]+/g, '');
   const cleanN = name.replace(/[\s._-]+/g, '');
@@ -747,7 +751,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const mockSsoLogin = async (nip?: string, name?: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      const cleanNip = nip || '199503112022031001';
+      const cleanNip = nip || '200109122024121001';
       const cleanName = name || 'Ahmad Aulia Rahman';
       const cleanUsername = BPS_NIP_TO_EMAIL_MAP[cleanNip] || (cleanName.toLowerCase().replace(/\s+/g, '.'));
       const newUser: AuthUser = {
