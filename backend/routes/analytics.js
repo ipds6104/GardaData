@@ -95,6 +95,7 @@ const FEATURE_NAMES = {
     'social-phenomenon': 'Fenomena Sosial Ekonomi',
     'admin-strategic-data': 'Data Strategis BPS',
     'identifikasi-sls': 'Identifikasi SLS',
+    'visitor-dashboard': 'Halaman Tamu (Data Strategis)',
     'analytics-ahmad': 'Statistik & Analisis Pengunjung'
 };
 
@@ -348,6 +349,11 @@ router.post('/track', (req, res) => {
             username = 'Tamu',
             deviceType = 'desktop'
         } = req.body || {};
+
+        // Pengunjung yang masih di halaman login jangan dicatat sebagai pengunjung!
+        if (page === 'login' || !role) {
+            return sendJson(res, 200, { success: true, ignored: true, message: 'Halaman login tidak dicatat sebagai pengunjung.' });
+        }
 
         const cleanUsername = normalizeUsername(username, role);
 

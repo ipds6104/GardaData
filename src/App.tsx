@@ -81,8 +81,13 @@ function AppContent() {
 
   useEffect(() => {
     sessionStorage.setItem('garda_current_page', currentPage);
-    // Rekam perpindahan halaman / kunjungan fitur di latar belakang
-    trackPageView(currentPage, user);
+    // Rekam perpindahan halaman HANYA jika pengguna sudah masuk/login (jika masih di halaman login jangan dihitung)
+    if (user) {
+      const pageToTrack = (user.role === 'pengunjung' && (currentPage === 'landing' || currentPage === 'visitor-dashboard')) 
+        ? 'visitor-dashboard' 
+        : currentPage;
+      trackPageView(pageToTrack, user);
+    }
   }, [currentPage, user]);
 
   useEffect(() => {

@@ -174,7 +174,8 @@ const FEATURE_NAMES: Record<string, string> = {
   'social-phenomenon': 'Fenomena Sosial Ekonomi',
   'admin-strategic-data': 'Data Strategis BPS',
   'identifikasi-sls': 'Identifikasi SLS',
-    'analytics-ahmad': 'Statistik & Analisis Pengunjung'
+  'visitor-dashboard': 'Halaman Tamu (Data Strategis)',
+  'analytics-ahmad': 'Statistik & Analisis Pengunjung'
 };
 
 
@@ -679,6 +680,9 @@ function buildOrganicAnalyticsResponse(startDate?: string, endDate?: string): An
  */
 export async function trackPageView(page: string, user: AuthUser | null | undefined): Promise<void> {
   if (typeof window === 'undefined') return;
+
+  // Sesuai aturan: jika masih di halaman login / belum login (!user), jangan dicatat sebagai pengunjung!
+  if (!user || page === 'login') return;
 
   try {
     const visitorId = getOrCreateVisitorId();
