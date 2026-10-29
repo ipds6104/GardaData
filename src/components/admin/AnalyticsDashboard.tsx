@@ -895,6 +895,62 @@ const HourlyLineChart: React.FC<HourlyLineChartProps> = ({
 };
 
 // =========================================================================
+// BPS MEMPAWAH NIP TO USERNAME / EMAIL MAPPING & DISPLAY HELPERS
+// =========================================================================
+export const BPS_NIP_TO_EMAIL_MAP: Record<string, string> = {
+  // Pegawai BPS Mempawah (Sesuai Konfirmasi & Screenshot Pengguna)
+  '200109122024121001': 'sukma.andini',        // Sukma Andini (email: sukma.andini@bps.go.id)
+  '200202152024122003': 'vaniya.wulandari',    // Vaniya Dewi Wulandari (email: vaniya.wulandari@bps.go.id)
+  '200104042026032001': 'akma.batrisyia',      // Akma Batrisyia Jazima (email: akma.batrisyia@bps.go.id)
+  '200002042022012003': 'safira.nurrosyid',    // Safira Nurrosyid (email: safira.nurrosyid@bps.go.id)
+
+  // Pegawai BPS Kabupaten Mempawah lainnya
+  '199503112022031001': 'ahmad.aulia',         // Ahmad Aulia Rahman (email: ahmad.aulia@bps.go.id)
+  '199808142022031001': 'rifky.syadriawan',    // Rifky Mullah Syadriawan
+  '199905202022032001': 'najia.helmiah',       // Najia Helmiah
+  '199701102020121002': 'listio.nandhiko',     // Listio Jati Nandhiko
+  '199812252022031002': 'ihza.karunia',        // Ihza Fikri Zaki Karunia
+  '199607182020121001': 'yulfi.ramanda',       // Yulfi Ramanda
+  '199404122016022001': 'wantri',              // Wantri
+  '199909092022032002': 'arini.faurizah',      // Arini Faurizah
+  '199304212015022001': 'syarifah.apriani',    // Syarifah Apriani
+  '199708282020121001': 'muhammad.syihabuddin', // Muhammad Syihabuddin Alhaq
+  '199511052019011001': 'aller.silaban',       // Aller Budiman Silaban
+  '200102142024122001': 'clara.diva',          // Clara Diva
+  '199912012022032001': 'briggita.difa',       // Briggita Vaya Difa
+  '198506152010121002': 'firmansyah',          // Firmansyah
+  '198008122006041003': 'abdul.karim'          // Abdul Karim
+};
+
+export function normalizeAccountName(raw: any, role?: string): string {
+  if (!raw) return role === 'pengunjung' ? 'Tamu' : 'Petugas';
+  const s = String(raw).trim();
+  if (BPS_NIP_TO_EMAIL_MAP[s]) return BPS_NIP_TO_EMAIL_MAP[s];
+  if (s.includes('@')) return s.split('@')[0].trim().toLowerCase();
+  if (/^\d{18}$/.test(s)) return BPS_NIP_TO_EMAIL_MAP[s] || ('pegawai.' + s.slice(-4));
+  if (s.includes(' ') && role === 'admin') return s.toLowerCase().replace(/\s+/g, '.');
+  return s;
+}
+
+export function getAccountAvatarText(name: string): string {
+  if (!name) return 'P';
+  const clean = normalizeAccountName(name);
+  if (clean.includes('.')) {
+    const parts = clean.split('.');
+    const first = parts[0]?.[0] || '';
+    const second = parts[1]?.[0] || '';
+    return (first + second).toUpperCase() || clean.substring(0, 2).toUpperCase();
+  }
+  if (clean.includes(' ')) {
+    const parts = clean.split(/\s+/);
+    const first = parts[0]?.[0] || '';
+    const second = parts[1]?.[0] || '';
+    return (first + second).toUpperCase() || clean.substring(0, 2).toUpperCase();
+  }
+  return clean.substring(0, 2).toUpperCase();
+}
+
+// =========================================================================
 // MAIN COMPONENT: AnalyticsDashboard
 // =========================================================================
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }) => {
@@ -1059,25 +1115,28 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
 
 
 
-function normalizeAccountName(raw: any, role?: string): string {
-  if (!raw) return role === 'pengunjung' ? 'Tamu' : 'Petugas';
-  const s = String(raw).trim();
-  if (s === '200109122024121001') return 'sukma.andini';
-  if (s === '199503112022031001') return 'pegawai.mempawah';
-  if (s.includes('@')) return s.split('@')[0].trim().toLowerCase();
-  if (/^\d{18}$/.test(s)) return 'pegawai.' + s.slice(-4);
-  return s;
-}
-
   // =========================================================================
   // REKAPITULASI NAMA AKUN PENGUNJUNG MEMO & HELPERS (ROBUST & FAILSAFE)
   // =========================================================================
   const rawAccountRecap: AccountRecapItem[] = useMemo(() => {
     if (data?.account_recap && Array.isArray(data.account_recap) && data.account_recap.length > 0) {
-      return data.account_recap.map(acc => ({
-        ...acc,
-        username: normalizeAccountName(acc.username, acc.role)
-      }));
+      const mergedMap: Record<string, AccountRecapItem> = {};
+      data.account_recap.forEach(acc => {
+        const u = normalizeAccountName(acc.username, acc.role);
+        if (!mergedMap[u]) {
+          mergedMap[u] = {
+            ...acc,
+            username: u
+          };
+        } else {
+          mergedMap[u].total_views += (acc.total_views || 0);
+          mergedMap[u].active_days_count = Math.max(mergedMap[u].active_days_count || 1, acc.active_days_count || 1);
+          if (acc.role && acc.role !== 'pengunjung') {
+            mergedMap[u].role = acc.role;
+          }
+        }
+      });
+      return Object.values(mergedMap);
     }
 
     // Failsafe Otomatis: Jika backend belum me-return account_recap,
@@ -1815,11 +1874,11 @@ function normalizeAccountName(raw: any, role?: string): string {
                             acc.role === 'petugas_pengolahan' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300' :
                             'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
                           }`}>
-                            {String(acc?.username || 'Pengguna').trim().substring(0, 2).toUpperCase() || 'P'}
+                            {getAccountAvatarText(acc?.username)}
                           </div>
                           <div className="min-w-0">
                             <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">
-                              {acc.username}
+                              {normalizeAccountName(acc.username, acc.role)}
                             </h4>
                             <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold border mt-0.5 ${getRoleBadgeStyle(acc.role)}`}>
                               {getRoleLabel(acc.role)}
@@ -1945,8 +2004,8 @@ function normalizeAccountName(raw: any, role?: string): string {
                   <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
                     <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">Akun Teraktif</span>
                     <div className="flex items-baseline gap-2 truncate">
-                      <span className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 truncate" title={topActiveAccount?.username || '-'}>
-                        {topActiveAccount?.username || '-'}
+                      <span className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 truncate" title={topActiveAccount ? normalizeAccountName(topActiveAccount.username, topActiveAccount.role) : '-'}>
+                        {topActiveAccount ? normalizeAccountName(topActiveAccount.username, topActiveAccount.role) : '-'}
                       </span>
                       {topActiveAccount && (
                         <span className="text-[10px] text-slate-400 shrink-0">({topActiveAccount.total_views}x)</span>
@@ -2077,11 +2136,11 @@ function normalizeAccountName(raw: any, role?: string): string {
                                 acc.role === 'petugas_pengolahan' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300' :
                                 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
                               }`}>
-                                {String(acc?.username || 'Pengguna').trim().substring(0, 2).toUpperCase() || 'P'}
+                                {getAccountAvatarText(acc?.username)}
                               </div>
                               <div>
                                 <span className="font-bold text-slate-800 dark:text-slate-100 block">
-                                  {acc.username}
+                                  {normalizeAccountName(acc.username, acc.role)}
                                 </span>
                                 {acc.active_days_count > 0 && (
                                   <span className="text-[10px] text-slate-400 block font-normal">
@@ -2183,12 +2242,12 @@ function normalizeAccountName(raw: any, role?: string): string {
                           selectedAccountModal.role === 'petugas_pengolahan' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300' :
                           'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
                         }`}>
-                          {String(selectedAccountModal?.username || 'Pengguna').trim().substring(0, 2).toUpperCase() || 'P'}
+                          {getAccountAvatarText(selectedAccountModal?.username)}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">
-                              {selectedAccountModal.username}
+                              {normalizeAccountName(selectedAccountModal.username, selectedAccountModal.role)}
                             </h3>
                             <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getRoleBadgeStyle(selectedAccountModal.role)}`}>
                               {getRoleLabel(selectedAccountModal.role)}

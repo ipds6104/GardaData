@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { BPS_NIP_TO_EMAIL_MAP } from '../services/analyticsService';
 
 export type UserRole = 'admin' | 'petugas' | 'petugas_pengolahan' | 'pengunjung' | null;
 
@@ -681,12 +682,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const name = String(userInfo.name || userInfo.preferred_username || `Pegawai ${nip}`).trim();
       const email = String(userInfo.email || '').trim().toLowerCase();
 
-      // Gunakan nama user (misal sukma.andini), BUKAN NIP!
+      // Gunakan nama email pengguna (misal sukma.andini, vaniya.wulandari), BUKAN NIP!
       let username = '';
-      if (nip === '200109122024121001') {
-        username = 'sukma.andini';
-      } else if (email && email.includes('@')) {
+      if (email && email.includes('@')) {
         username = email.split('@')[0].trim().toLowerCase();
+      } else if (nip && BPS_NIP_TO_EMAIL_MAP[nip]) {
+        username = BPS_NIP_TO_EMAIL_MAP[nip];
       } else if (userInfo.preferred_username && !/^\d{18}$/.test(userInfo.preferred_username)) {
         username = String(userInfo.preferred_username).trim().toLowerCase();
       } else if (userInfo.username && !/^\d{18}$/.test(userInfo.username)) {
@@ -748,14 +749,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const cleanNip = nip || '200109122024121001';
       const cleanName = name || 'Sukma Andini';
-      const cleanUsername = (cleanNip === '200109122024121001' || cleanName.toLowerCase().includes('sukma')) ? 'sukma.andini' : 'pegawai.mempawah';
+      const cleanUsername = BPS_NIP_TO_EMAIL_MAP[cleanNip] || (cleanName.toLowerCase().replace(/\s+/g, '.'));
       const newUser: AuthUser = {
         id: `pegawai_${cleanNip}`,
         username: cleanUsername,
         role: 'admin',
         name: cleanName,
         nip: cleanNip,
-        email: `${cleanNip}@bps.go.id`,
+        email: `${cleanUsername}@bps.go.id`,
         isSso: true
       };
       setUser(newUser);

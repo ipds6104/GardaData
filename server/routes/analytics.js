@@ -116,8 +116,28 @@ function getWibDateString(date = new Date()) {
 }
 
 const NIP_TO_USERNAME = {
-    '200109122024121001': 'sukma.andini',
-    '199503112022031001': 'pegawai.mempawah'
+    // Pegawai BPS Mempawah (Sesuai Konfirmasi & Screenshot Pengguna)
+    '200109122024121001': 'sukma.andini',        // Sukma Andini (email: sukma.andini@bps.go.id)
+    '200202152024122003': 'vaniya.wulandari',    // Vaniya Dewi Wulandari (email: vaniya.wulandari@bps.go.id)
+    '200104042026032001': 'akma.batrisyia',      // Akma Batrisyia Jazima (email: akma.batrisyia@bps.go.id)
+    '200002042022012003': 'safira.nurrosyid',    // Safira Nurrosyid (email: safira.nurrosyid@bps.go.id)
+
+    // Pegawai BPS Kabupaten Mempawah lainnya
+    '199503112022031001': 'ahmad.aulia',         // Ahmad Aulia Rahman (email: ahmad.aulia@bps.go.id)
+    '199808142022031001': 'rifky.syadriawan',    // Rifky Mullah Syadriawan
+    '199905202022032001': 'najia.helmiah',       // Najia Helmiah
+    '199701102020121002': 'listio.nandhiko',     // Listio Jati Nandhiko
+    '199812252022031002': 'ihza.karunia',        // Ihza Fikri Zaki Karunia
+    '199607182020121001': 'yulfi.ramanda',       // Yulfi Ramanda
+    '199404122016022001': 'wantri',              // Wantri
+    '199909092022032002': 'arini.faurizah',      // Arini Faurizah
+    '199304212015022001': 'syarifah.apriani',    // Syarifah Apriani
+    '199708282020121001': 'muhammad.syihabuddin', // Muhammad Syihabuddin Alhaq
+    '199511052019011001': 'aller.silaban',       // Aller Budiman Silaban
+    '200102142024122001': 'clara.diva',          // Clara Diva
+    '199912012022032001': 'briggita.difa',       // Briggita Vaya Difa
+    '198506152010121002': 'firmansyah',          // Firmansyah
+    '198008122006041003': 'abdul.karim'          // Abdul Karim
 };
 
 function normalizeUsername(raw, role) {
@@ -129,6 +149,9 @@ function normalizeUsername(raw, role) {
     }
     if (/^\d{18}$/.test(u)) {
         return NIP_TO_USERNAME[u] || ('pegawai.' + u.slice(-4));
+    }
+    if (u.includes(' ') && role === 'admin') {
+        return u.toLowerCase().replace(/\s+/g, '.');
     }
     return u;
 }

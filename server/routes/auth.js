@@ -12,6 +12,28 @@ const loginAttemptTracker = new Map();
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes lockout
 
+const BPS_NIP_TO_EMAIL_MAP = {
+    '200109122024121001': 'sukma.andini',        // Sukma Andini
+    '200202152024122003': 'vaniya.wulandari',    // Vaniya Dewi Wulandari
+    '200104042026032001': 'akma.batrisyia',      // Akma Batrisyia Jazima
+    '200002042022012003': 'safira.nurrosyid',    // Safira Nurrosyid
+    '199503112022031001': 'ahmad.aulia',         // Ahmad Aulia Rahman
+    '199808142022031001': 'rifky.syadriawan',    // Rifky Mullah Syadriawan
+    '199905202022032001': 'najia.helmiah',       // Najia Helmiah
+    '199701102020121002': 'listio.nandhiko',     // Listio Jati Nandhiko
+    '199812252022031002': 'ihza.karunia',        // Ihza Fikri Zaki Karunia
+    '199607182020121001': 'yulfi.ramanda',       // Yulfi Ramanda
+    '199404122016022001': 'wantri',              // Wantri
+    '199909092022032002': 'arini.faurizah',      // Arini Faurizah
+    '199304212015022001': 'syarifah.apriani',    // Syarifah Apriani
+    '199708282020121001': 'muhammad.syihabuddin', // Muhammad Syihabuddin Alhaq
+    '199511052019011001': 'aller.silaban',       // Aller Budiman Silaban
+    '200102142024122001': 'clara.diva',          // Clara Diva
+    '199912012022032001': 'briggita.difa',       // Briggita Vaya Difa
+    '198506152010121002': 'firmansyah',          // Firmansyah
+    '198008122006041003': 'abdul.karim'          // Abdul Karim
+};
+
 // Clean up stale attempts periodically
 setInterval(() => {
     const now = Date.now();
@@ -404,12 +426,12 @@ router.post('/sso/callback', async (req, res) => {
         const name = String(userInfo.name || userInfo.preferred_username || `Pegawai ${nip}`).trim();
         const email = String(userInfo.email || '').trim().toLowerCase();
 
-        // Gunakan nama user (misal sukma.andini), BUKAN NIP!
+        // Gunakan nama email pengguna (misal sukma.andini), BUKAN NIP!
         let username = '';
-        if (nip === '200109122024121001') {
-            username = 'sukma.andini';
-        } else if (email && email.includes('@')) {
+        if (email && email.includes('@')) {
             username = email.split('@')[0].trim().toLowerCase();
+        } else if (nip && BPS_NIP_TO_EMAIL_MAP[nip]) {
+            username = BPS_NIP_TO_EMAIL_MAP[nip];
         } else if (userInfo.preferred_username && !/^\d{18}$/.test(userInfo.preferred_username)) {
             username = String(userInfo.preferred_username).trim().toLowerCase();
         } else if (name) {
@@ -433,24 +455,24 @@ router.post('/sso/callback', async (req, res) => {
         if (existingUsers.length > 0) {
             userId = existingUsers[0].id;
             await pool.query(
-                'UPDATE users SET name = ?, email = ?, nip = ?, role = "admin" WHERE id = ?',
-                [name, email, nip, userId]
+                'UPDATE users SET name = ?, email = ?, nip = ?, role = "admin", username = ? WHERE id = ?',
+                [name, email, nip, username, userId]
             );
-            console.log(`✔ Pegawai SSO login: Updated user ${nip} (${name}) as admin`);
+            console.log(`✔ Pegawai SSO login: Updated user ${nip} (${name}) as admin with username ${username}`);
         } else {
             userId = `pegawai_${nip}`;
             const dummySalt = await bcrypt.genSalt(12);
             const dummyHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), dummySalt);
             await pool.query(
                 'INSERT INTO users (id, username, password_hash, name, nip, email, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [userId, nip, dummyHash, name, nip, email, 'admin']
+                [userId, username, dummyHash, name, nip, email, 'admin']
             );
-            console.log(`✔ Pegawai SSO auto-register: Created user ${nip} (${name}) with role admin`);
+            console.log(`✔ Pegawai SSO auto-register: Created user ${nip} (${name}) with username ${username} and role admin`);
         }
 
         // 5. Generate Garda Data JWT Token
         const appToken = jwt.sign(
-            { id: userId, username: username || nip, role: 'admin', name, nip },
+            { id: userId, username: username, role: 'admin', name, nip },
             getJwtSecret(),
             { expiresIn: '7d' }
         );
@@ -460,7 +482,7 @@ router.post('/sso/callback', async (req, res) => {
             token: appToken,
             user: {
                 id: userId,
-                username: username || nip,
+                username: username,
                 name: name,
                 role: 'admin',
                 nip: nip,
@@ -484,6 +506,7 @@ router.post('/sso/mock-login', async (req, res) => {
     const { nip = '199503112022031001', name = 'Pegawai BPS Kabupaten Mempawah' } = req.body;
     const cleanNip = String(nip).trim();
     const cleanName = String(name).trim();
+    const cleanUsername = BPS_NIP_TO_EMAIL_MAP[cleanNip] || (cleanName.toLowerCase().replace(/\s+/g, '.'));
 
     try {
         const [existingUsers] = await pool.query(
@@ -495,8 +518,8 @@ router.post('/sso/mock-login', async (req, res) => {
         if (existingUsers.length > 0) {
             userId = existingUsers[0].id;
             await pool.query(
-                'UPDATE users SET name = ?, role = "admin", nip = ? WHERE id = ?',
-                [cleanName, cleanNip, userId]
+                'UPDATE users SET name = ?, role = "admin", nip = ?, username = ? WHERE id = ?',
+                [cleanName, cleanNip, cleanUsername, userId]
             );
         } else {
             userId = `pegawai_${cleanNip}`;
@@ -504,12 +527,12 @@ router.post('/sso/mock-login', async (req, res) => {
             const dummyHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), dummySalt);
             await pool.query(
                 'INSERT INTO users (id, username, password_hash, name, nip, email, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [userId, cleanNip, dummyHash, cleanName, cleanNip, `${cleanNip}@bps.go.id`, 'admin']
+                [userId, cleanUsername, dummyHash, cleanName, cleanNip, `${cleanUsername}@bps.go.id`, 'admin']
             );
         }
 
         const appToken = jwt.sign(
-            { id: userId, username: cleanNip, role: 'admin', name: cleanName, nip: cleanNip },
+            { id: userId, username: cleanUsername, role: 'admin', name: cleanName, nip: cleanNip },
             getJwtSecret(),
             { expiresIn: '7d' }
         );
@@ -519,11 +542,11 @@ router.post('/sso/mock-login', async (req, res) => {
             token: appToken,
             user: {
                 id: userId,
-                username: cleanNip,
+                username: cleanUsername,
                 name: cleanName,
                 role: 'admin',
                 nip: cleanNip,
-                email: `${cleanNip}@bps.go.id`,
+                email: `${cleanUsername}@bps.go.id`,
                 isSso: true
             }
         });

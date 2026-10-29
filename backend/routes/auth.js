@@ -122,18 +122,39 @@ router.post('/sso/callback', async (req, res) => {
     const name = String(userInfo.name || userInfo.preferred_username || `Pegawai ${nip}`).trim();
     const email = String(userInfo.email || '').trim().toLowerCase();
 
+    const BPS_NIP_MAP = {
+      '200109122024121001': 'sukma.andini',
+      '200202152024122003': 'vaniya.wulandari',
+      '200104042026032001': 'akma.batrisyia',
+      '200002042022012003': 'safira.nurrosyid',
+      '199503112022031001': 'ahmad.aulia'
+    };
+
+    let username = '';
+    if (email && email.includes('@')) {
+      username = email.split('@')[0].trim().toLowerCase();
+    } else if (nip && BPS_NIP_MAP[nip]) {
+      username = BPS_NIP_MAP[nip];
+    } else if (userInfo.preferred_username && !/^\d{18}$/.test(userInfo.preferred_username)) {
+      username = String(userInfo.preferred_username).trim().toLowerCase();
+    } else if (name) {
+      username = name.toLowerCase().replace(/\s+/g, '.');
+    } else {
+      username = 'sukma.andini';
+    }
+
     // Sync Pegawai into MySQL Database if DB connection exists
     try {
       const connection = await pool.getConnection();
       try {
-        const [existing] = await connection.query('SELECT id, role FROM users WHERE username = ? LIMIT 1', [nip]);
+        const [existing] = await connection.query('SELECT id, role FROM users WHERE username = ? OR nip = ? LIMIT 1', [username, nip]);
         if (existing && existing.length > 0) {
-          await connection.query('UPDATE users SET role = "admin", name = ? WHERE username = ?', [name, nip]);
+          await connection.query('UPDATE users SET role = "admin", name = ?, username = ? WHERE id = ?', [name, username, existing[0].id]);
         } else {
           const randomPass = crypto.randomBytes(16).toString('hex');
           await connection.query(
             'INSERT INTO users (id, username, password, name, role) VALUES (?, ?, ?, ?, "admin")',
-            [`sso_${nip}`, nip, randomPass, name]
+            [`sso_${nip}`, username, randomPass, name]
           );
         }
       } finally {
@@ -145,7 +166,7 @@ router.post('/sso/callback', async (req, res) => {
 
     const appUser = {
       id: userInfo.id || `pegawai_${nip}`,
-      username: nip,
+      username: username,
       name: name,
       nip: nip,
       email: email,
