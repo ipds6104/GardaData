@@ -335,7 +335,16 @@ function getCleanLocalStore(): {
           daily_records: parsed.daily_records || {},
           recent_logs: Array.isArray(parsed.recent_logs) 
             ? parsed.recent_logs
-                .filter((l: any) => !(l.role === 'pengunjung' && l.page !== 'visitor-dashboard') && !(l.username === 'Tamu' && l.page !== 'visitor-dashboard'))
+                .filter((l: any) => {
+                  if (l.role === 'pengunjung' && l.page !== 'visitor-dashboard') return false;
+                  if (l.username === 'Tamu' && l.page !== 'visitor-dashboard') return false;
+                  // Kunjungan akun ahmad.aulia pada fitur Statistik & Analisis Pengunjung jangan dihitung sebagai kunjungan
+                  const u = String(l.username || '').toLowerCase();
+                  if ((u === 'ahmad.aulia' || u === '200109122024121001' || u.includes('ahmad')) && (l.page === 'analytics-ahmad' || l.page === 'analytics')) {
+                    return false;
+                  }
+                  return true;
+                })
                 .map((l: any) => {
                   const u = normalizeAccountUsername(l.username, l.role, l.page);
                   return {
@@ -545,6 +554,12 @@ function buildOrganicAnalyticsResponse(startDate?: string, endDate?: string): An
 
   const dateSet = new Set(dateList);
   (store.recent_logs || []).forEach(log => {
+    // Kunjungan akun ahmad.aulia pada fitur Statistik & Analisis Pengunjung jangan dihitung sebagai kunjungan
+    const rawU = String(log.username || '').toLowerCase();
+    if ((rawU === 'ahmad.aulia' || rawU === '200109122024121001' || rawU.includes('ahmad')) && (log.page === 'analytics-ahmad' || log.page === 'analytics')) {
+      return;
+    }
+
     const logDate = log.timestamp ? log.timestamp.split('T')[0] : '';
     if (dateSet.has(logDate)) {
       const uName = normalizeAccountUsername(log.username, log.role, log.page);
@@ -731,6 +746,11 @@ export async function trackPageView(page: string, user: AuthUser | null | undefi
   // Ketentuan tamu: Tamu HANYA terhitung jika sudah masuk ke halaman tamu ('visitor-dashboard')
   if (!user || page === 'login') return;
   if ((!user.role || user.role === 'pengunjung') && page !== 'visitor-dashboard') return;
+
+  // ATURAN: Kunjungan akun ahmad.aulia pada fitur Statistik & Analisis Pengunjung Garda Data ('analytics-ahmad') JANGAN dihitung sebagai kunjungan!
+  if (page === 'analytics-ahmad') {
+    return;
+  }
 
   try {
     const visitorId = getOrCreateVisitorId();

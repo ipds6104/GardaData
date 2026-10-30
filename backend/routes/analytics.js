@@ -217,7 +217,16 @@ function loadAnalyticsFromDisk() {
                 parsed.by_device = parsed.by_device || { desktop: 0, mobile: 0, tablet: 0 };
                 parsed.daily_records = parsed.daily_records || {};
                 parsed.recent_logs = (parsed.recent_logs || [])
-                    .filter(l => !(l.role === 'pengunjung' && l.page !== 'visitor-dashboard') && !(l.username === 'Tamu' && l.page !== 'visitor-dashboard'))
+                    .filter(l => {
+                        if (l.role === 'pengunjung' && l.page !== 'visitor-dashboard') return false;
+                        if (l.username === 'Tamu' && l.page !== 'visitor-dashboard') return false;
+                        // Kunjungan akun ahmad.aulia pada fitur Statistik & Analisis Pengunjung jangan dihitung sebagai kunjungan
+                        const u = String(l.username || '').toLowerCase();
+                        if ((u === 'ahmad.aulia' || u === '200109122024121001' || u.includes('ahmad')) && (l.page === 'analytics-ahmad' || l.page === 'analytics')) {
+                            return false;
+                        }
+                        return true;
+                    })
                     .map(l => {
                         const cleanU = normalizeUsername(l.username, l.role, l.page);
                         return {
@@ -405,6 +414,20 @@ router.post('/track', (req, res) => {
         // Ketentuan Tamu: Tamu HANYA terhitung jika sudah masuk ke halaman tamu ('visitor-dashboard').
         if (role === 'pengunjung' && page !== 'visitor-dashboard') {
             return sendJson(res, 200, { success: true, ignored: true, message: 'Tamu hanya dicatat ketika membuka halaman tamu.' });
+        }
+
+        // Kunjungan akun ahmad.aulia pada fitur Statistik & Analisis Pengunjung ('analytics-ahmad') JANGAN dihitung sebagai kunjungan!
+        const rawU = String(username || '').toLowerCase();
+        const headerU = String(req.headers['x-garda-user'] || '').toLowerCase();
+        const isAhmad = (
+            rawU.includes('ahmad.aulia') ||
+            rawU.includes('200109122024121001') ||
+            rawU === 'ahmad' ||
+            headerU.includes('ahmad.aulia') ||
+            headerU.includes('200109122024121001')
+        );
+        if (page === 'analytics-ahmad' || (isAhmad && (page === 'analytics-ahmad' || page === 'analytics'))) {
+            return sendJson(res, 200, { success: true, ignored: true, message: 'Kunjungan akun ahmad.aulia pada fitur Statistik & Analisis Pengunjung tidak dihitung sebagai kunjungan.' });
         }
 
         const cleanUsername = normalizeUsername(username, role);
@@ -647,6 +670,12 @@ router.get('/stats', (req, res) => {
         const dateSet = new Set(dateList);
         const accountAggregationMap = {};
         analyticsState.recent_logs.forEach(log => {
+            // Kunjungan akun ahmad.aulia pada fitur Statistik & Analisis Pengunjung jangan dihitung sebagai kunjungan
+            const u = String(log.username || '').toLowerCase();
+            if ((u === 'ahmad.aulia' || u === '200109122024121001' || u.includes('ahmad')) && (log.page === 'analytics-ahmad' || log.page === 'analytics')) {
+                return;
+            }
+
             if (dateSet.has(log.date)) {
                 const h = typeof log.hour === 'number' ? log.hour : 0;
                 const rKey = log.role === 'admin' ? 'admin' 

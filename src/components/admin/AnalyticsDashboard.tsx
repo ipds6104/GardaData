@@ -928,12 +928,7 @@ export const BPS_NIP_TO_EMAIL_MAP: Record<string, string> = {
   '198805282025211043': 'rizakurniawan-pppk'
 };
 
-export function normalizeAccountName(raw: any, role?: string, topFeature?: string): string {
-  if (topFeature === 'Statistik & Analisis Pengunjung') {
-    if (String(raw).toLowerCase().includes('sukma')) {
-      return 'ahmad.aulia';
-    }
-  }
+export function normalizeAccountName(raw: any, role?: string): string {
   if (!raw || role === 'pengunjung' || String(raw).toLowerCase() === 'pengunjung' || String(raw).toLowerCase() === 'tamu' || (String(raw).toLowerCase() === 'petugas' && role === 'pengunjung')) {
     return 'Tamu';
   }
@@ -1195,12 +1190,18 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ onBack }
       const totalEffectiveViews = data.summary?.filtered_total_views || data.recent_logs.length || 1;
 
       data.recent_logs.forEach(log => {
-        let uName = normalizeAccountName(log.username, log.role, log.page === 'analytics-ahmad' ? 'Statistik & Analisis Pengunjung' : undefined);
-        let rName = log.role || 'pengunjung';
+        // Kunjungan akun ahmad.aulia pada fitur Statistik & Analisis Pengunjung jangan dihitung sebagai kunjungan
+        const rawU = String(log.username || '').toLowerCase();
+        if ((rawU === 'ahmad.aulia' || rawU === '200109122024121001' || rawU.includes('ahmad')) && (log.page === 'analytics-ahmad' || log.page === 'analytics')) {
+          return;
+        }
         if (log.page === 'analytics-ahmad') {
-          uName = 'ahmad.aulia';
-          rName = 'admin';
-        } else if (uName === 'Tamu' || rName === 'pengunjung') {
+          return;
+        }
+
+        let uName = normalizeAccountName(log.username, log.role);
+        let rName = log.role || 'pengunjung';
+        if (uName === 'Tamu' || rName === 'pengunjung') {
           uName = 'Tamu';
           rName = 'pengunjung';
         }
