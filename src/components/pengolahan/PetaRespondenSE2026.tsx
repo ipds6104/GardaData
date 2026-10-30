@@ -8,10 +8,65 @@ import {
   RotateCcw, Filter, ChevronRight, Info, LocateFixed, Eye, EyeOff,
   Building2, Home, Briefcase, Users, ShieldCheck, Sparkles,
   SlidersHorizontal, CheckCircle2, Clock, AlertCircle, Compass, Lock,
-  Maximize2, Minimize2, ChevronDown, ChevronUp, AlertTriangle, XCircle, FileText, Phone, UserCheck, Tag
+  Maximize2, Minimize2, ChevronDown, ChevronUp, AlertTriangle, XCircle, FileText, Phone, UserCheck, Tag,
+  Zap, Droplets, Coins, Wallet
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { decryptMilitaryPayload } from '../../utils/cryptoSecurity';
+
+// Helper Formatting Functions for Family & Business Characteristics
+export function formatRupiah(val?: string | number): string {
+  if (!val || val === '0' || val === '-' || val === 'null' || val === 'NaN') return '-';
+  const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^0-9.-]/g, ''));
+  if (isNaN(num) || num <= 0) return '-';
+  return 'Rp ' + Math.round(num).toLocaleString('id-ID');
+}
+
+export function cleanLabel(val?: string): string {
+  if (!val || val === 'null' || val === 'undefined') return '-';
+  const cleaned = String(val).replace(/^\[?\d+\]?\s*\.?\s*/, '').trim();
+  return cleaned || '-';
+}
+
+// Privacy Name Masking Helper (Default obfuscation with asterisk *)
+export function maskName(name?: string): string {
+  if (!name || name === '-' || name.trim() === '') return '-';
+  const clean = name.trim();
+  const words = clean.split(/\s+/);
+  return words.map(w => {
+    if (w.length <= 1) return '*';
+    if (w.length === 2) return w[0] + '*';
+    if (w.length === 3) return w[0] + '*' + w[2];
+    return w[0] + '*'.repeat(Math.max(2, w.length - 2)) + w[w.length - 1];
+  }).join(' ');
+}
+
+// Standard 16-Digit BPS SLS Code Helper: Prov[2] + Kab[2] + Kec[3] + Desa[3] + SLS[4] + SubSLS[2]
+export function getKodeSls16(point?: RespondenPoint | null): string {
+  if (!point) return '-';
+  const rawKs = String(point.ks || '').trim();
+  const digits = rawKs.replace(/[^0-9]/g, '');
+
+  if (digits.length === 16) {
+    return digits;
+  }
+
+  const prov = '61';
+  const kab = '04';
+  const kec = String(point.kc || '000').replace(/[^0-9]/g, '').padStart(3, '0').slice(-3);
+  const desa = String(point.d || '000').replace(/[^0-9]/g, '').padStart(3, '0').slice(-3);
+
+  let sls6 = digits;
+  if (sls6.length === 4) {
+    sls6 = sls6 + '00';
+  } else if (sls6.length < 6) {
+    sls6 = sls6.padStart(4, '0') + '00';
+  } else if (sls6.length > 6) {
+    sls6 = sls6.slice(-6);
+  }
+
+  return `${prov}${kab}${kec}${desa}${sls6}`;
+}
 
 // Fix Leaflet Default Icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -25,24 +80,76 @@ interface PetaRespondenSE2026Props {
   onBack: () => void;
 }
 
+export interface ArtMember {
+  n: string;     // nama anggota rumah tangga
+  jk: string;    // jenis kelamin (Laki-laki / Perempuan)
+  tgl: string;   // tanggal lahir
+  u: string;     // umur
+  h?: string;    // hubungan dengan KK (Kepala Keluarga, Istri/Suami, Anak, dll)
+}
+
+export interface BusinessItem {
+  nu?: string;    // nama usaha
+  bu?: string;    // status badan usaha
+  thOp?: string;  // tahun berdiri
+  peng?: string;  // nama pemilik usaha
+  tk?: string;    // jumlah pekerja
+  kb?: string;    // KBLI 2025 lengkap
+  sk?: string;
+  lok?: string;
+  omz?: string;
+  biaya?: string;
+  aset?: string;
+  stUsaha?: string;
+}
+
 export interface RespondenPoint {
   i: string;       // safe hashed id (e.g. SE26-A1B2C3D4 or MST-...)
-  k: string;       // namaKK
+  k: string;       // nama kepala keluarga / responden (unmasked)
+  kk?: string;     // nama kepala keluarga
   lt: number;      // lat
   lg: number;      // lng
-  d: string;       // desaCode
-  dn?: string;     // desaName
-  s: string;       // namaSls
-  ks: string;      // kodeSls
+  kc?: string;     // kode kecamatan (e.g. 100)
+  kn?: string;     // nama kecamatan (e.g. MEMPAWAH HILIR)
+  d: string;       // kode desa (e.g. 008)
+  dn?: string;     // nama desa (e.g. TERUSAN)
+  s: string;       // nama SLS (e.g. RT 009 RW 11)
+  ks: string;      // kode SLS (e.g. 002600)
   u: number;       // jmlUsaha
-  nu: string;      // namaUsaha
-  kb: string;      // kbli
-  st: string;      // status
-  sk: string;      // skala
-  stKel?: string;  // status keberadaan keluarga (e.g. 1. Ditemukan, 0. Tidak Ditemukan (STOP), 2. Baru, 3. Meninggal, dll)
-  stUsaha?: string;// status keberadaan usaha (e.g. 1. Ditemukan, 0. Tidak Ditemukan, 2. Baru, 3. Tutup, 4. Ganda)
+  nu?: string;     // namaUsaha
+  kb?: string;     // KBLI 2025 lengkap
+  st?: string;     // status
+  sk?: string;     // skala
+  stKel?: string;  // status keberadaan keluarga
+  stUsaha?: string;// status keberadaan usaha
   peng?: string;   // Nama Pemilik / Pengelola Usaha
-  nb?: string;     // Nomor Urut Bangunan (Bangunan Fisik / Tempat Tinggal)
+  nb?: string;     // Nomor Urut Bangunan (Bangunan Fisik)
+  asType?: 'keluarga' | 'usaha' | 'keluarga_usaha';
+  bu?: string;     // Bentuk / Status Badan Usaha
+  thOp?: string;   // Tahun Berdiri / Mulai Operasi
+  tk?: string;     // Tenaga Kerja / Jumlah Pekerja
+  art?: ArtMember[]; // Daftar Anggota Rumah Tangga
+  // Karakteristik Keluarga & Usaha legacy fallback
+  ak?: number;
+  jkKrt?: string;
+  uKrt?: string;
+  milik?: string;
+  luas?: string;
+  lantai?: string;
+  dinding?: string;
+  atap?: string;
+  air?: string;
+  bab?: string;
+  tinja?: string;
+  lis?: string;
+  daya?: string;
+  pend?: string;
+  pengl?: string;
+  lok?: string;
+  omz?: string;
+  biaya?: string;
+  aset?: string;
+  usahas?: BusinessItem[]; // Multi-business items
   // Deterministic Matching & Source Attributes
   mSource?: string; // 'MATCH_TIER1A_DIRECT_NIK' | 'MATCH_TIER1B_FAMILY_ART_NIK' | 'MATCH_TIER2_PHONE' | 'MATCH_TIER3_BUSINESS_ROSTER' | 'MATCH_TIER5_CLEAN_NAME' | 'GEOTAG_LAPANGAN'
   mConf?: number;   // 100, 99, 95, 90, 88
@@ -58,6 +165,7 @@ export interface RespondenPoint {
   mNotes?: string; // Catatan lapangan
   pml?: string;    // Email / Kode PML
   pmlName?: string;// Nama PML
+  ppl?: string;    // Email / Kode PPL
   pplName?: string;// Nama PPL
   pjKuda?: string; // Penanggung Jawab Kualitas Data (PJ KuDa BPS)
   telp?: string;   // No Telp Responden
@@ -1695,7 +1803,42 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
   const [showLegendModal, setShowLegendModal] = useState<boolean>(false);
   const [showMobileFilterSheet, setShowMobileFilterSheet] = useState<boolean>(false);
   const [selectedPoint, setSelectedPoint] = useState<RespondenPoint | null>(null);
+  const [detailTab, setDetailTab] = useState<'keluarga' | 'usaha'>('keluarga');
+  const [activeBusinessIdx, setActiveBusinessIdx] = useState<number>(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Privacy & Name Obfuscation State (Default: Masked with stars, revealed per-name or globally)
+  const [revealedNames, setRevealedNames] = useState<Record<string, boolean>>({});
+  const [revealAllNames, setRevealAllNames] = useState<boolean>(false);
+  const [copyNotice, setCopyNotice] = useState<string | null>(null);
+
+  // Helper function to check if a specific name is revealed
+  const isNameRevealed = (key: string): boolean => {
+    if (revealAllNames) return true;
+    return !!revealedNames[key];
+  };
+
+  const toggleNameReveal = (key: string) => {
+    setRevealedNames(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  // Sync active detail tab with selected point type
+  useEffect(() => {
+    if (selectedPoint) {
+      if (selectedPoint.asType === 'usaha') {
+        setDetailTab('usaha');
+      } else {
+        setDetailTab('keluarga');
+      }
+      setActiveBusinessIdx(0);
+      setRevealedNames({});
+      setRevealAllNames(false);
+      setCopyNotice(null);
+    }
+  }, [selectedPoint?.i]);
 
   // Map Movement Target
   const [targetCenter, setTargetCenter] = useState<[number, number] | null>(null);
@@ -2063,8 +2206,8 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
     };
   }, [selectedOfficer, pplCanonicalByName, pmlCanonicalByName]);
 
-  // 6. Filtered Points Calculation
-  const displayedPoints = useMemo(() => {
+  // 6. Base Filtered Points (All filters applied EXCEPT searchQuery)
+  const filteredBasePoints = useMemo(() => {
     let sourcePoints: RespondenPoint[] = [];
 
     if (selectedKec === 'all') {
@@ -2152,59 +2295,80 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
       }
     }
 
-    // Filter Query (Mencakup Nama KK, Nama Usaha, Pemilik/Pengelola, No Urut Bangunan, SLS, PPL, PML, dll)
-    if (searchQuery.trim() !== '') {
-      const q = searchQuery.trim().toLowerCase();
-      result = result.filter(p => 
-        (p.k && p.k.toLowerCase().includes(q)) ||
-        (p.nu && p.nu.toLowerCase().includes(q)) ||
-        (p.peng && p.peng.toLowerCase().includes(q)) ||
-        (p.nb && p.nb.toLowerCase().includes(q)) ||
-        (p.s && p.s.toLowerCase().includes(q)) ||
-        (p.i && p.i.toLowerCase().includes(q)) ||
-        (p.kb && p.kb.toLowerCase().includes(q)) ||
-        (p.dn && p.dn.toLowerCase().includes(q)) ||
-        (p.stKel && p.stKel.toLowerCase().includes(q)) ||
-        (p.stUsaha && p.stUsaha.toLowerCase().includes(q)) ||
-        (p.mKat && p.mKat.toLowerCase().includes(q)) ||
-        (p.mFound && p.mFound.toLowerCase().includes(q)) ||
-        (p.mNotFound && p.mNotFound.toLowerCase().includes(q)) ||
-        (p.mClosed && p.mClosed.toLowerCase().includes(q)) ||
-        (p.ppl && p.ppl.toLowerCase().includes(q)) ||
-        (p.pplName && p.pplName.toLowerCase().includes(q)) ||
-        (p.pml && p.pml.toLowerCase().includes(q)) ||
-        (p.pmlName && p.pmlName.toLowerCase().includes(q)) ||
-        (p.resp && p.resp.toLowerCase().includes(q))
-      );
-    }
-
     return result;
-  }, [allLoadedPoints, pointsByKec, selectedKec, selectedDesa, selectedSls, selectedOfficer, pplCanonicalByName, pmlCanonicalByName, filterUsaha, selectedStatuses, searchQuery]);
+  }, [allLoadedPoints, pointsByKec, selectedKec, selectedDesa, selectedSls, selectedOfficer, pplCanonicalByName, pmlCanonicalByName, filterUsaha, selectedStatuses]);
 
-  // Instant Search Suggestions Dropdown (Top 8 Matches)
+  // Search Match Tester
+  const matchesQuery = useCallback((p: RespondenPoint, q: string) => {
+    return (
+      (p.k && p.k.toLowerCase().includes(q)) ||
+      (p.kk && p.kk.toLowerCase().includes(q)) ||
+      (p.nu && p.nu.toLowerCase().includes(q)) ||
+      (p.peng && p.peng.toLowerCase().includes(q)) ||
+      (p.nb && p.nb.toLowerCase().includes(q)) ||
+      (p.s && p.s.toLowerCase().includes(q)) ||
+      (p.ks && p.ks.toLowerCase().includes(q)) ||
+      (p.dn && p.dn.toLowerCase().includes(q)) ||
+      (p.d && p.d.toLowerCase().includes(q)) ||
+      (p.kn && p.kn.toLowerCase().includes(q)) ||
+      (p.kc && p.kc.toLowerCase().includes(q)) ||
+      (p.i && p.i.toLowerCase().includes(q)) ||
+      (p.kb && p.kb.toLowerCase().includes(q)) ||
+      (p.art && p.art.some(a => a.n && a.n.toLowerCase().includes(q))) ||
+      (p.usahas && p.usahas.some(b => (b.nu && b.nu.toLowerCase().includes(q)) || (b.peng && b.peng.toLowerCase().includes(q)) || (b.kb && b.kb.toLowerCase().includes(q)))) ||
+      (p.stKel && p.stKel.toLowerCase().includes(q)) ||
+      (p.stUsaha && p.stUsaha.toLowerCase().includes(q)) ||
+      (p.mKat && p.mKat.toLowerCase().includes(q)) ||
+      (p.ppl && p.ppl.toLowerCase().includes(q)) ||
+      (p.pml && p.pml.toLowerCase().includes(q)) ||
+      (p.resp && p.resp.toLowerCase().includes(q))
+    );
+  }, []);
+
+  // Displayed Points (Base filtered points further refined by search query)
+  const displayedPoints = useMemo(() => {
+    if (!searchQuery || searchQuery.trim() === '') {
+      return filteredBasePoints;
+    }
+    const q = searchQuery.trim().toLowerCase();
+    return filteredBasePoints.filter(p => matchesQuery(p, q));
+  }, [filteredBasePoints, searchQuery, matchesQuery]);
+
+  // Instant Search Suggestions Dropdown (Scoped strictly to filteredBasePoints)
   const searchSuggestions = useMemo(() => {
     if (!searchQuery || searchQuery.trim().length < 2) return [];
     const q = searchQuery.trim().toLowerCase();
     
     const matches: RespondenPoint[] = [];
-    for (let i = 0; i < allLoadedPoints.length; i++) {
-      const p = allLoadedPoints[i];
-      if (
-        (p.k && p.k.toLowerCase().includes(q)) ||
-        (p.nu && p.nu.toLowerCase().includes(q)) ||
-        (p.peng && p.peng.toLowerCase().includes(q)) ||
-        (p.nb && p.nb.toLowerCase().includes(q)) ||
-        (p.s && p.s.toLowerCase().includes(q)) ||
-        (p.i && p.i.toLowerCase().includes(q)) ||
-        (p.mKat && p.mKat.toLowerCase().includes(q)) ||
-        (p.resp && p.resp.toLowerCase().includes(q))
-      ) {
+    for (let i = 0; i < filteredBasePoints.length; i++) {
+      const p = filteredBasePoints[i];
+      if (matchesQuery(p, q)) {
         matches.push(p);
-        if (matches.length >= 8) break;
+        if (matches.length >= 10) break;
       }
     }
     return matches;
-  }, [allLoadedPoints, searchQuery]);
+  }, [filteredBasePoints, searchQuery, matchesQuery]);
+
+  // Search matches across all loaded points outside current filter (if local results are low or empty)
+  const outOfScopeMatches = useMemo(() => {
+    if (!searchQuery || searchQuery.trim().length < 2) return [];
+    if (selectedKec === 'all' && selectedDesa === 'all' && selectedSls.length === 0 && filterUsaha === 'all' && selectedStatuses.length === 0 && selectedOfficer === 'all') {
+      return [];
+    }
+    const q = searchQuery.trim().toLowerCase();
+    const globalMatches: RespondenPoint[] = [];
+    const localIds = new Set(filteredBasePoints.map(p => p.i));
+
+    for (let i = 0; i < allLoadedPoints.length; i++) {
+      const p = allLoadedPoints[i];
+      if (!localIds.has(p.i) && matchesQuery(p, q)) {
+        globalMatches.push(p);
+        if (globalMatches.length >= 4) break;
+      }
+    }
+    return globalMatches;
+  }, [allLoadedPoints, filteredBasePoints, searchQuery, matchesQuery, selectedKec, selectedDesa, selectedSls, filterUsaha, selectedStatuses, selectedOfficer]);
 
   // Auto-Focus & Fit Bounds to filtered wilayah
   useEffect(() => {
@@ -2255,6 +2419,14 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
         handleSelectAndZoomToPoint(searchSuggestions[0]);
       } else if (displayedPoints.length > 0) {
         handleSelectAndZoomToPoint(displayedPoints[0]);
+      } else if (outOfScopeMatches.length > 0) {
+        setSelectedKec('all');
+        setSelectedDesa('all');
+        setSelectedSls([]);
+        setFilterUsaha('all');
+        setSelectedStatuses([]);
+        setSelectedOfficer('all');
+        handleSelectAndZoomToPoint(outOfScopeMatches[0]);
       }
     }
   };
@@ -2615,49 +2787,112 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
 
                 {/* Instant Search Suggestions Dropdown with Auto-Zoom on Click */}
                 <AnimatePresence>
-                  {showSearchDropdown && searchSuggestions.length > 0 && (
+                  {showSearchDropdown && (searchSuggestions.length > 0 || outOfScopeMatches.length > 0) && (
                     <motion.div
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 5 }}
-                      className="absolute top-full mt-1.5 left-0 right-0 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-[9999] max-h-72 overflow-y-auto custom-scrollbar"
+                      className="absolute top-full mt-1.5 left-0 right-0 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-[9999] max-h-80 overflow-y-auto custom-scrollbar"
                     >
-                      <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        <span>Hasil Pencarian ({searchSuggestions.length})</span>
-                        <span>Klik utk Zoom</span>
+                      <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        <span>
+                          Hasil ({searchSuggestions.length}) {selectedKec !== 'all' ? `• Kec. ${selectedKec}` : '• Filter Aktif'}
+                        </span>
+                        <span className="text-cyan-700 font-extrabold">Klik utk Zoom</span>
                       </div>
-                      <ul className="divide-y divide-slate-100">
-                        {searchSuggestions.map((item) => (
-                          <li key={item.i}>
-                            <button
-                              onClick={() => handleSelectAndZoomToPoint(item)}
-                              className="w-full text-left p-2.5 hover:bg-cyan-50/70 flex items-start justify-between gap-2 transition-colors cursor-pointer group"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-extrabold text-xs text-slate-900 group-hover:text-cyan-700 truncate">
-                                    👤 {item.k || 'Responden SE2026'}
-                                  </span>
-                                  <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full shrink-0 ${
-                                    item.u > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
-                                  }`}>
-                                    {item.u > 0 ? 'Ada Usaha' : 'Non-Usaha'}
-                                  </span>
-                                </div>
-                                <p className="text-[10px] text-slate-500 truncate mt-0.5">
-                                  📍 {item.s} • {item.dn || item.d}
-                                </p>
-                                {item.nu && (
-                                  <p className="text-[10px] font-bold text-emerald-700 truncate">
-                                    💼 {item.nu}
+
+                      {searchSuggestions.length > 0 ? (
+                        <ul className="divide-y divide-slate-100">
+                          {searchSuggestions.map((item) => (
+                            <li key={item.i}>
+                              <button
+                                onClick={() => handleSelectAndZoomToPoint(item)}
+                                className="w-full text-left p-2.5 hover:bg-cyan-50/70 flex items-start justify-between gap-2 transition-colors cursor-pointer group"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-extrabold text-xs text-slate-900 group-hover:text-cyan-700 truncate">
+                                      {item.asType === 'usaha' ? '💼' : '👤'} {item.k || 'Responden SE2026'}
+                                    </span>
+                                    <span className={`text-[8px] font-black px-1.5 py-0.2 rounded-full shrink-0 ${
+                                      item.asType === 'keluarga_usaha'
+                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                        : item.asType === 'usaha'
+                                        ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                        : 'bg-blue-100 text-blue-800 border border-blue-200'
+                                    }`}>
+                                      {item.asType === 'keluarga_usaha'
+                                        ? `Keluarga & ${item.u} Usaha`
+                                        : item.asType === 'usaha'
+                                        ? 'Unit Usaha'
+                                        : 'Keluarga'}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                                    📍 {item.s} • {item.dn || item.d}
                                   </p>
-                                )}
-                              </div>
-                              <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-cyan-600 shrink-0 mt-1 transition-transform group-hover:translate-x-0.5" />
+                                  {item.nu && (
+                                    <p className="text-[10px] font-bold text-emerald-700 truncate">
+                                      💼 {item.nu}
+                                    </p>
+                                  )}
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-cyan-600 shrink-0 mt-1 transition-transform group-hover:translate-x-0.5" />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="p-3 text-center text-xs text-slate-400">
+                          Tidak ada responden cocok di filter aktif "{searchQuery}"
+                        </div>
+                      )}
+
+                      {/* Out of filter matches suggestion */}
+                      {outOfScopeMatches.length > 0 && (
+                        <div className="p-2.5 bg-amber-50/90 border-t border-amber-200/80 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-amber-900">
+                              Ditemukan di luar filter aktif ({outOfScopeMatches.length}):
+                            </span>
+                            <button
+                              onClick={() => {
+                                setSelectedKec('all');
+                                setSelectedDesa('all');
+                                setSelectedSls([]);
+                                setFilterUsaha('all');
+                                setSelectedStatuses([]);
+                                setSelectedOfficer('all');
+                              }}
+                              className="text-[10px] font-black text-cyan-800 hover:text-cyan-950 underline cursor-pointer"
+                            >
+                              Reset Semua Filter
                             </button>
-                          </li>
-                        ))}
-                      </ul>
+                          </div>
+                          <div className="space-y-1">
+                            {outOfScopeMatches.map((m) => (
+                              <button
+                                key={m.i}
+                                onClick={() => {
+                                  setSelectedKec('all');
+                                  setSelectedDesa('all');
+                                  setSelectedSls([]);
+                                  setFilterUsaha('all');
+                                  setSelectedStatuses([]);
+                                  setSelectedOfficer('all');
+                                  handleSelectAndZoomToPoint(m);
+                                }}
+                                className="w-full text-left p-1.5 bg-white hover:bg-amber-100/70 rounded-xl border border-amber-200/60 text-xs font-bold text-slate-800 flex items-center justify-between gap-2 group cursor-pointer transition-colors"
+                              >
+                                <span className="truncate">{m.k} ({m.dn || m.s})</span>
+                                <span className="text-[9px] font-black text-amber-800 shrink-0 group-hover:text-cyan-800">
+                                  Buka & Zoom →
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -2878,6 +3113,79 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
             isFiltered={selectedKec !== 'all' || selectedDesa !== 'all' || selectedSls.length > 0 || filterUsaha !== 'all' || selectedStatuses.length > 0 || searchQuery.trim() !== ''}
             showBuildingLabels={effectiveShowBuildingLabels}
           />
+
+          {/* Leaflet Dynamic Popup directly on selected point */}
+          {selectedPoint && (
+            <Popup
+              position={[selectedPoint.lt, selectedPoint.lg]}
+              onClose={() => setSelectedPoint(null)}
+              autoPan={false}
+            >
+              <div className="p-1 min-w-[230px] max-w-[290px] text-xs font-sans text-slate-800 space-y-1.5">
+                <div className="flex items-center justify-between gap-1 pb-1 border-b border-slate-100">
+                  <span className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase ${
+                    selectedPoint.asType === 'keluarga_usaha'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : selectedPoint.asType === 'usaha'
+                      ? 'bg-purple-100 text-purple-800'
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {selectedPoint.asType === 'keluarga_usaha'
+                      ? '🏠💼 Keluarga & Usaha'
+                      : selectedPoint.asType === 'usaha'
+                      ? '💼 Unit Usaha'
+                      : '🏠 Keluarga'}
+                  </span>
+                  {selectedPoint.nb && (
+                    <span className="font-mono text-[9px] font-bold text-slate-400">
+                      B#{selectedPoint.nb}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <h5 className="font-black text-xs text-slate-900 truncate">
+                    {maskName(selectedPoint.k)}
+                  </h5>
+                  <p className="text-[10px] text-slate-500 truncate">
+                    📍 {selectedPoint.s} • {selectedPoint.dn || selectedPoint.d} • Kec. {selectedPoint.kn || selectedPoint.kc}
+                  </p>
+                </div>
+
+                {/* Brief Data summary */}
+                {selectedPoint.asType === 'keluarga' && (
+                  <div className="text-[10px] space-y-0.5 bg-blue-50/70 p-1.5 rounded-lg border border-blue-100">
+                    <p className="font-bold text-blue-950 truncate">👤 KK: {maskName(selectedPoint.kk || selectedPoint.k)}</p>
+                    <p><b>Jumlah ART:</b> {selectedPoint.art ? `${selectedPoint.art.length} Anggota` : (selectedPoint.ak ? `${selectedPoint.ak} Jiwa` : '1 Anggota')}</p>
+                    <p className="text-[9px] text-slate-500 truncate">Kode SLS: [{getKodeSls16(selectedPoint)}]</p>
+                  </div>
+                )}
+
+                {selectedPoint.asType === 'usaha' && (
+                  <div className="text-[10px] space-y-0.5 bg-purple-50/70 p-1.5 rounded-lg border border-purple-100">
+                    <p className="font-bold text-purple-950 truncate">💼 {selectedPoint.nu || 'Unit Usaha'}</p>
+                    <p><b>Pemilik:</b> {maskName(selectedPoint.peng || selectedPoint.k)}</p>
+                    <p><b>Badan Usaha:</b> {selectedPoint.bu || 'Bukan Badan Usaha'}</p>
+                    {selectedPoint.kb && <p className="truncate"><b>KBLI:</b> {selectedPoint.kb}</p>}
+                  </div>
+                )}
+
+                {selectedPoint.asType === 'keluarga_usaha' && (
+                  <div className="text-[10px] space-y-0.5 bg-emerald-50/70 p-1.5 rounded-lg border border-emerald-100">
+                    <p className="font-bold text-emerald-950 truncate">👤 KK: {maskName(selectedPoint.kk || selectedPoint.k)} ({selectedPoint.art ? `${selectedPoint.art.length} ART` : '1 ART'})</p>
+                    <p className="font-bold text-emerald-900 truncate">💼 {selectedPoint.nu || 'Usaha Keluarga'}</p>
+                    {selectedPoint.kb && <p className="truncate"><b>KBLI:</b> {selectedPoint.kb}</p>}
+                  </div>
+                )}
+
+                <div className="pt-1 text-center">
+                  <span className="text-[9px] font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-md inline-block">
+                    Detail lengkap terbuka di panel bawah ↓
+                  </span>
+                </div>
+              </div>
+            </Popup>
+          )}
         </MapContainer>
 
         {/* 5. SLIDE-OUT DRAWER FOR RESPONDENTS LIST */}
@@ -2888,7 +3196,9 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
-              className="absolute top-0 right-0 bottom-0 w-80 sm:w-96 bg-white z-[900] shadow-2xl border-l border-slate-200 flex flex-col pointer-events-auto"
+              className="absolute top-0 right-0 bottom-0 w-80 sm:w-96 bg-white z-[900] shadow-2xl border-l border-slate-200 flex flex-col pointer-events-auto select-none"
+              onCopy={(e) => e.preventDefault()}
+              onContextMenu={(e) => e.preventDefault()}
             >
               <div className="p-4 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -2941,7 +3251,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                       </div>
 
                       <h5 className="font-extrabold text-xs text-slate-900 mt-1.5 truncate">
-                        👤 {pt.k || 'Responden'}
+                        👤 {maskName(pt.k || 'Responden')}
                       </h5>
                       <p className="text-[11px] text-slate-500 truncate mt-0.5">
                         📍 {pt.s} {pt.dn ? `(${pt.dn})` : ''}
@@ -3000,7 +3310,13 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   setSelectedPoint(null);
                 }
               }}
-              className="relative w-full sm:max-w-lg bg-white border-t sm:border border-slate-200/90 rounded-t-3xl sm:rounded-3xl shadow-2xl z-10 pointer-events-auto max-h-[85vh] sm:max-h-[88vh] flex flex-col overflow-hidden touch-pan-y"
+              onCopy={(e) => {
+                e.preventDefault();
+                setCopyNotice('Penyalinan informasi responden dilindungi demi privasi. Hanya koordinat yang diizinkan untuk disalin.');
+                setTimeout(() => setCopyNotice(null), 3500);
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+              className="relative w-full sm:max-w-lg bg-white border-t sm:border border-slate-200/90 rounded-t-3xl sm:rounded-3xl shadow-2xl z-10 pointer-events-auto max-h-[85vh] sm:max-h-[88vh] flex flex-col overflow-hidden touch-pan-y select-none"
             >
               {/* Drag Handle Bar for Touch Gestures on Mobile/HP */}
               <div 
@@ -3017,20 +3333,77 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   <span className={`w-3.5 h-3.5 rounded-full shrink-0 ${
                     (selectedPoint.m === 1 || selectedPoint.mKat)
                       ? 'bg-amber-500 ring-2 ring-amber-200' 
+                      : selectedPoint.asType === 'usaha'
+                      ? 'bg-purple-500 ring-2 ring-purple-200'
                       : selectedPoint.u > 0 
                       ? 'bg-emerald-500 ring-2 ring-emerald-200' 
                       : 'bg-blue-500 ring-2 ring-blue-200'
                   }`} />
-                  <div className="min-w-0">
-                    <h4 className="text-sm sm:text-base font-black text-slate-900 truncate">
-                      {selectedPoint.k || 'Responden SE2026'}
-                    </h4>
-                    <span className="text-[11px] font-mono text-slate-400 block truncate">ID: {selectedPoint.i}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="text-sm sm:text-base font-black text-slate-900 break-words">
+                        {isNameRevealed('header') ? (selectedPoint.k || 'Responden SE2026') : maskName(selectedPoint.k || 'Responden SE2026')}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => toggleNameReveal('header')}
+                        className="p-1 text-slate-400 hover:text-cyan-700 hover:bg-cyan-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                        title={isNameRevealed('header') ? "Sensor Nama Responden" : "Buka / Lihat Nama Responden"}
+                      >
+                        {isNameRevealed('header') ? <EyeOff className="w-3.5 h-3.5 text-cyan-700" /> : <Eye className="w-3.5 h-3.5 text-slate-400" />}
+                      </button>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0 ${
+                        selectedPoint.asType === 'keluarga_usaha'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : selectedPoint.asType === 'usaha'
+                          ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                          : 'bg-blue-100 text-blue-800 border border-blue-300'
+                      }`}>
+                        {selectedPoint.asType === 'keluarga_usaha'
+                          ? '🏠💼 Keluarga Ada Usaha'
+                          : selectedPoint.asType === 'usaha'
+                          ? '💼 Assignment Usaha'
+                          : '🏠 Assignment Keluarga'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-[11px] font-mono text-slate-400">ID: {selectedPoint.i}</span>
+                      <div className="flex items-center gap-1.5 ml-auto">
+                        <button
+                          type="button"
+                          onClick={() => setRevealAllNames(!revealAllNames)}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200 shadow-2xs"
+                          title={revealAllNames ? "Sensor Semua Nama" : "Buka Semua Nama"}
+                        >
+                          {revealAllNames ? <EyeOff className="w-3 h-3 text-cyan-700" /> : <Eye className="w-3 h-3 text-cyan-700" />}
+                          <span>{revealAllNames ? 'Sensor Semua' : 'Buka Semua'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(`${selectedPoint.lt}, ${selectedPoint.lg}`, selectedPoint.i + '_header_coord')}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer bg-cyan-50 hover:bg-cyan-100 text-cyan-900 border-cyan-200 shadow-2xs"
+                          title="Salin Koordinat (Latitude, Longitude)"
+                        >
+                          {copiedId === selectedPoint.i + '_header_coord' ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              <span className="text-emerald-700">Tersalin!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3 text-cyan-700" />
+                              <span>Salin Koordinat</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <button
                   onClick={() => setSelectedPoint(null)}
-                  className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer shrink-0 transition-colors"
+                  className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer shrink-0 transition-colors ml-2"
                   title="Tutup Detail"
                 >
                   <X className="w-5 h-5" />
@@ -3039,6 +3412,25 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
 
               {/* Scrollable Content */}
               <div className="p-4 sm:p-5 space-y-3.5 overflow-y-auto custom-scrollbar flex-1 text-slate-800">
+                {/* Privacy Copy Protection Alert Banner */}
+                <AnimatePresence>
+                  {copyNotice && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 text-xs font-bold flex items-center justify-between gap-2 shadow-sm"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>{copyNotice}</span>
+                      </div>
+                      <button onClick={() => setCopyNotice(null)} className="text-rose-500 hover:text-rose-700 p-0.5 cursor-pointer">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 {/* Category Status Banner */}
                 {(() => {
                   const cat = getPointStatusCategory(selectedPoint);
@@ -3068,75 +3460,325 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   );
                 })()}
 
-                {/* NOTICE PERLINDUNGAN DATA MIKRO */}
-                <div className="p-3 bg-emerald-50/90 rounded-2xl border border-emerald-200/90 flex items-start gap-2.5 text-xs text-emerald-900 shadow-2xs">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <div className="text-[11px] leading-relaxed">
-                    <span className="font-extrabold text-emerald-950 block">Data Mikro Dilindungi & Disensor</span>
-                    Nama responden disensor dan seluruh rincian informasi mikro telah diamankan dari server demi menjaga kerahasiaan data statistik (UU No. 16/1997).
-                  </div>
-                </div>
-
-                {/* IDENTITAS KELUARGA & NO. URUT BANGUNAN */}
-                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2 text-xs">
+                {/* 1. INFORMASI WILAYAH (Hanya sampai Desa / Kelurahan - Sesuai Gambar 1) */}
+                <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200/90 space-y-2.5 shadow-2xs">
                   <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/60">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
-                      Identitas Responden & Bangunan
+                    <div className="flex items-center gap-1.5 font-black text-xs text-slate-900">
+                      <MapPin className="w-4 h-4 text-cyan-600 shrink-0" />
+                      <span>Informasi Wilayah Kerja Sensus</span>
+                    </div>
+                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-900 border border-cyan-200">
+                      Mempawah [6104]
                     </span>
-                    {isValidText(selectedPoint.nb) && (
-                      <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
-                        <Building2 className="w-3 h-3 text-blue-600" />
-                        No. Bangunan: #{selectedPoint.nb}
-                      </span>
-                    )}
                   </div>
 
-                  <div className="space-y-1.5">
-                    {/* 1. Nama Kepala Keluarga (Disensor) */}
-                    <div className="p-2 bg-white rounded-xl border border-slate-200/70 flex items-start justify-between gap-2">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0 flex items-center gap-1">
-                        <Home className="w-3 h-3 text-blue-500" />
-                        Kepala Keluarga:
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {/* Level Kecamatan */}
+                    <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 space-y-0.5 shadow-2xs">
+                      <span className="text-[9px] font-bold uppercase text-slate-400 block">KECAMATAN</span>
+                      <span className="font-black text-slate-900 block break-words leading-snug">
+                        {selectedPoint.kn || selectedPoint.kc || '-'}
                       </span>
-                      <div className="text-right">
-                        <span className="font-black text-slate-900 font-mono tracking-wider">{selectedPoint.k || '-'}</span>
-                        <span className="block text-[9px] font-bold text-amber-700 uppercase tracking-tight flex items-center justify-end gap-1 mt-0.5">
-                          <Lock className="w-2.5 h-2.5" /> Nama Disensor (Privasi)
-                        </span>
-                      </div>
+                      <span className="text-[10px] font-mono text-cyan-700 font-bold block pt-0.5">
+                        Kode: [{selectedPoint.kc || '-'}]
+                      </span>
                     </div>
 
-                    {/* 2. Indikator Usaha Keluarga */}
-                    {selectedPoint.u > 0 && (
-                      <div className="p-2 bg-emerald-50/90 rounded-xl border border-emerald-200/80 flex items-start justify-between gap-2">
-                        <span className="text-[10px] font-black uppercase text-emerald-900 flex items-center gap-1 shrink-0">
-                          <Briefcase className="w-3 h-3 text-emerald-700" />
-                          Kegiatan Usaha:
-                        </span>
-                        <div className="text-right">
-                          <span className="font-bold text-emerald-950 text-xs">
-                            {isValidText(selectedPoint.nu) ? selectedPoint.nu : 'Memiliki Usaha Keluarga'}
-                          </span>
-                          <span className="text-[10px] font-bold text-emerald-700 block mt-0.5">
-                            Jumlah: {selectedPoint.u} Usaha
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    {/* Level Desa / Kelurahan */}
+                    <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 space-y-0.5 shadow-2xs">
+                      <span className="text-[9px] font-bold uppercase text-slate-400 block">DESA / KELURAHAN</span>
+                      <span className="font-black text-slate-900 block break-words leading-snug">
+                        {selectedPoint.dn || selectedPoint.d || '-'}
+                      </span>
+                      <span className="text-[10px] font-mono text-cyan-700 font-bold block pt-0.5">
+                        Kode: [{selectedPoint.d || '-'}]
+                      </span>
+                    </div>
+                  </div>
 
-                    {/* 3. Nama Pemilik / Pengelola Usaha (Jika Ada) */}
-                    {isValidText(selectedPoint.peng) && (
-                      <div className="p-2 bg-slate-100/90 rounded-xl border border-slate-200/80 flex items-start justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase text-slate-600 flex items-center gap-1 shrink-0">
-                          <UserCheck className="w-3 h-3 text-slate-600" />
-                          Pemilik / Pengelola:
-                        </span>
-                        <span className="font-extrabold text-right text-slate-900">{selectedPoint.peng}</span>
-                      </div>
-                    )}
+                  {selectedPoint.nb && (
+                    <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between pt-1 border-t border-slate-100">
+                      <span>Nomor Urut Bangunan Fisik:</span>
+                      <span className="font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">
+                        B#{selectedPoint.nb}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 1.5 KOTAK INFORMASI SLS MANDIRI (Tepat di bawah Informasi Wilayah - Sesuai Gambar 2) */}
+                <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200/90 space-y-1.5 shadow-2xs">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-cyan-600 shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-black text-xs text-slate-900 block break-words leading-snug">
+                        <span className="font-bold text-slate-700">SLS: </span>{selectedPoint.s || '-'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-[11px] text-slate-600 pl-6 pt-1.5 border-t border-slate-200/60">
+                    <span className="break-words">
+                      <span className="font-bold text-slate-500">Desa/Kel: </span>
+                      <span className="font-semibold text-slate-800">{selectedPoint.dn || selectedPoint.d || '-'}</span>
+                    </span>
+                    <div className="flex items-center gap-1 shrink-0 font-mono text-[11px]">
+                      <span className="text-slate-500 font-sans font-bold">Kode SLS: </span>
+                      <span className="font-black tracking-wide text-cyan-950 bg-cyan-100/80 px-2 py-0.5 rounded-md border border-cyan-200 shadow-2xs">
+                        {getKodeSls16(selectedPoint)}
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {/* TAB SWITCHER FOR KELUARGA ADA USAHA */}
+                {selectedPoint.asType === 'keluarga_usaha' && (
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
+                    <button
+                      onClick={() => setDetailTab('keluarga')}
+                      className={`py-2 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        detailTab === 'keluarga'
+                          ? 'bg-white text-blue-900 shadow-sm border border-blue-100'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Home className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Profil Keluarga</span>
+                    </button>
+                    <button
+                      onClick={() => setDetailTab('usaha')}
+                      className={`py-2 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        detailTab === 'usaha'
+                          ? 'bg-white text-emerald-900 shadow-sm border border-emerald-100'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Briefcase className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Informasi Usaha ({selectedPoint.u || selectedPoint.usahas?.length || 1})</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* 2. PROFIL KELUARGA (Hanya Variabel: Nama KK, Nama ART, JK, Tgl Lahir, Umur) */}
+                {(selectedPoint.asType === 'keluarga' || (selectedPoint.asType === 'keluarga_usaha' && detailTab === 'keluarga')) && (
+                  <div className="p-3.5 bg-blue-50/70 rounded-2xl border border-blue-200/90 space-y-3 shadow-2xs">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-blue-200/60">
+                      <div className="flex items-center gap-1.5 font-black text-xs text-blue-950">
+                        <Users className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span>Profil Keluarga</span>
+                      </div>
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-300">
+                        {selectedPoint.art ? `${selectedPoint.art.length} Anggota Keluarga` : '1 Anggota'}
+                      </span>
+                    </div>
+
+                    {/* Nama Kepala Keluarga (KRT) Card */}
+                    <div className="p-3 bg-white rounded-xl border border-blue-100 flex items-center justify-between gap-2 shadow-2xs">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[9px] font-bold uppercase text-slate-400 block">Nama Kepala Keluarga (KRT)</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <h4 className="font-black text-sm text-slate-900 tracking-tight break-words">
+                            {isNameRevealed('krt')
+                              ? (selectedPoint.kk || selectedPoint.k || '-')
+                              : maskName(selectedPoint.kk || selectedPoint.k || '-')}
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() => toggleNameReveal('krt')}
+                            className="p-1 text-slate-400 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                            title={isNameRevealed('krt') ? "Sensor Nama KRT" : "Lihat Nama KRT"}
+                          >
+                            {isNameRevealed('krt') ? <EyeOff className="w-4 h-4 text-blue-600" /> : <Eye className="w-4 h-4 text-slate-400 hover:text-blue-600" />}
+                          </button>
+                        </div>
+                      </div>
+                      <span className="text-xl shrink-0">👨‍👩‍👧‍👦</span>
+                    </div>
+
+                    {/* Daftar Anggota Rumah Tangga (ART) */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-black uppercase text-blue-900 tracking-wider block">
+                        Daftar Anggota Rumah Tangga (ART):
+                      </span>
+
+                      {selectedPoint.art && selectedPoint.art.length > 0 ? (
+                        <div className="space-y-1.5">
+                          {selectedPoint.art.map((art, idx) => {
+                            const isArtRevealed = isNameRevealed(`art_${idx}`);
+                            return (
+                              <div
+                                key={idx}
+                                className="p-2.5 bg-white rounded-xl border border-blue-100/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs hover:border-blue-300 transition-colors"
+                              >
+                                <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                                  <div className="w-6 h-6 rounded-lg bg-blue-100/80 text-blue-900 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
+                                    #{idx + 1}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="font-extrabold text-xs text-slate-900 block break-words">
+                                        {isArtRevealed ? (art.n || '-') : maskName(art.n || '-')}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleNameReveal(`art_${idx}`)}
+                                        className="p-0.5 text-slate-400 hover:text-blue-600 rounded transition-colors cursor-pointer shrink-0"
+                                        title={isArtRevealed ? "Sensor Nama ART" : "Lihat Nama ART"}
+                                      >
+                                        {isArtRevealed ? <EyeOff className="w-3.5 h-3.5 text-blue-600" /> : <Eye className="w-3.5 h-3.5" />}
+                                      </button>
+                                    </div>
+                                    <span className="text-[10px] text-blue-700 font-bold block">
+                                      {art.h || (idx === 0 ? 'Kepala Keluarga' : 'Anggota Keluarga')}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2.5 text-right shrink-0 pl-8 sm:pl-0">
+                                  <div className="text-left sm:text-right">
+                                    <span className="text-[9px] font-bold uppercase text-slate-400 block">Jenis Kelamin</span>
+                                    <span className="font-bold text-xs text-slate-800">
+                                      {art.jk === 'Laki-laki' ? '👨 Laki-laki' : (art.jk === 'Perempuan' ? '👩 Perempuan' : (art.jk || '-'))}
+                                    </span>
+                                  </div>
+                                  <div className="h-6 w-px bg-slate-200" />
+                                  <div className="text-left sm:text-right">
+                                    <span className="text-[9px] font-bold uppercase text-slate-400 block">Tgl Lahir / Umur</span>
+                                    <span className="font-bold text-xs text-slate-900">
+                                      {art.tgl ? art.tgl : '-'} {art.u ? `(${art.u} Thn)` : ''}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-3 bg-white rounded-xl border border-blue-100 text-center text-xs text-slate-500">
+                          Data rincian anggota keluarga tidak tercatat.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. INFORMASI USAHA (Hanya Variabel: Nama Usaha, Status Badan Usaha, Tahun Berdiri, Nama Pemilik, Jumlah Pekerja, KBLI 2025 Lengkap) */}
+                {(selectedPoint.asType === 'usaha' || (selectedPoint.asType === 'keluarga_usaha' && detailTab === 'usaha')) && (() => {
+                  const bList = (selectedPoint.usahas && selectedPoint.usahas.length > 0)
+                    ? selectedPoint.usahas
+                    : [{
+                        nu: selectedPoint.nu,
+                        bu: selectedPoint.bu,
+                        thOp: selectedPoint.thOp,
+                        peng: selectedPoint.peng,
+                        tk: selectedPoint.tk,
+                        kb: selectedPoint.kb
+                      }];
+                  const currB = bList[activeBusinessIdx] || bList[0];
+
+                  return (
+                    <div className="p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-200/90 space-y-3 shadow-2xs">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-emerald-200/60">
+                        <div className="flex items-center gap-1.5 font-black text-xs text-emerald-950">
+                          <Briefcase className="w-4 h-4 text-emerald-700 shrink-0" />
+                          <span>Informasi Usaha</span>
+                        </div>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                          {currB.bu || 'Bukan Badan Usaha'}
+                        </span>
+                      </div>
+
+                      {/* Switcher if family has multiple businesses */}
+                      {bList.length > 1 && (
+                        <div className="space-y-1">
+                          <span className="text-[9px] font-bold uppercase text-slate-400 block">
+                            Pilih Unit Usaha Terdaftar ({bList.length} Usaha):
+                          </span>
+                          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+                            {bList.map((b, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setActiveBusinessIdx(idx)}
+                                className={`px-2.5 py-1 rounded-xl text-[10px] font-black shrink-0 transition-all cursor-pointer ${
+                                  activeBusinessIdx === idx
+                                    ? 'bg-emerald-600 text-white shadow-xs'
+                                    : 'bg-white text-emerald-900 hover:bg-emerald-100 border border-emerald-200'
+                                }`}
+                              >
+                                #{idx + 1}: {b.nu ? (b.nu.length > 18 ? b.nu.slice(0, 18) + '...' : b.nu) : 'Usaha'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 6 Variabel Utama Karakteristik Usaha */}
+                      <div className="space-y-2 text-xs">
+                        {/* 1. Nama Usaha */}
+                        <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                          <span className="text-[9px] font-bold uppercase text-slate-400 block">Nama Usaha</span>
+                          <span className="font-black text-sm text-emerald-950 block">
+                            {currB.nu || selectedPoint.nu || 'Unit Usaha SE2026'}
+                          </span>
+                        </div>
+
+                        {/* 2. Nama Pemilik Usaha */}
+                        <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                          <span className="text-[9px] font-bold uppercase text-slate-400 block">Nama Pemilik Usaha</span>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-extrabold text-xs text-slate-900 block break-words">
+                              {isNameRevealed(`peng_${activeBusinessIdx}`)
+                                ? (currB.peng || selectedPoint.peng || selectedPoint.k || '-')
+                                : maskName(currB.peng || selectedPoint.peng || selectedPoint.k || '-')}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => toggleNameReveal(`peng_${activeBusinessIdx}`)}
+                              className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                              title={isNameRevealed(`peng_${activeBusinessIdx}`) ? "Sensor Nama Pemilik" : "Lihat Nama Pemilik"}
+                            >
+                              {isNameRevealed(`peng_${activeBusinessIdx}`) ? <EyeOff className="w-3.5 h-3.5 text-emerald-600" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 3 & 4. Status Badan Usaha & Tahun Berdiri */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                            <span className="text-[9px] font-bold uppercase text-slate-400 block">Status Badan Usaha</span>
+                            <span className="font-extrabold text-xs text-slate-900 block truncate">
+                              {currB.bu || selectedPoint.bu || 'Bukan Badan Usaha'}
+                            </span>
+                          </div>
+
+                          <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                            <span className="text-[9px] font-bold uppercase text-slate-400 block">Tahun Berdiri</span>
+                            <span className="font-black text-xs text-emerald-900 block">
+                              {currB.thOp || selectedPoint.thOp || '-'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 5. Jumlah Pekerja */}
+                        <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                          <span className="text-[9px] font-bold uppercase text-slate-400 block">Jumlah Pekerja</span>
+                          <span className="font-extrabold text-xs text-slate-900 block">
+                            {(currB.tk || selectedPoint.tk) ? `${currB.tk || selectedPoint.tk} Orang Tenaga Kerja` : '-'}
+                          </span>
+                        </div>
+
+                        {/* 6. KBLI 2025 Lengkapnya */}
+                        <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-1 shadow-2xs">
+                          <span className="text-[9px] font-bold uppercase text-slate-400 block">KBLI 2025 Lengkap</span>
+                          <div className="p-2 bg-emerald-50/80 rounded-lg border border-emerald-200">
+                            <span className="font-extrabold text-emerald-950 text-xs block leading-relaxed">
+                              {currB.kb || selectedPoint.kb || 'Klasifikasi KBLI Belum Tercatat'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* KHUSUS: INFORMASI STATUS & ALASAN TIDAK DITEMUKAN / NON-RESPON / TUTUP */}
                 {(() => {
@@ -3192,17 +3834,6 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   );
                 })()}
 
-                {/* Wilayah */}
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 text-xs">
-                  <div className="flex items-center gap-1.5 text-slate-700">
-                    <MapPin className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
-                    <span className="truncate"><b>SLS:</b> {selectedPoint.s || '-'}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 pl-5">
-                    <span><b>Desa/Kel:</b> {selectedPoint.dn || selectedPoint.d || '-'}</span>
-                    {selectedPoint.ks && <span><b>Kode SLS:</b> {selectedPoint.ks}</span>}
-                  </div>
-                </div>
 
                 {/* DETAIL USAHA MATCHING SE-ST */}
                 {(() => {
@@ -3297,61 +3928,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   );
                 })()}
 
-                {/* Info Usaha Biasa (SE2026 - Hanya jika rincian ada) */}
-                {(() => {
-                  const hasNu = isValidText(selectedPoint.nu);
-                  const hasPeng = isValidText(selectedPoint.peng);
-                  const hasKb = isValidText(selectedPoint.kb);
-                  const hasSk = isValidText(selectedPoint.sk);
 
-                  if (!hasNu && !hasPeng && !hasKb && !hasSk) return null;
-
-                  return (
-                    <div className="p-3.5 bg-emerald-50/80 rounded-2xl border border-emerald-200/90 space-y-2.5">
-                      <div className="flex items-center justify-between pb-1.5 border-b border-emerald-200/60">
-                        <p className="font-extrabold text-emerald-950 text-xs flex items-center gap-1.5">
-                          <Briefcase className="w-4 h-4 text-emerald-700 shrink-0" />
-                          Profil Kegiatan Usaha Keluarga
-                        </p>
-                        {selectedPoint.u > 0 && (
-                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
-                            {selectedPoint.u} Usaha
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="space-y-1.5 text-xs">
-                        {hasNu && (
-                          <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Nama Usaha:</span>
-                            <span className="font-black text-right text-emerald-950">{selectedPoint.nu}</span>
-                          </div>
-                        )}
-
-                        {hasPeng && (
-                          <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Pemilik / Pengelola:</span>
-                            <span className="font-black text-right text-emerald-950">{selectedPoint.peng}</span>
-                          </div>
-                        )}
-
-                        {hasKb && (
-                          <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Kategori KBLI:</span>
-                            <span className="font-medium text-right text-emerald-900">{selectedPoint.kb}</span>
-                          </div>
-                        )}
-
-                        {hasSk && (
-                          <div className="p-2 bg-white rounded-xl border border-emerald-200/70 flex items-start justify-between gap-2">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Skala Usaha:</span>
-                            <span className="font-bold text-right text-emerald-900 uppercase tracking-wide">{selectedPoint.sk}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
 
                 {/* INFORMASI PETUGAS LAPANGAN SE2026 (PPL, PML & PJ KUDA) */}
                 {(() => {
