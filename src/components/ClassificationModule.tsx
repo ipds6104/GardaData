@@ -194,7 +194,7 @@ export const ClassificationModule: React.FC<ClassificationModuleProps> = ({ onBa
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight text-6xl">KBLI & KBJI <span className="text-primary-600">Explorer</span></h1>
-          <p className="text-slate-500 font-medium mt-2">Cari KBLI 2025 dan KBJI 2014 yang sering muncul di Kabupaten Mempawah dengan deskripsi pekerjaan, komoditas yang diproduksi, dan bidang usaha/perusahaan/kantor.</p>
+          <p className="text-slate-500 font-medium mt-2">Cari KBLI 2025 dan KBJI 2026 yang sering muncul di Kabupaten Mempawah dengan deskripsi pekerjaan, komoditas yang diproduksi, dan bidang usaha/perusahaan/kantor.</p>
         </div>
 
         <div className="flex bg-slate-100 p-1.5 rounded-2xl">
@@ -403,7 +403,7 @@ export const ClassificationModule: React.FC<ClassificationModuleProps> = ({ onBa
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Kode KBJI 2014 *</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Kode KBJI 2026 *</label>
                         <input
                           type="text"
                           required

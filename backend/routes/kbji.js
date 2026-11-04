@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 
-// In-Memory Database for KBJI 2014
+// In-Memory Database for KBJI 2026 (Klasifikasi Baku Jabatan Indonesia)
 let isLoaded = false;
 let allItems = [];
 let categories = [];
@@ -17,6 +17,41 @@ let mempawahSummary = new Map();
 let kbjiLearnedModel = null;
 let kbjiLearnedRules = [];
 const HIGH_CONFIDENCE_THRESHOLD = 500;
+
+// Non-blocking in-memory search telemetry buffer for future model training
+let pendingSearchLogs = [];
+let searchLogFlushTimer = null;
+
+function queueSearchLog(entry) {
+    pendingSearchLogs.push(entry);
+    if (pendingSearchLogs.length > 2000) {
+        pendingSearchLogs = pendingSearchLogs.slice(pendingSearchLogs.length - 2000);
+    }
+    if (!searchLogFlushTimer) {
+        searchLogFlushTimer = setTimeout(() => {
+            flushSearchLogsToDisk();
+            searchLogFlushTimer = null;
+        }, 15000);
+    }
+}
+
+function flushSearchLogsToDisk() {
+    if (pendingSearchLogs.length === 0) return;
+    try {
+        const dataDir = path.join(__dirname, '../kbji_data');
+        const searchLogPath = path.join(dataDir, 'kbji_search_queries_dataset.json');
+        let existingLogs = [];
+        if (fs.existsSync(searchLogPath)) {
+            try {
+                existingLogs = JSON.parse(fs.readFileSync(searchLogPath, 'utf8'));
+                if (!Array.isArray(existingLogs)) existingLogs = [];
+            } catch (_) { existingLogs = []; }
+        }
+        const merged = existingLogs.concat(pendingSearchLogs).slice(-2000);
+        pendingSearchLogs = [];
+        fs.writeFile(searchLogPath, JSON.stringify(merged, null, 2), 'utf8', () => {});
+    } catch (_) {}
+}
 
 // Level Priority (Operational specificity: Jabatan 5-digit and Sub-Golongan 4-digit highest)
 const LEVEL_PRIORITY = {
@@ -62,12 +97,15 @@ function loadKbjiData() {
     if (isLoaded) return;
     try {
         const dataPath = path.join(__dirname, '../kbji_data');
-        const allItemsPath = path.join(dataPath, 'kbji_2014_all_items.json');
+        let allItemsPath = path.join(dataPath, 'kbji_2026_all_items.json');
+        if (!fs.existsSync(allItemsPath)) {
+            allItemsPath = path.join(dataPath, 'kbji_2014_all_items.json');
+        }
         const categoriesPath = path.join(dataPath, '01_golongan_pokok.json');
         const trainingPath = path.join(dataPath, 'kbji_mempawah_training.json');
 
         if (!fs.existsSync(allItemsPath) || !fs.existsSync(categoriesPath)) {
-            console.warn('KBJI 2014 datasets not found in', dataPath);
+            console.warn('KBJI 2026 datasets not found in', dataPath);
             return;
         }
 
@@ -101,7 +139,7 @@ function loadKbjiData() {
                 kbjiLearnedModel = JSON.parse(fs.readFileSync(learnedPath, 'utf8'));
                 if (Array.isArray(kbjiLearnedModel?.rules)) {
                     kbjiLearnedRules = kbjiLearnedModel.rules;
-                    console.log(`🎯 [KBJI 2014] Loaded Learned Model: ${kbjiLearnedRules.length} aturan hasil 500+ konfirmasi lapangan.`);
+                    console.log(`🎯 [KBJI 2026] Loaded Learned Model: ${kbjiLearnedRules.length} aturan hasil 500+ konfirmasi lapangan.`);
                 }
             } catch (lErr) {
                 console.warn('Note on loading KBJI learned model:', lErr.message);
@@ -133,9 +171,9 @@ function loadKbjiData() {
         });
 
         isLoaded = true;
-        console.log(`✔ [KBJI 2014] Loaded ${allItems.length} classification items & ${categories.length} Golongan Pokok into RAM.`);
+        console.log(`✔ [KBJI 2026] Loaded ${allItems.length} classification items & ${categories.length} Golongan Pokok into RAM.`);
     } catch (err) {
-        console.error('Error loading KBJI 2014 data:', err);
+        console.error('Error loading KBJI 2026 data:', err);
     }
 }
 
@@ -175,7 +213,7 @@ router.get('/categories', (req, res) => {
             total_sub_golongan: itemsInCat.filter(i => i.level === 'sub_golongan').length,
             total_sub_golongan_pokok: itemsInCat.filter(i => i.level === 'sub_golongan_pokok').length
         };
-    });
+    }).sort((a, b) => Number(a.code) - Number(b.code));
 
     res.json(enrichedCategories);
 });
@@ -379,7 +417,22 @@ router.get('/search', (req, res) => {
             }
         }
 
-        // Sorting
+        // Pastikan entitas rekomendasi terbaik selalu ada di dalam scored jika teridentifikasi oleh sistem
+        if (bestRec && bestRec.kbji) {
+            const alreadyScored = scored.some(s => s.item.kode === bestRec.kbji);
+            if (!alreadyScored) {
+                const recItem = itemMap.get(bestRec.kbji);
+                if (recItem) {
+                    scored.unshift({
+                        item: recItem,
+                        score: 99999,
+                        matchedTokensCount: queryTokens.length
+                    });
+                }
+            }
+        }
+
+        // Sorting: item rekomendasi terbaik sistem selalu di paling atas
         scored.sort((a, b) => {
             const aExactCode = a.item._kodeLower === queryLower;
             const bExactCode = b.item._kodeLower === queryLower;
@@ -464,6 +517,19 @@ router.get('/search', (req, res) => {
             mempawah_recommendation: mempawahRec
         };
     });
+
+    // Buffer query telemetry for future model training (zero-latency in-memory queue)
+    if (q && q.length >= 2 && page === 1) {
+        queueSearchLog({
+            query: q,
+            kategori,
+            level,
+            total_results: total,
+            top_code: pageItems[0]?.kode || null,
+            top_title: pageItems[0]?.judul || null,
+            timestamp: new Date().toISOString()
+        });
+    }
 
     res.json({
         items: pageItems,

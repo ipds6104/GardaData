@@ -159,7 +159,7 @@ export interface AnalyticsDataResponse {
 const FEATURE_NAMES: Record<string, string> = {
   'landing': 'Beranda Utama',
   'kbli-2025': 'KBLI 2025 (Klasifikasi Lapangan Usaha)',
-  'kbji-2014': 'KBJI 2014 (Klasifikasi Baku Jabatan)',
+  'kbji-2014': 'KBJI 2026 (Klasifikasi Baku Jabatan)',
   'kbli-kbji': 'KBLI dan KBJI Mempawah',
   'penilaian-mitra': 'Penilaian Kinerja Mitra Statistik',
   'peta-responden-se2026': 'Peta Responden SE2026',

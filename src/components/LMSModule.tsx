@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink, GripVertical } from 'lucide-react';
+import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink, GripVertical, Clock } from 'lucide-react';
 import { useAuth } from '../lib/auth';
+import { IndonesianDateTimePicker } from './common/IndonesianDateTimePicker';
+import { IndonesianCategorySelect } from './common/IndonesianCategorySelect';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -64,6 +66,20 @@ const CARD_COLORS = [
   'bg-indigo-50 border-indigo-200 text-indigo-800 hover:shadow-indigo-200'
 ];
 
+// Helper format tanggal dan jam 24 jam Indonesia (WIB)
+const formatIndonesianTime24 = (isoStr?: string) => {
+  if (!isoStr) return '';
+  try {
+    const [dPart, tPart] = isoStr.split('T');
+    const [y, m, d] = dPart.split('-').map(Number);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const timeStr = tPart ? `${tPart} WIB` : '';
+    return `${d} ${months[m - 1]} ${y}${timeStr ? `, ${timeStr}` : ''}`;
+  } catch {
+    return isoStr;
+  }
+};
+
 // Component Sortable Item untuk Dnd-Kit
 const SortableLinkItem = ({ btn, isAdmin, theme, isLocked, lockLabel, isIframe, openIframe, toggleButtonStatus, setButtonFormData, setIsCustomCategory, setShowButtonForm, handleDeleteButton, activeTrainingId, DEFAULT_CATEGORIES }: any) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: btn.id, disabled: !isAdmin });
@@ -81,7 +97,13 @@ const SortableLinkItem = ({ btn, isAdmin, theme, isLocked, lockLabel, isIframe, 
           </div>
           <div className="flex flex-col flex-grow">
             <span className="font-bold text-slate-700 leading-tight pr-2 text-sm md:text-base">{btn.title}</span>
-            {lockLabel && <span className="text-xs font-bold text-rose-500 mt-1 uppercase flex items-center gap-1"><Lock className="w-3 h-3"/> {lockLabel}</span>}
+            {lockLabel && <span className="text-xs font-bold text-rose-500 mt-1 uppercase flex items-center gap-1"><Lock className="w-3 h-3 shrink-0"/> {lockLabel}</span>}
+            {!lockLabel && (btn.startDate || btn.endDate) && (
+              <span className="text-[10px] font-semibold text-slate-400 mt-1 flex items-center gap-1">
+                <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                {btn.endDate ? `Batas: ${formatIndonesianTime24(btn.endDate)}` : `Buka: ${formatIndonesianTime24(btn.startDate)}`}
+              </span>
+            )}
           </div>
         </button>
       ) : (
@@ -91,7 +113,13 @@ const SortableLinkItem = ({ btn, isAdmin, theme, isLocked, lockLabel, isIframe, 
           </div>
           <div className="flex flex-col flex-grow">
             <span className="font-bold text-slate-700 leading-tight pr-2 text-sm md:text-base">{btn.title}</span>
-            {lockLabel && <span className="text-xs font-bold text-rose-500 mt-1 uppercase flex items-center gap-1"><Lock className="w-3 h-3"/> {lockLabel}</span>}
+            {lockLabel && <span className="text-xs font-bold text-rose-500 mt-1 uppercase flex items-center gap-1"><Lock className="w-3 h-3 shrink-0"/> {lockLabel}</span>}
+            {!lockLabel && (btn.startDate || btn.endDate) && (
+              <span className="text-[10px] font-semibold text-slate-400 mt-1 flex items-center gap-1">
+                <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                {btn.endDate ? `Batas: ${formatIndonesianTime24(btn.endDate)}` : `Buka: ${formatIndonesianTime24(btn.startDate)}`}
+              </span>
+            )}
           </div>
         </a>
       )}
@@ -656,8 +684,8 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             const isLocked = !isAdmin && (isNotOpen || isClosed || !btn.isActive);
                             
                             let lockLabel = '';
-                            if (isNotOpen) lockLabel = 'Belum Dibuka';
-                            else if (isClosed) lockLabel = 'Sudah Ditutup';
+                            if (isNotOpen) lockLabel = `Belum Dibuka (Buka: ${formatIndonesianTime24(btn.startDate)})`;
+                            else if (isClosed) lockLabel = `Sudah Ditutup (Berakhir: ${formatIndonesianTime24(btn.endDate)})`;
                             else if (!btn.isActive) lockLabel = 'Nonaktif';
 
                             const isIframe = (btn.url || '').trim().startsWith('<iframe');
@@ -736,15 +764,21 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Nama Pelatihan</label>
                   <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold" placeholder="Contoh: Pelatihan Petugas Susenas" required />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tanggal Mulai</label>
-                    <input type="date" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700" required />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tanggal Selesai</label>
-                    <input type="date" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700" required />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <IndonesianDateTimePicker
+                    label="Tanggal Mulai"
+                    mode="date"
+                    value={formData.startDate}
+                    onChange={val => setFormData({...formData, startDate: val})}
+                    required
+                  />
+                  <IndonesianDateTimePicker
+                    label="Tanggal Selesai"
+                    mode="date"
+                    value={formData.endDate}
+                    onChange={val => setFormData({...formData, endDate: val})}
+                    required
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Pilih Ikon Tema</label>
@@ -785,15 +819,21 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-2">URL Tautan / Embed HTML</label>
                   <input type="text" value={buttonFormData.url} onChange={e => setButtonFormData({...buttonFormData, url: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-blue-600" placeholder="https://... atau <iframe src=...>" required />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Waktu Buka (Opsional)</label>
-                    <input type="datetime-local" value={buttonFormData.startDate || ''} onChange={e => setButtonFormData({...buttonFormData, startDate: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Waktu Tutup (Opsional)</label>
-                    <input type="datetime-local" value={buttonFormData.endDate || ''} onChange={e => setButtonFormData({...buttonFormData, endDate: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700" />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <IndonesianDateTimePicker
+                    label="Waktu Buka (Opsional)"
+                    mode="datetime"
+                    placeholder="Pilih tanggal & jam buka..."
+                    value={buttonFormData.startDate || ''}
+                    onChange={val => setButtonFormData({...buttonFormData, startDate: val})}
+                  />
+                  <IndonesianDateTimePicker
+                    label="Waktu Tutup (Opsional)"
+                    mode="datetime"
+                    placeholder="Pilih tanggal & jam tutup..."
+                    value={buttonFormData.endDate || ''}
+                    onChange={val => setButtonFormData({...buttonFormData, endDate: val})}
+                  />
                 </div>
                 <div>
                   <div className="flex justify-between items-end mb-2">
@@ -805,9 +845,12 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   {isCustomCategory ? (
                     <input type="text" value={buttonFormData.category} onChange={e => setButtonFormData({...buttonFormData, category: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ketik nama kategori baru..." required />
                   ) : (
-                    <select value={buttonFormData.category} onChange={e => setButtonFormData({...buttonFormData, category: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-primary-500">
-                      {currentCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <IndonesianCategorySelect
+                      value={buttonFormData.category}
+                      onChange={cat => setButtonFormData({...buttonFormData, category: cat})}
+                      categories={currentCategories}
+                      categoryIcons={CATEGORY_ICONS}
+                    />
                   )}
                 </div>
                 <div className="flex gap-4 pt-4 mt-4 border-t border-slate-100">

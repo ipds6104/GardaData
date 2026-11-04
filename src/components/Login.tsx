@@ -14,9 +14,52 @@ import {
   Server,
   Info,
   X,
-  CheckCircle2
+  CheckCircle2,
+  Briefcase,
+  MapPin,
+  BarChart2
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
+
+interface FeatureUpdate {
+  title: string;
+  date: string;
+  desc: string;
+  icon: React.ElementType;
+}
+
+const LATEST_UPDATES: FeatureUpdate[] = [
+  {
+    title: 'KBJI 2026 Terintegrasi',
+    date: '04 Nov 2026',
+    desc: 'Standar Klasifikasi Baku Jabatan 2026 (2.378 jabatan) & integrasi rekomendasi cerdas.',
+    icon: Briefcase,
+  },
+  {
+    title: 'LMS Jadwal 24 Jam WIB',
+    date: '04 Nov 2026',
+    desc: 'Desain popover kalender interaktif dan selektor waktu 24 jam Indonesia untuk pelatihan.',
+    icon: Clock,
+  },
+  {
+    title: 'KBLI 2025 AI Recommender',
+    date: '28 Okt 2026',
+    desc: 'Pencocokan nama usaha empiris berbasis data survei SE2026 & telemetri pencarian pintar.',
+    icon: Sparkles,
+  },
+  {
+    title: 'Peta Responden SE2026 & SLS',
+    date: '26 Okt 2026',
+    desc: 'Visualisasi spasial titik usaha per kecamatan dengan kode SLS 16-digit & proteksi enkripsi.',
+    icon: MapPin,
+  },
+  {
+    title: 'Statistik & Analisis Pengunjung',
+    date: '24 Okt 2026',
+    desc: 'Monitoring waktu-nyata kunjungan pengguna terintegrasi SSO rIDM dan filter kunjungan organik.',
+    icon: BarChart2,
+  },
+];
 
 export const Login: React.FC = () => {
   const { login, loginWithSso, mockSsoLogin, loginAsVisitor, lockoutRemainingSeconds, ssoConfigured } = useAuth();
@@ -111,28 +154,54 @@ export const Login: React.FC = () => {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-secondary-600 italic">Garda Data</span>
           </h1>
           
-          <div className="p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-primary-100/60 shadow-xs mb-8 max-w-md">
+          <div className="p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-primary-100/60 shadow-xs mb-5 max-w-md">
             <p className="text-slate-600 text-lg leading-relaxed font-medium font-serif italic">
               Portal Integrasi Menjaga Kualitas Data dan Akuntabilitas Proses Pendataan
             </p>
           </div>
 
-          <div className="space-y-3 max-w-md mb-8">
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/70 border border-slate-100 shadow-2xs">
-              <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-4 h-4" />
+          {/* 5 Update Fitur Terbaru (Minimalis & Elegan) */}
+          <div className="max-w-md mb-6">
+            <div className="flex items-center justify-between mb-2.5 px-1">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary-600" />
+                  Pembaruan Fitur Terkini
+                </span>
               </div>
-              <p className="text-xs text-slate-600 font-semibold">
-                <b className="text-slate-800">Pegawai BPS:</b> Otentikasi terpusat via SSO rIDM (Otomatis Role Administrator).
-              </p>
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200/60 shadow-2xs">
+                5 Rilis Terbaru
+              </span>
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/70 border border-slate-100 shadow-2xs">
-              <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                <User className="w-4 h-4" />
-              </div>
-              <p className="text-xs text-slate-600 font-semibold">
-                <b className="text-slate-800">Mitra Lapangan & Pengolahan:</b> Login akun mandiri non-SSO / eksternal.
-              </p>
+
+            <div className="space-y-2">
+              {LATEST_UPDATES.map((item, idx) => {
+                const IconComponent = item.icon;
+                return (
+                  <div
+                    key={idx}
+                    className="group p-2.5 rounded-2xl bg-white/70 hover:bg-white border border-slate-100 hover:border-primary-200 transition-all shadow-2xs hover:shadow-xs flex items-start gap-3"
+                  >
+                    <div className="w-7 h-7 rounded-xl bg-primary-50 text-primary-600 border border-primary-100/60 group-hover:bg-primary-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors mt-0.5 shadow-2xs">
+                      <IconComponent className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-800 truncate group-hover:text-primary-700 transition-colors">
+                          {item.title}
+                        </span>
+                        <span className="text-[10px] font-mono font-semibold text-slate-400 shrink-0">
+                          {item.date}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-snug line-clamp-1 mt-0.5 font-medium">
+                        {item.desc}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
           

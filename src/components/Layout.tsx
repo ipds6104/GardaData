@@ -167,15 +167,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
 
   const searchIndex = [
     { id: 'lms', title: 'Learning Management System', desc: 'Pelatihan, e-learning, materi, sakernas agustus', keywords: ['lms', 'pelatihan', 'sakernas', 'susenas', 'agustus', 'materi', 'kuis', 'jadwal'] },
-    { id: 'laporan-pendataan', title: 'Laporan Pendataan', desc: 'Laporan progres pendataan lapangan', keywords: ['laporan', 'pendataan', 'formulir', 'progress', 'progres', 'lapangan'] },
     ...((user?.role === 'admin' || user?.role === 'petugas' || user?.role === 'petugas_pengolahan') ? [
       { id: 'kbli-2025', title: 'KBLI 2025', desc: 'Klasifikasi Baku Lapangan Usaha Indonesia 2025 standar BPS', keywords: ['kbli', 'kbli 2025', 'konsep', 'definisi', 'lapangan usaha', 'se2026', 'sektor', 'industri'] },
-      { id: 'kbji-2014', title: 'KBJI 2014', desc: 'Klasifikasi Baku Jabatan Indonesia 2014 konsep dan definisi tugas', keywords: ['kbji', 'kbji 2014', 'jabatan', 'pekerjaan', 'profesi', 'tugas', 'fungsi', 'mempawah'] }
+      { id: 'kbji-2014', title: 'KBJI 2026', desc: 'Klasifikasi Baku Jabatan Indonesia 2026 konsep dan definisi tugas', keywords: ['kbji', 'kbji 2026', 'jabatan', 'pekerjaan', 'profesi', 'tugas', 'fungsi', 'mempawah'] }
     ] : []),
-    { id: 'kbli-kbji', title: 'KBLI dan KBJI Mempawah', desc: 'Pencarian kode klasifikasi KBLI/KBJI lokal Mempawah', keywords: ['kbli', 'kbji', 'klasifikasi', 'kode', 'industri', 'pekerjaan'] },
-    { id: 'building-area', title: 'Pengukuran Luas Bangunan', desc: 'Kalkulator area bangunan via satelit', keywords: ['bangunan', 'luas', 'atap', 'pengukuran', 'peta', 'satelit', 'geospasial'] },
     { id: 'imputation', title: 'Imputasi Susenas-Seruti', desc: 'Panduan nilai imputasi lapangan', keywords: ['imputasi', 'susenas', 'seruti', 'nilai', 'batas'] },
     { id: 'infrastructure', title: 'Infrastruktur Desa', desc: 'Monitoring infrastruktur pendukung desa', keywords: ['infrastruktur', 'desa', 'fasilitas', 'pasar', 'sekolah'] },
+    { id: 'monitoring', title: 'Monitoring Dashboard', desc: 'Pantau akumulasi progres lapangan, pencapaian target, dan performa petugas secara real-time', keywords: ['monitoring', 'dashboard', 'progres', 'kinerja', 'petugas', 'lapangan', 'target'] },
+    { id: 'kbli-kbji', title: 'KBLI dan KBJI Mempawah', desc: 'Pencarian kode klasifikasi KBLI/KBJI lokal Mempawah', keywords: ['kbli', 'kbji', 'klasifikasi', 'kode', 'industri', 'pekerjaan'] },
+    { id: 'building-area', title: 'Pengukuran Luas Bangunan', desc: 'Kalkulator area bangunan via satelit', keywords: ['bangunan', 'luas', 'atap', 'pengukuran', 'peta', 'satelit', 'geospasial'] },
+    { id: 'laporan-pendataan', title: 'Laporan Pendataan', desc: 'Laporan progres pendataan lapangan', keywords: ['laporan', 'pendataan', 'formulir', 'progress', 'progres', 'lapangan'] },
     { id: 'social-phenomenon', title: 'Fenomena Sosial Ekonomi', desc: 'Pencatatan dinamika fenomena sosial ekonomi', keywords: ['fenomena', 'sosial', 'ekonomi', 'analisis', 'berita'] },
     { id: 'admin-strategic-data', title: 'Data Strategis BPS', desc: 'Indikator makro ekonomi daerah', keywords: ['strategis', 'makro', 'ekonomi', 'inflasi', 'kemiskinan', 'pdrb'] },
     ...(user?.role === 'admin' ? [
@@ -224,16 +225,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     {
       title: 'PENDATAAN LAPANGAN',
       items: [
-        { id: 'monitoring', label: 'Monitoring Dashboard', icon: Activity },
-        { id: 'laporan-pendataan', label: 'Laporan Pendataan', icon: FileEdit, isDev: true },
         ...((user?.role === 'admin' || user?.role === 'petugas' || user?.role === 'petugas_pengolahan') ? [
           { id: 'kbli-2025', label: 'KBLI 2025', icon: BookOpenCheck },
-          { id: 'kbji-2014', label: 'KBJI 2014', icon: Briefcase }
+          { id: 'kbji-2014', label: 'KBJI 2026', icon: Briefcase }
         ] : []),
-        { id: 'kbli-kbji', label: 'KBLI dan KBJI Mempawah', icon: BookOpen },
         { id: 'imputation', label: 'Imputasi Susenas-Seruti', icon: FileEdit },
         { id: 'infrastructure', label: 'Infrastruktur Desa', icon: Map },
-        { id: 'building-area', label: 'Pengukuran Luas Bangunan', icon: Ruler }
+        { id: 'monitoring', label: 'Monitoring Dashboard', icon: Activity },
+        { id: 'kbli-kbji', label: 'KBLI dan KBJI Mempawah', icon: BookOpen },
+        { id: 'building-area', label: 'Pengukuran Luas Bangunan', icon: Ruler },
+        { id: 'laporan-pendataan', label: 'Laporan Pendataan', icon: FileEdit, isDev: true }
       ]
     },
     ...((user?.role === 'admin' || user?.role === 'petugas_pengolahan') ? [{

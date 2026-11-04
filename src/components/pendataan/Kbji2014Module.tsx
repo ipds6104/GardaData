@@ -28,6 +28,7 @@ import {
   CheckCircle2,
   HelpCircle,
   FileText,
+  AlertTriangle,
   MoreHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -251,10 +252,12 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
   // Categories & Preview State
   const [categories, setCategories] = useState<KbjiCategory[]>(INITIAL_KBJI_CATEGORIES);
   const [loadingCategories, setLoadingCategories] = useState<boolean>(false);
-  const [previewCategoryCode, setPreviewCategoryCode] = useState<string>('5');
+  const [previewCategoryCode, setPreviewCategoryCode] = useState<string>('0');
 
   // Active Drill-Down Node (VIEW 2 - seperti KBLI 2025)
   const [currentNode, setCurrentNode] = useState<KbjiDetailNode | null>(null);
+  const [activeCode, setActiveCode] = useState<string | null>(null);
+  const [nodeError, setNodeError] = useState<string | null>(null);
   const [loadingNode, setLoadingNode] = useState<boolean>(false);
 
   // Search Results State (VIEW 1 - seperti KBLI 2025)
@@ -349,7 +352,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
           const merged = INITIAL_KBJI_CATEGORIES.map(initCat => {
             const apiCat = data.find((c: any) => c.code === initCat.code);
             return apiCat ? { ...initCat, ...apiCat } : initCat;
-          });
+          }).sort((a, b) => Number(a.code) - Number(b.code));
           setCategories(merged);
         }
       } catch (err) {
@@ -564,20 +567,26 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
       });
     }
 
+    setActiveCode(kode);
     setLoadingNode(true);
+    setNodeError(null);
+    setSearchQuery('');
+    setDebouncedQuery('');
+    setResults([]);
+    setIsSearchFocused(false);
+
     try {
       const res = await fetch(`/api/kbji/detail/${encodeURIComponent(kode)}`);
       if (res.ok) {
         const data = await res.json();
         setCurrentNode(data);
-        // Clear search input so drill-down view renders prominently
-        setSearchQuery('');
-        setDebouncedQuery('');
-        setIsSearchFocused(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        throw new Error(`Server merespons kode status ${res.status}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch KBJI node detail:', err);
+      setNodeError(`Gagal mengambil rincian jabatan ${kode} dari server (${err?.message || 'Network error'}).`);
     } finally {
       setLoadingNode(false);
     }
@@ -586,8 +595,11 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
   const handleBackToAllCategories = () => {
     flushCurrentTracking(true);
     setCurrentNode(null);
+    setActiveCode(null);
+    setNodeError(null);
     setSearchQuery('');
     setDebouncedQuery('');
+    setResults([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -734,9 +746,12 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                 setIsSearchFocused(true);
               }}
               onKeyDown={e => {
-                if (e.key === 'Enter' && searchQuery.trim()) {
-                  recordRecentSearch(searchQuery);
-                  setIsSearchFocused(false);
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (searchQuery.trim()) {
+                    recordRecentSearch(searchQuery);
+                    setIsSearchFocused(false);
+                  }
                 }
               }}
               placeholder="Cari kode (misal: 5131), nama jabatan, atau tugas pokok..."
@@ -865,7 +880,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-1.5 text-xs font-black text-[#1E1B4B] dark:text-indigo-400">
                         <TrendingUp className="w-4 h-4 text-indigo-600" />
-                        <span>Trending Pencarian KBJI 2014 Lapangan</span>
+                        <span>Trending Pencarian KBJI 2026 Lapangan</span>
                       </div>
                       <span className="text-[10px] font-bold text-slate-400">Paling Sering Dicari</span>
                     </div>
@@ -904,6 +919,25 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
           </div>
         </header>
 
+      {/* Node Error Banner */}
+      {nodeError && (
+        <div className="p-4 rounded-3xl bg-rose-50 border border-rose-200 flex items-center justify-between gap-3 text-rose-800 text-xs sm:text-sm">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 shrink-0 text-rose-600" />
+            <span>{nodeError}</span>
+          </div>
+          {activeCode && (
+            <button
+              type="button"
+              onClick={() => handleSelectCode(activeCode)}
+              className="px-3 py-1.5 rounded-full font-bold bg-rose-600 text-white text-xs hover:bg-rose-700 transition-colors shrink-0 shadow-xs cursor-pointer"
+            >
+              Coba Lagi
+            </button>
+          )}
+        </div>
+      )}
+
       {/* ========================================================= */}
       {/* TIGA TAMPILAN (VIEWS) PERSIS ARSITEKTUR KBLI 2025:        */}
       {/* VIEW 1: HASIL PENCARIAN (Saat searchQuery terisi)         */}
@@ -915,49 +949,6 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
         /* VIEW 1: SEARCH RESULTS                                    */
         /* ========================================================= */
         <div className="space-y-5">
-          {/* Mempawah Empirical AI Recommender Card (Persis SE2026 Card di KBLI 2025) */}
-          {bestRec && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-5 sm:p-6 rounded-[28px] bg-gradient-to-r from-[#C5C2FC] via-[#D4D1FB] to-[#FF82BE]/40 text-[#1E1B4B] shadow-sm border border-indigo-200/80 relative overflow-hidden"
-            >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-[#1E1B4B] shadow-2xs shrink-0">
-                    <Sparkles className="w-6 h-6 text-indigo-700" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#181829] text-white">
-                        Rekomendasi Lapangan Mempawah
-                      </span>
-                      <span className="text-xs font-bold text-[#1E1B4B]/80">
-                        Pencocokan: &ldquo;{bestRec.pattern}&rdquo;
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg sm:text-xl font-black text-[#1E1B4B] mt-1 leading-snug">
-                      [{bestRec.kbji}] {bestRec.job_title}
-                    </h3>
-
-                    <p className="text-xs text-[#1E1B4B]/80 mt-0.5">
-                      Pekerjaan Survei: <strong>{bestRec.pekerjaan}</strong> &bull; Sektor/Bidang: <strong>{bestRec.bidang}</strong>
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleSelectCode(bestRec.kbji, bestRec.judul, 'rekomendasi_mempawah')}
-                  className="px-5 py-2.5 rounded-full bg-[#181829] text-white text-xs font-black hover:bg-black transition-all shadow-xs shrink-0 self-start md:self-auto cursor-pointer"
-                >
-                  Buka Rincian Tugas [{bestRec.kbji}]
-                </button>
-              </div>
-            </motion.div>
-          )}
-
           {/* Results Counter & Level Tabs Filter */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
             <div className="text-xs font-bold text-slate-600 dark:text-slate-400">
@@ -989,7 +980,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
           {isSearching ? (
             <div className="py-24 text-center space-y-3 bg-white dark:bg-slate-900 rounded-[28px] border border-slate-200/80 dark:border-slate-800">
               <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto" />
-              <p className="text-sm font-bold text-slate-500">Mencari entitas jabatan KBJI 2014...</p>
+              <p className="text-sm font-bold text-slate-500">Mencari entitas jabatan KBJI 2026...</p>
             </div>
           ) : results.length === 0 ? (
             <div className="py-20 text-center space-y-3 bg-white dark:bg-slate-900 rounded-[28px] border border-slate-200/80 dark:border-slate-800 p-6">
@@ -1003,8 +994,9 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
             </div>
           ) : (
             <div className="space-y-3">
-              {results.map(item => {
+              {results.map((item, idx) => {
                 const isJabatan = item.level === 'jabatan';
+                const isTopMatch = idx === 0 && currentPage === 1;
 
                 return (
                   <motion.article
@@ -1013,7 +1005,11 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     onClick={() => handleSelectCode(item.kode, item.judul, item.level)}
-                    className="p-5 sm:p-6 bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 transition-all cursor-pointer group space-y-3"
+                    className={`p-5 sm:p-6 bg-white dark:bg-slate-900 rounded-[24px] border shadow-2xs hover:shadow-md transition-all cursor-pointer group space-y-3 ${
+                      isTopMatch
+                        ? 'border-indigo-300 dark:border-indigo-700/80 ring-2 ring-indigo-500/15'
+                        : 'border-slate-200/80 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700'
+                    }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
@@ -1038,6 +1034,14 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${LEVEL_BADGE_STYLES[item.level] || 'bg-slate-100 text-slate-700'}`}>
                           {LEVEL_NAMES[item.level] || item.level}
                         </span>
+
+                        {/* Paling Sesuai Badge (Untuk Kartu Teratas Hasil Sistem) */}
+                        {isTopMatch && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#181829] text-white shadow-2xs">
+                            <Sparkles className="w-3 h-3 text-[#FED7AA]" />
+                            <span>Paling Sesuai</span>
+                          </span>
+                        )}
 
                         {/* Mempawah Survey Badge */}
                         {item.mempawah_recommendation && (
@@ -1346,59 +1350,29 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
         /* DENGAN PALET WARNA PASTEL KBJI 2014)                      */
         /* ========================================================= */
         <div className="space-y-6 flex flex-col">
-          {/* GREETING HEADLINE & SUBTITLE (Persis KBLI 2025) */}
-          <div className="order-1 pt-2 pb-1 flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div className="space-y-1.5">
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-[#191614] dark:text-white tracking-tight">
-                {getGreeting(user?.name)}
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-3xl leading-relaxed">
-                Klasifikasi Baku Jabatan Indonesia 2014. Telusuri 10 golongan pokok resmi BPS, 446 sub-golongan, dan 2.187 jenis jabatan terintegrasi rekomendasi lapangan Kabupaten Mempawah.
-              </p>
+          {/* GREETING HEADLINE & SUBTITLE DENGAN ILUSTRASI DI SEBELAH KIRI */}
+          <div className="order-1 pt-2 pb-1 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+                <HeroBannerIllustration className="w-full h-full object-contain drop-shadow-sm select-none pointer-events-none" />
+              </div>
+              <div className="space-y-1">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#191614] dark:text-white tracking-tight">
+                  {getGreeting(user?.name)}
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-3xl leading-relaxed">
+                  Klasifikasi Baku Jabatan Indonesia 2026. Telusuri 10 golongan pokok resmi BPS, 447 sub-golongan, dan 2.378 jenis jabatan terintegrasi rekomendasi lapangan Kabupaten Mempawah.
+                </p>
+              </div>
             </div>
             <button
               type="button"
               onClick={() => setIsGuideOpen(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-indigo-600 transition-colors self-start md:self-end shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-indigo-600 transition-colors self-start md:self-center shrink-0 cursor-pointer"
             >
               <span>Buka Panduan &amp; Aturan</span>
               <ChevronRight className="w-4 h-4" />
             </button>
-          </div>
-
-          {/* HERO BANNER PASTEL LAVENDER (PERSIS GAMBAR REFERENSI DESAIN KBJI 2014) */}
-          <div className="order-2 p-6 sm:p-7 rounded-[28px] bg-[#C5C2FC] text-[#1E1B4B] shadow-xs relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="space-y-3.5 max-w-xl z-10">
-              <h2 className="text-2xl sm:text-3xl font-black text-[#1E1B4B] leading-tight">
-                Butuh referensi resmi klasifikasi jabatan untuk kegiatan survei atau sensus?
-              </h2>
-              <p className="text-xs sm:text-sm font-medium text-[#1E1B4B]/80 leading-relaxed">
-                Telusuri 10 golongan pokok berstandar ISCO-08, 446 sub-golongan, 2.187 jenis jabatan spesifik, serta rekomendasi empiris lapangan BPS Kabupaten Mempawah.
-              </p>
-              <div className="pt-1 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    searchInputRef.current?.focus();
-                  }}
-                  className="px-6 py-2.5 rounded-full bg-[#181829] hover:bg-black text-white text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
-                >
-                  Mulai Pencarian Jabatan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsGuideOpen(true)}
-                  className="px-5 py-2.5 rounded-full bg-white/70 hover:bg-white text-[#1E1B4B] text-xs font-bold transition-all border border-[#1E1B4B]/20 cursor-pointer flex items-center gap-1.5"
-                >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>Panduan &amp; Aturan</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="shrink-0 flex items-center justify-center z-10">
-              <HeroBannerIllustration className="w-52 h-36 sm:w-60 sm:h-40 object-contain" />
-            </div>
           </div>
 
           {/* 3 CARDS STATISTIK / METRIK PASTEL (PERSIS FITUR KBLI 2025 - TANPA PROGRES) */}
@@ -1430,12 +1404,12 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                     <div className="text-[9px] opacity-60">1 - 9 &amp; 0</div>
                   </div>
                   <div>
-                    <div className="text-base sm:text-lg font-black leading-none">446</div>
+                    <div className="text-base sm:text-lg font-black leading-none">447</div>
                     <div className="text-[10px] font-bold opacity-75 mt-0.5">sub-gol</div>
                     <div className="text-[9px] opacity-60">4-Digit</div>
                   </div>
                   <div>
-                    <div className="text-base sm:text-lg font-black leading-none">2.187</div>
+                    <div className="text-base sm:text-lg font-black leading-none">2.378</div>
                     <div className="text-[10px] font-bold opacity-75 mt-0.5">jabatan</div>
                     <div className="text-[9px] opacity-60">5-Digit</div>
                   </div>
@@ -1518,7 +1492,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <h3 className="font-extrabold text-sm sm:text-base text-[#431407]">
-                    Standar Resmi KBJI 2014:
+                    Standar Resmi KBJI 2026:
                   </h3>
                 </div>
 
@@ -1560,7 +1534,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
               {loadingCategories ? (
                 <div className="min-h-[220px] flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 rounded-[28px] border border-slate-200/80 dark:border-slate-800 shadow-xs">
                   <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
-                  <p className="text-sm font-bold text-slate-600 dark:text-slate-300">Memuat kategori KBJI 2014...</p>
+                  <p className="text-sm font-bold text-slate-600 dark:text-slate-300">Memuat kategori KBJI 2026...</p>
                 </div>
               ) : (
                 <div className="space-y-2.5">
@@ -1640,7 +1614,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                         #ProfesiResmiBPS
                       </span>
                       <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#1E1B4B]/15 text-[#1E1B4B]">
-                        #KBJI2014
+                        #KBJI2026
                       </span>
                       <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#1E1B4B]/15 text-[#1E1B4B]">
                         #HierarkiJabatan
@@ -1765,7 +1739,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                   </div>
                   <div>
                     <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">
-                      Panduan Klasifikasi Baku Jabatan (KBJI 2014)
+                      Panduan Klasifikasi Baku Jabatan (KBJI 2026)
                     </h3>
                     <p className="text-xs text-slate-500">Struktur Hierarki &amp; Aturan Penentuan Jabatan BPS</p>
                   </div>
@@ -1785,13 +1759,13 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                     Pengertian Jabatan (Occupation):
                   </span>
                   <p className="text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-                    Jabatan didefinisikan sebagai sekumpulan pekerjaan yang tugas utamanya sama atau mirip satu sama lain. KBJI 2014 didasarkan pada <em>International Standard Classification of Occupations 2008 (ISCO-08)</em> yang diterbitkan oleh ILO.
+                    Jabatan didefinisikan sebagai sekumpulan pekerjaan yang tugas utamanya sama atau mirip satu sama lain. KBJI 2026 didasarkan pada klasifikasi mutakhir BPS &amp; <em>International Standard Classification of Occupations</em> (ISCO) yang diterbitkan oleh ILO.
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <h4 className="font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-wider">
-                    Struktur 5 Tingkat Hierarki KBJI 2014:
+                    Struktur 5 Tingkat Hierarki KBJI 2026:
                   </h4>
                   <ul className="space-y-2 text-xs">
                     <li className="flex items-start gap-2">
@@ -1808,11 +1782,11 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="font-mono font-black px-2 py-0.5 rounded-md bg-[#FFAF65] text-[#431407] shrink-0">4 Digit</span>
-                      <span><strong>Sub-Golongan (446 Kategori):</strong> Klasifikasi operasional standar yang mencakup definisi tugas pokok.</span>
+                      <span><strong>Sub-Golongan (447 Kategori):</strong> Klasifikasi operasional standar yang mencakup definisi tugas pokok.</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="font-mono font-black px-2 py-0.5 rounded-md bg-[#FF82BE] text-[#4A044E] shrink-0">5 Digit</span>
-                      <span><strong>Jabatan Spesifik (2.187 Jenis Jabatan):</strong> Rincian spesifik jenis pekerjaan (misal: 1111.01 Anggota Parlemen, 5131.01 Pramusaji).</span>
+                      <span><strong>Jabatan Spesifik (2.378 Jenis Jabatan):</strong> Rincian spesifik jenis pekerjaan (misal: 1111.01 Anggota Parlemen, 5131.01 Pramusaji).</span>
                     </li>
                   </ul>
                 </div>

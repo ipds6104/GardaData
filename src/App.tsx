@@ -156,7 +156,7 @@ function AppContent() {
           return (
             <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6">
               <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Akses Ditolak</h2>
-              <p className="text-sm text-slate-500 mt-2">Halaman KBJI 2014 hanya dapat diakses oleh Petugas Pendataan, Petugas Pengolahan, dan Administrator.</p>
+              <p className="text-sm text-slate-500 mt-2">Halaman KBJI 2026 hanya dapat diakses oleh Petugas Pendataan, Petugas Pengolahan, dan Administrator.</p>
               <button 
                 onClick={() => setCurrentPage('landing')} 
                 className="mt-4 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"

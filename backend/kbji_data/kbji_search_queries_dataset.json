@@ -1,0 +1,155 @@
+[
+  {
+    "query": "petani",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 52,
+    "top_code": "6112",
+    "top_title": "Pekerja Pertanian Tanaman Tahunan dan Tanaman Semak",
+    "timestamp": "2026-11-04T15:04:32.472Z"
+  },
+  {
+    "query": "buruh",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 96,
+    "top_code": "6112",
+    "top_title": "Pekerja Pertanian Tanaman Tahunan dan Tanaman Semak",
+    "timestamp": "2026-11-04T15:07:48.782Z"
+  },
+  {
+    "query": "buruh",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 96,
+    "top_code": "6112",
+    "top_title": "Pekerja Pertanian Tanaman Tahunan dan Tanaman Semak",
+    "timestamp": "2026-11-04T15:07:52.496Z"
+  },
+  {
+    "query": "pe",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 2866,
+    "top_code": "6112",
+    "top_title": "Pekerja Pertanian Tanaman Tahunan dan Tanaman Semak",
+    "timestamp": "2026-11-04T15:12:52.163Z"
+  },
+  {
+    "query": "pet",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 428,
+    "top_code": "6112",
+    "top_title": "Pekerja Pertanian Tanaman Tahunan dan Tanaman Semak",
+    "timestamp": "2026-11-04T15:12:52.195Z"
+  },
+  {
+    "query": "peta",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 82,
+    "top_code": "6112",
+    "top_title": "Pekerja Pertanian Tanaman Tahunan dan Tanaman Semak",
+    "timestamp": "2026-11-04T15:12:52.217Z"
+  },
+  {
+    "query": "petani",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 52,
+    "top_code": "6112",
+    "top_title": "Pekerja Pertanian Tanaman Tahunan dan Tanaman Semak",
+    "timestamp": "2026-11-04T15:12:52.241Z"
+  },
+  {
+    "query": "buruh",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 96,
+    "top_code": "6112",
+    "top_title": "Pekerja Pertanian Tanaman Tahunan dan Tanaman Semak",
+    "timestamp": "2026-11-04T15:20:04.853Z"
+  },
+  {
+    "query": "buruh bangunan",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 314,
+    "top_code": "9313",
+    "top_title": "Buruh Bangunan",
+    "timestamp": "2026-11-04T15:20:07.445Z"
+  },
+  {
+    "query": "buruh bangunan",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 314,
+    "top_code": "9313",
+    "top_title": "Buruh Bangunan",
+    "timestamp": "2026-11-04T15:22:36.336Z"
+  },
+  {
+    "query": "petani padi",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 56,
+    "top_code": "6111",
+    "top_title": "Pekerja Pertanian Tanaman Pangan dan Tanaman Semusim",
+    "timestamp": "2026-11-04T15:22:36.386Z"
+  },
+  {
+    "query": "guru sd",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 146,
+    "top_code": "2341",
+    "top_title": "Guru Sekolah Dasar",
+    "timestamp": "2026-11-04T15:22:36.416Z"
+  },
+  {
+    "query": "sopir",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 7,
+    "top_code": "8332",
+    "top_title": "Pengemudi Truk Berat dan Truk Kontainer",
+    "timestamp": "2026-11-04T15:22:36.440Z"
+  },
+  {
+    "query": "penu",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 208,
+    "top_code": "2611.03",
+    "top_title": "Penuntut Umum",
+    "timestamp": "2026-11-04T15:27:41.611Z"
+  },
+  {
+    "query": "pen",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 2344,
+    "top_code": "8332",
+    "top_title": "Pengemudi Truk Berat dan Truk Kontainer",
+    "timestamp": "2026-11-04T15:27:42.123Z"
+  },
+  {
+    "query": "penjual",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 158,
+    "top_code": "1221.01",
+    "top_title": "Manajer Penjualan",
+    "timestamp": "2026-11-04T15:27:42.880Z"
+  },
+  {
+    "query": "penjual makanan",
+    "kategori": "ALL",
+    "level": "all",
+    "total_results": 286,
+    "top_code": "5212.01",
+    "top_title": "Penjual Makanan Kaki Lima",
+    "timestamp": "2026-11-04T15:27:44.706Z"
+  }
+]

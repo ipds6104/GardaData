@@ -1,1 +1,49 @@
-[]
+[
+  {
+    "id": "mw27xbf5tro2",
+    "session_id": "kbji_mw27x789_942r",
+    "keyword": "penjual makanan",
+    "selected_code": "5212.01",
+    "selected_title": "Penjual Makanan Kaki Lima",
+    "selected_level": "jabatan",
+    "action": "view",
+    "is_copied": false,
+    "dwell_time_seconds": 1,
+    "is_last_in_session": true,
+    "confidence_level": "MEDIUM_LOW",
+    "timestamp": "2026-11-04T14:34:48.660Z",
+    "source": "user_telemetry",
+    "updated_at": "2026-11-04T14:34:49.135Z"
+  },
+  {
+    "id": "mw28zjlxh607",
+    "session_id": "test_sess_1793804672511",
+    "keyword": "petani sawah",
+    "selected_code": "6111.01",
+    "selected_title": "Petani Padi",
+    "selected_level": "jabatan",
+    "action": "view",
+    "is_copied": false,
+    "dwell_time_seconds": 5,
+    "is_last_in_session": true,
+    "confidence_level": "MEDIUM_HIGH",
+    "timestamp": "2026-11-04T15:04:32.517Z",
+    "source": "user_telemetry"
+  },
+  {
+    "id": "mw29tl78lvln",
+    "session_id": "kbji_mw29tdtf_ag9v",
+    "keyword": "penjual makanan",
+    "selected_code": "5212.01",
+    "selected_title": "Penjual Makanan Kaki Lima",
+    "selected_level": "jabatan",
+    "action": "view",
+    "is_copied": false,
+    "dwell_time_seconds": 11,
+    "is_last_in_session": true,
+    "confidence_level": "MEDIUM_HIGH",
+    "timestamp": "2026-11-04T15:27:53.943Z",
+    "source": "user_telemetry",
+    "updated_at": "2026-11-04T15:28:04.696Z"
+  }
+]

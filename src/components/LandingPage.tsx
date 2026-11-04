@@ -197,6 +197,42 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             Pendataan Lapangan
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(user?.role === 'admin' || user?.role === 'petugas' || user?.role === 'petugas_pengolahan') && (
+              <>
+                <FeatureCard
+                  title="KBLI 2025"
+                  description="Eksplorasi hierarki kategori, konsep, dan definisi klasifikasi lapangan usaha standar BPS."
+                  icon={BookOpenCheck}
+                  iconColor="text-blue-600 dark:text-blue-400"
+                  bgColor="bg-blue-50"
+                  onClick={() => onNavigate('kbli-2025')}
+                />
+                <FeatureCard
+                  title="KBJI 2026"
+                  description="Navigasi cerdas konsep, definisi, dan kode jabatan dengan rekomendasi pekerjaan lapangan Mempawah."
+                  icon={Briefcase}
+                  iconColor="text-emerald-600 dark:text-emerald-400"
+                  bgColor="bg-emerald-50"
+                  onClick={() => onNavigate('kbji-2014')}
+                />
+              </>
+            )}
+            <FeatureCard
+              title="Imputasi Susenas-Seruti"
+              description="Mesin pencari pintar untuk panduan nilai imputasi lapangan secara instan."
+              icon={FileEdit}
+              iconColor="text-purple-600 dark:text-purple-400"
+              bgColor="bg-purple-50"
+              onClick={() => onNavigate('imputation')}
+            />
+            <FeatureCard
+              title="Infrastruktur Desa"
+              description="Monitoring dan update data infrastruktur pendukung desa secara real-time."
+              icon={Map}
+              iconColor="text-accent-600 dark:text-accent-400"
+              bgColor="bg-accent-50"
+              onClick={() => onNavigate('infrastructure')}
+            />
             <FeatureCard
               title="Monitoring Dashboard"
               description="Pantau akumulasi progres lapangan, pencapaian target, dan performa petugas secara real-time."
@@ -204,6 +240,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               iconColor="text-emerald-600 dark:text-emerald-400"
               bgColor="bg-emerald-50"
               onClick={() => onNavigate('monitoring')}
+            />
+            <FeatureCard
+              title="KBLI dan KBJI Mempawah"
+              description="Akses cepat klasifikasi KBLI 2025 dan KBJI untuk penentuan kode yang akurat."
+              icon={BookOpen}
+              iconColor="text-primary-600 dark:text-primary-400"
+              bgColor="bg-primary-50"
+              onClick={() => onNavigate('kbli-kbji')}
             />
             <FeatureCard
               title="Pengukuran Luas Bangunan"
@@ -221,52 +265,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               bgColor="bg-indigo-50"
               badge="Dev"
               onClick={() => onNavigate('laporan-pendataan')}
-            />
-            {(user?.role === 'admin' || user?.role === 'petugas' || user?.role === 'petugas_pengolahan') && (
-              <>
-                <FeatureCard
-                  title="KBLI 2025"
-                  description="Eksplorasi hierarki kategori, konsep, dan definisi klasifikasi lapangan usaha standar BPS."
-                  icon={BookOpenCheck}
-                  iconColor="text-blue-600 dark:text-blue-400"
-                  bgColor="bg-blue-50"
-                  onClick={() => onNavigate('kbli-2025')}
-                />
-                <FeatureCard
-                  title="KBJI 2014"
-                  description="Navigasi cerdas konsep, definisi, dan kode jabatan dengan rekomendasi pekerjaan lapangan Mempawah."
-                  icon={Briefcase}
-                  iconColor="text-emerald-600 dark:text-emerald-400"
-                  bgColor="bg-emerald-50"
-                  onClick={() => onNavigate('kbji-2014')}
-                />
-              </>
-            )}
-
-            <FeatureCard
-
-              title="KBLI dan KBJI Mempawah"
-              description="Akses cepat klasifikasi KBLI 2025 dan KBJI untuk penentuan kode yang akurat."
-              icon={BookOpen}
-              iconColor="text-primary-600 dark:text-primary-400"
-              bgColor="bg-primary-50"
-              onClick={() => onNavigate('kbli-kbji')}
-            />
-            <FeatureCard
-              title="Imputasi Susenas-Seruti"
-              description="Mesin pencari pintar untuk panduan nilai imputasi lapangan secara instan."
-              icon={FileEdit}
-              iconColor="text-purple-600 dark:text-purple-400"
-              bgColor="bg-purple-50"
-              onClick={() => onNavigate('imputation')}
-            />
-            <FeatureCard
-              title="Infrastruktur Desa"
-              description="Monitoring dan update data infrastruktur pendukung desa secara real-time."
-              icon={Map}
-              iconColor="text-accent-600 dark:text-accent-400"
-              bgColor="bg-accent-50"
-              onClick={() => onNavigate('infrastructure')}
             />
           </div>
         </div>
