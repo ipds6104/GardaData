@@ -9,7 +9,6 @@ import {
   X,
   History,
   TrendingUp,
-  Sparkles,
   ArrowLeft,
   Loader2,
   ChevronDown,
@@ -1038,7 +1037,6 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                         {/* Paling Sesuai Badge (Untuk Kartu Teratas Hasil Sistem) */}
                         {isTopMatch && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#181829] text-white shadow-2xs">
-                            <Sparkles className="w-3 h-3 text-[#FED7AA]" />
                             <span>Paling Sesuai</span>
                           </span>
                         )}
@@ -1046,7 +1044,6 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                         {/* Mempawah Survey Badge */}
                         {item.mempawah_recommendation && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#FED7AA] text-[#431407]">
-                            <Sparkles className="w-3 h-3 text-[#C2410C]" />
                             <span>Mempawah: {item.mempawah_recommendation.pekerjaan}</span>
                           </span>
                         )}
@@ -1190,7 +1187,6 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                     </span>
                     {currentNode.mempawah_context && (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-[#FED7AA] text-[#431407]">
-                        <Sparkles className="w-3 h-3 text-[#C2410C]" />
                         <span>Mempawah: {currentNode.mempawah_context.primary_job}</span>
                       </span>
                     )}
@@ -1488,9 +1484,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
 
               <div className="space-y-2.5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-white shadow-2xs flex items-center justify-center text-[#431407] shrink-0">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
+                  
                   <h3 className="font-extrabold text-sm sm:text-base text-[#431407]">
                     Standar Resmi KBJI 2026:
                   </h3>

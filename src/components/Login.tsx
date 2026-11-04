@@ -10,14 +10,9 @@ import {
   EyeOff,
   ShieldCheck,
   Clock,
-  Sparkles,
-  Server,
   Info,
   X,
-  CheckCircle2,
-  Briefcase,
-  MapPin,
-  BarChart2
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
@@ -25,7 +20,6 @@ interface FeatureUpdate {
   title: string;
   date: string;
   desc: string;
-  icon: React.ElementType;
 }
 
 const LATEST_UPDATES: FeatureUpdate[] = [
@@ -33,31 +27,26 @@ const LATEST_UPDATES: FeatureUpdate[] = [
     title: 'KBJI 2026 Terintegrasi',
     date: '04 Nov 2026',
     desc: 'Standar Klasifikasi Baku Jabatan 2026 (2.378 jabatan) & integrasi rekomendasi cerdas.',
-    icon: Briefcase,
   },
   {
     title: 'LMS Jadwal 24 Jam WIB',
     date: '04 Nov 2026',
     desc: 'Desain popover kalender interaktif dan selektor waktu 24 jam Indonesia untuk pelatihan.',
-    icon: Clock,
   },
   {
     title: 'KBLI 2025 AI Recommender',
     date: '28 Okt 2026',
     desc: 'Pencocokan nama usaha empiris berbasis data survei SE2026 & telemetri pencarian pintar.',
-    icon: Sparkles,
   },
   {
     title: 'Peta Responden SE2026 & SLS',
     date: '26 Okt 2026',
     desc: 'Visualisasi spasial titik usaha per kecamatan dengan kode SLS 16-digit & proteksi enkripsi.',
-    icon: MapPin,
   },
   {
     title: 'Statistik & Analisis Pengunjung',
     date: '24 Okt 2026',
     desc: 'Monitoring waktu-nyata kunjungan pengguna terintegrasi SSO rIDM dan filter kunjungan organik.',
-    icon: BarChart2,
   },
 ];
 
@@ -165,8 +154,7 @@ export const Login: React.FC = () => {
             <div className="flex items-center justify-between mb-2.5 px-1">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-primary-600" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">
                   Pembaruan Fitur Terkini
                 </span>
               </div>
@@ -176,32 +164,27 @@ export const Login: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              {LATEST_UPDATES.map((item, idx) => {
-                const IconComponent = item.icon;
-                return (
-                  <div
-                    key={idx}
-                    className="group p-2.5 rounded-2xl bg-white/70 hover:bg-white border border-slate-100 hover:border-primary-200 transition-all shadow-2xs hover:shadow-xs flex items-start gap-3"
-                  >
-                    <div className="w-7 h-7 rounded-xl bg-primary-50 text-primary-600 border border-primary-100/60 group-hover:bg-primary-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors mt-0.5 shadow-2xs">
-                      <IconComponent className="w-3.5 h-3.5" />
+              {LATEST_UPDATES.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="group p-2.5 sm:p-3 rounded-2xl bg-white/70 hover:bg-white border border-slate-100 hover:border-primary-200 transition-all shadow-2xs hover:shadow-xs"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0 group-hover:scale-125 transition-transform"></span>
+                      <span className="text-xs font-bold text-slate-800 truncate group-hover:text-primary-700 transition-colors">
+                        {item.title}
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-slate-800 truncate group-hover:text-primary-700 transition-colors">
-                          {item.title}
-                        </span>
-                        <span className="text-[10px] font-mono font-semibold text-slate-400 shrink-0">
-                          {item.date}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 leading-snug line-clamp-1 mt-0.5 font-medium">
-                        {item.desc}
-                      </p>
-                    </div>
+                    <span className="text-[10px] font-mono font-semibold text-slate-400 shrink-0">
+                      {item.date}
+                    </span>
                   </div>
-                );
-              })}
+                  <p className="text-[11px] text-slate-500 leading-snug line-clamp-1 mt-1 font-medium pl-3.5">
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
           
@@ -255,7 +238,6 @@ export const Login: React.FC = () => {
             <div className="space-y-3 mb-6">
               <div className="flex items-center justify-between px-1">
                 <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
                   Pegawai Organik BPS
                 </span>
                 <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
@@ -480,7 +462,6 @@ export const Login: React.FC = () => {
                   onClick={handleSimulatedSsoLogin}
                   className="flex-1 bg-gradient-to-r from-blue-700 to-indigo-600 hover:from-blue-800 hover:to-indigo-700 text-white py-3 px-4 rounded-xl font-bold text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Sparkles className="w-4 h-4 text-emerald-300" />
                   <span>Uji Coba: Simulasi Login Pegawai</span>
                 </button>
                 <button

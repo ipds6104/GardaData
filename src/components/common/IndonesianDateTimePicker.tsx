@@ -7,7 +7,6 @@ import {
   ChevronRight, 
   Check, 
   X, 
-  Sparkles,
   RotateCcw
 } from 'lucide-react';
 
@@ -526,7 +525,7 @@ export const IndonesianDateTimePicker: React.FC<IndonesianDateTimePickerProps> =
                 {/* Preset Cepat Waktu */}
                 <div>
                   <div className="text-[10px] font-bold text-slate-400 uppercase mb-1.5 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-amber-500" /> Pilihan Cepat Waktu:
+                    Pilihan Cepat Waktu:
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {TIME_PRESETS_24H.map(preset => (
