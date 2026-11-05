@@ -26,6 +26,7 @@ const PenilaianMitraModule = lazy(() => import('./components/mitra/PenilaianMitr
 const PetaRespondenSE2026 = lazy(() => import('./components/pengolahan/PetaRespondenSE2026').then(m => ({ default: m.PetaRespondenSE2026 })));
 const RasionalitasNtbModule = lazy(() => import('./components/pengolahan/rasionalitas/RasionalitasNtbModule').then(m => ({ default: m.RasionalitasNtbModule })));
 const AnalyticsDashboard = lazy(() => import('./components/admin/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard })));
+const BackupDashboard = lazy(() => import('./components/admin/BackupDashboard').then(m => ({ default: m.BackupDashboard })));
 import { Login } from './components/Login';
 import { AuthCallback } from './components/AuthCallback';
 import { syncImputationFromFirebase } from './services/imputationService';
@@ -50,7 +51,8 @@ const VALID_PAGES = new Set([
   'rasionalitas-ntb',
   'peta-responden-se2026',
   'monitoring',
-  'analytics-ahmad'
+  'analytics-ahmad',
+  'backup-system'
 ]);
 
 function AppContent() {
@@ -291,6 +293,22 @@ function AppContent() {
           );
         }
         return <AnalyticsDashboard onBack={() => setCurrentPage('landing')} />;
+      case 'backup-system':
+        if (!isAhmadAuliaUser(user)) {
+          return (
+            <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6">
+              <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Akses Ditolak</h2>
+              <p className="text-sm text-slate-500 mt-2">Halaman Cadangan & Log Sistem khusus untuk akun ahmad.aulia.</p>
+              <button 
+                onClick={() => setCurrentPage('landing')} 
+                className="mt-4 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+              >
+                Kembali ke Beranda
+              </button>
+            </div>
+          );
+        }
+        return <BackupDashboard onBack={() => setCurrentPage('landing')} />;
       default:
         // Jika pengunjung, paksa tampilan Visitor Dashboard
         if (user.role === 'pengunjung') {

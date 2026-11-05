@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, Settings, BookOpenCheck, Briefcase, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, 
   MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database, WifiOff, RefreshCw, 
   MapPin, ScanLine, Award, ChevronLeft, ChevronRight, HelpCircle, Sun, Palette, Sparkles,
-  Maximize2, Minimize2, Calculator, BarChart3
+  Maximize2, Minimize2, Calculator, BarChart3, ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth, isAhmadAuliaUser } from '../lib/auth';
@@ -189,7 +189,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       { id: 'peta-responden-se2026', title: 'Peta Responden SE2026', desc: 'Visualisasi sebaran koordinat responden SE2026 di Kabupaten Mempawah dengan overlay batas SLS, Desa, dan Kecamatan', keywords: ['peta', 'responden', 'se2026', 'pengolahan', 'koordinat', 'rumah', 'sls', 'desa', 'mempawah', 'geospasial'] }
     ] : []),
     ...(isAhmadAuliaUser(user) ? [
-      { id: 'analytics-ahmad', title: 'Statistik & Analisis Pengunjung', desc: 'Monitoring volume trafik, pengunjung unik, popularitas fitur, serta analisis kunjungan per hari dan jam khusus akun ahmad.aulia', keywords: ['statistik', 'analisis', 'pengunjung', 'traffic', 'ahmad', 'aulia', 'jam', 'hari', 'views', 'populer', 'telemetri'] }
+      { id: 'analytics-ahmad', title: 'Statistik & Analisis Pengunjung', desc: 'Monitoring volume trafik, pengunjung unik, popularitas fitur, serta analisis kunjungan per hari dan jam khusus akun ahmad.aulia', keywords: ['statistik', 'analisis', 'pengunjung', 'traffic', 'ahmad', 'aulia', 'jam', 'hari', 'views', 'populer', 'telemetri'] },
+      { id: 'backup-system', title: 'Cadangan & Pemulihan Sistem', desc: 'Pencadangan database otomatis & manual, riwayat revisi data seluruh fitur, log audit, serta unduh arsip data ZIP/JSON khusus akun ahmad.aulia', keywords: ['backup', 'cadangan', 'restore', 'pemulihan', 'zip', 'database', 'revisi', 'log', 'ahmad', 'aulia', 'developer'] }
     ] : []),
   ];
 
@@ -256,7 +257,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     ...(isAhmadAuliaUser(user) ? [{
       title: 'HALAMAN DEVELOPER',
       items: [
-        { id: 'analytics-ahmad', label: 'Statistik Pengunjung', icon: BarChart3 }
+        { id: 'analytics-ahmad', label: 'Statistik Pengunjung', icon: BarChart3 },
+        { id: 'backup-system', label: 'Cadangan & Log Data', icon: ShieldCheck }
       ]
     }] : [])
   ];

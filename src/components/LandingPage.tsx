@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, BookOpenCheck, Briefcase, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity, MapPin, ScanLine, Award, Calculator, BarChart3 } from 'lucide-react';
+import { BookOpen, BookOpenCheck, Briefcase, Ruler, Map, FileEdit, Users, TrendingUp, MonitorPlay, ArrowRight, Activity, MapPin, ScanLine, Award, Calculator, BarChart3, ShieldCheck } from 'lucide-react';
 import { useAuth, isAhmadAuliaUser } from '../lib/auth';
 
 interface FeatureCardProps {
@@ -124,6 +124,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 bgColor="bg-indigo-50"
                 badge="Analitik Live"
                 onClick={() => onNavigate('analytics-ahmad')}
+              />
+              <FeatureCard
+                title="Cadangan & Pemulihan Sistem"
+                description="Pencadangan database berkala (6 jam & per jam), eksekusi backup manual, riwayat log audit, dan unduh arsip data ZIP/JSON."
+                icon={ShieldCheck}
+                iconColor="text-emerald-600 dark:text-emerald-400"
+                bgColor="bg-emerald-50 dark:bg-emerald-950/40"
+                badge="Auto-Backup & ZIP"
+                onClick={() => onNavigate('backup-system')}
               />
             </div>
           </div>

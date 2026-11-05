@@ -241,3 +241,4 @@ module.exports = {
   restoreRecordFromRevision,
   MONITORED_TABLES
 };
+

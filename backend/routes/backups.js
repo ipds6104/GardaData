@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const archiver = require('archiver');
+const pool = require('../db');
 const {
   createSystemBackup,
   getBackupList,
@@ -14,15 +16,34 @@ const {
 router.get('/', async (req, res) => {
   try {
     const [backups, revisions] = await Promise.all([
-      getBackupList(20),
-      getRevisionList(null, 30)
+      getBackupList(30),
+      getRevisionList(null, 50)
     ]);
+
+    // Hitung ukuran file fisik jika ada di disk
+    const backupsWithStats = backups.map(b => {
+      let fileSize = null;
+      let fileExists = false;
+      if (b.filePath) {
+        const fullPath = path.join(__dirname, '../backups', b.filePath);
+        if (fs.existsSync(fullPath)) {
+          const stats = fs.statSync(fullPath);
+          fileSize = (stats.size / 1024).toFixed(1) + ' KB';
+          fileExists = true;
+        }
+      }
+      return {
+        ...b,
+        fileSize: fileSize || 'Database Only',
+        fileExists
+      };
+    });
 
     res.json({
       status: 'success',
       totalBackups: backups.length,
       monitoredTables: MONITORED_TABLES,
-      backups,
+      backups: backupsWithStats,
       revisions
     });
   } catch (error) {
@@ -64,11 +85,67 @@ router.post('/restore-revision/:id', async (req, res) => {
   }
 });
 
-// GET /api/backups/download/:fileName: Unduh file cadangan JSON
+// GET /api/backups/download-zip/:id: Unduh cadangan dalam format ZIP lengkap
+router.get('/download-zip/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query('SELECT * FROM system_data_backups WHERE id = ?', [id]);
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: 'Data cadangan tidak ditemukan' });
+    }
+
+    const backup = rows[0];
+    const payload = typeof backup.dataPayload === 'string' ? JSON.parse(backup.dataPayload) : backup.dataPayload;
+
+    const dateStr = new Date(backup.createdAt).toISOString().replace(/[:.]/g, '-');
+    const zipFileName = `gardadata_backup_${backup.backupType}_${dateStr}.zip`;
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${zipFileName}"`);
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    archive.on('error', (err) => {
+      console.error('Archiver error:', err);
+      if (!res.headersSent) res.status(500).send({ error: err.message });
+    });
+
+    archive.pipe(res);
+
+    // 1. Tambahkan manifest ringkasan
+    const manifest = {
+      system: 'Garda Data - BPS Kabupaten Mempawah',
+      backupId: backup.id,
+      backupType: backup.backupType,
+      scope: backup.scope,
+      totalRecords: backup.totalRecords,
+      tablesIncluded: typeof backup.tablesIncluded === 'string' ? JSON.parse(backup.tablesIncluded) : backup.tablesIncluded,
+      createdAt: backup.createdAt,
+      exportedAt: new Date().toISOString()
+    };
+    archive.append(JSON.stringify(manifest, null, 2), { name: 'manifest.json' });
+
+    // 2. Tambahkan setiap tabel dalam folder tables/
+    if (payload.tables) {
+      for (const [tableName, tableRows] of Object.entries(payload.tables)) {
+        archive.append(JSON.stringify(tableRows, null, 2), { name: `tables/${tableName}.json` });
+      }
+    }
+
+    // 3. Tambahkan full database dump
+    archive.append(JSON.stringify(payload, null, 2), { name: 'full_database_dump.json' });
+
+    await archive.finalize();
+  } catch (error) {
+    console.error('Error generating zip backup:', error);
+    if (!res.headersSent) res.status(500).json({ error: 'Gagal membuat file zip cadangan' });
+  }
+});
+
+// GET /api/backups/download/:fileName: Unduh file cadangan JSON asli
 router.get('/download/:fileName', (req, res) => {
   try {
     const { fileName } = req.params;
-    // Sanitasi nama file agar tidak ada directory traversal
     const safeName = path.basename(fileName);
     const filePath = path.join(__dirname, '../backups', safeName);
 
