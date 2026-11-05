@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink, GripVertical, Clock } from 'lucide-react';
+import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink, GripVertical, Clock, Copy, RotateCcw } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { IndonesianDateTimePicker } from './common/IndonesianDateTimePicker';
 import { IndonesianCategorySelect } from './common/IndonesianCategorySelect';
@@ -165,6 +165,10 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   // Custom Category Input mode
   const [isCustomCategory, setIsCustomCategory] = useState(false);
 
+  // Copy Template Modal state
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [selectedSourceId, setSelectedSourceId] = useState('');
+
   const fetchTrainings = async () => {
     setLoading(true);
     try {
@@ -313,6 +317,9 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       });
       
       if (res.ok) {
+        try {
+          localStorage.setItem(`garda_lms_backup_${selectedTrainingId}`, JSON.stringify(newButtons));
+        } catch (e) {}
         setShowButtonForm(false);
         setButtonFormData({ title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true });
         setIsCustomCategory(false);
@@ -338,7 +345,12 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (res.ok) fetchTrainings();
+      if (res.ok) {
+        try {
+          localStorage.setItem(`garda_lms_backup_${trainingId}`, JSON.stringify(newButtons));
+        } catch (e) {}
+        fetchTrainings();
+      }
     } catch (err) {
       console.error(err);
     }
@@ -369,8 +381,114 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (res.ok) fetchTrainings();
+      if (res.ok) {
+        try {
+          localStorage.setItem(`garda_lms_backup_${trainingId}`, JSON.stringify(newButtons));
+        } catch (e) {}
+        fetchTrainings();
+      }
     } catch (err) {}
+  };
+
+  const handleCopyButtonsFromTraining = async (sourceId: string) => {
+    if (!selectedTrainingId) return;
+    const targetTraining = trainings.find(t => t.id === selectedTrainingId);
+    const sourceTraining = trainings.find(t => t.id === sourceId);
+    if (!targetTraining || !sourceTraining) return;
+
+    const sourceButtons = sourceTraining.buttons || [];
+    if (sourceButtons.length === 0) {
+      alert('Pelatihan sumber tidak memiliki tautan.');
+      return;
+    }
+
+    if (!confirm(`Salin ${sourceButtons.length} tautan dari "${sourceTraining.name}" ke "${targetTraining.name}"?`)) {
+      return;
+    }
+
+    try {
+      const clonedButtons: LMSButton[] = sourceButtons.map(b => ({
+        ...b,
+        id: Date.now().toString() + '_' + Math.random().toString(36).substring(2, 6)
+      }));
+
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const payload = {
+        name: targetTraining.name,
+        startDate: targetTraining.startDate,
+        endDate: targetTraining.endDate,
+        icon: targetTraining.icon,
+        isActive: targetTraining.isActive,
+        buttons: clonedButtons
+      };
+
+      const res = await fetch(`${baseUrl}/api/lms/configs/${selectedTrainingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        try {
+          localStorage.setItem(`garda_lms_backup_${selectedTrainingId}`, JSON.stringify(clonedButtons));
+        } catch (e) {}
+        setShowCopyModal(false);
+        await fetchTrainings();
+        alert(`Berhasil menyalin ${clonedButtons.length} tautan ke "${targetTraining.name}"!`);
+      } else {
+        alert('Gagal menyalin tautan');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan saat menyalin tautan');
+    }
+  };
+
+  const handleRestoreFromLocalBackup = async () => {
+    if (!selectedTrainingId) return;
+    const targetTraining = trainings.find(t => t.id === selectedTrainingId);
+    if (!targetTraining) return;
+
+    try {
+      const raw = localStorage.getItem(`garda_lms_backup_${selectedTrainingId}`);
+      if (!raw) {
+        alert('Tidak ditemukan cadangan lokal untuk pelatihan ini.');
+        return;
+      }
+      const backupButtons = JSON.parse(raw);
+      if (!Array.isArray(backupButtons) || backupButtons.length === 0) {
+        alert('Cadangan lokal kosong.');
+        return;
+      }
+
+      if (!confirm(`Pulihkan ${backupButtons.length} tautan dari cadangan lokal browser ini?`)) {
+        return;
+      }
+
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const payload = {
+        name: targetTraining.name,
+        startDate: targetTraining.startDate,
+        endDate: targetTraining.endDate,
+        icon: targetTraining.icon,
+        isActive: targetTraining.isActive,
+        buttons: backupButtons
+      };
+
+      const res = await fetch(`${baseUrl}/api/lms/configs/${selectedTrainingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        await fetchTrainings();
+        alert(`Berhasil memulihkan ${backupButtons.length} tautan dari cadangan lokal!`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal memulihkan cadangan');
+    }
   };
 
   const sensors = useSensors(
@@ -410,6 +528,10 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         });
         if (!res.ok) {
            fetchTrainings(); // Revert on failure
+        } else {
+          try {
+            localStorage.setItem(`garda_lms_backup_${trainingId}`, JSON.stringify(reorderedButtons));
+          } catch (e) {}
         }
       } catch (err) {
         console.error(err);
@@ -639,14 +761,68 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               
               {isAdmin && (
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <button onClick={() => { setButtonFormData({ title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true }); setIsCustomCategory(false); setShowButtonForm(true); }} className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold flex items-center gap-2 transition-colors shadow-md text-sm">
+                  <button onClick={() => { setButtonFormData({ title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true }); setIsCustomCategory(false); setShowButtonForm(true); }} className="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold flex items-center gap-2 transition-colors shadow-md text-xs sm:text-sm">
                     <Plus className="w-4 h-4" /> Tautan Baru
                   </button>
-                  <button onClick={() => { setFormData({...activeTraining, startDate: activeTraining.startDate||'', endDate: activeTraining.endDate||''}); setShowForm(true); }} className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-colors"><Edit2 className="w-5 h-5"/></button>
+                  <button onClick={() => { setSelectedSourceId(trainings.find(t => t.id !== activeTraining.id && (t.buttons || []).length > 0)?.id || ''); setShowCopyModal(true); }} className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm text-xs sm:text-sm" title="Salin Materi dari Pelatihan Lain">
+                    <Copy className="w-4 h-4" /> Salin Materi
+                  </button>
+                  <button onClick={() => { setFormData({...activeTraining, startDate: activeTraining.startDate||'', endDate: activeTraining.endDate||''}); setShowForm(true); }} className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-colors" title="Edit Data Pelatihan"><Edit2 className="w-5 h-5"/></button>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Helper Banner bila Belum Ada Materi */}
+          {isAdmin && (activeTraining.buttons || []).length === 0 && (
+            <div className="p-5 md:p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-dashed border-amber-200 rounded-[2rem] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-center gap-3.5">
+                <div className="p-3 bg-amber-100 text-amber-700 rounded-2xl shrink-0">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm md:text-base">Pelatihan ini belum memiliki tautan materi</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Anda dapat menambahkan tautan baru satu per satu, menyalin dari pelatihan sebelumnya, atau memulihkan dari cadangan lokal browser.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto shrink-0">
+                {(() => {
+                  const backup = localStorage.getItem(`garda_lms_backup_${activeTraining.id}`);
+                  if (backup) {
+                    try {
+                      const count = JSON.parse(backup).length;
+                      if (count > 0) {
+                        return (
+                          <button
+                            onClick={handleRestoreFromLocalBackup}
+                            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" /> Pulihkan ({count} Tautan)
+                          </button>
+                        );
+                      }
+                    } catch (e) {}
+                  }
+                  return null;
+                })()}
+                <button
+                  onClick={() => {
+                    const defaultSource = trainings.find(t => t.id !== activeTraining.id && (t.buttons || []).length > 0);
+                    if (defaultSource) {
+                      handleCopyButtonsFromTraining(defaultSource.id);
+                    } else {
+                      alert('Belum ada pelatihan lain dengan tautan.');
+                    }
+                  }}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                >
+                  <Copy className="w-3.5 h-3.5" /> Salin Struktur dari Pelatihan Lain
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Grup Elemen Pelatihan */}
           <div className="space-y-6 md:space-y-8">
@@ -866,6 +1042,79 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   <button type="submit" className="flex-1 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-colors shadow-md">Simpan Tautan</button>
                 </div>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Modal Salin Materi dari Pelatihan Lain */}
+        {showCopyModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-md shadow-2xl my-8">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-3 bg-amber-100 text-amber-700 rounded-2xl">
+                  <Copy className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">Salin Materi Pelatihan</h3>
+                  <p className="text-xs text-slate-500">Salin seluruh tautan & struktur materi dari pelatihan lain</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Pilih Pelatihan Sumber</label>
+                  <select
+                    value={selectedSourceId}
+                    onChange={e => setSelectedSourceId(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                  >
+                    <option value="">-- Pilih Pelatihan --</option>
+                    {trainings
+                      .filter(t => t.id !== selectedTrainingId && (t.buttons || []).length > 0)
+                      .map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.name} ({(t.buttons || []).length} tautan)
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {(() => {
+                  const src = trainings.find(t => t.id === selectedSourceId);
+                  if (!src) return null;
+                  return (
+                    <div className="p-4 bg-amber-50/70 border border-amber-200/60 rounded-2xl text-xs text-slate-600 space-y-1.5">
+                      <div className="font-bold text-amber-900 flex items-center justify-between">
+                        <span>{src.name}</span>
+                        <span className="bg-amber-200 text-amber-900 px-2 py-0.5 rounded-md font-mono text-[11px]">
+                          {(src.buttons || []).length} Tautan
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Seluruh kategori materi (Absensi, Bahan Ajar, Pretest/Postest, Jadwal, dll.) akan disalin ke pelatihan ini. Anda dapat mengedit URL atau jadwal masing-masing tautan setelahnya.
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                <div className="flex gap-3 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowCopyModal(false)}
+                    className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-colors text-sm"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!selectedSourceId}
+                    onClick={() => handleCopyButtonsFromTraining(selectedSourceId)}
+                    className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors shadow-md text-sm flex items-center justify-center gap-1.5"
+                  >
+                    <Copy className="w-4 h-4" /> Salin Sekarang
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
