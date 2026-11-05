@@ -23,8 +23,15 @@ const getThemeClasses = (color?: string) => {
 };
 
 export const MonitoringList: React.FC<MonitoringListProps> = ({ onNavigateToDashboard }) => {
-  const [configs, setConfigs] = useState<MonitoringConfig[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [configs, setConfigs] = useState<MonitoringConfig[]>(() => {
+    try {
+      const cached = localStorage.getItem('garda_monitoring_configs_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchConfigs = async () => {
@@ -33,7 +40,9 @@ export const MonitoringList: React.FC<MonitoringListProps> = ({ onNavigateToDash
         const res = await fetch(`${baseUrl}/api/monitoring/configs?t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
         if (res.ok) {
           const data: MonitoringConfig[] = await res.json();
-          setConfigs(data.filter(d => Boolean(d.isActive)));
+          const active = data.filter(d => Boolean(d.isActive));
+          setConfigs(active);
+          localStorage.setItem('garda_monitoring_configs_cache', JSON.stringify(active));
         }
       } catch (err) {
         console.error('Error fetching monitoring configs:', err);

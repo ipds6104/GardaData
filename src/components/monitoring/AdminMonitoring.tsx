@@ -40,8 +40,15 @@ interface AdminMonitoringProps {
 }
 
 export const AdminMonitoring: React.FC<AdminMonitoringProps> = ({ onBack }) => {
-  const [configs, setConfigs] = useState<MonitoringConfig[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [configs, setConfigs] = useState<MonitoringConfig[]>(() => {
+    try {
+      const cached = localStorage.getItem('garda_admin_monitoring_configs');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentConfig, setCurrentConfig] = useState<MonitoringConfig>({
     kegiatan: '',
@@ -94,6 +101,7 @@ export const AdminMonitoring: React.FC<AdminMonitoringProps> = ({ onBack }) => {
           isActive: Boolean(d.isActive)
         }));
         setConfigs(formatted);
+        localStorage.setItem('garda_admin_monitoring_configs', JSON.stringify(formatted));
       }
     } catch (err) {
       console.error('Error fetching monitoring configs:', err);

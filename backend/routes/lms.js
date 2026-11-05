@@ -39,12 +39,37 @@ router.put('/configs/:id', async (req, res) => {
     const { id } = req.params;
     const { name, startDate, endDate, period, icon, isActive, buttons } = req.body;
     
-    await pool.query(
-      `UPDATE lms_trainings 
-       SET name=?, startDate=?, endDate=?, period=?, icon=?, isActive=?, buttons=? 
-       WHERE id=?`,
-      [name, startDate || null, endDate || null, period || '', icon || 'pendidikan', isActive !== false, JSON.stringify(buttons || []), id]
-    );
+    // Check if training exists
+    const [existing] = await pool.query('SELECT * FROM lms_trainings WHERE id=?', [id]);
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ error: 'Pelatihan tidak ditemukan' });
+    }
+
+    const current = existing[0];
+    const finalName = name !== undefined ? name : current.name;
+    const finalStartDate = startDate !== undefined ? (startDate || null) : current.startDate;
+    const finalEndDate = endDate !== undefined ? (endDate || null) : current.endDate;
+    const finalPeriod = period !== undefined ? (period || '') : current.period;
+    const finalIcon = icon !== undefined ? (icon || 'pendidikan') : current.icon;
+    const finalIsActive = isActive !== undefined ? (isActive !== false) : current.isActive;
+
+    if (buttons !== undefined) {
+      // Buttons explicitly provided in payload: update buttons
+      await pool.query(
+        `UPDATE lms_trainings 
+         SET name=?, startDate=?, endDate=?, period=?, icon=?, isActive=?, buttons=? 
+         WHERE id=?`,
+        [finalName, finalStartDate, finalEndDate, finalPeriod, finalIcon, finalIsActive, JSON.stringify(buttons), id]
+      );
+    } else {
+      // Buttons NOT provided in payload: PRESERVE EXISTING BUTTONS! Do NOT overwrite with []!
+      await pool.query(
+        `UPDATE lms_trainings 
+         SET name=?, startDate=?, endDate=?, period=?, icon=?, isActive=? 
+         WHERE id=?`,
+        [finalName, finalStartDate, finalEndDate, finalPeriod, finalIcon, finalIsActive, id]
+      );
+    }
     
     res.json({ message: 'LMS Training updated successfully' });
   } catch (error) {
