@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../db');
 const fs = require('fs');
 const path = require('path');
+const { recordTableRevision } = require('../services/backupService');
 
 // Helper penentu kategori penilaian sesuai aturan BPS
 function getKategoriFromNilai(nilai) {

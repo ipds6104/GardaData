@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const crypto = require('crypto');
+const { recordTableRevision } = require('../services/backupService');
 const ExcelJS = require('exceljs');
 const archiver = require('archiver');
 
@@ -41,6 +42,17 @@ router.put('/configs/:id', async (req, res) => {
     const { id } = req.params;
     const { kegiatan, subKegiatan, sheetUrl, sheetName, startDate, endDate, isActive, icon, color } = req.body;
     
+    const [existing] = await pool.query('SELECT * FROM monitoring_configs WHERE id=?', [id]);
+    if (existing && existing.length > 0) {
+      await recordTableRevision({
+        tableName: 'monitoring_configs',
+        recordId: id,
+        action: 'UPDATE',
+        previousData: existing[0],
+        changedBy: req.headers['x-user-nip'] || req.ip || 'admin'
+      });
+    }
+    
     await pool.query(
       `UPDATE monitoring_configs 
        SET kegiatan=?, subKegiatan=?, sheetUrl=?, sheetName=?, startDate=?, endDate=?, isActive=?, icon=?, color=? 
@@ -59,6 +71,16 @@ router.put('/configs/:id', async (req, res) => {
 router.delete('/configs/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const [existing] = await pool.query('SELECT * FROM monitoring_configs WHERE id=?', [id]);
+    if (existing && existing.length > 0) {
+      await recordTableRevision({
+        tableName: 'monitoring_configs',
+        recordId: id,
+        action: 'ARCHIVE',
+        previousData: existing[0],
+        changedBy: req.headers['x-user-nip'] || req.ip || 'admin'
+      });
+    }
     await pool.query('UPDATE monitoring_configs SET isArchived = 1 WHERE id=?', [id]);
     res.json({ message: 'Config archived successfully' });
   } catch (error) {

@@ -550,6 +550,40 @@ async function initDB() {
     `);
 
     console.log('✅ Tabel Sistem Laporan Pendataan siap.');
+
+    // ========================================== 
+    // TABEL SISTEM CADANGAN & REVISI OTOMATIS
+    // ========================================== 
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS system_data_backups (
+        id VARCHAR(255) PRIMARY KEY,
+        backupType VARCHAR(50) NOT NULL,
+        scope VARCHAR(50) NOT NULL,
+        tablesIncluded JSON NOT NULL,
+        dataPayload LONGTEXT NOT NULL,
+        totalRecords INT NOT NULL DEFAULT 0,
+        filePath VARCHAR(255) DEFAULT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_backups_created (createdAt),
+        INDEX idx_backups_type (backupType)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS system_table_revisions (
+        id VARCHAR(255) PRIMARY KEY,
+        tableName VARCHAR(100) NOT NULL,
+        recordId VARCHAR(255) NOT NULL,
+        action VARCHAR(20) NOT NULL,
+        previousData JSON NOT NULL,
+        changedBy VARCHAR(255) DEFAULT 'system',
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_revisions_lookup (tableName, recordId),
+        INDEX idx_revisions_created (createdAt)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    console.log('✅ Tabel Sistem Cadangan & Revisi Otomatis siap.');
     
     connection.release();
   } catch (error) {

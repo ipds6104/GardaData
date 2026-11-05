@@ -4,6 +4,7 @@ const pool = require('../db');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const { recordTableRevision } = require('../services/backupService');
 const ExcelJS = require('exceljs');
 const { 
   parseGoogleSheetUrl, 

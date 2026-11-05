@@ -171,7 +171,35 @@ cron.schedule('59 23 * * *', () => {
 });
 
 // We can export it in case we want to trigger it manually via an admin endpoint
+
+// ========================================== 
+// PENCADANGAN OTOMATIS DATA SISTEM (LMS & ALL)
+// ========================================== 
+const { createSystemBackup } = require('./services/backupService');
+
+// 1. Cadangan Menyeluruh Setiap 6 Jam (00:00, 06:00, 12:00, 18:00)
+cron.schedule('0 */6 * * *', () => {
+  createSystemBackup({ backupType: 'scheduled', scope: 'all' });
+});
+
+// 2. Cadangan Cepat Per Jam untuk LMS, Monitoring, Laporan, & Mitra (07:00 - 21:00)
+cron.schedule('0 7-21 * * *', () => {
+  createSystemBackup({
+    backupType: 'hourly',
+    scope: 'lms-monitoring',
+    specificTables: ['lms_trainings', 'monitoring_configs', 'monitoring_snapshots', 'laporan_activities', 'mitra_evaluations']
+  });
+});
+
+// 3. Cadangan Inisial Otomatis 15 detik setelah server aktif
+setTimeout(() => {
+  createSystemBackup({ backupType: 'startup', scope: 'all' }).catch(err => {
+    console.warn('[Cron] Startup backup skipped:', err.message);
+  });
+}, 15000);
+
 module.exports = {
   runDailySnapshot,
-  getExportUrl
+  getExportUrl,
+  createSystemBackup
 };

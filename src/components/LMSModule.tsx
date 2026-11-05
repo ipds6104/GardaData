@@ -9,6 +9,7 @@ import { db } from '../lib/firebase';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { BackupManagerModal } from './admin/BackupManagerModal';
 
 interface LMSButton {
   id: string;
@@ -168,6 +169,9 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   // Copy Template Modal state
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [selectedSourceId, setSelectedSourceId] = useState('');
+
+  // Backup & Revision Modal state
+  const [showBackupModal, setShowBackupModal] = useState(false);
 
   const fetchTrainings = async () => {
     setLoading(true);
@@ -626,6 +630,13 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </div>
           {isAdmin && (
             <div className="flex flex-wrap items-center gap-3">
+              <button 
+                onClick={() => setShowBackupModal(true)} 
+                className="px-5 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors shrink-0 shadow-sm text-sm cursor-pointer"
+                title="Lihat riwayat cadangan periodik & revisi"
+              >
+                <ShieldCheck className="w-5 h-5 text-emerald-400" /> Cadangan & Riwayat
+              </button>
               {trainings.length === 0 && (
                 <button onClick={handleMigrateFromFirebase} className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors shrink-0">
                   <ShieldCheck className="w-5 h-5" /> Migrasi Firebase
@@ -766,6 +777,13 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   </button>
                   <button onClick={() => { setSelectedSourceId(trainings.find(t => t.id !== activeTraining.id && (t.buttons || []).length > 0)?.id || ''); setShowCopyModal(true); }} className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm text-xs sm:text-sm" title="Salin Materi dari Pelatihan Lain">
                     <Copy className="w-4 h-4" /> Salin Materi
+                  </button>
+                  <button 
+                    onClick={() => setShowBackupModal(true)} 
+                    className="px-3 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold flex items-center gap-1.5 transition-colors shadow-sm text-xs sm:text-sm cursor-pointer" 
+                    title="Riwayat Revisi & Cadangan Data"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" /> Cadangan
                   </button>
                   <button onClick={() => { setFormData({...activeTraining, startDate: activeTraining.startDate||'', endDate: activeTraining.endDate||''}); setShowForm(true); }} className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-colors" title="Edit Data Pelatihan"><Edit2 className="w-5 h-5"/></button>
                 </div>
@@ -1119,6 +1137,13 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modal Sistem Cadangan & Keamanan Data (Enterprise Protection) */}
+      <BackupManagerModal 
+        isOpen={showBackupModal} 
+        onClose={() => { setShowBackupModal(false); fetchTrainings(); }} 
+        filterTable="lms_trainings" 
+      />
     </div>
   );
 };

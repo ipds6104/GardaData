@@ -104,6 +104,7 @@ const authRouter = require('./routes/auth');
 const kbliRouter = require('./routes/kbli');
 const kbjiRouter = require('./routes/kbji');
 const analyticsRouter = require('./routes/analytics');
+const backupsRouter = require('./routes/backups');
 app.use('/api/auth', authRouter);
 app.use('/api/kbli', kbliRouter);
 app.use('/api/kbji', kbjiRouter);
@@ -119,6 +120,7 @@ app.use('/api/classification', classificationRouter);
 app.use('/api/sls', slsRouter);
 app.use('/api/mitra', mitraRouter);
 app.use('/api/pengolahan', pengolahanRouter);
+app.use('/api/backups', backupsRouter);
 
 // Root route for API verification (optional, can be removed)
 app.get('/api/status', (req, res) => {

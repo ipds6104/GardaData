@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const crypto = require('crypto');
+const { recordTableRevision, restoreRecordFromRevision, getRevisionList } = require('../services/backupService');
 
 // GET: All LMS trainings
 router.get('/configs', async (req, res) => {
@@ -46,6 +47,14 @@ router.put('/configs/:id', async (req, res) => {
     }
 
     const current = existing[0];
+    // Simpan riwayat versi sebelum perubahan ditimpa
+    await recordTableRevision({
+      tableName: 'lms_trainings',
+      recordId: id,
+      action: 'UPDATE',
+      previousData: current,
+      changedBy: req.headers['x-user-nip'] || req.ip || 'admin'
+    });
     const finalName = name !== undefined ? name : current.name;
     const finalStartDate = startDate !== undefined ? (startDate || null) : current.startDate;
     const finalEndDate = endDate !== undefined ? (endDate || null) : current.endDate;
@@ -82,11 +91,44 @@ router.put('/configs/:id', async (req, res) => {
 router.delete('/configs/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const [existing] = await pool.query('SELECT * FROM lms_trainings WHERE id=?', [id]);
+    if (existing && existing.length > 0) {
+      await recordTableRevision({
+        tableName: 'lms_trainings',
+        recordId: id,
+        action: 'DELETE',
+        previousData: existing[0],
+        changedBy: req.headers['x-user-nip'] || req.ip || 'admin'
+      });
+    }
     await pool.query('DELETE FROM lms_trainings WHERE id=?', [id]);
     res.json({ message: 'LMS Training deleted successfully' });
   } catch (error) {
     console.error('Error deleting LMS training:', error);
     res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// GET: Riwayat revisi spesifik pelatihan
+router.get('/configs/:id/revisions', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const revisions = await getRevisionList('lms_trainings', 20);
+    const filtered = revisions.filter(r => r.recordId === id);
+    res.json(filtered);
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal mengambil riwayat revisi' });
+  }
+});
+
+// POST: Pulihkan pelatihan dari revisi sebelumnya
+router.post('/configs/:id/restore-revision/:revisionId', async (req, res) => {
+  try {
+    const { revisionId } = req.params;
+    const result = await restoreRecordFromRevision(revisionId);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
