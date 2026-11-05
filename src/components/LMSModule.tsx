@@ -4,7 +4,7 @@ import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, Bo
 import { useAuth } from '../lib/auth';
 import { IndonesianDateTimePicker } from './common/IndonesianDateTimePicker';
 import { IndonesianCategorySelect } from './common/IndonesianCategorySelect';
-import { collection, query, getDocs, orderBy, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -139,57 +139,11 @@ const SortableLinkItem = ({ btn, isAdmin, theme, isLocked, lockLabel, isIframe, 
   );
 };
 
-// LocalStorage Key & Cloud Firestore Sync Helpers
-const LOCAL_STORAGE_LMS_KEY = 'garda_lms_trainings_v2';
-
-const getCachedTrainings = (): LMSTraining[] => {
-  try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_LMS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-};
-
-const setCachedTrainings = (list: LMSTraining[]) => {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_LMS_KEY, JSON.stringify(list));
-  } catch (e) {
-    console.warn('Failed to cache LMS trainings:', e);
-  }
-};
-
-const syncTrainingToFirestore = async (training: LMSTraining) => {
-  try {
-    await setDoc(doc(db, 'lms_trainings', training.id), {
-      id: training.id,
-      name: training.name,
-      startDate: training.startDate || null,
-      endDate: training.endDate || null,
-      period: training.period || '',
-      icon: training.icon || 'pendidikan',
-      isActive: training.isActive !== false,
-      buttons: training.buttons || [],
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-  } catch (err) {
-    console.warn('Sync to Firestore skipped or failed:', err);
-  }
-};
-
-const deleteTrainingFromFirestore = async (id: string) => {
-  try {
-    await deleteDoc(doc(db, 'lms_trainings', id));
-  } catch (err) {
-    console.warn('Delete from Firestore failed:', err);
-  }
-};
-
 export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
-  const [trainings, setTrainings] = useState<LMSTraining[]>(() => getCachedTrainings());
-  const [loading, setLoading] = useState(trainings.length === 0);
+  const [trainings, setTrainings] = useState<LMSTraining[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // View state: 'list' or 'detail' or 'iframe'
   const [view, setView] = useState<'list' | 'detail' | 'iframe'>('list');
@@ -212,95 +166,26 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   const fetchTrainings = async () => {
-    let mysqlData: LMSTraining[] = [];
-    let mysqlOk = false;
-
-    // 1. Ambil dari REST API MySQL (gardadata server)
+    setLoading(true);
     try {
       const baseUrl = (import.meta as any).env.VITE_API_URL || '';
       const res = await fetch(`${baseUrl}/api/lms/configs?t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
       if (res.ok) {
         const data = await res.json();
-        mysqlData = data.map((d: any) => ({
+        const formatted = data.map((d: any) => ({
           ...d,
           startDate: d.startDate ? d.startDate.split('T')[0] : '',
           endDate: d.endDate ? d.endDate.split('T')[0] : '',
           isActive: Boolean(d.isActive),
           buttons: typeof d.buttons === 'string' ? JSON.parse(d.buttons) : (d.buttons || [])
         })) as LMSTraining[];
-        mysqlOk = true;
+        setTrainings(formatted);
       }
     } catch (err) {
-      console.warn('MySQL LMS API unreachable:', err);
+      console.error('Gagal mengambil data pelatihan', err);
+    } finally {
+      setLoading(false);
     }
-
-    // 2. Ambil dari Firebase Cloud Firestore (Backup realtime)
-    let firestoreData: LMSTraining[] = [];
-    try {
-      const snap = await getDocs(query(collection(db, 'lms_trainings'), orderBy('createdAt', 'desc')));
-      firestoreData = snap.docs.map(docSnap => {
-        const d = docSnap.data();
-        return {
-          id: docSnap.id,
-          name: d.name || '',
-          startDate: d.startDate ? String(d.startDate).split('T')[0] : '',
-          endDate: d.endDate ? String(d.endDate).split('T')[0] : '',
-          period: d.period || '',
-          icon: d.icon || 'pendidikan',
-          isActive: d.isActive !== false,
-          buttons: Array.isArray(d.buttons) ? d.buttons : []
-        } as LMSTraining;
-      });
-    } catch (fsErr) {
-      console.warn('Firestore lms_trainings fetch warning:', fsErr);
-    }
-
-    // 3. Smart Merge & Auto-Healing:
-    // Jika data MySQL ada tetapi buttons kosong karena bug penimpaan lama, kita pulihkan buttons dari Firestore!
-    let mergedList: LMSTraining[] = [];
-
-    if (mysqlOk && mysqlData.length > 0) {
-      mergedList = mysqlData.map(mItem => {
-        // Cek jika MySQL punya 0 buttons, tetapi Firestore punya buttons untuk kegiatan yang sama
-        if ((!mItem.buttons || mItem.buttons.length === 0) && firestoreData.length > 0) {
-          const fsMatch = firestoreData.find(f => 
-            f.id === mItem.id || 
-            f.name.trim().toLowerCase() === mItem.name.trim().toLowerCase()
-          );
-          if (fsMatch && fsMatch.buttons && fsMatch.buttons.length > 0) {
-            console.log(`[LMS Auto-Heal] Memulihkan ${fsMatch.buttons.length} tautan untuk "${mItem.name}" dari Firestore cloud backup.`);
-            // Simpan pemulihan kembali ke MySQL di background
-            const baseUrl = (import.meta as any).env.VITE_API_URL || '';
-            fetch(`${baseUrl}/api/lms/configs/${mItem.id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...mItem, buttons: fsMatch.buttons })
-            }).catch(() => {});
-            return { ...mItem, buttons: fsMatch.buttons };
-          }
-        }
-        return mItem;
-      });
-
-      // Tambahkan item dari Firestore jika ada item yang belum tersinkron ke MySQL
-      for (const fsItem of firestoreData) {
-        if (!mergedList.some(m => m.id === fsItem.id || m.name.trim().toLowerCase() === fsItem.name.trim().toLowerCase())) {
-          mergedList.push(fsItem);
-        }
-      }
-    } else if (firestoreData.length > 0) {
-      // MySQL sedang down/unreachable: langsung gunakan Firestore Cloud Backup!
-      mergedList = firestoreData;
-    } else {
-      // Keduanya tidak dapat dijangkau: gunakan LocalStorage cache
-      mergedList = getCachedTrainings();
-    }
-
-    if (mergedList.length > 0) {
-      setTrainings(mergedList);
-      setCachedTrainings(mergedList);
-    }
-    setLoading(false);
   };
 
   const handleMigrateFromFirebase = async () => {
@@ -337,6 +222,10 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   };
 
   useEffect(() => {
+    try {
+      localStorage.removeItem('garda_lms_trainings_v2');
+      localStorage.removeItem('garda_lms_cache');
+    } catch {}
     fetchTrainings();
   }, []);
 
@@ -348,16 +237,16 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       const url = formData.id ? `${baseUrl}/api/lms/configs/${formData.id}` : `${baseUrl}/api/lms/configs`;
       
       const existing = trainings.find(t => t.id === formData.id);
-      const preservedButtons = existing ? existing.buttons : [];
-
-      const payload = {
+      const payload: any = {
         name: formData.name,
         startDate: formData.startDate,
         endDate: formData.endDate,
         icon: formData.icon,
-        isActive: formData.isActive,
-        buttons: preservedButtons
+        isActive: formData.isActive
       };
+      if (existing && existing.buttons) {
+        payload.buttons = existing.buttons;
+      }
 
       const res = await fetch(url, {
         method,
@@ -365,27 +254,13 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         body: JSON.stringify(payload)
       });
 
-      let savedId = formData.id;
       if (res.ok) {
-        if (!savedId) {
-          const resData = await res.json();
-          savedId = resData.id;
-        }
+        setShowForm(false);
+        setFormData({ name: '', startDate: '', endDate: '', icon: 'pendidikan', isActive: true });
+        fetchTrainings();
+      } else {
+        throw new Error('Server error');
       }
-
-      // Sync ke Firestore secara langsung (Dual-layer persistence)
-      if (savedId) {
-        const fullTraining: LMSTraining = {
-          id: savedId,
-          ...payload,
-          buttons: preservedButtons
-        };
-        await syncTrainingToFirestore(fullTraining);
-      }
-
-      setShowForm(false);
-      setFormData({ name: '', startDate: '', endDate: '', icon: 'pendidikan', isActive: true });
-      fetchTrainings();
     } catch (err) {
       console.error(err);
       alert('Gagal menyimpan pelatihan');
@@ -395,20 +270,12 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const handleDeleteTraining = async (id: string) => {
     if (!confirm('Hapus pelatihan ini secara permanen?')) return;
     try {
-      // 1. Optimistic Update Local State
-      const newTrainings = trainings.filter(t => t.id !== id);
-      setTrainings(newTrainings);
-      setCachedTrainings(newTrainings);
-
-      // 2. REST API MySQL DELETE
       const baseUrl = (import.meta as any).env.VITE_API_URL || '';
-      await fetch(`${baseUrl}/api/lms/configs/${id}`, { method: 'DELETE' });
-
-      // 3. Firestore DELETE
-      await deleteTrainingFromFirestore(id);
-
-      if (selectedTrainingId === id) setView('list');
-      fetchTrainings();
+      const res = await fetch(`${baseUrl}/api/lms/configs/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        if (selectedTrainingId === id) setView('list');
+        fetchTrainings();
+      }
     } catch (err) {
       console.error(err);
     }
@@ -437,28 +304,20 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         });
       }
 
-      const updatedTraining: LMSTraining = { ...training, buttons: newButtons };
-
-      // 1. Optimistic Update Local State & Local Cache
-      const newTrainings = trainings.map(t => t.id === selectedTrainingId ? updatedTraining : t);
-      setTrainings(newTrainings);
-      setCachedTrainings(newTrainings);
-
-      // 2. Simpan ke MySQL REST API
       const baseUrl = (import.meta as any).env.VITE_API_URL || '';
-      await fetch(`${baseUrl}/api/lms/configs/${selectedTrainingId}`, {
+      const payload = { ...training, buttons: newButtons };
+      const res = await fetch(`${baseUrl}/api/lms/configs/${selectedTrainingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTraining)
+        body: JSON.stringify(payload)
       });
-
-      // 3. Simpan ke Firestore (Dual Write Backup)
-      await syncTrainingToFirestore(updatedTraining);
-
-      setShowButtonForm(false);
-      setButtonFormData({ title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true });
-      setIsCustomCategory(false);
-      fetchTrainings();
+      
+      if (res.ok) {
+        setShowButtonForm(false);
+        setButtonFormData({ title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true });
+        setIsCustomCategory(false);
+        fetchTrainings();
+      }
     } catch (err) {
       console.error(err);
       alert('Gagal menyimpan tautan');
@@ -472,24 +331,14 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     try {
       const newButtons = training.buttons.filter(b => b.id !== buttonId);
-      const updatedTraining: LMSTraining = { ...training, buttons: newButtons };
-
-      // 1. Optimistic Update
-      const newTrainings = trainings.map(t => t.id === trainingId ? updatedTraining : t);
-      setTrainings(newTrainings);
-      setCachedTrainings(newTrainings);
-
-      // 2. Simpan ke MySQL
       const baseUrl = (import.meta as any).env.VITE_API_URL || '';
-      await fetch(`${baseUrl}/api/lms/configs/${trainingId}`, {
+      const payload = { ...training, buttons: newButtons };
+      const res = await fetch(`${baseUrl}/api/lms/configs/${trainingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTraining)
+        body: JSON.stringify(payload)
       });
-
-      // 3. Simpan ke Firestore
-      await syncTrainingToFirestore(updatedTraining);
-      fetchTrainings();
+      if (res.ok) fetchTrainings();
     } catch (err) {
       console.error(err);
     }
@@ -497,18 +346,14 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   const toggleTrainingStatus = async (t: LMSTraining) => {
     try {
-      const updatedTraining = { ...t, isActive: !t.isActive };
-      const newTrainings = trainings.map(item => item.id === t.id ? updatedTraining : item);
-      setTrainings(newTrainings);
-      setCachedTrainings(newTrainings);
-
       const baseUrl = (import.meta as any).env.VITE_API_URL || '';
-      await fetch(`${baseUrl}/api/lms/configs/${t.id}`, {
+      const payload = { ...t, isActive: !t.isActive };
+      const res = await fetch(`${baseUrl}/api/lms/configs/${t.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTraining)
+        body: JSON.stringify(payload)
       });
-      await syncTrainingToFirestore(updatedTraining);
+      if (res.ok) fetchTrainings();
     } catch (err) {}
   };
 
@@ -517,18 +362,14 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     if (!training) return;
     try {
       const newButtons = training.buttons.map(b => b.id === buttonId ? { ...b, isActive: !b.isActive } : b);
-      const updatedTraining = { ...training, buttons: newButtons };
-      const newTrainings = trainings.map(t => t.id === trainingId ? updatedTraining : t);
-      setTrainings(newTrainings);
-      setCachedTrainings(newTrainings);
-
       const baseUrl = (import.meta as any).env.VITE_API_URL || '';
-      await fetch(`${baseUrl}/api/lms/configs/${trainingId}`, {
+      const payload = { ...training, buttons: newButtons };
+      const res = await fetch(`${baseUrl}/api/lms/configs/${trainingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTraining)
+        body: JSON.stringify(payload)
       });
-      await syncTrainingToFirestore(updatedTraining);
+      if (res.ok) fetchTrainings();
     } catch (err) {}
   };
 
@@ -556,21 +397,20 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     if (oldIndex !== -1 && newIndex !== -1) {
       const reorderedButtons = arrayMove(newButtons, oldIndex, newIndex);
-      const updatedTraining = { ...training, buttons: reorderedButtons };
-      const newTrainings = trainings.map(t => t.id === trainingId ? updatedTraining : t);
-      
       // Optimistic update
-      setTrainings(newTrainings);
-      setCachedTrainings(newTrainings);
+      setTrainings(trainings.map(t => t.id === trainingId ? { ...t, buttons: reorderedButtons } : t));
 
       try {
         const baseUrl = (import.meta as any).env.VITE_API_URL || '';
-        await fetch(`${baseUrl}/api/lms/configs/${trainingId}`, {
+        const payload = { ...training, buttons: reorderedButtons };
+        const res = await fetch(`${baseUrl}/api/lms/configs/${trainingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedTraining)
+          body: JSON.stringify(payload)
         });
-        await syncTrainingToFirestore(updatedTraining);
+        if (!res.ok) {
+           fetchTrainings(); // Revert on failure
+        }
       } catch (err) {
         console.error(err);
         fetchTrainings();
