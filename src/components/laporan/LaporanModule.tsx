@@ -10,10 +10,24 @@ interface LaporanModuleProps {
 export const LaporanModule: React.FC<LaporanModuleProps> = ({ onBack }) => {
   const { user } = useAuth();
 
+  const targetActivityId = typeof window !== 'undefined' 
+    ? (sessionStorage.getItem('garda_laporan_target_activity') || undefined) 
+    : undefined;
+  const targetFormId = typeof window !== 'undefined' 
+    ? (sessionStorage.getItem('garda_laporan_target_form') || undefined) 
+    : undefined;
+
   if (user?.role === 'admin') {
-    return <AdminLaporanManager onBack={onBack} user={user} />;
+    return <AdminLaporanManager onBack={onBack} user={user} initialActivityId={targetActivityId} />;
   }
 
-  return <PetugasLaporanModule onBack={onBack} user={user} />;
+  return (
+    <PetugasLaporanModule 
+      onBack={onBack} 
+      user={user} 
+      initialActivityId={targetActivityId}
+      initialFormId={targetFormId}
+    />
+  );
 };
 

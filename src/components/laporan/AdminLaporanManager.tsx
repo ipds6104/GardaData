@@ -14,7 +14,7 @@ import {
   ExternalLink, X, Shield, Bell, Palette, Globe, Lock, SlidersHorizontal,
   FileCheck2, Database, Wifi, KeyRound, AlertTriangle, Send, LayoutTemplate,
   Sidebar, Briefcase, Landmark, Factory, Tag, Cpu, Award, Lightbulb,
-  Tablet, Monitor, Undo2, Redo2
+  Tablet, Monitor, Undo2, Redo2, Share2, Compass, Navigation
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme';
 import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES, getRecordVal, cleanText, normalizeKey, normalizeStringVal } from './laporanConstants';
@@ -230,9 +230,10 @@ export function getLaporanAuthHeaders(customHeaders: Record<string, string> = {}
 interface AdminLaporanManagerProps {
   onBack?: () => void;
   user?: any;
+  initialActivityId?: string;
 }
 
-export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack, user }) => {
+export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack, user, initialActivityId }) => {
   const { presetInfo } = useTheme();
 
   // Screen State: 'apps_home' (Gambar 1) vs 'studio' (Gambar 2)
@@ -248,6 +249,14 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   const [homeSidebarFilter, setHomeSidebarFilter] = useState<'owned' | 'templates'>('owned');
   const [homeSearchQuery, setHomeSearchQuery] = useState<string>('');
   const [homeSortOrder, setHomeSortOrder] = useState<string>('recent');
+
+  // Share Shortcut Modal State
+  const [shareModalData, setShareModalData] = useState<{
+    isOpen: boolean;
+    activity: any;
+    form?: any;
+    copied: boolean;
+  } | null>(null);
 
   // Activities State
   const [activities, setActivities] = useState<any[]>([]);
@@ -292,7 +301,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     title: '',
     sheetUrl: '',
     sheetName: 'Sheet1',
-    groupingLevels: ['Nama PPL', 'Kecamatan', 'Desa', 'SLS / RT']
+    groupingLevels: ['', '', '', '']
   });
 
   // UI, Automation & Security Settings State
@@ -523,6 +532,12 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setActivities(parsed);
+          if (initialActivityId) {
+            const found = parsed.find((a: any) => a.id === initialActivityId);
+            if (found) {
+              handleOpenStudio(found);
+            }
+          }
         }
       } catch (e) {}
     }
@@ -532,6 +547,12 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       const cloudActs = await getCloudActivities();
       if (cloudActs && cloudActs.length > 0) {
         setActivities(cloudActs);
+        if (initialActivityId) {
+          const found = cloudActs.find((a: any) => a.id === initialActivityId);
+          if (found) {
+            handleOpenStudio(found);
+          }
+        }
         return;
       }
 
@@ -548,6 +569,12 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           for (const act of actList) {
             await saveCloudActivity(act);
           }
+          if (initialActivityId) {
+            const found = actList.find((a: any) => a.id === initialActivityId);
+            if (found) {
+              handleOpenStudio(found);
+            }
+          }
         }
       }
     } catch (err) {
@@ -557,7 +584,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
 
   useEffect(() => {
     fetchActivities();
-  }, []);
+  }, [initialActivityId]);
 
   // 2. Fetch Forms for selected activity from Cloud DB (Firestore) with safe merge
   const fetchForms = async (actId: string) => {
@@ -566,8 +593,15 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     let initialList: any[] = [];
     if (cached) {
       try {
-        const parsed = JSON.parse(cached);
+        let parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // Bersihkan dummy fields lama jika ada
+          parsed = parsed.map((f: any) => {
+            if (Array.isArray(f.fields) && f.fields.some((field: any) => Array.isArray(field.options) && field.options.includes('Dandy'))) {
+              return { ...f, fields: [] };
+            }
+            return f;
+          });
           initialList = parsed;
           setForms(parsed);
           setSelectedFormId(prev => prev || parsed[0].id);
@@ -579,9 +613,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               sheetName: target.sheetName || 'Sheet1',
               groupingLevels: Array.isArray(target.groupingLevels) ? target.groupingLevels : ['', '', '', '']
             });
-            if (Array.isArray(target.fields) && target.fields.length > 0) {
-              setFields(target.fields);
-            }
+            const cleanFields = (Array.isArray(target.fields) ? target.fields : []).filter((f: any) =>
+              !(Array.isArray(f.options) && f.options.includes('Dandy'))
+            );
+            setFields(cleanFields);
           }
         }
       } catch (e) {}
@@ -589,8 +624,14 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
 
     try {
       // 1. Fetch from Firestore Cloud DB
-      const cloudForms = await getCloudForms(actId);
+      let cloudForms = await getCloudForms(actId);
       if (cloudForms && cloudForms.length > 0) {
+        cloudForms = cloudForms.map((f: any) => {
+          if (Array.isArray(f.fields) && f.fields.some((field: any) => Array.isArray(field.options) && field.options.includes('Dandy'))) {
+            return { ...f, fields: [] };
+          }
+          return f;
+        });
         initialList = cloudForms;
         setForms(cloudForms);
         setSelectedFormId(prev => prev || cloudForms[0].id);
@@ -602,9 +643,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             sheetName: target.sheetName || 'Sheet1',
             groupingLevels: Array.isArray(target.groupingLevels) ? target.groupingLevels : ['', '', '', '']
           });
-          if (Array.isArray(target.fields) && target.fields.length > 0) {
-            setFields(target.fields);
-          }
+          const cleanFields = (Array.isArray(target.fields) ? target.fields : []).filter((f: any) =>
+            !(Array.isArray(f.options) && f.options.includes('Dandy'))
+          );
+          setFields(cleanFields);
         }
         return;
       }
@@ -627,6 +669,11 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               }
             }
             return serverForm;
+          }).map((f: any) => {
+            if (Array.isArray(f.fields) && f.fields.some((field: any) => Array.isArray(field.options) && field.options.includes('Dandy'))) {
+              return { ...f, fields: [] };
+            }
+            return f;
           });
 
           setForms(mergedForms);
@@ -641,9 +688,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               sheetName: target.sheetName || 'Sheet1',
               groupingLevels: Array.isArray(target.groupingLevels) ? target.groupingLevels : ['', '', '', '']
             });
-            if (Array.isArray(target.fields) && target.fields.length > 0) {
-              setFields(target.fields);
-            }
+            const cleanFields = (Array.isArray(target.fields) ? target.fields : []).filter((f: any) =>
+              !(Array.isArray(f.options) && f.options.includes('Dandy'))
+            );
+            setFields(cleanFields);
           }
           return;
         }
@@ -657,26 +705,18 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     }
   };
 
-  // Helper to create initial default form if empty
+  // Helper to create initial default form if empty (clean without mock dummy fields)
   const createDefaultFormForActivity = async (actId: string) => {
     const defaultFormObj = {
       id: `form_${Date.now()}`,
       activityId: actId,
-      title: 'Formulir Pendataan',
+      title: selectedActivity?.title ? `Formulir ${selectedActivity.title}` : 'Formulir Pendataan',
       icon: 'FileText',
       orderIndex: 0,
       sheetUrl: selectedActivity?.sheetUrl || '',
       sheetName: 'Sheet1',
-      groupingLevels: ['Nama PPL', 'Kecamatan', 'Desa', 'SLS / RT'],
-      fields: [
-        { id: 'f1', columnName: 'Nama PPL', label: 'Nama PPL', dataType: 'Enum', isKey: false, isLabel: true, isRequired: true, options: ['Dandy', 'Sefty Eca Putri', 'Rendi Pratama', 'Muhammad Irfan'] },
-        { id: 'f2', columnName: 'Jabatan Petugas', label: 'Jabatan Petugas', dataType: 'Text', isKey: false, isLabel: false, isRequired: false, options: [] },
-        { id: 'f3', columnName: 'Kabupaten', label: 'Kabupaten / Kota', dataType: 'Text', isKey: false, isLabel: false, isRequired: false, options: [] },
-        { id: 'f4', columnName: 'Kecamatan', label: 'Kecamatan', dataType: 'Text', isKey: false, isLabel: true, isRequired: true, options: [] },
-        { id: 'f5', columnName: 'Desa', label: 'Desa / Kelurahan', dataType: 'Text', isKey: false, isLabel: false, isRequired: false, options: [] },
-        { id: 'f6', columnName: 'Lokasi GPS', label: 'Titik Lokasi GPS', dataType: 'LatLong', isKey: false, isLabel: false, isRequired: false, options: [] },
-        { id: 'f7', columnName: 'Foto Lapangan', label: 'Foto Lapangan / Dokumen', dataType: 'Image', isKey: false, isLabel: false, isRequired: false, options: [] },
-      ]
+      groupingLevels: ['', '', '', ''],
+      fields: []
     };
 
     try {
@@ -691,7 +731,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     localStorage.setItem(`garda_laporan_forms_${actId}`, JSON.stringify([defaultFormObj]));
     await saveCloudForm(defaultFormObj);
     setSelectedFormId(defaultFormObj.id);
-    setFields(defaultFormObj.fields);
+    setFields([]);
   };
 
   useEffect(() => {
@@ -749,13 +789,15 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         ]
       });
 
-      const existingFields = Array.isArray(selectedForm.fields) && selectedForm.fields.length > 0 
+      const rawFields = Array.isArray(selectedForm.fields) && selectedForm.fields.length > 0 
         ? selectedForm.fields 
         : (Array.isArray(selectedForm.publishedSchema) && selectedForm.publishedSchema.length > 0 ? selectedForm.publishedSchema : []);
 
-      if (existingFields.length > 0) {
-        setFields(existingFields);
-      }
+      const cleanFields = rawFields.filter((f: any) => 
+        !(Array.isArray(f.options) && f.options.includes('Dandy'))
+      );
+
+      setFields(cleanFields);
     }
   }, [selectedFormId, selectedActivity?.id, adminScreen]);
 
@@ -765,6 +807,17 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     setAdminScreen('studio');
     setStudioTab('data');
     setSimulatorKey(Date.now());
+
+    // Bersihkan state form & fields agar kegiatan baru/kosong tidak tertumpuk data lama
+    setForms([]);
+    setSelectedFormId('');
+    setFields([]);
+    setFormConfig({
+      title: '',
+      sheetUrl: act.sheetUrl || '',
+      sheetName: act.sheetName || 'Sheet1',
+      groupingLevels: ['', '', '', '']
+    });
 
     // Load cached forms immediately
     const cachedForms = localStorage.getItem(`garda_laporan_forms_${act.id}`);
@@ -777,6 +830,14 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     if (!formList || formList.length === 0) {
       formList = Array.isArray(act.forms) ? act.forms : [];
     }
+
+    // Bersihkan dummy lama jika tersimpan di cache
+    formList = formList.map((f: any) => {
+      if (Array.isArray(f.fields) && f.fields.some((field: any) => Array.isArray(field.options) && field.options.includes('Dandy'))) {
+        return { ...f, fields: [] };
+      }
+      return f;
+    });
 
     if (formList.length > 0) {
       setForms(formList);
@@ -794,9 +855,10 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           gl[3] !== undefined ? gl[3] : ''
         ]
       });
-      if (Array.isArray(targetForm.fields) && targetForm.fields.length > 0) {
-        setFields(targetForm.fields);
-      }
+      const cleanFields = (Array.isArray(targetForm.fields) ? targetForm.fields : []).filter((f: any) => 
+        !(Array.isArray(f.options) && f.options.includes('Dandy'))
+      );
+      setFields(cleanFields);
     }
   };
 
@@ -900,15 +962,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       orderIndex: forms.length,
       sheetUrl: effectiveSheetUrl,
       sheetName: effectiveSheetName,
-      groupingLevels: ['Nama PPL', 'Kecamatan', 'Desa', 'SLS / RT'],
-      fields: [
-        { id: 'f1', columnName: 'Nama PPL', label: 'Nama PPL', dataType: 'Enum', isKey: false, isLabel: true, isRequired: true, options: ['Dandy', 'Sefty Eca Putri', 'Rendi Pratama'] },
-        { id: 'f2', columnName: 'Jabatan Petugas', label: 'Jabatan Petugas', dataType: 'Text', isKey: false, isLabel: false, isRequired: false, options: [] },
-        { id: 'f3', columnName: 'Kecamatan', label: 'Kecamatan', dataType: 'Text', isKey: false, isLabel: true, isRequired: true, options: [] },
-        { id: 'f4', columnName: 'Desa', label: 'Desa / Kelurahan', dataType: 'Text', isKey: false, isLabel: false, isRequired: false, options: [] },
-        { id: 'f5', columnName: 'Lokasi GPS', label: 'Titik Lokasi GPS', dataType: 'LatLong', isKey: false, isLabel: false, isRequired: false, options: [] },
-        { id: 'f6', columnName: 'Foto Lapangan', label: 'Foto Lapangan', dataType: 'Image', isKey: false, isLabel: false, isRequired: false, options: [] },
-      ]
+      groupingLevels: ['', '', '', ''],
+      fields: []
     };
 
     try {
@@ -934,6 +989,19 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
 
     setSyncAlert({ type: 'success', message: `Formulir "${newFormObj.title}" berhasil ditambahkan!` });
     setTimeout(() => setSyncAlert(null), 3000);
+  };
+
+  // Open Share Shortcut Modal for Petugas
+  const handleOpenShareModal = (act?: any, form?: any) => {
+    const targetAct = act || selectedActivity;
+    if (!targetAct) return;
+    const targetForm = form || (forms && forms.length > 0 ? (forms.find((f: any) => f.id === selectedFormId) || forms[0]) : null);
+    setShareModalData({
+      isOpen: true,
+      activity: targetAct,
+      form: targetForm,
+      copied: false
+    });
   };
 
   // Client-side Direct Google Sheet Parser Fallback
@@ -1681,6 +1749,116 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     { value: 'name', label: 'Name (A-Z)' },
   ];
 
+  // Render Share Shortcut Modal for Petugas
+  const renderShareModal = () => {
+    if (!shareModalData?.isOpen) return null;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const actId = shareModalData.activity?.id || '';
+    const formId = shareModalData.form?.id || '';
+    const shortcutUrl = `${origin}/?page=laporan-pendataan&activityId=${actId}${formId ? `&formId=${formId}` : ''}`;
+
+    return (
+      <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs font-sans">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 max-w-lg w-full p-6 space-y-4"
+        >
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                <Share2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                  Shortcut Akses Petugas Lapangan
+                </h3>
+                <p className="text-xs text-slate-400 truncate">
+                  {shareModalData.activity?.title}
+                  {shareModalData.form?.title ? ` • ${shareModalData.form.title}` : ''}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShareModalData(null)}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Tautan Pintas (Direct URL)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={shortcutUrl}
+                  className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-800 dark:text-slate-200 outline-none select-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(shortcutUrl);
+                    setShareModalData(prev => prev ? { ...prev, copied: true } : null);
+                    setTimeout(() => {
+                      setShareModalData(prev => prev ? { ...prev, copied: false } : null);
+                    }, 2500);
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-2xs ${
+                    shareModalData.copied
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-primary-600 hover:bg-primary-700 text-white'
+                  }`}
+                >
+                  {shareModalData.copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{shareModalData.copied ? 'Tersalin!' : 'Salin'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-2.5 text-slate-600 dark:text-slate-300">
+              <div className="flex items-start gap-2.5">
+                <Shield className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-slate-800 dark:text-slate-100">Mekanisme Autentikasi Aman:</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                    Petugas yang membuka tautan ini tetap harus login terlebih dahulu. Setelah berhasil login, sistem langsung mengarahkan petugas ke formulir kegiatan ini secara otomatis.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                <Compass className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-slate-800 dark:text-slate-100">Akses Manual Tetap Tersedia:</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                    Petugas juga dapat membuka formulir ini secara manual kapan saja melalui menu <b>Laporan Pendataan</b> di Garda Data.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 flex items-center justify-end border-t border-slate-100 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setShareModalData(null)}
+              className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+            >
+              Tutup
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
   // =========================================================================
   // VIEW 1: GAMBAR 1 - ADMIN HOME OVERVIEW
   // =========================================================================
@@ -1899,13 +2077,23 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                 </td>
 
                                 <td className="py-3 px-4 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenStudio(act)}
-                                    className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-                                  >
-                                    Buka Studio
-                                  </button>
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenShareModal(act)}
+                                      className="p-1.5 rounded-lg text-slate-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/50 transition-colors cursor-pointer"
+                                      title="Bagikan Shortcut Link Petugas"
+                                    >
+                                      <Share2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenStudio(act)}
+                                      className="px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                                    >
+                                      Buka Studio
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -2010,24 +2198,38 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                             {act.isOpen ? 'Live' : 'Closed'}
                           </span>
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteBackupModal({
-                                isOpen: true,
-                                type: 'activity',
-                                item: act,
-                                hasDownloaded: false,
-                                isDeleting: false,
-                                downloading: false
-                              });
-                            }}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                            title="Hapus Kegiatan (Wajib Unduh Cadangan Excel)"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenShareModal(act);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer"
+                              title="Bagikan Shortcut Link Petugas"
+                            >
+                              <Share2 className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteBackupModal({
+                                  isOpen: true,
+                                  type: 'activity',
+                                  item: act,
+                                  hasDownloaded: false,
+                                  isDeleting: false,
+                                  downloading: false
+                                });
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                              title="Hapus Kegiatan (Wajib Unduh Cadangan Excel)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
 
                         <div className="my-3 flex items-center justify-center">
@@ -2125,7 +2327,27 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                   />
                 </div>
 
-                <div>
+                <div className="space-y-1.5">
+                  <div className="p-2.5 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-xl space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-sky-900 dark:text-sky-200">
+                      <Folder className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
+                      <span>Folder Resmi Google Drive BPS</span>
+                    </div>
+                    <p className="text-[10px] text-sky-700 dark:text-sky-300 leading-tight">
+                      File Google Spreadsheet wajib disimpan di folder Google Drive BPS berikut:
+                    </p>
+                    <a
+                      href="https://drive.google.com/drive/folders/1X9YviGm0jn24aD3EaYyaDG-qPHxmJ3XH?usp=drive_link"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1.5 w-full py-1.5 px-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+                    >
+                      <Folder className="w-3.5 h-3.5" />
+                      <span>Buka Folder Google Drive BPS</span>
+                      <ExternalLink className="w-3 h-3 opacity-80" />
+                    </a>
+                  </div>
+
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Tautan Google Sheet (Opsional)
                   </label>
@@ -2249,6 +2471,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             </motion.div>
           </div>
         )}
+
+        {/* Share Shortcut Modal */}
+        {renderShareModal()}
       </div>
     );
   }
@@ -2388,6 +2613,16 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
 
           <button
             type="button"
+            onClick={() => handleOpenShareModal(selectedActivity, selectedForm)}
+            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            title="Bagikan tautan shortcut langsung untuk petugas lapangan"
+          >
+            <Share2 className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+            <span className="hidden sm:inline">Bagikan Shortcut</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setShowRightSimulator(!showRightSimulator)}
             className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
               showRightSimulator 
@@ -2521,6 +2756,23 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                   <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
                     Sumber Data Google Sheet
                   </span>
+
+                  <div className="p-2 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-lg space-y-1">
+                    <p className="text-[10px] text-sky-700 dark:text-sky-300 leading-tight">
+                      File spreadsheet wajib disimpan di folder Google Drive BPS:
+                    </p>
+                    <a
+                      href="https://drive.google.com/drive/folders/1X9YviGm0jn24aD3EaYyaDG-qPHxmJ3XH?usp=drive_link"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1.5 w-full py-1 px-2 bg-sky-600 hover:bg-sky-700 text-white rounded-md text-[10px] font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+                    >
+                      <Folder className="w-3 h-3" />
+                      <span>Buka Folder Google Drive BPS</span>
+                      <ExternalLink className="w-2.5 h-2.5 opacity-80" />
+                    </a>
+                  </div>
+
                   <div>
                     <input
                       type="text"
@@ -2714,7 +2966,45 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                     </thead>
 
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {fields.map((field, idx) => (
+                        {fields.length === 0 ? (
+                          <tr>
+                            <td colSpan={9} className="py-16 text-center text-slate-400">
+                              <div className="flex flex-col items-center justify-center gap-3">
+                                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                                  <Database className="w-6 h-6" />
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                    Formulir Masih Bersih (Belum Ada Kolom Variabel)
+                                  </p>
+                                  <p className="text-xs text-slate-400 max-w-sm">
+                                    Mulai buat variabel formulir baru dengan tombol "+ Add Column", atau tarik struktur kolom secara otomatis dari Google Sheet.
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2 pt-2">
+                                  <button
+                                    type="button"
+                                    onClick={handleAddColumnRow}
+                                    className="px-3.5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                    <span>+ Tambah Kolom Pertama</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleSyncFromGoogleSheet}
+                                    disabled={!formConfig.sheetUrl}
+                                    className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                                  >
+                                    <RefreshCw className="w-3.5 h-3.5" />
+                                    <span>Tarik Kolom dari Sheet</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          fields.map((field, idx) => (
                           <tr key={field.id || idx} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                             <td className="py-2 px-3 text-center text-slate-400 font-mono text-[11px]">
                               {idx + 1}
@@ -2961,7 +3251,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                               </button>
                             </td>
                           </tr>
-                        ))}
+                        )))}
                       </tbody>
                     </table>
                   </div>
@@ -4110,7 +4400,27 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 </p>
               </div>
 
-              <div>
+              <div className="space-y-1.5">
+                <div className="p-2.5 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-xl space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-sky-900 dark:text-sky-200">
+                    <Folder className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
+                    <span>Folder Resmi Google Drive BPS</span>
+                  </div>
+                  <p className="text-[10px] text-sky-700 dark:text-sky-300 leading-tight">
+                    File Google Spreadsheet wajib disimpan di folder Google Drive BPS berikut:
+                  </p>
+                  <a
+                    href="https://drive.google.com/drive/folders/1X9YviGm0jn24aD3EaYyaDG-qPHxmJ3XH?usp=drive_link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 w-full py-1.5 px-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+                  >
+                    <Folder className="w-3.5 h-3.5" />
+                    <span>Buka Folder Google Drive BPS</span>
+                    <ExternalLink className="w-3 h-3 opacity-80" />
+                  </a>
+                </div>
+
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Tautan Google Spreadsheet Database
                 </label>
@@ -4364,6 +4674,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           </motion.div>
         </div>
       )}
+
+      {/* Share Shortcut Modal in Studio */}
+      {renderShareModal()}
     </div>
   );
 };

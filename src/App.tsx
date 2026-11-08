@@ -61,12 +61,24 @@ function AppContent() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const pageParam = params.get('page');
-      if (pageParam && VALID_PAGES.has(pageParam)) {
-        sessionStorage.setItem('garda_current_page', pageParam);
+      const actIdParam = params.get('activityId') || params.get('actId');
+      const formIdParam = params.get('formId');
+
+      if (actIdParam) {
+        sessionStorage.setItem('garda_laporan_target_activity', actIdParam);
+      }
+      if (formIdParam) {
+        sessionStorage.setItem('garda_laporan_target_form', formIdParam);
+      }
+
+      const effectivePage = (actIdParam && !pageParam) ? 'laporan-pendataan' : pageParam;
+
+      if (effectivePage && VALID_PAGES.has(effectivePage)) {
+        sessionStorage.setItem('garda_current_page', effectivePage);
         try {
           window.history.replaceState({}, document.title, window.location.pathname);
         } catch {}
-        return pageParam;
+        return effectivePage;
       }
       const hash = window.location.hash.replace('#', '');
       if (hash && VALID_PAGES.has(hash)) {

@@ -824,6 +824,19 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </div>
           )}
 
+          {/* Empty State Tampilan Petugas Bila Belum Ada Materi */}
+          {!isAdmin && (activeTraining.buttons || []).filter(b => b && b.isActive).length === 0 && (
+            <div className="text-center py-16 px-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto my-6 space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center mx-auto shadow-2xs">
+                <BookOpen className="w-7 h-7" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800">Belum Ada Materi Tersedia</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Materi dan tautan kegiatan untuk pelatihan ini belum dipublikasikan oleh administrator. Silakan periksa kembali nanti atau hubungi panitia penyelenggara.
+              </p>
+            </div>
+          )}
+
           {/* Grup Elemen Pelatihan */}
           <div className="space-y-6 md:space-y-8">
             {currentCategories.map((category, idx) => {

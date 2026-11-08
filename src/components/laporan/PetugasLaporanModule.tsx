@@ -737,6 +737,7 @@ interface PetugasLaporanModuleProps {
   onBack?: () => void;
   user?: any;
   initialActivityId?: string;
+  initialFormId?: string;
   isSimulator?: boolean;
   isLiveEdit?: boolean;
   activityOverride?: any;
@@ -748,6 +749,7 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
   onBack, 
   user,
   initialActivityId,
+  initialFormId,
   isSimulator = false,
   isLiveEdit = true,
   activityOverride,
@@ -879,7 +881,12 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setForms(parsed);
-          setActiveFormIndex(0);
+          let targetIndex = 0;
+          if (initialFormId) {
+            const foundIdx = parsed.findIndex((f: any) => f.id === initialFormId);
+            if (foundIdx !== -1) targetIndex = foundIdx;
+          }
+          setActiveFormIndex(targetIndex);
           setDrillStack([]);
           setViewMode('grouping_view');
           hasCached = true;
@@ -896,9 +903,20 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
         if (Array.isArray(data) && data.length > 0) {
           setForms(data);
           localStorage.setItem(`garda_laporan_forms_${actId}`, JSON.stringify(data));
-          setActiveFormIndex(0);
+          let targetIndex = 0;
+          if (initialFormId) {
+            const foundIdx = data.findIndex((f: any) => f.id === initialFormId);
+            if (foundIdx !== -1) targetIndex = foundIdx;
+          }
+          setActiveFormIndex(targetIndex);
           setDrillStack([]);
           setViewMode('grouping_view');
+
+          // Clean session redirection markers once loaded
+          try {
+            sessionStorage.removeItem('garda_laporan_target_activity');
+            sessionStorage.removeItem('garda_laporan_target_form');
+          } catch (e) {}
           return;
         }
       }
@@ -1059,6 +1077,16 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     }
     return Array.isArray(currentForm.fields) ? currentForm.fields : [];
   }, [currentForm]);
+
+  // Cek apakah admin mengkonfigurasi pertanyaan / kolom Titik Koordinat GPS pada formulir
+  const hasGpsField = useMemo(() => {
+    return (activeFormFields || []).some((f: any) => {
+      const type = String(f.dataType || f.type || '').toLowerCase();
+      const col = String(f.columnName || f.label || '').toLowerCase();
+      return type === 'latlong' || type === 'gps' || type === 'lokasi' || type === 'koordinat' ||
+             col.includes('koordinat') || col.includes('titik koordinat') || col.includes('latlong') || col === 'gps';
+    });
+  }, [activeFormFields]);
 
   const currentLevelIndex = drillStack.length; // 0 for Level 1, 1 for Level 2, 2 for Level 3, 3 for Level 4
   const isDeepestLevel = !isLoading && !!currentForm && (
@@ -1279,6 +1307,14 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     if (record) {
       setEditingRecord(record);
       let initialValues = { ...(record.data || {}) };
+
+      // Pastikan semua kolom pada skema terpetakan nilainya dari data Google Sheet/record
+      (activeFormFields || []).forEach((f: any) => {
+        const val = getRecordVal(record.data || {}, f.columnName) || getRecordVal(record.data || {}, f.label);
+        if (val !== undefined && val !== null && val !== '') {
+          initialValues[f.columnName] = val;
+        }
+      });
 
       // Restore unsaved draft if available
       try {
@@ -2181,26 +2217,44 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                         </div>
 
                         <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (sample.latitude && sample.longitude) {
-                                setMapTempCoords([sample.latitude, sample.longitude]);
-                                setIsMapModalOpen(true);
-                              } else {
-                                alert('Assignment ini belum memiliki koordinat GPS.');
-                              }
-                            }}
-                            className={`p-2 rounded-xl transition-colors cursor-pointer ${
-                              sample.latitude && sample.longitude 
-                                ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60' 
-                                : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-                            }`}
-                            title={sample.latitude ? `GPS: ${sample.latitude}, ${sample.longitude}` : 'Belum ada GPS'}
-                          >
-                            <MapPin className="w-4 h-4" />
-                          </button>
+                          {hasGpsField && (
+                            <>
+                              {sample.latitude && sample.longitude && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${sample.latitude},${sample.longitude}`, '_blank');
+                                  }}
+                                  className="p-2 rounded-xl text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors cursor-pointer"
+                                  title={`Telusuri Rute ke Responden di Google Maps (${sample.latitude}, ${sample.longitude})`}
+                                >
+                                  <Navigation className="w-4 h-4" />
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (sample.latitude && sample.longitude) {
+                                    setMapTempCoords([sample.latitude, sample.longitude]);
+                                    setIsMapModalOpen(true);
+                                  } else {
+                                    alert('Assignment ini belum memiliki koordinat GPS.');
+                                  }
+                                }}
+                                className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                                  sample.latitude && sample.longitude 
+                                    ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60' 
+                                    : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                }`}
+                                title={sample.latitude ? `Lihat Titik Peta (${sample.latitude}, ${sample.longitude})` : 'Belum ada GPS'}
+                              >
+                                <MapPin className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
 
                           <button
                             type="button"
@@ -2237,71 +2291,75 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
               </div>
             )}
 
-            {/* GPS Geotagging Card with Clean Spacious Layout */}
-            <div className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-2xs">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                    gpsLocation 
-                      ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400' 
-                      : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
-                  }`}>
-                    <MapPin className="w-4 h-4" />
+            {/* GPS Geotagging Card with Clean Spacious Layout (Hanya muncul jika admin mengkonfigurasi pertanyaan Titik Koordinat GPS) */}
+            {hasGpsField && (
+              <div className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-2xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                      gpsLocation 
+                        ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400' 
+                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                    }`}>
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Titik Koordinat GPS</span>
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate block font-mono">
+                        {gpsLocation 
+                          ? `${gpsLocation.lat.toFixed(6)}, ${gpsLocation.lng.toFixed(6)}` 
+                          : 'Belum ditentukan'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Titik Koordinat GPS</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate block font-mono">
-                      {gpsLocation 
-                        ? `${gpsLocation.lat.toFixed(6)}, ${gpsLocation.lng.toFixed(6)}` 
-                        : 'Belum ditentukan'}
+
+                  {gpsLocation && (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shrink-0">
+                      Terkunci
                     </span>
-                  </div>
+                  )}
                 </div>
 
-                {gpsLocation && (
-                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shrink-0">
-                    Terkunci
-                  </span>
-                )}
-              </div>
+                <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={handleQuickLocate}
+                    disabled={isLocating || isFormLocked}
+                    className="py-2 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                    title="Ambil GPS Otomatis"
+                  >
+                    <LocateFixed className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin text-primary-600' : ''}`} />
+                    <span>Ambil GPS</span>
+                  </button>
 
-              <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={handleQuickLocate}
-                  disabled={isLocating || isFormLocked}
-                  className="py-2 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
-                  title="Ambil GPS Otomatis"
-                >
-                  <LocateFixed className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin text-primary-600' : ''}`} />
-                  <span>Ambil GPS</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleOpenMapPicker(primaryGpsColumnName)}
-                  disabled={isFormLocked}
-                  className="py-2 px-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-95"
-                  title="Buka Peta Geser Titik Lokasi"
-                >
-                  <MapPin className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                  <span>Pilih di Peta</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenMapPicker(primaryGpsColumnName)}
+                    disabled={isFormLocked}
+                    className="py-2 px-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-95"
+                    title="Buka Peta Geser Titik Lokasi"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                    <span>Pilih di Peta</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Vertical Input Fields */}
             <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3.5 shadow-2xs">
               {activeFormFields && activeFormFields.length > 0 ? (
                 activeFormFields.map((field: any, idx: number) => {
-                  const rawVal = getRecordVal(formData, field.columnName);
+                  const rawVal = getRecordVal(formData, field.columnName) || 
+                                 getRecordVal(formData, field.label) || 
+                                 (editingRecord?.data ? (getRecordVal(editingRecord.data, field.columnName) || getRecordVal(editingRecord.data, field.label)) : '');
                   const val = rawVal !== undefined && rawVal !== null ? rawVal : '';
                   const fieldType = String(field.dataType || field.type || 'Text').toLowerCase();
                   const isFieldReadOnly = isFormLocked || field.isEditable === false || field.isReadOnly === true;
 
                   const fieldOptions = (Array.isArray(field.options) && field.options.length > 0)
                     ? field.options
-                    : Array.from(new Set(records.map(r => String(getRecordVal(r.data, field.columnName) || '').trim()).filter(Boolean)));
+                    : Array.from(new Set(records.map(r => String(getRecordVal(r.data, field.columnName) || getRecordVal(r.data, field.label) || '').trim()).filter(Boolean)));
 
                   return (
                     <div key={field.id || idx} className="space-y-1">
@@ -2316,7 +2374,40 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                         )}
                       </label>
 
-                      {(fieldType === 'enum' || fieldType === 'pilihan' || fieldType === 'dropdown' || fieldType === 'select') ? (
+                      {isFieldReadOnly ? (
+                        <div className="w-full px-3.5 py-2.5 bg-slate-100/90 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 flex items-center justify-between shadow-2xs">
+                          <span className="break-all font-medium">
+                            {val !== undefined && val !== null && String(val).trim() !== '' 
+                              ? String(val) 
+                              : <span className="text-slate-400 font-normal italic">- Data Kosong -</span>}
+                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                            {(() => {
+                              if (typeof val === 'string' && val.includes(',')) {
+                                const parts = val.split(',').map(s => parseFloat(s.trim()));
+                                if (!isNaN(parts[0]) && !isNaN(parts[1])) {
+                                  return (
+                                    <button
+                                      type="button"
+                                      onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${parts[0]},${parts[1]}`, '_blank')}
+                                      className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-lg text-[10px] font-bold flex items-center gap-1 border border-emerald-200 dark:border-emerald-800 cursor-pointer shadow-2xs"
+                                      title="Buka rute navigasi Google Maps"
+                                    >
+                                      <Navigation className="w-3 h-3" />
+                                      <span>Rute</span>
+                                    </button>
+                                  );
+                                }
+                              }
+                              return null;
+                            })()}
+                            <span className="text-[10px] text-slate-400 font-normal flex items-center gap-1">
+                              <Lock className="w-3 h-3 text-slate-400" />
+                              <span>Hanya Baca</span>
+                            </span>
+                          </div>
+                        </div>
+                      ) : (fieldType === 'enum' || fieldType === 'pilihan' || fieldType === 'dropdown' || fieldType === 'select') ? (
                         <PetugasSelect
                           disabled={isFieldReadOnly}
                           value={String(val || '')}
@@ -2327,29 +2418,21 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                       ) : fieldType === 'angka' || fieldType === 'number' ? (
                         <input
                           type="number"
-                          disabled={isFieldReadOnly}
-                          readOnly={isFieldReadOnly}
                           value={val}
                           onChange={(e) => setFormData(prev => ({ ...prev, [field.columnName]: e.target.value }))}
                           placeholder="0"
-                          className={`w-full px-3.5 py-2 border rounded-xl text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-300 ${
-                            isFieldReadOnly 
-                              ? 'bg-slate-100/90 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/80 cursor-not-allowed border-dashed text-slate-500 dark:text-slate-400 font-medium' 
-                              : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
-                          }`}
+                          className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-300"
                         />
                       ) : fieldType === 'tanggal' || fieldType === 'date' ? (
                         <SmoothDatePicker
                           value={typeof val === 'string' ? val : ''}
                           onChange={(dateStr) => setFormData(prev => ({ ...prev, [field.columnName]: dateStr }))}
-                          disabled={isFieldReadOnly}
                           placeholder="Pilih Tanggal..."
                         />
                       ) : fieldType === 'jam' || fieldType === 'time' ? (
                         <SmoothTimePicker24h
                           value={typeof val === 'string' ? val : ''}
                           onChange={(timeStr) => setFormData(prev => ({ ...prev, [field.columnName]: timeStr }))}
-                          disabled={isFieldReadOnly}
                           placeholder="Pilih Jam (Format 24 Jam)..."
                         />
                       ) : fieldType === 'latlong' || fieldType === 'lokasi' || fieldType === 'gps' || fieldType === 'koordinat' ? (
@@ -2438,44 +2521,77 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                             </div>
                           </div>
 
-                          {!isFieldReadOnly && (
-                            <div className="flex items-center gap-2 pt-1 border-t border-slate-200/70 dark:border-slate-700/70">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenMapPicker(field.columnName)}
-                                className="flex-1 py-1.5 px-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-rose-200 dark:border-rose-800 cursor-pointer shadow-2xs active:scale-95"
-                              >
-                                <MapPin className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                                <span>Pilih di Peta</span>
-                              </button>
+                          {(() => {
+                            let cLat: number | null = null;
+                            let cLng: number | null = null;
+                            if (typeof val === 'string' && val.includes(',')) {
+                              const parts = val.split(',').map(s => parseFloat(s.trim()));
+                              if (!isNaN(parts[0]) && !isNaN(parts[1])) {
+                                cLat = parts[0];
+                                cLng = parts[1];
+                              }
+                            } else if (gpsLocation?.lat && gpsLocation?.lng) {
+                              cLat = gpsLocation.lat;
+                              cLng = gpsLocation.lng;
+                            }
 
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (navigator.geolocation) {
-                                    navigator.geolocation.getCurrentPosition(
-                                      (pos) => {
-                                        const latStr = pos.coords.latitude.toFixed(6);
-                                        const lngStr = pos.coords.longitude.toFixed(6);
-                                        const combined = `${latStr}, ${lngStr}`;
-                                        setFormData(prev => ({ ...prev, [field.columnName]: combined }));
-                                        setGpsLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-                                      },
-                                      (err) => alert('Gagal membaca GPS perangkat: ' + err.message),
-                                      { enableHighAccuracy: true, timeout: 10000 }
-                                    );
-                                  } else {
-                                    alert('Perangkat tidak mendukung Geolocation.');
-                                  }
-                                }}
-                                className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-                                title="Ambil koordinat GPS saat ini"
-                              >
-                                <LocateFixed className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" />
-                                <span>Kunci GPS Saya</span>
-                              </button>
-                            </div>
-                          )}
+                            return (
+                              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200/70 dark:border-slate-700/70">
+                                {!isFieldReadOnly && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenMapPicker(field.columnName)}
+                                      className="flex-1 py-1.5 px-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-rose-200 dark:border-rose-800 cursor-pointer shadow-2xs active:scale-95"
+                                    >
+                                      <MapPin className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                                      <span>Pilih di Peta</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (navigator.geolocation) {
+                                          navigator.geolocation.getCurrentPosition(
+                                            (pos) => {
+                                              const latStr = pos.coords.latitude.toFixed(6);
+                                              const lngStr = pos.coords.longitude.toFixed(6);
+                                              const combined = `${latStr}, ${lngStr}`;
+                                              setFormData(prev => ({ ...prev, [field.columnName]: combined }));
+                                              setGpsLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                                            },
+                                            (err) => alert('Gagal membaca GPS perangkat: ' + err.message),
+                                            { enableHighAccuracy: true, timeout: 10000 }
+                                          );
+                                        } else {
+                                          alert('Perangkat tidak mendukung Geolocation.');
+                                        }
+                                      }}
+                                      className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                                      title="Ambil koordinat GPS saat ini"
+                                    >
+                                      <LocateFixed className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" />
+                                      <span>Kunci GPS Saya</span>
+                                    </button>
+                                  </>
+                                )}
+
+                                {cLat !== null && cLng !== null && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      window.open(`https://www.google.com/maps/dir/?api=1&destination=${cLat},${cLng}`, '_blank');
+                                    }}
+                                    className="py-1.5 px-3 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-emerald-200 dark:border-emerald-800 cursor-pointer shadow-2xs active:scale-95"
+                                    title="Telusuri rute navigasi Google Maps ke titik koordinat ini"
+                                  >
+                                    <Navigation className="w-3.5 h-3.5" />
+                                    <span>Rute Google Maps</span>
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       ) : fieldType === 'file' || fieldType === 'image' || fieldType === 'foto' ? (
                         <div className="space-y-2">
@@ -2749,9 +2865,25 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                   <p className="text-[10px] text-slate-400 dark:text-slate-400">Geser pin merah atau ketuk peta untuk memindahkan titik</p>
                 </div>
               </div>
-              <button onClick={() => setIsMapModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const [lat, lng] = mapTempCoords;
+                    if (lat && lng) {
+                      window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+                    }
+                  }}
+                  className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-800 cursor-pointer shadow-2xs"
+                  title="Telusuri rute navigasi dari posisi Anda ke titik ini di Google Maps"
+                >
+                  <Navigation className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Rute Google Maps</span>
+                </button>
+                <button onClick={() => setIsMapModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Interactive Leaflet Map Container */}
@@ -2827,23 +2959,40 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
             </div>
 
             {/* Modal Actions */}
-            <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800 shrink-0">
+            <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800 shrink-0">
               <button
                 type="button"
-                onClick={() => setIsMapModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+                onClick={() => {
+                  const [lat, lng] = mapTempCoords;
+                  if (lat && lng) {
+                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+                  }
+                }}
+                className="px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-xl cursor-pointer flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-800 transition-colors"
+                title="Buka rute navigasi Google Maps menuju titik ini"
               >
-                Batal
+                <Navigation className="w-3.5 h-3.5" />
+                <span>Rute Google Maps</span>
               </button>
-              <button
-                type="button"
-                onClick={handleApplyMapCoordinates}
-                style={{ backgroundColor: activityThemeColor }}
-                className="px-5 py-2 text-white rounded-xl text-xs font-bold shadow-xs hover:opacity-95 transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <Check className="w-4 h-4" />
-                <span>Kunci Titik Koordinat Ini</span>
-              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsMapModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyMapCoordinates}
+                  style={{ backgroundColor: activityThemeColor }}
+                  className="px-5 py-2 text-white rounded-xl text-xs font-bold shadow-xs hover:opacity-95 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Kunci Titik Koordinat Ini</span>
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>
