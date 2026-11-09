@@ -10,8 +10,12 @@ interface LaporanModuleProps {
 export const LaporanModule: React.FC<LaporanModuleProps> = ({ onBack }) => {
   const { user } = useAuth();
 
-  const targetActivityId = typeof window !== 'undefined' 
-    ? (sessionStorage.getItem('garda_laporan_target_activity') || undefined) 
+  // Ambil target activity dari sessionStorage (shortlink pertama kali buka)
+  // atau localStorage (shortlink setelah di-refresh — URL sudah bersih)
+  const targetActivityId = typeof window !== 'undefined'
+    ? (sessionStorage.getItem('garda_laporan_target_activity') ||
+       localStorage.getItem('garda_laporan_last_activity') ||
+       undefined)
     : undefined;
   const targetFormId = typeof window !== 'undefined' 
     ? (sessionStorage.getItem('garda_laporan_target_form') || undefined) 

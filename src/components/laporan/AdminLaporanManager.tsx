@@ -28,7 +28,9 @@ import {
   saveCloudFormsBatch, 
   deleteCloudForm,
   getCloudRecords,
-  saveCloudRecords
+  saveCloudRecords,
+  flushPendingSyncQueue,
+  getPendingSyncCount
 } from '../../services/laporanCloudService';
 
 // Helper to sanitize and clean options array (strip brackets, empty tokens, stringified JSON)
@@ -558,6 +560,31 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   // Status Alerts
   const [syncAlert, setSyncAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // Auto-retry antrian records yang gagal tersimpan ke MySQL (saat halaman dibuka & saat koneksi pulih)
+  useEffect(() => {
+    let cancelled = false;
+    const tryFlush = async () => {
+      if (getPendingSyncCount() === 0) return;
+      const { flushed, failed } = await flushPendingSyncQueue();
+      if (cancelled) return;
+      if (flushed > 0) {
+        setSyncAlert({
+          type: failed.length > 0 ? 'error' : 'success',
+          message: failed.length > 0
+            ? `☁️ ${flushed} formulir berhasil dikirim ulang ke server MySQL, ${failed.length} masih menunggu koneksi.`
+            : `☁️ ${flushed} formulir yang tertunda berhasil dikirim ulang ke server MySQL.`
+        });
+        setTimeout(() => setSyncAlert(null), 5000);
+      }
+    };
+    tryFlush();
+    window.addEventListener('online', tryFlush);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('online', tryFlush);
+    };
+  }, []);
+
   // Mandatory Excel Backup Modal Before Delete
   const [deleteBackupModal, setDeleteBackupModal] = useState<{
     isOpen: boolean;
@@ -700,7 +727,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               target.groupingLevels[1] || '',
               target.groupingLevels[2] || '',
               target.groupingLevels[3] || ''
-            ] : ['', '', '', '']
+            ] : ['', '', '', ''],
+            titleColumn: target.titleColumn || target.settings?.assignmentTitleColumn || '',
+            subtitleColumn: target.subtitleColumn || target.settings?.assignmentSubtitleColumn || ''
           });
           const cleanFields = (Array.isArray(target.fields) ? target.fields : [])
             .filter((f: any) => !(Array.isArray(f.options) && f.options.includes('Dandy')))
@@ -1324,6 +1353,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           });
 
           // Simpan record data sampel ke penyimpanan lokal & server (Preserve all columns!)
+          let mysqlSaveFailed = false;
           if (validRecords.length > 0) {
             const formattedRecords = validRecords.map((r, idx) => {
               const cleanData: Record<string, any> = { ...r };
@@ -1362,18 +1392,31 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             });
             localStorage.setItem(`garda_laporan_records_${selectedFormId}`, JSON.stringify(formattedRecords));
 
-            // Simpan ke database server Garda Data agar dapat diakses oleh semua petugas di mobile!
+            // Simpan ke database server Garda Data (MySQL) agar dapat diakses oleh semua petugas di mobile!
+            // Dikirim per chunk + retry; jika tetap gagal, diantrikan dan dicoba ulang otomatis saat online.
+            let saveResult = { savedToMySQL: false, pendingQueued: false };
             try {
-              await saveCloudRecords(selectedFormId, formattedRecords, selectedActivity?.id);
+              saveResult = await saveCloudRecords(selectedFormId, formattedRecords, selectedActivity?.id);
             } catch (postErr) {
               console.warn('Gagal batch save records ke server:', postErr);
             }
+
+            if (!saveResult.savedToMySQL) {
+              mysqlSaveFailed = true;
+            }
           }
 
-          setSyncAlert({ 
-            type: 'success', 
-            message: `Berhasil sinkronisasi ${merged.length} kolom & ${validRecords.length} baris data sampel! (Konfigurasi tipe data tidak berubah)` 
-          });
+          if (mysqlSaveFailed) {
+            setSyncAlert({
+              type: 'error',
+              message: `⚠️ ${merged.length} kolom & ${validRecords.length} baris terbaca, tetapi BELUM tersimpan ke server MySQL (server tidak dapat dijangkau). Data disimpan sementara di perangkat ini dan akan dikirim ulang otomatis saat koneksi pulih.`
+            });
+          } else {
+            setSyncAlert({ 
+              type: 'success', 
+              message: `Berhasil sinkronisasi ${merged.length} kolom & ${validRecords.length} baris data ke server! (Konfigurasi tipe data tidak berubah)` 
+            });
+          }
 
           // Sync Sheet URL to Activity
           if (selectedActivity) {
@@ -1397,7 +1440,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       });
     } finally {
       setIsSyncingSheet(false);
-      setTimeout(() => setSyncAlert(null), 4000);
+      setTimeout(() => setSyncAlert(null), 8000);
     }
   };
 

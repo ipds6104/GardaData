@@ -362,6 +362,127 @@ export async function deleteCloudForm(activityId: string, formId: string): Promi
 // 3. RECORDS PERSISTENCE (SERVER-FIRST WITH MYSQL CHUNKING)
 // ==========================================
 
+// ---- Pending Sync Queue ----
+// Key localStorage: garda_pending_sync_records
+// Struktur: { formId, activityId, queuedAt }[]
+// Catatan: antrian HANYA menyimpan referensi formId. Data record diambil dari cache
+// `garda_laporan_records_${formId}` saat retry, agar tidak menggandakan data di localStorage (kuota ~5MB).
+const PENDING_SYNC_KEY = 'garda_pending_sync_records';
+
+// Server membatasi body JSON 2MB (backend/server.js) → kirim per chunk agar tidak ditolak (HTTP 413)
+const RECORDS_CHUNK_SIZE = 200;
+
+function enqueuePendingSync(formId: string, _records: CloudRecord[], activityId?: string): void {
+  try {
+    const raw = localStorage.getItem(PENDING_SYNC_KEY);
+    const queue: any[] = raw ? JSON.parse(raw) : [];
+    // Hapus antrian lama untuk formId yang sama, lalu tambahkan yang baru
+    const filtered = queue.filter((q: any) => q.formId !== formId);
+    filtered.push({ formId, activityId, queuedAt: new Date().toISOString() });
+    localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.warn('Failed to enqueue pending sync:', e);
+  }
+}
+
+/** Jumlah formulir yang masih menunggu sinkronisasi ke MySQL */
+export function getPendingSyncCount(): number {
+  try {
+    const raw = localStorage.getItem(PENDING_SYNC_KEY);
+    const queue = raw ? JSON.parse(raw) : [];
+    return Array.isArray(queue) ? queue.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Kirim records ke MySQL per chunk. Endpoint /records/batch memakai UPSERT
+ * (ON DUPLICATE KEY UPDATE), jadi aman diulang (idempotent) bila retry.
+ */
+async function postRecordsInChunks(formId: string, records: CloudRecord[], activityId?: string): Promise<{ ok: boolean; sent: number }> {
+  let sent = 0;
+  for (let i = 0; i < records.length; i += RECORDS_CHUNK_SIZE) {
+    const chunk = records.slice(i, i + RECORDS_CHUNK_SIZE);
+    let success = false;
+    // Retry hingga 3x per chunk dengan jeda bertahap
+    for (let attempt = 0; attempt < 3 && !success; attempt++) {
+      try {
+        const res = await fetch(`${getBaseUrl()}/api/laporan/forms/${formId}/records/batch`, {
+          method: 'POST',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ records: chunk, activityId })
+        });
+        if (res.ok) {
+          success = true;
+        } else if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
+          // Error klien (mis. 401/403) tidak akan berhasil dengan retry
+          return { ok: false, sent };
+        }
+      } catch (e) {
+        // network error → retry
+      }
+      if (!success) await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+    }
+    if (!success) return { ok: false, sent };
+    sent += chunk.length;
+  }
+  return { ok: true, sent };
+}
+
+function dequeuePendingSync(formId: string): void {
+  try {
+    const raw = localStorage.getItem(PENDING_SYNC_KEY);
+    if (!raw) return;
+    const queue: any[] = JSON.parse(raw);
+    const filtered = queue.filter((q: any) => q.formId !== formId);
+    localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(filtered));
+  } catch (e) {}
+}
+
+/**
+ * Flush semua antrian pending sync ke MySQL backend.
+ * Dipanggil saat koneksi kembali tersedia.
+ * Returns: jumlah formId yang berhasil di-flush, dan daftar yang gagal.
+ */
+export async function flushPendingSyncQueue(): Promise<{ flushed: number; failed: string[] }> {
+  let flushed = 0;
+  const failed: string[] = [];
+  try {
+    const raw = localStorage.getItem(PENDING_SYNC_KEY);
+    if (!raw) return { flushed: 0, failed: [] };
+    const queue: any[] = JSON.parse(raw);
+    if (!Array.isArray(queue) || queue.length === 0) return { flushed: 0, failed: [] };
+
+    for (const item of queue) {
+      try {
+        // Ambil data terbaru dari cache lokal (kompatibel juga dengan format antrian lama yang menyimpan records)
+        let records: CloudRecord[] = Array.isArray(item.records) ? item.records : [];
+        if (records.length === 0) {
+          const cached = localStorage.getItem(`garda_laporan_records_${item.formId}`);
+          records = cached ? JSON.parse(cached) : [];
+        }
+        if (!Array.isArray(records) || records.length === 0) {
+          dequeuePendingSync(item.formId);
+          continue;
+        }
+        const result = await postRecordsInChunks(item.formId, records, item.activityId);
+        if (result.ok) {
+          dequeuePendingSync(item.formId);
+          flushed++;
+        } else {
+          failed.push(item.formId);
+        }
+      } catch (e) {
+        failed.push(item.formId);
+      }
+    }
+  } catch (e) {
+    console.warn('flushPendingSyncQueue error:', e);
+  }
+  return { flushed, failed };
+}
+
 export async function getCloudRecords(formId: string): Promise<CloudRecord[]> {
   if (!formId) return [];
   try {
@@ -387,26 +508,42 @@ export async function getCloudRecords(formId: string): Promise<CloudRecord[]> {
   }
 }
 
-export async function saveCloudRecords(formId: string, records: CloudRecord[], activityId?: string): Promise<void> {
-  if (!formId) return;
+/**
+ * Simpan records ke localStorage + MySQL backend.
+ * Jika backend gagal, data di-antri di pending queue dan akan di-retry
+ * secara otomatis saat koneksi pulih (via flushPendingSyncQueue).
+ * Returns: { savedToMySQL: boolean, pendingQueued: boolean }
+ */
+export async function saveCloudRecords(
+  formId: string,
+  records: CloudRecord[],
+  activityId?: string
+): Promise<{ savedToMySQL: boolean; pendingQueued: boolean }> {
+  if (!formId) return { savedToMySQL: false, pendingQueued: false };
 
-  // 1. Save local cache
+  // 1. Simpan ke localStorage (instan, selalu berhasil)
   try {
     localStorage.setItem(`garda_laporan_records_${formId}`, JSON.stringify(records));
   } catch (e) {
     console.error('Failed to save cloud records to cache:', e);
   }
 
-  // 2. Persist to Backend REST API
-  try {
-    await fetch(`${getBaseUrl()}/api/laporan/forms/${formId}/records/batch`, {
-      method: 'POST',
-      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ records, activityId })
-    });
-  } catch (e) {
-    console.warn('Backend API save batch records failed:', e);
+  if (!Array.isArray(records) || records.length === 0) {
+    return { savedToMySQL: true, pendingQueued: false };
   }
+
+  // 2. Kirim ke MySQL Backend per chunk (dengan retry per chunk) + verifikasi response
+  const result = await postRecordsInChunks(formId, records, activityId);
+  if (result.ok) {
+    // Berhasil → hapus dari antrian jika sebelumnya ada
+    dequeuePendingSync(formId);
+    return { savedToMySQL: true, pendingQueued: false };
+  }
+
+  // Gagal (offline / server error) → antri untuk retry otomatis
+  enqueuePendingSync(formId, records, activityId);
+  console.warn(`Backend save records gagal (${result.sent}/${records.length} terkirim) — diantrikan untuk retry`);
+  return { savedToMySQL: false, pendingQueued: true };
 }
 
 export const saveCloudRecordsBatch = saveCloudRecords;

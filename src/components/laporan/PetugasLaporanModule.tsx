@@ -861,6 +861,8 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
       setSelectedActivity(null);
       setDrillStack([]);
       setViewMode('grouping_view');
+      // Hapus simpanan activity saat user kembali ke daftar melalui tombol back
+      try { localStorage.removeItem('garda_laporan_last_activity'); } catch(e) {}
       return;
     }
 
@@ -936,6 +938,10 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
 
   // 1. Fetch Activities with robust localStorage fallback
   const fetchActivities = async (preferredActId?: string) => {
+    // Juga cek localStorage untuk activity terakhir yang dikunjungi (berguna saat refresh shortlink)
+    const lastActId = localStorage.getItem('garda_laporan_last_activity');
+    const resolvedTargetId = preferredActId || initialActivityId || lastActId || undefined;
+
     const cached = localStorage.getItem('garda_laporan_activities');
     if (cached) {
       try {
@@ -943,9 +949,8 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
         const open = isAdmin ? parsed : parsed.filter((a: any) => a.isOpen !== false);
         if (Array.isArray(open) && open.length > 0) {
           setActivities(open);
-          const targetId = preferredActId || initialActivityId;
-          if (targetId) {
-            const found = open.find((a: any) => a.id === targetId);
+          if (resolvedTargetId) {
+            const found = open.find((a: any) => a.id === resolvedTargetId);
             if (found) {
               setSelectedActivity(found);
             }
@@ -961,9 +966,8 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
       if (Array.isArray(openActivities) && (openActivities.length > 0 || !cached)) {
         setActivities(openActivities);
         if (openActivities.length > 0) {
-          const targetId = preferredActId || initialActivityId;
-          if (targetId) {
-            const found = openActivities.find((a: any) => a.id === targetId);
+          if (resolvedTargetId) {
+            const found = openActivities.find((a: any) => a.id === resolvedTargetId);
             if (found) {
               setSelectedActivity(found);
             }
@@ -1019,7 +1023,10 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
 
         // Clean session redirection markers once loaded
         try {
-          sessionStorage.removeItem('garda_laporan_target_activity');
+          // Simpan activityId ke localStorage agar tidak hilang saat refresh
+          if (actId) {
+            localStorage.setItem('garda_laporan_last_activity', actId);
+          }
           sessionStorage.removeItem('garda_laporan_target_form');
         } catch (e) {}
         return;
@@ -1193,7 +1200,9 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
   }, [activeFormFields]);
 
   const currentLevelIndex = drillStack.length; // 0 for Level 1, 1 for Level 2, 2 for Level 3, 3 for Level 4
-  const isDeepestLevel = !isLoading && !!currentForm && (
+  // isDeepestLevel: hanya membutuhkan form tersedia — tidak perlu menunggu isLoading (loading records tidak memblokir tombol tambah)
+  const isFormsReady = !!currentForm;
+  const isDeepestLevel = isFormsReady && (
     activeGroupingLevels.length === 0 || currentLevelIndex >= activeGroupingLevels.length
   );
   const currentGroupingKey = (!isDeepestLevel && currentLevelIndex < activeGroupingLevels.length)
@@ -1854,6 +1863,8 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                 setSelectedActivity(null);
                 setDrillStack([]);
                 setViewMode('grouping_view');
+                // Hapus simpanan activity saat user sengaja kembali ke daftar kegiatan
+                try { localStorage.removeItem('garda_laporan_last_activity'); } catch(e) {}
               }}
               className="py-1 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold border border-slate-200/80 dark:border-slate-700 shadow-2xs active:scale-95"
               title="Kembali ke Daftar Kegiatan"
@@ -2053,6 +2064,8 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                           setSelectedActivity(act);
                           setDrillStack([]);
                           setViewMode('grouping_view');
+                          // Simpan ke localStorage agar halaman dapat dipulihkan setelah refresh
+                          try { localStorage.setItem('garda_laporan_last_activity', act.id); } catch(e) {}
                         }}
                         className="p-4 bg-white dark:bg-slate-900 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col gap-3 group relative overflow-hidden"
                       >
@@ -3104,6 +3117,8 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                       setIsActivityModalOpen(false);
                       setDrillStack([]);
                       setViewMode('grouping_view');
+                      // Simpan ke localStorage agar halaman dapat dipulihkan setelah refresh
+                      try { localStorage.setItem('garda_laporan_last_activity', act.id); } catch(e) {}
                     }}
                     className={`p-2.5 rounded-xl cursor-pointer flex items-center justify-between transition-all ${
                       isSel ? 'bg-primary-50 dark:bg-primary-950/60 border border-primary-200 dark:border-primary-800 text-slate-900 dark:text-slate-100 font-bold' : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
