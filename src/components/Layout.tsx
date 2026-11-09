@@ -964,41 +964,46 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         </nav>
 
         {/* Main Content Area */}
-        <main className={`flex-1 overflow-y-auto bg-slate-50/40 dark:bg-slate-950/80 custom-scrollbar ${
-          currentPage === 'peta-responden-se2026' || currentPage === 'admin-sls' ? 'flex flex-col h-full' : ''
-        }`}>
-          <div className={
-            currentPage === 'peta-responden-se2026' || currentPage === 'admin-sls'
-              ? 'w-full h-full p-2 sm:p-3 flex flex-col flex-1'
-              : 'w-full px-4 sm:px-6 lg:px-8 py-6'
-          }>
-            <motion.div
-              key={currentPage}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className={currentPage === 'peta-responden-se2026' || currentPage === 'admin-sls' ? 'h-full flex flex-col flex-1' : ''}
-            >
-              {children}
-            </motion.div>
-          </div>
-          
-          {currentPage !== 'peta-responden-se2026' && currentPage !== 'admin-sls' && (
-            <footer className="py-12 border-t border-slate-200/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 mt-auto">
-              <div className="w-full px-6 text-center space-y-3">
-                <div className="flex items-center justify-center gap-2 text-slate-300 dark:text-slate-600">
-                  <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
-                  <img src="/logo.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                  }} />
-                  <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
-                </div>
-                <p className="text-slate-400 dark:text-slate-500 text-xs font-medium">© 2026 Garda Data - Platform Terpadu Menjaga Kualitas Data.</p>
-                <p className="text-xs font-bold text-primary-600 dark:text-primary-400">Created by Tim Sosial BPS Kabupaten Mempawah</p>
+        {(() => {
+          const isFullHeightPage = currentPage === 'peta-responden-se2026' || currentPage === 'admin-sls' || currentPage === 'laporan-pendataan';
+          return (
+            <main className={`flex-1 bg-slate-50/40 dark:bg-slate-950/80 ${
+              isFullHeightPage ? 'flex flex-col h-full overflow-hidden' : 'overflow-y-auto custom-scrollbar'
+            }`}>
+              <div className={
+                isFullHeightPage
+                  ? 'w-full h-full p-0 flex flex-col flex-1 overflow-hidden'
+                  : 'w-full px-4 sm:px-6 lg:px-8 py-6'
+              }>
+                <motion.div
+                  key={currentPage}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className={isFullHeightPage ? 'h-full flex flex-col flex-1 overflow-hidden' : ''}
+                >
+                  {children}
+                </motion.div>
               </div>
-            </footer>
-          )}
-        </main>
+              
+              {!isFullHeightPage && (
+                <footer className="py-12 border-t border-slate-200/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 mt-auto">
+                  <div className="w-full px-6 text-center space-y-3">
+                    <div className="flex items-center justify-center gap-2 text-slate-300 dark:text-slate-600">
+                      <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
+                      <img src="/logo.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                      }} />
+                      <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
+                    </div>
+                    <p className="text-slate-400 dark:text-slate-500 text-xs font-medium">© 2026 Garda Data - Platform Terpadu Menjaga Kualitas Data.</p>
+                    <p className="text-xs font-bold text-primary-600 dark:text-primary-400">Created by Tim Sosial BPS Kabupaten Mempawah</p>
+                  </div>
+                </footer>
+              )}
+            </main>
+          );
+        })()}
       </div>
 
       {/* Help & Guide Modal Dialog */}

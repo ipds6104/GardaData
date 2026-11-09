@@ -119,6 +119,7 @@ const CustomDropdown: React.FC<{
   disabled?: boolean;
   searchable?: boolean;
   size?: 'sm' | 'md';
+  isTypeDropdown?: boolean;
 }> = ({
   value,
   options,
@@ -127,7 +128,8 @@ const CustomDropdown: React.FC<{
   className = '',
   disabled = false,
   searchable = false,
-  size = 'md'
+  size = 'md',
+  isTypeDropdown = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [openUpward, setOpenUpward] = useState(false);
@@ -159,11 +161,14 @@ const CustomDropdown: React.FC<{
     }
   }, [isOpen]);
 
-  const selectedOpt = options.find(o => 
-    o.value === value || 
-    (typeof value === 'string' && typeof o.value === 'string' && o.value.trim().toLowerCase() === value.trim().toLowerCase()) ||
-    (typeof value === 'string' && typeof o.value === 'string' && normalizeDataType(value) === normalizeDataType(o.value))
-  );
+  const selectedOpt = options.find(o => {
+    if (o.value === value) return true;
+    if (typeof value === 'string' && typeof o.value === 'string' && value !== '' && o.value !== '') {
+      if (o.value.trim().toLowerCase() === value.trim().toLowerCase()) return true;
+      if (isTypeDropdown && normalizeDataType(value) === normalizeDataType(o.value)) return true;
+    }
+    return false;
+  });
 
   const filteredOptions = useMemo(() => {
     if (!searchTerm.trim()) return options;
@@ -228,9 +233,12 @@ const CustomDropdown: React.FC<{
               </div>
             ) : (
               filteredOptions.map((opt: DropdownOption) => {
-                const isSel = opt.value === value || 
-                  (typeof value === 'string' && typeof opt.value === 'string' && opt.value.trim().toLowerCase() === value.trim().toLowerCase()) ||
-                  (typeof value === 'string' && typeof opt.value === 'string' && normalizeDataType(value) === normalizeDataType(opt.value));
+                const isSel = opt.value === value || (
+                  typeof value === 'string' && typeof opt.value === 'string' && value !== '' && opt.value !== '' && (
+                    opt.value.trim().toLowerCase() === value.trim().toLowerCase() ||
+                    (isTypeDropdown && normalizeDataType(value) === normalizeDataType(opt.value))
+                  )
+                );
                 const OptIcon = opt.icon;
 
                 return (
@@ -1537,6 +1545,47 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     }
   };
 
+  // Update Assignment Card Display (Title & Subtitle Column) with immediate live sync
+  const handleUpdateAssignmentCardDisplay = (key: 'titleColumn' | 'subtitleColumn', val: string) => {
+    const nextConfig = { ...formConfig, [key]: val };
+    setFormConfig(nextConfig);
+    pushHistorySnapshot(fields, nextConfig);
+
+    if (val) {
+      if (key === 'titleColumn') {
+        setFields(prev => prev.map(f => ({
+          ...f,
+          isLabel: (f.columnName === val || f.label === val) ? true : f.isLabel
+        })));
+      } else {
+        setFields(prev => prev.map(f => ({
+          ...f,
+          isKey: (f.columnName === val || f.label === val) ? true : f.isKey
+        })));
+      }
+    }
+
+    if (selectedFormId && selectedActivity?.id) {
+      const updatedForms = forms.map(f => {
+        if (f.id === selectedFormId) {
+          return {
+            ...f,
+            titleColumn: key === 'titleColumn' ? val : (f.titleColumn || formConfig.titleColumn),
+            subtitleColumn: key === 'subtitleColumn' ? val : (f.subtitleColumn || formConfig.subtitleColumn),
+            settings: {
+              ...(f.settings || {}),
+              assignmentTitleColumn: key === 'titleColumn' ? val : (f.settings?.assignmentTitleColumn || formConfig.titleColumn),
+              assignmentSubtitleColumn: key === 'subtitleColumn' ? val : (f.settings?.assignmentSubtitleColumn || formConfig.subtitleColumn)
+            }
+          };
+        }
+        return f;
+      });
+      setForms(updatedForms);
+      localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
+    }
+  };
+
   // Update Sheet URL or Sheet Name with immediate persistent form sync
   const handleUpdateSheetConfig = (key: 'sheetUrl' | 'sheetName', val: string) => {
     const nextConfig = { ...formConfig, [key]: val };
@@ -2070,7 +2119,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   // =========================================================================
   if (adminScreen === 'apps_home') {
     return (
-      <div className="flex flex-col h-[calc(100vh-4.5rem)] w-full bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans">
+      <div className="flex flex-col h-full w-full bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans">
         {/* Top Header Bar */}
         <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4 flex-1 max-w-xl">
@@ -2688,7 +2737,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   // VIEW 2: GAMBAR 2 - APPSHEET STUDIO & BEZEL-LESS LIVE SIMULATOR
   // =========================================================================
   return (
-    <div className="flex flex-col h-[calc(100vh-4.5rem)] w-full bg-slate-100 dark:bg-slate-950 overflow-hidden font-sans">
+    <div className="flex flex-col h-full w-full bg-slate-100 dark:bg-slate-950 overflow-hidden font-sans">
       {/* Top App Studio Navigation Bar */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 flex items-center justify-between shrink-0 shadow-xs z-20">
         <div className="flex items-center gap-3 min-w-0">
@@ -2896,7 +2945,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         {studioTab === 'data' && (
           <>
             {/* LEFT PANEL: TABLES / FORMS NAVIGATION */}
-            <div className="w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-between shrink-0 overflow-y-auto custom-scrollbar space-y-4">
+            <div className="w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-between shrink-0 overflow-y-auto custom-scrollbar space-y-4 pb-28">
               <div className="space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
@@ -3130,15 +3179,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                 desc: `Tipe: ${f.dataType || 'Text'}`
                               }))
                             ]}
-                            onChange={(val) => {
-                              setFormConfig(prev => ({ ...prev, titleColumn: val }));
-                              if (val) {
-                                setFields(prev => prev.map(f => ({
-                                  ...f,
-                                  isLabel: (f.columnName === val || f.label === val) ? true : f.isLabel
-                                })));
-                              }
-                            }}
+                            onChange={(val) => handleUpdateAssignmentCardDisplay('titleColumn', val)}
                           />
                         </div>
 
@@ -3159,15 +3200,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                                 desc: `Tipe: ${f.dataType || 'Text'}`
                               }))
                             ]}
-                            onChange={(val) => {
-                              setFormConfig(prev => ({ ...prev, subtitleColumn: val }));
-                              if (val) {
-                                setFields(prev => prev.map(f => ({
-                                  ...f,
-                                  isKey: (f.columnName === val || f.label === val) ? true : f.isKey
-                                })));
-                              }
-                            }}
+                            onChange={(val) => handleUpdateAssignmentCardDisplay('subtitleColumn', val)}
                           />
                         </div>
                       </div>
@@ -3273,6 +3306,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                             <td className="py-2 px-3">
                               <CustomDropdown
                                 size="sm"
+                                isTypeDropdown={true}
                                 value={field.dataType || 'Text'}
                                 options={DATA_TYPES.map(dt => ({ value: dt.id, label: dt.label }))}
                                 onChange={(val) => handleUpdateColumnRow(idx, 'dataType', val)}
