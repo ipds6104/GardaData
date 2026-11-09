@@ -479,40 +479,78 @@ router.post('/activities/:actId/forms', async (req, res) => {
 router.put('/forms/:formId', async (req, res) => {
   try {
     const { formId } = req.params;
-    const { activityId, title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels, settings, fields } = req.body;
+    const { activityId, title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels, settings, fields, titleColumn, subtitleColumn } = req.body;
 
     const stringifiedGrouping = groupingLevels ? JSON.stringify(groupingLevels) : JSON.stringify([]);
-    const stringifiedSettings = settings ? (typeof settings === 'string' ? settings : JSON.stringify(settings)) : null;
+    const parsedSettings = typeof settings === 'string' ? JSON.parse(settings) : (settings || {});
+    if (titleColumn) parsedSettings.assignmentTitleColumn = titleColumn;
+    if (subtitleColumn) parsedSettings.assignmentSubtitleColumn = subtitleColumn;
+    const stringifiedSettings = JSON.stringify(parsedSettings);
     const stringifiedFields = fields ? (typeof fields === 'string' ? fields : JSON.stringify(fields)) : null;
 
     // 1. Upsert form ke laporan_forms
-    await pool.query(
-      `INSERT INTO laporan_forms (id, activityId, title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels, settings, fields)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         title = COALESCE(VALUES(title), title),
-         icon = COALESCE(VALUES(icon), icon),
-         orderIndex = COALESCE(VALUES(orderIndex), orderIndex),
-         sheetUrl = COALESCE(VALUES(sheetUrl), sheetUrl),
-         sheetName = COALESCE(VALUES(sheetName), sheetName),
-         webhookUrl = COALESCE(VALUES(webhookUrl), webhookUrl),
-         groupingLevels = COALESCE(VALUES(groupingLevels), groupingLevels),
-         settings = COALESCE(VALUES(settings), settings),
-         fields = COALESCE(VALUES(fields), fields)`,
-      [
-        formId,
-        activityId || '',
-        title || 'Formulir',
-        icon || 'FileText',
-        orderIndex || 0,
-        sheetUrl || '',
-        sheetName || 'Sheet1',
-        webhookUrl || '',
-        stringifiedGrouping,
-        stringifiedSettings,
-        stringifiedFields
-      ]
-    );
+    try {
+      await pool.query(
+        `INSERT INTO laporan_forms (id, activityId, title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels, settings, fields, titleColumn, subtitleColumn)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           title = COALESCE(VALUES(title), title),
+           icon = COALESCE(VALUES(icon), icon),
+           orderIndex = COALESCE(VALUES(orderIndex), orderIndex),
+           sheetUrl = COALESCE(VALUES(sheetUrl), sheetUrl),
+           sheetName = COALESCE(VALUES(sheetName), sheetName),
+           webhookUrl = COALESCE(VALUES(webhookUrl), webhookUrl),
+           groupingLevels = COALESCE(VALUES(groupingLevels), groupingLevels),
+           settings = COALESCE(VALUES(settings), settings),
+           fields = COALESCE(VALUES(fields), fields),
+           titleColumn = COALESCE(VALUES(titleColumn), titleColumn),
+           subtitleColumn = COALESCE(VALUES(subtitleColumn), subtitleColumn)`,
+        [
+          formId,
+          activityId || '',
+          title || 'Formulir',
+          icon || 'FileText',
+          orderIndex || 0,
+          sheetUrl || '',
+          sheetName || 'Sheet1',
+          webhookUrl || '',
+          stringifiedGrouping,
+          stringifiedSettings,
+          stringifiedFields,
+          titleColumn || null,
+          subtitleColumn || null
+        ]
+      );
+    } catch(dbErr) {
+      // Fallback jika kolom titleColumn/subtitleColumn belum ada
+      await pool.query(
+        `INSERT INTO laporan_forms (id, activityId, title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels, settings, fields)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           title = COALESCE(VALUES(title), title),
+           icon = COALESCE(VALUES(icon), icon),
+           orderIndex = COALESCE(VALUES(orderIndex), orderIndex),
+           sheetUrl = COALESCE(VALUES(sheetUrl), sheetUrl),
+           sheetName = COALESCE(VALUES(sheetName), sheetName),
+           webhookUrl = COALESCE(VALUES(webhookUrl), webhookUrl),
+           groupingLevels = COALESCE(VALUES(groupingLevels), groupingLevels),
+           settings = COALESCE(VALUES(settings), settings),
+           fields = COALESCE(VALUES(fields), fields)`,
+        [
+          formId,
+          activityId || '',
+          title || 'Formulir',
+          icon || 'FileText',
+          orderIndex || 0,
+          sheetUrl || '',
+          sheetName || 'Sheet1',
+          webhookUrl || '',
+          stringifiedGrouping,
+          stringifiedSettings,
+          stringifiedFields
+        ]
+      );
+    }
 
     // 2. Sinkronkan ke tabel laporan_fields jika fields array disertakan
     if (Array.isArray(fields) && fields.length > 0) {

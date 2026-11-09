@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
 import L from 'leaflet';
@@ -17,6 +17,7 @@ import {
 import { useTheme } from '../../lib/theme';
 import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES, getRecordVal, cleanText, normalizeKey, normalizeStringVal, isRecordMatchStep } from './laporanConstants';
 import { getLaporanAuthHeaders } from './AdminLaporanManager';
+import { getCloudActivities, getCloudForms } from '../../services/laporanCloudService';
 
 // Custom Pin Icon for Leaflet
 const customDraggableIcon = L.divIcon({
@@ -810,6 +811,122 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
   const effectiveForms = (formsOverride && formsOverride.length > 0) ? formsOverride : forms;
   const currentForm = effectiveForms && effectiveForms.length > 0 ? (effectiveForms[activeFormIndex] || effectiveForms[0]) : null;
 
+  // Selected column for displaying assignment title at deepest level
+  const [activeDisplayColumn, setActiveDisplayColumn] = useState<string>('');
+
+  useEffect(() => {
+    const configuredCol = currentForm?.titleColumn || currentForm?.settings?.assignmentTitleColumn;
+    const labelField = (currentForm?.fields || []).find((f: any) => f.isLabel);
+    const fallbackCol = labelField?.columnName || labelField?.label || '';
+    setActiveDisplayColumn(configuredCol || fallbackCol);
+  }, [currentForm?.id, currentForm?.titleColumn, currentForm?.settings?.assignmentTitleColumn]);
+
+  // ========================================================
+  // MOBILE HARDWARE BACK BUTTON & BROWSER NAVIGATION HANDLER
+  // ========================================================
+  const handleNavigateBack = useCallback(() => {
+    // 1. Tutup modal peta interaktif jika terbuka
+    if (isMapModalOpen) {
+      setIsMapModalOpen(false);
+      return;
+    }
+
+    // 2. Tutup modal kegiatan jika terbuka
+    if (isActivityModalOpen) {
+      setIsActivityModalOpen(false);
+      return;
+    }
+
+    // 3. Tutup drawer kegiatan jika terbuka
+    if (isActivityDrawerOpen) {
+      setIsActivityDrawerOpen(false);
+      return;
+    }
+
+    // 4. Jika sedang di form entry, kembali ke daftar grouping / assignment
+    if (viewMode === 'form_entry') {
+      setViewMode('grouping_view');
+      setEditingRecord(null);
+      return;
+    }
+
+    // 5. Jika berada di dalam level grouping (Level 2, 3, 4, atau list assignment akhir), NAIK 1 LEVEL KE ATAS
+    if (drillStack.length > 0) {
+      setDrillStack(prev => prev.slice(0, prev.length - 1));
+      return;
+    }
+
+    // 6. Jika di level teratas (Level 1) dan ada kegiatan yang sedang dibuka, kembali ke daftar kegiatan
+    if (selectedActivity && !activityOverride) {
+      setSelectedActivity(null);
+      setDrillStack([]);
+      setViewMode('grouping_view');
+      return;
+    }
+
+    // 7. Jika di halaman terluar, panggil onBack bawaan jika ada
+    if (onBack) {
+      onBack();
+    }
+  }, [isMapModalOpen, isActivityModalOpen, isActivityDrawerOpen, viewMode, drillStack.length, selectedActivity, activityOverride, onBack]);
+
+  // Hitung kedalaman navigasi (nav depth)
+  const currentDepth = useMemo(() => {
+    let d = 0;
+    if (selectedActivity) d += 1;
+    d += drillStack.length;
+    if (viewMode === 'form_entry') d += 1;
+    if (isMapModalOpen || isActivityModalOpen || isActivityDrawerOpen) d += 1;
+    return d;
+  }, [selectedActivity, drillStack.length, viewMode, isMapModalOpen, isActivityModalOpen, isActivityDrawerOpen]);
+
+  const historyDepthRef = useRef<number>(0);
+  const isBackActionRef = useRef<boolean>(false);
+
+  // Push state ke history browser setiap kali pengguna masuk lebih dalam
+  useEffect(() => {
+    if (isBackActionRef.current) {
+      isBackActionRef.current = false;
+      historyDepthRef.current = currentDepth;
+      return;
+    }
+
+    if (currentDepth > historyDepthRef.current) {
+      const stepsToPush = currentDepth - historyDepthRef.current;
+      for (let i = 0; i < stepsToPush; i++) {
+        window.history.pushState({ gardaPetugasNav: true, depth: historyDepthRef.current + i + 1 }, '');
+      }
+      historyDepthRef.current = currentDepth;
+    } else if (currentDepth < historyDepthRef.current) {
+      historyDepthRef.current = currentDepth;
+    }
+  }, [currentDepth]);
+
+  // Tangkap event popstate (tombol back fisik / gesture HP)
+  useEffect(() => {
+    const handlePopState = () => {
+      if (historyDepthRef.current > 0) {
+        isBackActionRef.current = true;
+        historyDepthRef.current = Math.max(0, historyDepthRef.current - 1);
+        handleNavigateBack();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [handleNavigateBack]);
+
+  // Handler seragam untuk tombol panah kembali di layar
+  const triggerOnScreenBack = () => {
+    if (historyDepthRef.current > 0) {
+      window.history.back();
+    } else {
+      handleNavigateBack();
+    }
+  };
+
   // Active Theme / UX Settings from Activity
   const activityThemeColor = themeColorOverride || effectiveActivity?.settings?.themeColor || presetInfo.colors.primary;
   const isCompactLayout = effectiveActivity?.settings?.viewLayout === 'compact_list';
@@ -839,23 +956,16 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
 
     try {
       setIsLoading(true);
-      const res = await fetch(`${baseUrl}/api/laporan/activities?t=${Date.now()}`, {
-        headers: getLaporanAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const openActivities = isAdmin ? data : data.filter((a: any) => a.isOpen !== false);
-        if (Array.isArray(openActivities) && (openActivities.length > 0 || !cached)) {
-          setActivities(openActivities);
-          localStorage.setItem('garda_laporan_activities', JSON.stringify(data));
-          
-          if (openActivities.length > 0) {
-            const targetId = preferredActId || initialActivityId;
-            if (targetId) {
-              const found = openActivities.find((a: any) => a.id === targetId);
-              if (found) {
-                setSelectedActivity(found);
-              }
+      const data = await getCloudActivities();
+      const openActivities = isAdmin ? data : data.filter((a: any) => a.isOpen !== false);
+      if (Array.isArray(openActivities) && (openActivities.length > 0 || !cached)) {
+        setActivities(openActivities);
+        if (openActivities.length > 0) {
+          const targetId = preferredActId || initialActivityId;
+          if (targetId) {
+            const found = openActivities.find((a: any) => a.id === targetId);
+            if (found) {
+              setSelectedActivity(found);
             }
           }
         }
@@ -895,30 +1005,24 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     }
 
     try {
-      const res = await fetch(`${baseUrl}/api/laporan/activities/${actId}/forms?t=${Date.now()}`, {
-        headers: getLaporanAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setForms(data);
-          localStorage.setItem(`garda_laporan_forms_${actId}`, JSON.stringify(data));
-          let targetIndex = 0;
-          if (initialFormId) {
-            const foundIdx = data.findIndex((f: any) => f.id === initialFormId);
-            if (foundIdx !== -1) targetIndex = foundIdx;
-          }
-          setActiveFormIndex(targetIndex);
-          setDrillStack([]);
-          setViewMode('grouping_view');
-
-          // Clean session redirection markers once loaded
-          try {
-            sessionStorage.removeItem('garda_laporan_target_activity');
-            sessionStorage.removeItem('garda_laporan_target_form');
-          } catch (e) {}
-          return;
+      const data = await getCloudForms(actId);
+      if (Array.isArray(data) && data.length > 0) {
+        setForms(data);
+        let targetIndex = 0;
+        if (initialFormId) {
+          const foundIdx = data.findIndex((f: any) => f.id === initialFormId);
+          if (foundIdx !== -1) targetIndex = foundIdx;
         }
+        setActiveFormIndex(targetIndex);
+        setDrillStack([]);
+        setViewMode('grouping_view');
+
+        // Clean session redirection markers once loaded
+        try {
+          sessionStorage.removeItem('garda_laporan_target_activity');
+          sessionStorage.removeItem('garda_laporan_target_form');
+        } catch (e) {}
+        return;
       }
     } catch (err) {
       // Offline - fallback to cached
@@ -1705,33 +1809,17 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
             <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 shrink-0">
               <ClipboardList className="w-4 h-4" />
             </div>
-          ) : viewMode === 'form_entry' ? (
-            <button
-              onClick={() => setViewMode('grouping_view')}
-              className="p-1 -ml-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 transition-colors cursor-pointer"
-              title="Kembali ke Daftar Sampel"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          ) : drillStack.length > 0 ? (
-            <button
-              onClick={() => {
-                setDrillStack(prev => prev.slice(0, prev.length - 1));
-              }}
-              className="p-1 -ml-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 transition-colors cursor-pointer"
-              title="Kembali ke level sebelumnya"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
           ) : (
             <button
-              onClick={() => {
-                setSelectedActivity(null);
-                setDrillStack([]);
-                setViewMode('grouping_view');
-              }}
+              onClick={triggerOnScreenBack}
               className="p-1 -ml-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 transition-colors cursor-pointer"
-              title="Kembali ke Daftar Kegiatan"
+              title={
+                viewMode === 'form_entry'
+                  ? 'Kembali ke Daftar Sampel'
+                  : drillStack.length > 0
+                  ? 'Kembali ke level sebelumnya'
+                  : 'Kembali ke Daftar Kegiatan'
+              }
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -2152,18 +2240,53 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                     </button>
                   </div>
                 ) : (
-                  displayedSamples.map((sample, idx) => {
-                    const d = sample.data || {};
-                    const labelField = (currentForm?.fields || []).find((f: any) => f.isLabel);
-                    const labelKey = labelField?.columnName || labelField?.label;
-                    const keyField = (currentForm?.fields || []).find((f: any) => f.isKey && f.columnName !== labelKey);
-                    const keyCol = keyField?.columnName || keyField?.label;
-                    const photoField = (currentForm?.fields || []).find((f: any) => f.dataType === 'Image' || f.type === 'Image');
+                  <>
+                    {/* Toolbar Selector Variabel Tampilan Assignment */}
+                    <div className="flex items-center justify-between gap-2 px-1 pb-1 pt-0.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                          Daftar Tugas ({displayedSamples.length})
+                        </span>
+                      </div>
 
-                    const title = (labelKey ? getRecordVal(d, labelKey) : '') || getRecordVal(d, 'Nama KRT') || getRecordVal(d, 'Nama Responden') || getRecordVal(d, 'Nama PPL') || `Assignment #${idx + 1}`;
-                    const subtitle = (keyCol ? getRecordVal(d, keyCol) : '') || getRecordVal(d, 'SLS') || getRecordVal(d, 'Desa') || getRecordVal(d, 'Kecamatan') || (sample.id ? `ID: ${sample.id}` : `Assignment #${idx + 1}`);
-                    const photoUrl = (photoField ? getRecordVal(d, photoField.columnName) : '') || getRecordVal(d, 'Foto Lapangan') || getRecordVal(d, 'Foto');
-                    const isSubmitted = sample.status === 'submitted';
+                      {/* Selector Variabel Judul Assignment */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">Variabel:</span>
+                        <select
+                          value={activeDisplayColumn || currentForm?.titleColumn || currentForm?.settings?.assignmentTitleColumn || ''}
+                          onChange={(e) => setActiveDisplayColumn(e.target.value)}
+                          className="text-[11px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg py-1 px-2 text-slate-700 dark:text-slate-200 outline-none cursor-pointer focus:ring-1 focus:ring-primary-400 shadow-2xs max-w-[180px] truncate"
+                          title="Pilih variabel kolom yang ditampilkan sebagai nama/judul tugas"
+                        >
+                          {(activeFormFields || []).map((f: any) => (
+                            <option key={f.id || f.columnName} value={f.columnName || f.label}>
+                              {f.label || f.columnName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {displayedSamples.map((sample, idx) => {
+                      const d = sample.data || {};
+                      const configuredTitleCol = currentForm?.titleColumn || currentForm?.settings?.assignmentTitleColumn;
+                      const configuredSubtitleCol = currentForm?.subtitleColumn || currentForm?.settings?.assignmentSubtitleColumn;
+
+                      const labelField = (currentForm?.fields || []).find((f: any) => f.isLabel);
+                      const fallbackLabelKey = labelField?.columnName || labelField?.label;
+
+                      const keyField = (currentForm?.fields || []).find((f: any) => f.isKey && f.columnName !== fallbackLabelKey);
+                      const fallbackKeyCol = keyField?.columnName || keyField?.label;
+
+                      const photoField = (currentForm?.fields || []).find((f: any) => f.dataType === 'Image' || f.type === 'Image');
+
+                      const effectiveTitleKey = activeDisplayColumn || configuredTitleCol || fallbackLabelKey;
+                      const effectiveSubtitleKey = configuredSubtitleCol || fallbackKeyCol;
+
+                      const title = (effectiveTitleKey ? getRecordVal(d, effectiveTitleKey) : '') || getRecordVal(d, 'Nama KRT') || getRecordVal(d, 'Nama Responden') || getRecordVal(d, 'Nama PPL') || `Assignment #${idx + 1}`;
+                      const subtitle = (effectiveSubtitleKey ? getRecordVal(d, effectiveSubtitleKey) : '') || getRecordVal(d, 'SLS') || getRecordVal(d, 'Desa') || getRecordVal(d, 'Alamat') || getRecordVal(d, 'Kecamatan') || (sample.id ? `ID: ${sample.id}` : `Assignment #${idx + 1}`);
+                      const photoUrl = (photoField ? getRecordVal(d, photoField.columnName) : '') || getRecordVal(d, 'Foto Lapangan') || getRecordVal(d, 'Foto');
+                      const isSubmitted = sample.status === 'submitted';
 
                     return (
                       <motion.div
@@ -2270,8 +2393,9 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                         </div>
                       </motion.div>
                     );
-                  })
-                )}
+                  })}
+                </>
+              )}
               </div>
             )}
             <div className="h-28 w-full shrink-0" />

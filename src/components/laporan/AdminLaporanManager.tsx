@@ -346,7 +346,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     title: '',
     sheetUrl: '',
     sheetName: 'Sheet1',
-    groupingLevels: ['', '', '', '']
+    groupingLevels: ['', '', '', ''],
+    titleColumn: '',
+    subtitleColumn: ''
   });
 
   // UI, Automation & Security Settings State
@@ -661,7 +663,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 target.groupingLevels[1] || '',
                 target.groupingLevels[2] || '',
                 target.groupingLevels[3] || ''
-              ] : ['', '', '', '']
+              ] : ['', '', '', ''],
+              titleColumn: target.titleColumn || target.settings?.assignmentTitleColumn || '',
+              subtitleColumn: target.subtitleColumn || target.settings?.assignmentSubtitleColumn || ''
             });
             const cleanFields = (Array.isArray(target.fields) ? target.fields : [])
               .filter((f: any) => !(Array.isArray(f.options) && f.options.includes('Dandy')))
@@ -746,7 +750,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 target.groupingLevels[1] || '',
                 target.groupingLevels[2] || '',
                 target.groupingLevels[3] || ''
-              ] : ['', '', '', '']
+              ] : ['', '', '', ''],
+              titleColumn: target.titleColumn || target.settings?.assignmentTitleColumn || '',
+              subtitleColumn: target.subtitleColumn || target.settings?.assignmentSubtitleColumn || ''
             });
             const cleanFields = (Array.isArray(target.fields) ? target.fields : [])
               .filter((f: any) => !(Array.isArray(f.options) && f.options.includes('Dandy')))
@@ -846,7 +852,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           gl[1] !== undefined ? gl[1] : '',
           gl[2] !== undefined ? gl[2] : '',
           gl[3] !== undefined ? gl[3] : ''
-        ]
+        ],
+        titleColumn: selectedForm.titleColumn || selectedForm.settings?.assignmentTitleColumn || '',
+        subtitleColumn: selectedForm.subtitleColumn || selectedForm.settings?.assignmentSubtitleColumn || ''
       });
 
       const rawFields = Array.isArray(selectedForm.fields) && selectedForm.fields.length > 0 
@@ -876,7 +884,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       title: '',
       sheetUrl: act.sheetUrl || '',
       sheetName: act.sheetName || 'Sheet1',
-      groupingLevels: ['', '', '', '']
+      groupingLevels: ['', '', '', ''],
+      titleColumn: '',
+      subtitleColumn: ''
     });
 
     // Load cached forms immediately
@@ -913,7 +923,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           gl[1] !== undefined ? gl[1] : '',
           gl[2] !== undefined ? gl[2] : '',
           gl[3] !== undefined ? gl[3] : ''
-        ]
+        ],
+        titleColumn: targetForm.titleColumn || targetForm.settings?.assignmentTitleColumn || '',
+        subtitleColumn: targetForm.subtitleColumn || targetForm.settings?.assignmentSubtitleColumn || ''
       });
       const cleanFields = (Array.isArray(targetForm.fields) ? targetForm.fields : [])
         .filter((f: any) => !(Array.isArray(f.options) && f.options.includes('Dandy')))
@@ -1528,11 +1540,15 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             sheetName: formConfig.sheetName,
             groupingLevels: cleanGroupings,
             fields: sanitizedFields,
+            titleColumn: formConfig.titleColumn,
+            subtitleColumn: formConfig.subtitleColumn,
             settings: {
               uxSettings,
               autoSettings,
               securitySettings,
-              reportSettings
+              reportSettings,
+              assignmentTitleColumn: formConfig.titleColumn,
+              assignmentSubtitleColumn: formConfig.subtitleColumn
             }
           })
         });
@@ -1592,6 +1608,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               sheetName: formConfig.sheetName,
               groupingLevels: cleanGroupings,
               fields: sanitizedFields,
+              titleColumn: formConfig.titleColumn,
+              subtitleColumn: formConfig.subtitleColumn,
               orderIndex: fIdx
             };
           }
@@ -1607,10 +1625,16 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           await saveCloudForm({
             ...formToSave,
             activityId: selectedActivity.id,
+            titleColumn: formConfig.titleColumn,
+            subtitleColumn: formConfig.subtitleColumn,
             uxSettings,
             autoSettings,
             securitySettings,
-            reportSettings
+            reportSettings: {
+              ...reportSettings,
+              assignmentTitleColumn: formConfig.titleColumn,
+              assignmentSubtitleColumn: formConfig.subtitleColumn
+            }
           });
         }
       }
@@ -3030,6 +3054,79 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                           options={getGroupingOptionsForLevel(3)}
                           onChange={(val) => handleUpdateGroupingLevel(3, val)}
                         />
+                      </div>
+
+                      {/* VARIABEL TAMPILAN ASSIGNMENT (LEVEL TERBAWAH) */}
+                      <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] text-slate-800 dark:text-slate-200 font-bold block">
+                            Tampilan Kartu Assignment
+                          </label>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-800">
+                            Level Akhir
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                          Atur variabel/kolom yang ditampilkan sebagai judul nama dan keterangan pada kartu tugas di level terbawah.
+                        </p>
+
+                        {/* Variabel Judul Utama */}
+                        <div>
+                          <label className="text-[10px] text-slate-600 dark:text-slate-300 font-bold block mb-1">
+                            Judul Utama (Nama / Identitas):
+                          </label>
+                          <CustomDropdown
+                            size="sm"
+                            searchable={fields.length > 5}
+                            value={formConfig.titleColumn || ''}
+                            options={[
+                              { value: '', label: '-- Otomatis (Kolom LABEL? / Nama) --' },
+                              ...fields.map(f => ({
+                                value: f.columnName || f.label,
+                                label: f.label || f.columnName,
+                                desc: `Tipe: ${f.dataType || 'Text'}`
+                              }))
+                            ]}
+                            onChange={(val) => {
+                              setFormConfig(prev => ({ ...prev, titleColumn: val }));
+                              if (val) {
+                                setFields(prev => prev.map(f => ({
+                                  ...f,
+                                  isLabel: (f.columnName === val || f.label === val) ? true : f.isLabel
+                                })));
+                              }
+                            }}
+                          />
+                        </div>
+
+                        {/* Variabel Sub-Judul */}
+                        <div>
+                          <label className="text-[10px] text-slate-600 dark:text-slate-300 font-bold block mb-1">
+                            Sub-Judul (Keterangan / SLS / ID):
+                          </label>
+                          <CustomDropdown
+                            size="sm"
+                            searchable={fields.length > 5}
+                            value={formConfig.subtitleColumn || ''}
+                            options={[
+                              { value: '', label: '-- Otomatis (Kolom KEY? / SLS) --' },
+                              ...fields.map(f => ({
+                                value: f.columnName || f.label,
+                                label: f.label || f.columnName,
+                                desc: `Tipe: ${f.dataType || 'Text'}`
+                              }))
+                            ]}
+                            onChange={(val) => {
+                              setFormConfig(prev => ({ ...prev, subtitleColumn: val }));
+                              if (val) {
+                                setFields(prev => prev.map(f => ({
+                                  ...f,
+                                  isKey: (f.columnName === val || f.label === val) ? true : f.isKey
+                                })));
+                              }
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   )}

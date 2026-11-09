@@ -561,6 +561,8 @@ async function initDB() {
     try { await connection.query(`ALTER TABLE laporan_forms ADD COLUMN settings JSON`); } catch (e) {}
     try { await connection.query(`ALTER TABLE laporan_forms ADD COLUMN fields JSON`); } catch (e) {}
     try { await connection.query(`ALTER TABLE laporan_forms ADD COLUMN publishedSchema JSON`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE laporan_forms ADD COLUMN titleColumn VARCHAR(100)`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE laporan_forms ADD COLUMN subtitleColumn VARCHAR(100)`); } catch (e) {}
 
     try { await connection.query(`ALTER TABLE laporan_fields MODIFY COLUMN dataType VARCHAR(50) NOT NULL DEFAULT 'Text'`); } catch (e) {}
     try { await connection.query(`ALTER TABLE laporan_fields ADD COLUMN isKey BOOLEAN DEFAULT false`); } catch (e) {}
