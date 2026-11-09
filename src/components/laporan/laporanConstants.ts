@@ -17,6 +17,21 @@ export const DATA_TYPES = [
   { id: 'File', label: 'File / Dokumen', desc: 'Dokumen lampiran (PDF/DOC)', icon: Folder },
 ];
 
+// Helper to normalize data type string across Indonesian/English and DB variants
+export const normalizeDataType = (rawType?: string): string => {
+  if (!rawType) return 'Text';
+  const t = String(rawType).trim().toLowerCase();
+  if (['teks', 'text', 'string', 'varchar', 'char'].includes(t)) return 'Text';
+  if (['angka', 'number', 'int', 'float', 'double', 'numeric', 'integer', 'decimal'].includes(t)) return 'Number';
+  if (['lokasi', 'latlong', 'gps', 'koordinat', 'geotag', 'point'].includes(t)) return 'LatLong';
+  if (['tanggal', 'date', 'datetime'].includes(t)) return 'Date';
+  if (['jam', 'time', 'waktu'].includes(t)) return 'Time';
+  if (['pilihan', 'enum', 'dropdown', 'select'].includes(t)) return 'Enum';
+  if (['image', 'foto', 'gambar', 'photo'].includes(t)) return 'Image';
+  if (['file', 'dokumen', 'berkas', 'pdf'].includes(t)) return 'File';
+  return 'Text';
+};
+
 export const AVAILABLE_ICONS = [
   { id: 'Layers', label: 'Kegiatan / Survei (Layers)', icon: Layers },
   { id: 'FileText', label: 'Formulir / Berkas (FileText)', icon: FileText },

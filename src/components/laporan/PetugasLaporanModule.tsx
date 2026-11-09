@@ -2291,60 +2291,7 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
               </div>
             )}
 
-            {/* GPS Geotagging Card with Clean Spacious Layout (Hanya muncul jika admin mengkonfigurasi pertanyaan Titik Koordinat GPS) */}
-            {hasGpsField && (
-              <div className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-2xs">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                      gpsLocation 
-                        ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400' 
-                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
-                    }`}>
-                      <MapPin className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Titik Koordinat GPS</span>
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate block font-mono">
-                        {gpsLocation 
-                          ? `${gpsLocation.lat.toFixed(6)}, ${gpsLocation.lng.toFixed(6)}` 
-                          : 'Belum ditentukan'}
-                      </span>
-                    </div>
-                  </div>
 
-                  {gpsLocation && (
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shrink-0">
-                      Terkunci
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                  <button
-                    type="button"
-                    onClick={handleQuickLocate}
-                    disabled={isLocating || isFormLocked}
-                    className="py-2 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
-                    title="Ambil GPS Otomatis"
-                  >
-                    <LocateFixed className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin text-primary-600' : ''}`} />
-                    <span>Ambil GPS</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleOpenMapPicker(primaryGpsColumnName)}
-                    disabled={isFormLocked}
-                    className="py-2 px-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-95"
-                    title="Buka Peta Geser Titik Lokasi"
-                  >
-                    <MapPin className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                    <span>Pilih di Peta</span>
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Vertical Input Fields */}
             <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3.5 shadow-2xs">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   User,
@@ -12,7 +12,8 @@ import {
   Clock,
   Info,
   X,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
@@ -22,31 +23,96 @@ interface FeatureUpdate {
   desc: string;
 }
 
+function parseGitHubCommit(commitObj: any): FeatureUpdate {
+  const message = commitObj.commit?.message || '';
+  const firstLine = message.split('\n')[0].trim();
+  const rawDate = commitObj.commit?.author?.date;
+
+  let formattedDate = 'Terbaru';
+  if (rawDate) {
+    try {
+      const d = new Date(rawDate);
+      formattedDate = d.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch {
+      formattedDate = 'Terbaru';
+    }
+  }
+
+  const match = firstLine.match(/^(feat|fix|perf|style|refactor|docs|chore)(\(([^)]+)\))?:\s*(.*)$/i);
+  if (match) {
+    const type = match[1].toLowerCase();
+    const rawScope = match[3] || '';
+    const desc = match[4].charAt(0).toUpperCase() + match[4].slice(1);
+
+    let scopeName = '';
+    if (rawScope) {
+      const scopeMap: Record<string, string> = {
+        'laporan-lms': 'Laporan & LMS',
+        'laporan': 'Laporan Pendataan',
+        'lms': 'LMS Pelatihan',
+        'developer': 'Halaman Developer',
+        'security': 'Keamanan & Backup',
+        'auth': 'Otentikasi & SSO',
+        'monitoring': 'Monitoring Petugas',
+        'ui': 'Antarmuka Sistem'
+      };
+      scopeName = scopeMap[rawScope.toLowerCase()] || rawScope.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    let title = '';
+    if (scopeName) {
+      title = scopeName;
+    } else {
+      const typeMap: Record<string, string> = {
+        feat: 'Fitur Baru',
+        fix: 'Perbaikan Sistem',
+        perf: 'Peningkatan Kinerja',
+        style: 'Pembaruan Tampilan',
+        refactor: 'Optimalisasi Sistem',
+        docs: 'Dokumentasi',
+        chore: 'Pembaruan Rutin'
+      };
+      title = typeMap[type] || 'Pembaruan';
+    }
+    return { title, date: formattedDate, desc };
+  }
+
+  return {
+    title: 'Pembaruan Sistem',
+    date: formattedDate,
+    desc: firstLine
+  };
+}
+
 const LATEST_UPDATES: FeatureUpdate[] = [
   {
-    title: 'KBJI 2026 Terintegrasi',
+    title: 'Laporan & LMS Terintegrasi',
+    date: '08 Nov 2026',
+    desc: 'Integrasi folder Google Drive BPS, rute GPS penelusuran responden, dan proteksi isian read-only.',
+  },
+  {
+    title: 'Sistem Cadangan & Backup Otomatis',
+    date: '05 Nov 2026',
+    desc: 'Pencadangan data periodik otomatis & perekaman riwayat revisi sebelum perubahan sistem untuk seluruh modul.',
+  },
+  {
+    title: 'Halaman Developer: Manajemen Cadangan',
+    date: '05 Nov 2026',
+    desc: 'Pencadangan manual, pemantauan log audit, dan ekspor arsip ZIP terlindungi khusus akun ahmad.aulia.',
+  },
+  {
+    title: 'LMS Pelatihan & Template Safety',
+    date: '05 Nov 2026',
+    desc: 'Kloning template jadwal dari pelatihan yang ada dan proteksi auto-backup lokal saat penyusunan jadwal.',
+  },
+  {
+    title: 'Klasifikasi Baku KBJI 2026',
     date: '04 Nov 2026',
-    desc: 'Standar Klasifikasi Baku Jabatan 2026 (2.378 jabatan) & integrasi rekomendasi cerdas.',
-  },
-  {
-    title: 'LMS Jadwal 24 Jam WIB',
-    date: '04 Nov 2026',
-    desc: 'Desain popover kalender interaktif dan selektor waktu 24 jam Indonesia untuk pelatihan.',
-  },
-  {
-    title: 'KBLI 2025 AI Recommender',
-    date: '28 Okt 2026',
-    desc: 'Pencocokan nama usaha empiris berbasis data survei SE2026 & telemetri pencarian pintar.',
-  },
-  {
-    title: 'Peta Responden SE2026 & SLS',
-    date: '26 Okt 2026',
-    desc: 'Visualisasi spasial titik usaha per kecamatan dengan kode SLS 16-digit & proteksi enkripsi.',
-  },
-  {
-    title: 'Statistik & Analisis Pengunjung',
-    date: '24 Okt 2026',
-    desc: 'Monitoring waktu-nyata kunjungan pengguna terintegrasi SSO rIDM dan filter kunjungan organik.',
+    desc: 'Integrasi 2.378 jabatan standar Klasifikasi Baku Jabatan Indonesia 2026 & selektor kalender 24 jam WIB.',
   },
 ];
 
@@ -61,6 +127,50 @@ export const Login: React.FC = () => {
   const [showGuestMessage, setShowGuestMessage] = useState(false);
   const [showSsoInfoModal, setShowSsoInfoModal] = useState(false);
   const [ssoModalMessage, setSsoModalMessage] = useState('');
+
+  // 5 Update Fitur Terbaru Dinamis dari Repositori GitHub
+  const [updates, setUpdates] = useState<FeatureUpdate[]>(() => {
+    try {
+      const cached = localStorage.getItem('garda_latest_github_updates');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Hanya gunakan cache jika memuat update tanggal 5 Nov ke atas
+          const hasRecent = parsed.some((u: any) => u.date && (u.date.includes('08 Nov') || u.date.includes('05 Nov') || u.date.includes('Nov 2026')));
+          if (hasRecent) return parsed;
+        }
+      }
+    } catch {}
+    return LATEST_UPDATES;
+  });
+  const [isFetchingUpdates, setIsFetchingUpdates] = useState(false);
+
+  const fetchLatestUpdates = async () => {
+    try {
+      setIsFetchingUpdates(true);
+      const res = await fetch('https://api.github.com/repos/ipds6104/GardaData/commits?per_page=5', {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      if (res.ok) {
+        const commits = await res.json();
+        if (Array.isArray(commits) && commits.length > 0) {
+          const formatted = commits.map(parseGitHubCommit);
+          setUpdates(formatted);
+          localStorage.setItem('garda_latest_github_updates', JSON.stringify(formatted));
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch latest GitHub updates:', e);
+    } finally {
+      setIsFetchingUpdates(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLatestUpdates();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,7 +259,7 @@ export const Login: React.FC = () => {
             </p>
           </div>
 
-          {/* 5 Update Fitur Terbaru (Minimalis & Elegan) */}
+          {/* 5 Update Fitur Terbaru Dinamis dari Repositori GitHub */}
           <div className="max-w-md mb-6">
             <div className="flex items-center justify-between mb-2.5 px-1">
               <div className="flex items-center gap-2">
@@ -158,13 +268,20 @@ export const Login: React.FC = () => {
                   Pembaruan Fitur Terkini
                 </span>
               </div>
-              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200/60 shadow-2xs">
-                5 Rilis Terbaru
-              </span>
+              <button
+                type="button"
+                onClick={fetchLatestUpdates}
+                disabled={isFetchingUpdates}
+                className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200/60 shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                title="Muat ulang pembaruan dari GitHub"
+              >
+                <RefreshCw className={`w-2.5 h-2.5 ${isFetchingUpdates ? 'animate-spin' : ''}`} />
+                <span>5 Rilis Terbaru</span>
+              </button>
             </div>
 
             <div className="space-y-2">
-              {LATEST_UPDATES.map((item, idx) => (
+              {updates.map((item, idx) => (
                 <div
                   key={idx}
                   className="group p-2.5 sm:p-3 rounded-2xl bg-white/70 hover:bg-white border border-slate-100 hover:border-primary-200 transition-all shadow-2xs hover:shadow-xs"

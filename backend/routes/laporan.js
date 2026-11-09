@@ -119,10 +119,16 @@ router.get('/activities', async (req, res) => {
   try {
     const [activities] = await pool.query('SELECT * FROM laporan_activities ORDER BY createdAt DESC');
     
-    // Sertakan jumlah form & rekapitulasi data per kegiatan
+    // Sertakan jumlah form, pengaturan, & rekapitulasi data per kegiatan
     for (const act of activities) {
       act.isOpen = Boolean(act.isOpen);
-      const [forms] = await pool.query('SELECT id, title, icon, orderIndex, sheetName FROM laporan_forms WHERE activityId = ? ORDER BY orderIndex ASC', [act.id]);
+      if (typeof act.settings === 'string') {
+        try { act.settings = JSON.parse(act.settings); } catch (e) { act.settings = {}; }
+      } else if (!act.settings) {
+        act.settings = {};
+      }
+
+      const [forms] = await pool.query('SELECT id, title, icon, orderIndex, sheetName, sheetUrl FROM laporan_forms WHERE activityId = ? ORDER BY orderIndex ASC', [act.id]);
       act.forms = forms;
 
       const [recStats] = await pool.query(
@@ -146,15 +152,40 @@ router.get('/activities', async (req, res) => {
 // POST create activity
 router.post('/activities', async (req, res) => {
   try {
-    const { title, description, category, startDate, endDate, isOpen, icon, sheetUrl, sheetName, webhookUrl } = req.body;
+    const { id: customId, title, description, category, startDate, endDate, isOpen, icon, sheetUrl, sheetName, webhookUrl, settings } = req.body;
     if (!title) return res.status(400).json({ error: 'Judul kegiatan wajib diisi' });
 
-    const id = `act_${Date.now()}`;
+    const id = customId || `act_${Date.now()}`;
     const cleanDesc = description || category || '';
+    const stringifiedSettings = settings ? (typeof settings === 'string' ? settings : JSON.stringify(settings)) : null;
+
     await pool.query(
-      `INSERT INTO laporan_activities (id, title, description, startDate, endDate, isOpen, icon)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, title, cleanDesc, startDate || null, endDate || null, isOpen !== false, icon || 'Layers']
+      `INSERT INTO laporan_activities (id, title, description, category, startDate, endDate, isOpen, icon, sheetUrl, sheetName, settings)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         title = VALUES(title),
+         description = VALUES(description),
+         category = VALUES(category),
+         startDate = VALUES(startDate),
+         endDate = VALUES(endDate),
+         isOpen = VALUES(isOpen),
+         icon = VALUES(icon),
+         sheetUrl = VALUES(sheetUrl),
+         sheetName = VALUES(sheetName),
+         settings = VALUES(settings)`,
+      [
+        id, 
+        title, 
+        cleanDesc, 
+        category || '', 
+        startDate || null, 
+        endDate || null, 
+        isOpen !== false, 
+        icon || 'Layers',
+        sheetUrl ? sheetUrl.trim() : '',
+        sheetName ? sheetName.trim() : 'Sheet1',
+        stringifiedSettings
+      ]
     );
 
     let createdFormId = null;
@@ -181,7 +212,7 @@ router.post('/activities', async (req, res) => {
     res.status(201).json({ 
       id, 
       formId: createdFormId,
-      message: 'Kegiatan berhasil dibuat dan dihubungkan ke Google Sheet' 
+      message: 'Kegiatan berhasil disimpan' 
     });
   } catch (err) {
     console.error('Error creating activity:', err);
@@ -193,25 +224,35 @@ router.post('/activities', async (req, res) => {
 router.put('/activities/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, startDate, endDate, isOpen, icon } = req.body;
+    const { title, description, category, startDate, endDate, isOpen, icon, sheetUrl, sheetName, settings } = req.body;
+    const stringifiedSettings = settings ? (typeof settings === 'string' ? settings : JSON.stringify(settings)) : null;
 
     await pool.query(
-      `UPDATE laporan_activities 
-       SET title = COALESCE(?, title),
-           description = COALESCE(?, description),
-           startDate = ?,
-           endDate = ?,
-           isOpen = COALESCE(?, isOpen),
-           icon = COALESCE(?, icon)
-       WHERE id = ?`,
+      `INSERT INTO laporan_activities (id, title, description, category, startDate, endDate, isOpen, icon, sheetUrl, sheetName, settings)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE 
+         title = COALESCE(VALUES(title), title),
+         description = COALESCE(VALUES(description), description),
+         category = COALESCE(VALUES(category), category),
+         startDate = VALUES(startDate),
+         endDate = VALUES(endDate),
+         isOpen = COALESCE(VALUES(isOpen), isOpen),
+         icon = COALESCE(VALUES(icon), icon),
+         sheetUrl = COALESCE(VALUES(sheetUrl), sheetUrl),
+         sheetName = COALESCE(VALUES(sheetName), sheetName),
+         settings = COALESCE(VALUES(settings), settings)`,
       [
-        title, 
-        description, 
+        id, 
+        title || 'Kegiatan', 
+        description || category || '', 
+        category || '',
         startDate || null, 
         endDate || null, 
-        isOpen !== undefined ? (isOpen ? 1 : 0) : null, 
-        icon || null, 
-        id
+        isOpen !== undefined ? (isOpen ? 1 : 0) : 1, 
+        icon || 'Layers',
+        sheetUrl || '',
+        sheetName || 'Sheet1',
+        stringifiedSettings
       ]
     );
 
@@ -254,11 +295,38 @@ router.get('/activities/:actId/forms', async (req, res) => {
         f.groupingLevels = [];
       }
 
+      if (typeof f.settings === 'string') {
+        try { f.settings = JSON.parse(f.settings); } catch (e) { f.settings = {}; }
+      } else if (!f.settings) {
+        f.settings = {};
+      }
+
+      let parsedFields = [];
+      if (typeof f.fields === 'string') {
+        try { parsedFields = JSON.parse(f.fields); } catch (e) { parsedFields = []; }
+      } else if (Array.isArray(f.fields)) {
+        parsedFields = f.fields;
+      }
+
       const [fields] = await pool.query('SELECT * FROM laporan_fields WHERE formId = ? ORDER BY orderIndex ASC', [f.id]);
-      f.fields = fields.map(field => ({
-        ...field,
-        isRequired: Boolean(field.isRequired)
-      }));
+      if (fields && fields.length > 0) {
+        f.fields = fields.map(field => {
+          let opts = [];
+          try {
+            opts = typeof field.options === 'string' ? JSON.parse(field.options) : (field.options || []);
+          } catch(e) {}
+          return {
+            ...field,
+            isRequired: Boolean(field.isRequired),
+            isKey: Boolean(field.isKey),
+            isLabel: Boolean(field.isLabel),
+            isEditable: field.isEditable !== undefined ? Boolean(field.isEditable) : true,
+            options: opts
+          };
+        });
+      } else {
+        f.fields = parsedFields;
+      }
 
       const [stats] = await pool.query(
         `SELECT 
@@ -278,17 +346,87 @@ router.get('/activities/:actId/forms', async (req, res) => {
   }
 });
 
+// GET single form by ID
+router.get('/forms/:formId', async (req, res) => {
+  try {
+    const { formId } = req.params;
+    const [forms] = await pool.query('SELECT * FROM laporan_forms WHERE id = ?', [formId]);
+    if (!forms || forms.length === 0) {
+      return res.status(404).json({ error: 'Formulir tidak ditemukan' });
+    }
+
+    const form = forms[0];
+    try {
+      form.groupingLevels = typeof form.groupingLevels === 'string' ? JSON.parse(form.groupingLevels) : (form.groupingLevels || []);
+    } catch(e) {
+      form.groupingLevels = [];
+    }
+
+    try {
+      form.settings = typeof form.settings === 'string' ? JSON.parse(form.settings) : (form.settings || {});
+    } catch(e) {
+      form.settings = {};
+    }
+
+    let parsedFields = [];
+    try {
+      parsedFields = typeof form.fields === 'string' ? JSON.parse(form.fields) : (form.fields || []);
+    } catch(e) {
+      parsedFields = [];
+    }
+
+    const [fields] = await pool.query('SELECT * FROM laporan_fields WHERE formId = ? ORDER BY orderIndex ASC', [formId]);
+    if (fields && fields.length > 0) {
+      form.fields = fields.map(field => {
+        let opts = [];
+        try {
+          opts = typeof field.options === 'string' ? JSON.parse(field.options) : (field.options || []);
+        } catch(e) {}
+        return {
+          ...field,
+          isRequired: Boolean(field.isRequired),
+          isKey: Boolean(field.isKey),
+          isLabel: Boolean(field.isLabel),
+          isEditable: field.isEditable !== undefined ? Boolean(field.isEditable) : true,
+          options: opts
+        };
+      });
+    } else {
+      form.fields = parsedFields;
+    }
+
+    res.json(form);
+  } catch (err) {
+    console.error('Error fetching single form:', err);
+    res.status(500).json({ error: 'Gagal mengambil data formulir' });
+  }
+});
+
 // POST create form in activity
 router.post('/activities/:actId/forms', async (req, res) => {
   try {
     const { actId } = req.params;
-    const { title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels } = req.body;
+    const { id: customId, title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels, settings, fields } = req.body;
     if (!title) return res.status(400).json({ error: 'Judul form wajib diisi' });
 
-    const id = `form_${Date.now()}`;
+    const id = customId || `form_${Date.now()}`;
+    const stringifiedGrouping = groupingLevels ? JSON.stringify(groupingLevels) : JSON.stringify([]);
+    const stringifiedSettings = settings ? (typeof settings === 'string' ? settings : JSON.stringify(settings)) : null;
+    const stringifiedFields = fields ? (typeof fields === 'string' ? fields : JSON.stringify(fields)) : null;
+
     await pool.query(
-      `INSERT INTO laporan_forms (id, activityId, title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO laporan_forms (id, activityId, title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels, settings, fields)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         title = VALUES(title),
+         icon = VALUES(icon),
+         orderIndex = VALUES(orderIndex),
+         sheetUrl = VALUES(sheetUrl),
+         sheetName = VALUES(sheetName),
+         webhookUrl = VALUES(webhookUrl),
+         groupingLevels = VALUES(groupingLevels),
+         settings = VALUES(settings),
+         fields = VALUES(fields)`,
       [
         id, 
         actId, 
@@ -298,9 +436,37 @@ router.post('/activities/:actId/forms', async (req, res) => {
         sheetUrl || '', 
         sheetName || '', 
         webhookUrl || '', 
-        JSON.stringify(groupingLevels || [])
+        stringifiedGrouping,
+        stringifiedSettings,
+        stringifiedFields
       ]
     );
+
+    if (Array.isArray(fields) && fields.length > 0) {
+      await pool.query('DELETE FROM laporan_fields WHERE formId = ?', [id]);
+      for (let i = 0; i < fields.length; i++) {
+        const fld = fields[i];
+        const fieldId = fld.id || `fld_${Date.now()}_${i}`;
+        await pool.query(
+          `INSERT INTO laporan_fields (id, formId, label, columnName, dataType, isRequired, groupSection, orderIndex, options, isKey, isLabel, isEditable)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            fieldId,
+            id,
+            fld.label || fld.columnName || `Kolom ${i+1}`,
+            fld.columnName || fld.label || `kolom_${i+1}`,
+            fld.dataType || 'Text',
+            fld.isRequired ? 1 : 0,
+            fld.groupSection || '',
+            i,
+            JSON.stringify(fld.options || []),
+            fld.isKey ? 1 : 0,
+            fld.isLabel ? 1 : 0,
+            fld.isEditable !== undefined ? (fld.isEditable ? 1 : 0) : 1
+          ]
+        );
+      }
+    }
 
     res.status(201).json({ id, message: 'Formulir berhasil ditambahkan' });
   } catch (err) {
@@ -313,31 +479,69 @@ router.post('/activities/:actId/forms', async (req, res) => {
 router.put('/forms/:formId', async (req, res) => {
   try {
     const { formId } = req.params;
-    const { title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels } = req.body;
+    const { activityId, title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels, settings, fields } = req.body;
 
+    const stringifiedGrouping = groupingLevels ? JSON.stringify(groupingLevels) : JSON.stringify([]);
+    const stringifiedSettings = settings ? (typeof settings === 'string' ? settings : JSON.stringify(settings)) : null;
+    const stringifiedFields = fields ? (typeof fields === 'string' ? fields : JSON.stringify(fields)) : null;
+
+    // 1. Upsert form ke laporan_forms
     await pool.query(
-      `UPDATE laporan_forms
-       SET title = COALESCE(?, title),
-           icon = COALESCE(?, icon),
-           orderIndex = COALESCE(?, orderIndex),
-           sheetUrl = COALESCE(?, sheetUrl),
-           sheetName = COALESCE(?, sheetName),
-           webhookUrl = COALESCE(?, webhookUrl),
-           groupingLevels = COALESCE(?, groupingLevels)
-       WHERE id = ?`,
+      `INSERT INTO laporan_forms (id, activityId, title, icon, orderIndex, sheetUrl, sheetName, webhookUrl, groupingLevels, settings, fields)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         title = COALESCE(VALUES(title), title),
+         icon = COALESCE(VALUES(icon), icon),
+         orderIndex = COALESCE(VALUES(orderIndex), orderIndex),
+         sheetUrl = COALESCE(VALUES(sheetUrl), sheetUrl),
+         sheetName = COALESCE(VALUES(sheetName), sheetName),
+         webhookUrl = COALESCE(VALUES(webhookUrl), webhookUrl),
+         groupingLevels = COALESCE(VALUES(groupingLevels), groupingLevels),
+         settings = COALESCE(VALUES(settings), settings),
+         fields = COALESCE(VALUES(fields), fields)`,
       [
-        title, 
-        icon, 
-        orderIndex, 
-        sheetUrl, 
-        sheetName, 
-        webhookUrl, 
-        groupingLevels ? JSON.stringify(groupingLevels) : null, 
-        formId
+        formId,
+        activityId || '',
+        title || 'Formulir',
+        icon || 'FileText',
+        orderIndex || 0,
+        sheetUrl || '',
+        sheetName || 'Sheet1',
+        webhookUrl || '',
+        stringifiedGrouping,
+        stringifiedSettings,
+        stringifiedFields
       ]
     );
 
-    res.json({ message: 'Formulir berhasil diperbarui' });
+    // 2. Sinkronkan ke tabel laporan_fields jika fields array disertakan
+    if (Array.isArray(fields) && fields.length > 0) {
+      await pool.query('DELETE FROM laporan_fields WHERE formId = ?', [formId]);
+      for (let i = 0; i < fields.length; i++) {
+        const fld = fields[i];
+        const fieldId = fld.id || `fld_${Date.now()}_${i}`;
+        await pool.query(
+          `INSERT INTO laporan_fields (id, formId, label, columnName, dataType, isRequired, groupSection, orderIndex, options, isKey, isLabel, isEditable)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            fieldId,
+            formId,
+            fld.label || fld.columnName || `Kolom ${i+1}`,
+            fld.columnName || fld.label || `kolom_${i+1}`,
+            fld.dataType || 'Text',
+            fld.isRequired ? 1 : 0,
+            fld.groupSection || '',
+            i,
+            JSON.stringify(fld.options || []),
+            fld.isKey ? 1 : 0,
+            fld.isLabel ? 1 : 0,
+            fld.isEditable !== undefined ? (fld.isEditable ? 1 : 0) : 1
+          ]
+        );
+      }
+    }
+
+    res.json({ message: 'Formulir dan pertanyaan berhasil diperbarui' });
   } catch (err) {
     console.error('Error updating form:', err);
     res.status(500).json({ error: 'Gagal memperbarui formulir' });
@@ -529,18 +733,34 @@ router.get('/forms/:formId/template-excel', async (req, res) => {
 router.post('/forms/:formId/sync-sheet', async (req, res) => {
   try {
     const { formId } = req.params;
-    const { maxRows = 50000, schemaOnly = false } = req.body || {};
+    const { maxRows = 50000, schemaOnly = false, sheetUrl: reqSheetUrl, sheetName: reqSheetName, activityId: reqActivityId } = req.body || {};
 
-    const [forms] = await pool.query('SELECT * FROM laporan_forms WHERE id = ?', [formId]);
-    if (forms.length === 0) return res.status(404).json({ error: 'Formulir tidak ditemukan' });
-    const form = forms[0];
+    let [forms] = await pool.query('SELECT * FROM laporan_forms WHERE id = ?', [formId]);
+    let form = forms.length > 0 ? forms[0] : null;
 
-    if (!form.sheetUrl) {
+    const effectiveSheetUrl = reqSheetUrl || (form && form.sheetUrl) || '';
+    const effectiveSheetName = reqSheetName || (form && form.sheetName) || 'Sheet1';
+    const effectiveActId = reqActivityId || (form && form.activityId) || '';
+
+    if (!effectiveSheetUrl) {
       return res.status(400).json({ error: 'Tautan Google Sheet belum dikonfigurasi pada form ini.' });
     }
 
+    if (!form) {
+      await pool.query(
+        `INSERT INTO laporan_forms (id, activityId, title, icon, orderIndex, sheetUrl, sheetName, groupingLevels)
+         VALUES (?, ?, 'Formulir Google Sheet', 'FileSpreadsheet', 0, ?, ?, '[]')`,
+        [formId, effectiveActId, effectiveSheetUrl, effectiveSheetName]
+      );
+      form = { id: formId, activityId: effectiveActId, sheetUrl: effectiveSheetUrl, sheetName: effectiveSheetName };
+    } else if (reqSheetUrl && reqSheetUrl !== form.sheetUrl) {
+      await pool.query('UPDATE laporan_forms SET sheetUrl = ?, sheetName = ? WHERE id = ?', [effectiveSheetUrl, effectiveSheetName, formId]);
+      form.sheetUrl = effectiveSheetUrl;
+      form.sheetName = effectiveSheetName;
+    }
+
     // Gunakan Master Sync Engine dengan proteksi Big Data
-    const sheetResult = await fetchSheetData(form.sheetUrl, form.sheetName || 'Sheet1', { 
+    const sheetResult = await fetchSheetData(effectiveSheetUrl, effectiveSheetName, { 
       maxRows: Number(maxRows) || 50000, 
       schemaOnly: Boolean(schemaOnly) 
     });
@@ -550,6 +770,9 @@ router.post('/forms/:formId/sync-sheet', async (req, res) => {
     if (headers.length === 0) {
       return res.status(400).json({ error: 'Google Sheet tidak memiliki header kolom yang valid.' });
     }
+
+    // Simpan skema fields ke tabel laporan_fields dan laporan_forms.fields
+    await pool.query('UPDATE laporan_forms SET fields = ? WHERE id = ?', [JSON.stringify(schema), formId]);
 
     // 1. Auto-discover & buat field jika belum ada
     const [existingFields] = await pool.query('SELECT COUNT(*) as count FROM laporan_fields WHERE formId = ?', [formId]);
@@ -569,6 +792,8 @@ router.post('/forms/:formId/sync-sheet', async (req, res) => {
       return res.json({
         success: true,
         message: `Skema kolom berhasil dibaca (${headers.length} kolom ditemukan).`,
+        schema,
+        fields: schema,
         headers,
         totalRows: 0,
         importedCount: 0,
@@ -638,15 +863,77 @@ router.post('/forms/:formId/sync-sheet', async (req, res) => {
     res.json({
       success: true,
       message: `Sinkronisasi berhasil! ${importedCount} data baru ditambahkan, ${updatedCount} data diperbarui.${note}`,
+      schema,
+      fields: schema,
+      headers,
       importedCount,
       updatedCount,
       totalRows: records.length,
       totalAvailableRows,
-      isTruncated
+      isTruncated,
+      records
     });
   } catch (err) {
     console.error('Error syncing sheet:', err);
     res.status(500).json({ error: 'Gagal menyinkronkan data dari Google Sheet', details: err.message });
+  }
+});
+
+// POST batch save records (from client fallback or direct upload)
+router.post('/forms/:formId/records/batch', async (req, res) => {
+  try {
+    const { formId } = req.params;
+    const { records, activityId: passedActivityId } = req.body;
+
+    if (!Array.isArray(records) || records.length === 0) {
+      return res.json({ success: true, count: 0, message: 'Tidak ada data untuk disimpan' });
+    }
+
+    let actId = passedActivityId;
+    if (!actId) {
+      const [forms] = await pool.query('SELECT activityId FROM laporan_forms WHERE id = ?', [formId]);
+      if (forms.length > 0) {
+        actId = forms[0].activityId;
+      }
+    }
+
+    let savedCount = 0;
+    const chunkSize = 200;
+    for (let i = 0; i < records.length; i += chunkSize) {
+      const chunk = records.slice(i, i + chunkSize);
+      for (const rec of chunk) {
+        const recId = rec.id || `${formId}_${rec.rowId || (i + 1)}`;
+        const rowId = rec.rowId || String(i + 1);
+        const effectiveActId = rec.activityId || actId || '';
+        const dataPayload = typeof rec.data === 'string' ? rec.data : JSON.stringify(rec.data || {});
+        const status = rec.status === 'submitted' ? 'submitted' : 'draft';
+        const lat = rec.latitude !== undefined && rec.latitude !== null ? Number(rec.latitude) : null;
+        const lng = rec.longitude !== undefined && rec.longitude !== null ? Number(rec.longitude) : null;
+        const submittedBy = rec.submittedBy || null;
+
+        await pool.query(
+          `INSERT INTO laporan_records (id, activityId, formId, rowId, data, status, latitude, longitude, submittedBy, syncStatus)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')
+           ON DUPLICATE KEY UPDATE
+             data = VALUES(data),
+             status = VALUES(status),
+             latitude = COALESCE(VALUES(latitude), latitude),
+             longitude = COALESCE(VALUES(longitude), longitude),
+             submittedBy = COALESCE(VALUES(submittedBy), submittedBy)`,
+          [recId, effectiveActId, formId, rowId, dataPayload, status, isNaN(lat) ? null : lat, isNaN(lng) ? null : lng, submittedBy]
+        );
+        savedCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      count: savedCount,
+      message: `Berhasil menyimpan ${savedCount} data laporan ke database server!`
+    });
+  } catch (err) {
+    console.error('Error saving batch records:', err);
+    res.status(500).json({ error: 'Gagal menyimpan data laporan ke server', details: err.message });
   }
 });
 

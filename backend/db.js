@@ -551,6 +551,23 @@ async function initDB() {
 
     console.log('✅ Tabel Sistem Laporan Pendataan siap.');
 
+    // Auto-migrate tabel laporan_* untuk kelengkapan konfigurasi admin dan data sinkronisasi
+    try { await connection.query(`ALTER TABLE laporan_activities ADD COLUMN icon VARCHAR(50) DEFAULT 'Layers'`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE laporan_activities ADD COLUMN category VARCHAR(255)`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE laporan_activities ADD COLUMN sheetUrl TEXT`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE laporan_activities ADD COLUMN sheetName VARCHAR(255)`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE laporan_activities ADD COLUMN settings JSON`); } catch (e) {}
+
+    try { await connection.query(`ALTER TABLE laporan_forms ADD COLUMN settings JSON`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE laporan_forms ADD COLUMN fields JSON`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE laporan_forms ADD COLUMN publishedSchema JSON`); } catch (e) {}
+
+    try { await connection.query(`ALTER TABLE laporan_fields MODIFY COLUMN dataType VARCHAR(50) NOT NULL DEFAULT 'Text'`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE laporan_fields ADD COLUMN isKey BOOLEAN DEFAULT false`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE laporan_fields ADD COLUMN isLabel BOOLEAN DEFAULT false`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE laporan_fields ADD COLUMN isEditable BOOLEAN DEFAULT true`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE laporan_fields ADD COLUMN validation JSON`); } catch (e) {}
+
     // ========================================== 
     // TABEL SISTEM CADANGAN & REVISI OTOMATIS
     // ========================================== 

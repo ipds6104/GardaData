@@ -17,7 +17,7 @@ import {
   Tablet, Monitor, Undo2, Redo2, Share2, Compass, Navigation
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme';
-import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES, getRecordVal, cleanText, normalizeKey, normalizeStringVal } from './laporanConstants';
+import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES, normalizeDataType, getRecordVal, cleanText, normalizeKey, normalizeStringVal } from './laporanConstants';
 import { PetugasLaporanModule } from './PetugasLaporanModule';
 import { 
   getCloudActivities, 
@@ -55,6 +55,49 @@ export function sanitizeOptions(raw: any): string[] {
       .filter(item => item !== '' && item !== '[' && item !== ']' && item !== '[,]' && item !== 'null' && item !== 'undefined');
   }
   return [];
+}
+
+// Helper to normalize and sanitize field loaded from DB/cache with intelligent defaults
+export function sanitizeLoadedField(field: any, index: number): any {
+  const normType = normalizeDataType(field.dataType || field.type);
+  const colName = field.columnName || field.label || `Kolom_${index + 1}`;
+  const colLower = colName.toLowerCase();
+
+  const isKey = field.isKey !== undefined 
+    ? Boolean(field.isKey) 
+    : (index === 0 && (colLower.includes('id') || colLower.includes('kode')));
+
+  const isLabel = field.isLabel !== undefined 
+    ? Boolean(field.isLabel) 
+    : (colLower.includes('nama') || colLower.includes('krt') || colLower.includes('judul') || (index === 0 && !colLower.includes('id')));
+
+  const isRequired = field.isRequired !== undefined 
+    ? Boolean(field.isRequired) 
+    : (isKey || isLabel);
+
+  const isEditable = field.isEditable !== undefined 
+    ? Boolean(field.isEditable) 
+    : true;
+
+  let opts: string[] = [];
+  if (Array.isArray(field.options)) {
+    opts = sanitizeOptions(field.options);
+  } else if (typeof field.options === 'string') {
+    try { opts = sanitizeOptions(JSON.parse(field.options)); } catch { opts = []; }
+  }
+
+  return {
+    ...field,
+    id: field.id || `field_${Date.now()}_${index}`,
+    columnName: colName,
+    label: field.label || colName,
+    dataType: normType,
+    isKey,
+    isLabel,
+    isRequired,
+    isEditable,
+    options: opts
+  };
 }
 
 // Custom Smooth Dropdown Component
@@ -116,7 +159,8 @@ const CustomDropdown: React.FC<{
 
   const selectedOpt = options.find(o => 
     o.value === value || 
-    (typeof value === 'string' && typeof o.value === 'string' && o.value.trim().toLowerCase() === value.trim().toLowerCase())
+    (typeof value === 'string' && typeof o.value === 'string' && o.value.trim().toLowerCase() === value.trim().toLowerCase()) ||
+    (typeof value === 'string' && typeof o.value === 'string' && normalizeDataType(value) === normalizeDataType(o.value))
   );
 
   const filteredOptions = useMemo(() => {
@@ -183,7 +227,8 @@ const CustomDropdown: React.FC<{
             ) : (
               filteredOptions.map((opt: DropdownOption) => {
                 const isSel = opt.value === value || 
-                  (typeof value === 'string' && typeof opt.value === 'string' && opt.value.trim().toLowerCase() === value.trim().toLowerCase());
+                  (typeof value === 'string' && typeof opt.value === 'string' && opt.value.trim().toLowerCase() === value.trim().toLowerCase()) ||
+                  (typeof value === 'string' && typeof opt.value === 'string' && normalizeDataType(value) === normalizeDataType(opt.value));
                 const OptIcon = opt.icon;
 
                 return (
@@ -611,11 +656,16 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               title: target.title || '',
               sheetUrl: target.sheetUrl || selectedActivity?.sheetUrl || '',
               sheetName: target.sheetName || 'Sheet1',
-              groupingLevels: Array.isArray(target.groupingLevels) ? target.groupingLevels : ['', '', '', '']
+              groupingLevels: Array.isArray(target.groupingLevels) ? [
+                target.groupingLevels[0] || '',
+                target.groupingLevels[1] || '',
+                target.groupingLevels[2] || '',
+                target.groupingLevels[3] || ''
+              ] : ['', '', '', '']
             });
-            const cleanFields = (Array.isArray(target.fields) ? target.fields : []).filter((f: any) =>
-              !(Array.isArray(f.options) && f.options.includes('Dandy'))
-            );
+            const cleanFields = (Array.isArray(target.fields) ? target.fields : [])
+              .filter((f: any) => !(Array.isArray(f.options) && f.options.includes('Dandy')))
+              .map((f: any, idx: number) => sanitizeLoadedField(f, idx));
             setFields(cleanFields);
           }
         }
@@ -641,11 +691,16 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             title: target.title || '',
             sheetUrl: target.sheetUrl || selectedActivity?.sheetUrl || '',
             sheetName: target.sheetName || 'Sheet1',
-            groupingLevels: Array.isArray(target.groupingLevels) ? target.groupingLevels : ['', '', '', '']
+            groupingLevels: Array.isArray(target.groupingLevels) ? [
+              target.groupingLevels[0] || '',
+              target.groupingLevels[1] || '',
+              target.groupingLevels[2] || '',
+              target.groupingLevels[3] || ''
+            ] : ['', '', '', '']
           });
-          const cleanFields = (Array.isArray(target.fields) ? target.fields : []).filter((f: any) =>
-            !(Array.isArray(f.options) && f.options.includes('Dandy'))
-          );
+          const cleanFields = (Array.isArray(target.fields) ? target.fields : [])
+            .filter((f: any) => !(Array.isArray(f.options) && f.options.includes('Dandy')))
+            .map((f: any, idx: number) => sanitizeLoadedField(f, idx));
           setFields(cleanFields);
         }
         return;
@@ -686,11 +741,16 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               title: target.title || '',
               sheetUrl: target.sheetUrl || selectedActivity?.sheetUrl || '',
               sheetName: target.sheetName || 'Sheet1',
-              groupingLevels: Array.isArray(target.groupingLevels) ? target.groupingLevels : ['', '', '', '']
+              groupingLevels: Array.isArray(target.groupingLevels) ? [
+                target.groupingLevels[0] || '',
+                target.groupingLevels[1] || '',
+                target.groupingLevels[2] || '',
+                target.groupingLevels[3] || ''
+              ] : ['', '', '', '']
             });
-            const cleanFields = (Array.isArray(target.fields) ? target.fields : []).filter((f: any) =>
-              !(Array.isArray(f.options) && f.options.includes('Dandy'))
-            );
+            const cleanFields = (Array.isArray(target.fields) ? target.fields : [])
+              .filter((f: any) => !(Array.isArray(f.options) && f.options.includes('Dandy')))
+              .map((f: any, idx: number) => sanitizeLoadedField(f, idx));
             setFields(cleanFields);
           }
           return;
@@ -793,9 +853,9 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         ? selectedForm.fields 
         : (Array.isArray(selectedForm.publishedSchema) && selectedForm.publishedSchema.length > 0 ? selectedForm.publishedSchema : []);
 
-      const cleanFields = rawFields.filter((f: any) => 
-        !(Array.isArray(f.options) && f.options.includes('Dandy'))
-      );
+      const cleanFields = rawFields
+        .filter((f: any) => !(Array.isArray(f.options) && f.options.includes('Dandy')))
+        .map((f: any, idx: number) => sanitizeLoadedField(f, idx));
 
       setFields(cleanFields);
     }
@@ -855,11 +915,61 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           gl[3] !== undefined ? gl[3] : ''
         ]
       });
-      const cleanFields = (Array.isArray(targetForm.fields) ? targetForm.fields : []).filter((f: any) => 
-        !(Array.isArray(f.options) && f.options.includes('Dandy'))
-      );
+      const cleanFields = (Array.isArray(targetForm.fields) ? targetForm.fields : [])
+        .filter((f: any) => !(Array.isArray(f.options) && f.options.includes('Dandy')))
+        .map((f: any, idx: number) => sanitizeLoadedField(f, idx));
       setFields(cleanFields);
     }
+  };
+
+  // Auto-heal missing grouping columns into fields list (e.g. PPL column from Google Sheet)
+  useEffect(() => {
+    if (fields.length > 0 && Array.isArray(formConfig.groupingLevels)) {
+      const missingGroupingCols = formConfig.groupingLevels.filter(gl => gl && typeof gl === 'string' && gl.trim() !== '' && !fields.some(f => (f.columnName || f.label) === gl));
+      if (missingGroupingCols.length > 0) {
+        setFields(prev => {
+          const newFields = [...prev];
+          missingGroupingCols.forEach(col => {
+            if (!newFields.some(f => (f.columnName || f.label) === col)) {
+              const insertIdx = Math.min(3, newFields.length);
+              newFields.splice(insertIdx, 0, sanitizeLoadedField({
+                id: `fld_auto_${col}_${Date.now()}`,
+                columnName: col,
+                label: col,
+                dataType: 'Text',
+                isKey: false,
+                isLabel: false,
+                isRequired: true,
+                isEditable: true,
+                options: []
+              }, insertIdx));
+            }
+          });
+          return newFields;
+        });
+      }
+    }
+  }, [formConfig.groupingLevels, fields.length]);
+
+  const getGroupingOptionsForLevel = (levelIdx: number) => {
+    const currentVal = formConfig.groupingLevels?.[levelIdx] || '';
+    const fieldCols = new Set(fields.map(f => f.columnName || f.label));
+    const opts = [
+      { value: '', label: '-- Tidak Digunakan (Kosong) --' },
+      ...fields.map(f => ({
+        value: f.columnName || f.label,
+        label: f.label || f.columnName,
+        desc: `Tipe: ${f.dataType || 'Text'}`
+      }))
+    ];
+    if (currentVal && !fieldCols.has(currentVal)) {
+      opts.push({
+        value: currentVal,
+        label: currentVal,
+        desc: 'Kolom Terkonfigurasi'
+      });
+    }
+    return opts;
   };
 
   // Toggle Activity Status
@@ -1106,11 +1216,11 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           id: existing.id || newField.id,
           columnName: newField.columnName || existing.columnName,
           label: existing.label || newField.label,
-          dataType: existing.dataType || newField.dataType, // Type is strictly preserved!
+          dataType: normalizeDataType(existing.dataType || newField.dataType), // Type is strictly normalized!
           isKey: existing.isKey !== undefined ? existing.isKey : newField.isKey,
           isLabel: existing.isLabel !== undefined ? existing.isLabel : newField.isLabel,
           isRequired: existing.isRequired !== undefined ? existing.isRequired : newField.isRequired,
-          isEditable: existing.isEditable !== undefined ? existing.isEditable : newField.isEditable,
+          isEditable: existing.isEditable !== undefined ? existing.isEditable : (newField.isEditable ?? true),
           isPredefined: existing.isPredefined !== undefined ? existing.isPredefined : newField.isPredefined,
           validation: existing.validation ? { ...existing.validation } : newField.validation,
           options: (existing.options && Array.isArray(existing.options) && existing.options.length > 0)
@@ -1120,11 +1230,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       }
 
       // Brand new column from sheet
-      return {
-        ...newField,
-        isEditable: newField.isEditable ?? true,
-        isPredefined: newField.isPredefined ?? false
-      };
+      return sanitizeLoadedField(newField, matchedIncomingNames.size);
     });
 
     // Also preserve any custom columns created manually by admin that were not in the sheet
@@ -1155,7 +1261,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({
             sheetUrl: formConfig.sheetUrl,
-            sheetName: formConfig.sheetName || 'Sheet1'
+            sheetName: formConfig.sheetName || 'Sheet1',
+            activityId: selectedActivity?.id
           })
         });
 
@@ -1166,9 +1273,25 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             const merged = mergeFieldsPreservingConfig(fields, extractedFields);
             setFields(merged);
             syncSuccess = true;
+
+            if (Array.isArray(data.records) && data.records.length > 0) {
+              const formattedRecords = data.records.map((r: any, idx: number) => ({
+                id: `${selectedFormId || 'form'}_${r.rowId || idx + 1}`,
+                rowId: r.rowId || `row_${idx + 1}`,
+                formId: selectedFormId,
+                activityId: selectedActivity?.id,
+                data: r.data || {},
+                latitude: r.latitude || null,
+                longitude: r.longitude || null,
+                status: 'draft',
+                createdAt: new Date().toISOString()
+              }));
+              localStorage.setItem(`garda_laporan_records_${selectedFormId}`, JSON.stringify(formattedRecords));
+            }
+
             setSyncAlert({ 
               type: 'success', 
-              message: `Berhasil sinkronisasi ${merged.length} kolom dari Google Sheet (Tipe data lama tetap dipertahankan)!` 
+              message: `Berhasil sinkronisasi ${merged.length} kolom & data ke server (Tipe data lama tetap dipertahankan)!` 
             });
           }
         }
@@ -1188,7 +1311,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             return Object.values(r).some(v => v !== null && v !== undefined && cleanText(v) !== '');
           });
 
-          // Simpan record data sampel ke penyimpanan lokal (Preserve all columns!)
+          // Simpan record data sampel ke penyimpanan lokal & server (Preserve all columns!)
           if (validRecords.length > 0) {
             const formattedRecords = validRecords.map((r, idx) => {
               const cleanData: Record<string, any> = { ...r };
@@ -1226,6 +1349,13 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               };
             });
             localStorage.setItem(`garda_laporan_records_${selectedFormId}`, JSON.stringify(formattedRecords));
+
+            // Simpan ke database server Garda Data agar dapat diakses oleh semua petugas di mobile!
+            try {
+              await saveCloudRecords(selectedFormId, formattedRecords, selectedActivity?.id);
+            } catch (postErr) {
+              console.warn('Gagal batch save records ke server:', postErr);
+            }
           }
 
           setSyncAlert({ 
@@ -1392,11 +1522,18 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           method: 'PUT',
           headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({
+            activityId: selectedActivity.id,
             title: formConfig.title || selectedForm?.title,
             sheetUrl: formConfig.sheetUrl,
             sheetName: formConfig.sheetName,
             groupingLevels: cleanGroupings,
-            fields: sanitizedFields
+            fields: sanitizedFields,
+            settings: {
+              uxSettings,
+              autoSettings,
+              securitySettings,
+              reportSettings
+            }
           })
         });
       }
@@ -1406,6 +1543,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         ...selectedActivity,
         title: selectedActivity.title,
         description: selectedActivity.description || '',
+        category: selectedActivity.category || '',
         icon: selectedActivity.icon || 'Layers',
         sheetUrl: formConfig.sheetUrl || selectedActivity.sheetUrl || '',
         sheetName: formConfig.sheetName || selectedActivity.sheetName || 'Sheet1',
@@ -1421,7 +1559,8 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           maxRadiusMeters: autoSettings.maxRadiusMeters,
           lockOnSubmit: securitySettings.lockOnSubmit,
           requireGPS: securitySettings.requireGPS,
-          requirePhoto: securitySettings.requirePhoto
+          requirePhoto: securitySettings.requirePhoto,
+          reportSettings: reportSettings
         }
       };
 
@@ -2828,14 +2967,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                           size="sm"
                           searchable={fields.length > 5}
                           value={formConfig.groupingLevels?.[0] || ''}
-                          options={[
-                            { value: '', label: '-- Tidak Digunakan (Kosong) --' },
-                            ...fields.map(f => ({
-                              value: f.columnName || f.label,
-                              label: f.label || f.columnName,
-                              desc: `Tipe: ${f.dataType || 'Text'}`
-                            }))
-                          ]}
+                          options={getGroupingOptionsForLevel(0)}
                           onChange={(val) => handleUpdateGroupingLevel(0, val)}
                         />
                       </div>
@@ -2855,14 +2987,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                           disabled={!formConfig.groupingLevels?.[0]}
                           searchable={fields.length > 5}
                           value={formConfig.groupingLevels?.[1] || ''}
-                          options={[
-                            { value: '', label: '-- Tidak Digunakan (Kosong) --' },
-                            ...fields.map(f => ({
-                              value: f.columnName || f.label,
-                              label: f.label || f.columnName,
-                              desc: `Tipe: ${f.dataType || 'Text'}`
-                            }))
-                          ]}
+                          options={getGroupingOptionsForLevel(1)}
                           onChange={(val) => handleUpdateGroupingLevel(1, val)}
                         />
                       </div>
@@ -2882,14 +3007,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                           disabled={!formConfig.groupingLevels?.[1]}
                           searchable={fields.length > 5}
                           value={formConfig.groupingLevels?.[2] || ''}
-                          options={[
-                            { value: '', label: '-- Tidak Digunakan (Kosong) --' },
-                            ...fields.map(f => ({
-                              value: f.columnName || f.label,
-                              label: f.label || f.columnName,
-                              desc: `Tipe: ${f.dataType || 'Text'}`
-                            }))
-                          ]}
+                          options={getGroupingOptionsForLevel(2)}
                           onChange={(val) => handleUpdateGroupingLevel(2, val)}
                         />
                       </div>
@@ -2909,14 +3027,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                           disabled={!formConfig.groupingLevels?.[2]}
                           searchable={fields.length > 5}
                           value={formConfig.groupingLevels?.[3] || ''}
-                          options={[
-                            { value: '', label: '-- Tidak Digunakan (Kosong) --' },
-                            ...fields.map(f => ({
-                              value: f.columnName || f.label,
-                              label: f.label || f.columnName,
-                              desc: `Tipe: ${f.dataType || 'Text'}`
-                            }))
-                          ]}
+                          options={getGroupingOptionsForLevel(3)}
                           onChange={(val) => handleUpdateGroupingLevel(3, val)}
                         />
                       </div>
