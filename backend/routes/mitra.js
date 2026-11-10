@@ -19,7 +19,7 @@ function getKategoriFromNilai(nilai) {
 // GET /api/mitra - Mengambil seluruh data mitra & penilaian
 router.get('/', async (req, res) => {
   try {
-    const { pj, kecamatan, status, search } = req.query;
+    const { pj, kecamatan, desa, status, search } = req.query;
     let query = 'SELECT * FROM mitra_evaluations WHERE 1=1';
     const params = [];
 
@@ -31,6 +31,11 @@ router.get('/', async (req, res) => {
     if (kecamatan && kecamatan !== 'all') {
       query += ' AND kecamatan = ?';
       params.push(kecamatan.trim());
+    }
+
+    if (desa && desa !== 'all') {
+      query += ' AND desa = ?';
+      params.push(desa.trim());
     }
 
     if (status === 'evaluated') {
@@ -49,11 +54,11 @@ router.get('/', async (req, res) => {
 
     if (search && search.trim() !== '') {
       const s = `%${search.trim()}%`;
-      query += ' AND (nama LIKE ? OR email LIKE ? OR kecamatan LIKE ? OR pj LIKE ?)';
-      params.push(s, s, s, s);
+      query += ' AND (nama LIKE ? OR email LIKE ? OR sobatId LIKE ? OR kecamatan LIKE ? OR desa LIKE ? OR pj LIKE ?)';
+      params.push(s, s, s, s, s, s);
     }
 
-    query += ' ORDER BY pj ASC, kecamatan ASC, nama ASC';
+    query += ' ORDER BY pj ASC, kecamatan ASC, desa ASC, nama ASC';
 
     const [rows] = await pool.query(query, params);
     res.json(rows);
@@ -127,7 +132,7 @@ router.put('/:identifier', async (req, res) => {
     const query = `
       UPDATE mitra_evaluations 
       SET nilai = ?, kategori = ?, catatan = ?, penilai = ?
-      WHERE id = ? OR (LOWER(email) = LOWER(?) AND (role = ? OR ? IS NULL))
+      WHERE id = ? OR sobatId = ? OR (LOWER(email) = LOWER(?) AND (role = ? OR ? IS NULL))
     `;
 
     const [result] = await pool.execute(query, [
@@ -135,6 +140,7 @@ router.put('/:identifier', async (req, res) => {
       kategori,
       catatan || null,
       penilai || 'Admin',
+      identifier,
       identifier,
       identifier,
       role || null,

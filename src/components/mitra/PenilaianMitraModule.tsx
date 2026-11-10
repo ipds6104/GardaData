@@ -6,7 +6,8 @@ import {
   SlidersHorizontal, Star, ThumbsUp, Smile, Ban, ArrowUpDown, 
   FileSpreadsheet, Sparkles, ShieldAlert, RefreshCw, Briefcase,
   MessageSquare, Copy, CheckCheck, FileDown, CheckSquare, Square, ListChecks,
-  Edit3, FileText, Pencil
+  Edit3, FileText, Pencil, Phone, Mail, MapPin, Home, GraduationCap,
+  Smartphone, Laptop, Car, ExternalLink, User, ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -19,19 +20,57 @@ interface PenilaianMitraModuleProps {
 
 export interface MitraRecord {
   id?: string;
+  sobatId?: string; // SOBAT ID resmi BPS (Primary Key / Identifier)
   email: string;
   nama: string;
-  role: string; // 'PPL' | 'PML'
+  role: string; // 'PPL' | 'PML' | 'Mitra Pendataan'
   pj: string;
   kecamatan: string;
+  desa?: string; // Desa / Kelurahan domisili tempat tinggal
+  alamatDetail?: string; // Alamat detail (RT, RW, gang, no rumah)
+  alamatKabKota?: string; // Kab/Kota (Mempawah)
+  alamatProvinsi?: string; // Provinsi (Kalimantan Barat)
+  noTelp?: string;
+  jenisKelamin?: string;
+  tempatTanggalLahir?: string;
+  umur?: number | null;
+  statusKawin?: string;
+  pendidikan?: string;
+  pekerjaan?: string;
+  deskripsiPekerjaanLain?: string;
+  terikatKontrakKldi?: string;
+  namaKldi?: string;
+  posisiDaftar?: string;
+  statusSeleksi?: string;
+  statusNik?: string;
+  verifikasiPada?: string;
+  kendaraanMotor?: string;
+  bisaMotor?: string;
+  hpAndroid?: string;
+  merkHp?: string;
+  tipeHp?: string;
+  ramHp?: string;
+  bisaKomputer?: string;
+  punyaLaptop?: string;
+  pengalamanCapi?: string;
+  pengalamanBps?: {
+    pendataanBps?: string;
+    sp?: string;
+    st?: string;
+    se?: string;
+    susenas?: string;
+    sakernas?: string;
+    sbh?: string;
+  };
   nilai: number | null;
   kategori: string | null;
   catatan?: string;
+  penilai?: string;
   updatedAt?: string;
 }
 
 export const getRecordKey = (m: MitraRecord): string => {
-  return m.id || `${(m.email || '').toLowerCase()}_${(m.role || 'ppl').toLowerCase()}`;
+  return m.sobatId || m.id || `${(m.email || '').toLowerCase()}_${(m.role || 'ppl').toLowerCase()}`;
 };
 
 // Helper penentu kategori penilaian sesuai aturan BPS
@@ -87,11 +126,17 @@ export function getKategoriBadge(kategori: string | null) {
 // Konfigurasi daftar kolom ekspor yang dapat dipilih pengguna
 export const EXPORT_COLUMNS_CONFIG = [
   { id: 'no', label: 'Nomor Urut', header: 'No', category: 'Umum' },
-  { id: 'email', label: 'Email Mitra (Primary Key)', header: 'Email Mitra', category: 'Identitas' },
+  { id: 'sobatId', label: 'ID SOBAT BPS (Primary Key)', header: 'SOBAT ID', category: 'Identitas' },
+  { id: 'email', label: 'Email Mitra', header: 'Email Mitra', category: 'Identitas' },
   { id: 'nama', label: 'Nama Lengkap Mitra', header: 'Nama Mitra', category: 'Identitas' },
+  { id: 'noTelp', label: 'Nomor Telepon / WhatsApp', header: 'No Telp', category: 'Identitas' },
   { id: 'role', label: 'Posisi / Role (PPL / PML)', header: 'Posisi / Role', category: 'Penugasan' },
   { id: 'pj', label: 'Penanggung Jawab (PJ)', header: 'Penanggung Jawab (PJ)', category: 'Penugasan' },
-  { id: 'kecamatan', label: 'Wilayah / Kecamatan', header: 'Wilayah / Kecamatan', category: 'Penugasan' },
+  { id: 'kecamatan', label: 'Kecamatan Domisili', header: 'Kecamatan', category: 'Domisili' },
+  { id: 'desa', label: 'Desa / Kelurahan Domisili', header: 'Desa Domisili', category: 'Domisili' },
+  { id: 'alamatDetail', label: 'Alamat Detail (RT/RW/Jalan)', header: 'Alamat Lengkap', category: 'Domisili' },
+  { id: 'pendidikan', label: 'Pendidikan Terakhir', header: 'Pendidikan', category: 'Profil' },
+  { id: 'pekerjaan', label: 'Pekerjaan', header: 'Pekerjaan', category: 'Profil' },
   { id: 'nilai', label: 'Nilai Kinerja (0-100)', header: 'Nilai Kinerja (0-100)', category: 'Penilaian' },
   { id: 'kategori', label: 'Kategori Rekomendasi', header: 'Kategori Kinerja', category: 'Penilaian' },
   { id: 'catatan', label: 'Catatan Kinerja Lapangan', header: 'Catatan Kualitatif Lapangan', category: 'Penilaian' },
@@ -463,6 +508,368 @@ const SmoothMultiSelect: React.FC<SmoothMultiSelectProps> = ({
   );
 };
 
+interface MitraDetailModalProps {
+  mitra: MitraRecord;
+  onClose: () => void;
+}
+
+const MitraDetailModal: React.FC<MitraDetailModalProps> = ({ mitra, onClose }) => {
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const handleCopy = (text: string, keyName: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(keyName);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const rawPhone = mitra.noTelp || '';
+  const cleanPhone = rawPhone.replace(/\D/g, '').replace(/^0/, '62');
+  const badge = getKategoriBadge(mitra.kategori);
+
+  return (
+    <div className="fixed inset-0 z-[1400] flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 15 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 15 }}
+        className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-primary-600 via-primary-700 to-indigo-700 text-white p-5 sm:p-6 shrink-0 relative">
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+            title="Tutup"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white font-black text-xl sm:text-2xl shadow-inner shrink-0">
+              {mitra.nama ? mitra.nama.slice(0, 2).toUpperCase() : 'MT'}
+            </div>
+
+            <div className="space-y-1.5 min-w-0 pr-8">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/20 text-white border border-white/30">
+                  {mitra.role || 'Mitra'}
+                </span>
+                {mitra.statusSeleksi && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
+                    {mitra.statusSeleksi}
+                  </span>
+                )}
+                {mitra.statusNik && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-400/20 text-sky-200 border border-sky-400/30">
+                    NIK {mitra.statusNik}
+                  </span>
+                )}
+              </div>
+
+              <h2 className="text-lg sm:text-2xl font-black text-white tracking-tight truncate">
+                {mitra.nama}
+              </h2>
+
+              <div className="flex flex-wrap items-center gap-3 text-xs text-white/80 font-mono">
+                {mitra.sobatId && (
+                  <div className="flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-md">
+                    <span className="text-[10px] text-white/60">SOBAT ID:</span>
+                    <span className="font-bold text-white">{mitra.sobatId}</span>
+                    <button 
+                      type="button" 
+                      onClick={() => handleCopy(mitra.sobatId || '', 'sobat')}
+                      title="Salin SOBAT ID"
+                      className="text-white/60 hover:text-white cursor-pointer ml-1"
+                    >
+                      {copiedKey === 'sobat' ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <span>{mitra.email}</span>
+                  <button 
+                    type="button" 
+                    onClick={() => handleCopy(mitra.email, 'email')}
+                    title="Salin Email"
+                    className="text-white/60 hover:text-white cursor-pointer"
+                  >
+                    {copiedKey === 'email' ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Highlights Strip */}
+        <div className="bg-slate-50 border-b border-slate-100 p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs shrink-0">
+          <div>
+            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Nilai Kinerja</span>
+            <span className="text-lg font-black text-slate-900">
+              {mitra.nilai !== null && mitra.nilai !== undefined ? `${mitra.nilai} / 100` : 'Belum Dinilai'}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Rekomendasi</span>
+            <span className={`inline-block mt-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full border ${badge.bg}`}>
+              {badge.label}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Pembina / PJ</span>
+            <span className="text-xs font-bold text-slate-800 block truncate mt-0.5">
+              {mitra.pj || '-'}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Wilayah Tugas</span>
+            <span className="text-xs font-bold text-slate-800 block truncate mt-0.5">
+              Kec. {mitra.kecamatan}
+            </span>
+          </div>
+        </div>
+
+        {/* Modal Scrollable Body */}
+        <div className="overflow-y-auto custom-scrollbar p-5 sm:p-6 space-y-6 text-xs text-slate-700">
+          {/* Section 1: Data Identitas & Kontak */}
+          <div className="space-y-2.5">
+            <h4 className="font-black text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-primary-700">
+              <User className="w-4 h-4 text-primary-600" />
+              <span>1. Identitas Pribadi & Kontak</span>
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/70">
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold block">No. Telepon / WhatsApp</span>
+                {mitra.noTelp ? (
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="font-bold text-slate-800">{mitra.noTelp}</span>
+                    <a
+                      href={`https://wa.me/${cleanPhone}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2 py-0.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded text-[10px] font-bold flex items-center gap-1 shadow-2xs"
+                    >
+                      <span>WA</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                ) : (
+                  <span className="text-slate-400 italic">-</span>
+                )}
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold block">Jenis Kelamin & Umur</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {mitra.jenisKelamin || '-'} {mitra.umur ? `(${mitra.umur} Tahun)` : ''}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold block">Tempat, Tanggal Lahir</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {mitra.tempatTanggalLahir || '-'}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold block">Status Perkawinan</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {mitra.statusKawin || '-'}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold block">Pendidikan Terakhir</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {mitra.pendidikan || '-'}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold block">Pekerjaan Utama</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {mitra.pekerjaan || '-'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Alamat Domisili Lengkap (Level Terkecil) */}
+          <div className="space-y-2.5">
+            <h4 className="font-black text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-primary-700">
+              <MapPin className="w-4 h-4 text-emerald-600" />
+              <span>2. Alamat Domisili Tempat Tinggal (Level Terkecil)</span>
+            </h4>
+            <div className="bg-emerald-50/40 p-4 rounded-2xl border border-emerald-200/80 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-white p-3 rounded-xl border border-emerald-100">
+                  <span className="text-[10px] text-emerald-700 font-bold block">Kecamatan Domisili</span>
+                  <span className="text-sm font-black text-slate-900 mt-0.5 block">
+                    Kec. {mitra.kecamatan || '-'}
+                  </span>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-emerald-100">
+                  <span className="text-[10px] text-emerald-700 font-bold block">Desa / Kelurahan Domisili</span>
+                  <span className="text-sm font-black text-slate-900 mt-0.5 block">
+                    Desa {mitra.desa || '-'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-xl border border-emerald-100">
+                <span className="text-[10px] text-emerald-700 font-bold block">Alamat Detail (Jalan / Gang / RT / RW / No. Rumah)</span>
+                <p className="font-bold text-slate-800 mt-1 text-xs leading-relaxed">
+                  {mitra.alamatDetail || 'Tidak ada catatan alamat detail'}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {mitra.alamatKabKota || 'Kab. Mempawah'}, {mitra.alamatProvinsi || 'Kalimantan Barat'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Kesiapan Operasional, Mobilitas & Perangkat */}
+          <div className="space-y-2.5">
+            <h4 className="font-black text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-primary-700">
+              <Smartphone className="w-4 h-4 text-sky-600" />
+              <span>3. Kesiapan Operasional & Perangkat Lapangan</span>
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span className="text-[10px] text-slate-400 font-bold block">Kendaraan Motor</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {mitra.kendaraanMotor === 'Ya' ? '✅ Memiliki Motor' : '❌ Tidak Punya'}
+                </span>
+                <span className="text-[10px] text-slate-500 block">
+                  Bisa Motor: {mitra.bisaMotor || '-'}
+                </span>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span className="text-[10px] text-slate-400 font-bold block">Smartphone Android</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {mitra.hpAndroid === 'Ya' ? '✅ HP Android' : '❌ Tidak Ada'}
+                </span>
+                <span className="text-[10px] text-slate-500 block truncate" title={`${mitra.merkHp || ''} ${mitra.tipeHp || ''}`}>
+                  {mitra.merkHp || '-'} (RAM {mitra.ramHp || '-'}GB)
+                </span>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span className="text-[10px] text-slate-400 font-bold block">Komputer & Laptop</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {mitra.punyaLaptop === 'Ya' ? '✅ Punya Laptop' : '❌ Tidak Ada Laptop'}
+                </span>
+                <span className="text-[10px] text-slate-500 block">
+                  Bisa Komputer: {mitra.bisaKomputer || '-'}
+                </span>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span className="text-[10px] text-slate-400 font-bold block">Pengalaman CAPI</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {mitra.pengalamanCapi === 'Ya' ? '⭐ Berpengalaman' : 'Belum Pernah'}
+                </span>
+                <span className="text-[10px] text-slate-500 block">Aplikasi Survei BPS</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Riwayat Survei / Sensus BPS */}
+          <div className="space-y-2.5">
+            <h4 className="font-black text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-primary-700">
+              <Award className="w-4 h-4 text-amber-500" />
+              <span>4. Rekam Jejak Sensus & Survei BPS</span>
+            </h4>
+            <div className="bg-amber-50/40 p-3.5 rounded-2xl border border-amber-200/70">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'pendataanBps', label: 'Pendataan BPS', val: mitra.pengalamanBps?.pendataanBps },
+                  { key: 'sp', label: 'Sensus Penduduk (SP)', val: mitra.pengalamanBps?.sp },
+                  { key: 'st', label: 'Sensus Pertanian (ST)', val: mitra.pengalamanBps?.st },
+                  { key: 'se', label: 'Sensus Ekonomi (SE)', val: mitra.pengalamanBps?.se },
+                  { key: 'susenas', label: 'Susenas', val: mitra.pengalamanBps?.susenas },
+                  { key: 'sakernas', label: 'Sakernas', val: mitra.pengalamanBps?.sakernas },
+                  { key: 'sbh', label: 'SBH', val: mitra.pengalamanBps?.sbh }
+                ].map(exp => {
+                  const isYes = exp.val === 'Ya';
+                  return (
+                    <span
+                      key={exp.key}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 ${
+                        isYes
+                          ? 'bg-emerald-500 text-white border-emerald-600 shadow-2xs'
+                          : 'bg-white/80 text-slate-400 border-slate-200'
+                      }`}
+                    >
+                      {isYes ? '✓' : '—'} {exp.label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 5: Evaluasi Lapangan Garda Data */}
+          <div className="space-y-2.5">
+            <h4 className="font-black text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-primary-700">
+              <FileText className="w-4 h-4 text-slate-600" />
+              <span>5. Catatan Kinerja Lapangan (Evaluasi PJ)</span>
+            </h4>
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              {mitra.catatan && mitra.catatan.trim() ? (
+                <p className="text-slate-800 text-xs italic leading-relaxed">
+                  "{mitra.catatan}"
+                </p>
+              ) : (
+                <p className="text-slate-400 italic text-xs">
+                  Belum ada catatan kualitatif lapangan dari Penanggung Jawab.
+                </p>
+              )}
+              {mitra.penilai && (
+                <p className="text-[10px] text-slate-400 mt-2">
+                  Penilai: <strong className="text-slate-600">{mitra.penilai}</strong>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="bg-slate-50 border-t border-slate-100 p-4 flex items-center justify-between shrink-0">
+          <span className="text-[11px] text-slate-400">
+            Terverifikasi: {mitra.verifikasiPada || 'Sistem BPS'}
+          </span>
+          <div className="flex items-center gap-2">
+            {mitra.noTelp && (
+              <a
+                href={`https://wa.me/${cleanPhone}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <span>Chat WhatsApp</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBack }) => {
   const { user } = useAuth();
 
@@ -561,11 +968,13 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState('all');
 
-  // State filter khusus direktori kerja (Mendukung Multi-Select Kategori, Posisi, dan Kecamatan)
+  // State filter khusus direktori kerja (Mendukung Multi-Select Kategori, Posisi, Kecamatan, dan Desa)
   const [direktoriSearch, setDirektoriSearch] = useState('');
   const [direktoriCategoryFilters, setDirektoriCategoryFilters] = useState<string[]>([]);
   const [direktoriRoleFilters, setDirektoriRoleFilters] = useState<string[]>([]);
   const [direktoriKecFilters, setDirektoriKecFilters] = useState<string[]>([]);
+  const [direktoriDesaFilters, setDirektoriDesaFilters] = useState<string[]>([]);
+  const [selectedMitraForDetail, setSelectedMitraForDetail] = useState<MitraRecord | null>(null);
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
 
   // Helper toggle kategori rekomendasi kerja
@@ -624,9 +1033,9 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         console.warn('Gagal memuat baseline data mitra terenkripsi:', e);
       }
 
-      // Ambil cache lokal v3 yang mungkin menyimpan nilai offline sebelumnya
+      // Ambil cache lokal v4 yang menyimpan evaluasi dan profil lengkap mitra
       let localCachedRecords: MitraRecord[] = [];
-      const cached = localStorage.getItem('garda_mitra_cache_v3');
+      const cached = localStorage.getItem('garda_mitra_cache_v4');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -708,14 +1117,42 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
         const baselineKeys = new Set<string>();
         merged = baseline.map(b => {
-          const key = b.id || `${(b.email || '').toLowerCase()}_${(b.role || 'ppl').toLowerCase()}`;
+          const key = b.id || b.sobatId || `${(b.email || '').toLowerCase()}_${(b.role || 'ppl').toLowerCase()}`;
           baselineKeys.add(key);
+          if (b.sobatId) baselineKeys.add(b.sobatId);
           if (b.email) baselineKeys.add(b.email.toLowerCase());
 
-          const existing = incomingMap.get(key) || (incomingData.length === 243 && b.email.toLowerCase() === 'denok8881@gmail.com' ? null : incomingMap.get(b.email.toLowerCase()));
+          const existing = incomingMap.get(key) || (b.sobatId ? incomingMap.get(b.sobatId) : null) || (incomingData.length === 243 && b.email.toLowerCase() === 'denok8881@gmail.com' ? null : incomingMap.get(b.email.toLowerCase()));
           if (existing) {
             return {
               ...b,
+              ...existing,
+              sobatId: b.sobatId || existing.sobatId,
+              desa: b.desa || existing.desa,
+              alamatDetail: b.alamatDetail || existing.alamatDetail,
+              alamatKabKota: b.alamatKabKota || existing.alamatKabKota,
+              alamatProvinsi: b.alamatProvinsi || existing.alamatProvinsi,
+              noTelp: b.noTelp || existing.noTelp,
+              jenisKelamin: b.jenisKelamin || existing.jenisKelamin,
+              tempatTanggalLahir: b.tempatTanggalLahir || existing.tempatTanggalLahir,
+              umur: b.umur || existing.umur,
+              statusKawin: b.statusKawin || existing.statusKawin,
+              pendidikan: b.pendidikan || existing.pendidikan,
+              pekerjaan: b.pekerjaan || existing.pekerjaan,
+              posisiDaftar: b.posisiDaftar || existing.posisiDaftar,
+              statusSeleksi: b.statusSeleksi || existing.statusSeleksi,
+              statusNik: b.statusNik || existing.statusNik,
+              verifikasiPada: b.verifikasiPada || existing.verifikasiPada,
+              kendaraanMotor: b.kendaraanMotor || existing.kendaraanMotor,
+              bisaMotor: b.bisaMotor || existing.bisaMotor,
+              hpAndroid: b.hpAndroid || existing.hpAndroid,
+              merkHp: b.merkHp || existing.merkHp,
+              tipeHp: b.tipeHp || existing.tipeHp,
+              ramHp: b.ramHp || existing.ramHp,
+              bisaKomputer: b.bisaKomputer || existing.bisaKomputer,
+              punyaLaptop: b.punyaLaptop || existing.punyaLaptop,
+              pengalamanCapi: b.pengalamanCapi || existing.pengalamanCapi,
+              pengalamanBps: b.pengalamanBps || existing.pengalamanBps,
               nama: existing.nama || b.nama,
               role: existing.role || b.role,
               pj: existing.pj && existing.pj !== '-' ? existing.pj : b.pj,
@@ -730,9 +1167,10 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
         // Pertahankan mitra baru yang belum ada di acuan baseline agar tidak hilang
         const extraMitra = incomingData.filter(m => {
-          const key = m.id || `${(m.email || '').toLowerCase()}_${(m.role || 'ppl').toLowerCase()}`;
+          const key = m.id || m.sobatId || `${(m.email || '').toLowerCase()}_${(m.role || 'ppl').toLowerCase()}`;
           const emailKey = (m.email || '').toLowerCase();
-          return !baselineKeys.has(key) && !baselineKeys.has(emailKey);
+          const sobatKey = m.sobatId || '';
+          return !baselineKeys.has(key) && !baselineKeys.has(emailKey) && (!sobatKey || !baselineKeys.has(sobatKey));
         });
 
         if (extraMitra.length > 0) {
@@ -742,10 +1180,11 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         merged = incomingData;
       }
 
-      // Bersihkan cache lama dan simpan cache v3 (244 mitra dengan evaluasi terkini)
+      // Bersihkan cache lama dan simpan cache v4 (388 mitra dengan evaluasi dan alamat lengkap)
       localStorage.removeItem('garda_mitra_cache');
       localStorage.removeItem('garda_mitra_cache_v2');
-      localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(merged));
+      localStorage.removeItem('garda_mitra_cache_v3');
+      localStorage.setItem('garda_mitra_cache_v4', JSON.stringify(merged));
       setMitraList(merged);
     } catch (err) {
       console.error('Error in fetchMitraData:', err);
@@ -800,6 +1239,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
       total,
       evaluated,
       pending,
+      countPending: pending,
       evaluatedPercent,
       avgScore,
       countSangat,
@@ -809,7 +1249,8 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
       percentSangat: total > 0 ? Math.round((countSangat / total) * 100) : 0,
       percentDirekom: total > 0 ? Math.round((countDirekom / total) * 100) : 0,
       percentCukup: total > 0 ? Math.round((countCukup / total) * 100) : 0,
-      percentBlacklist: total > 0 ? Math.round((countBlacklist / total) * 100) : 0
+      percentBlacklist: total > 0 ? Math.round((countBlacklist / total) * 100) : 0,
+      percentPending: total > 0 ? Math.round((pending / total) * 100) : 0
     };
   }, [mitraList]);
 
@@ -874,9 +1315,11 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         const q = searchQuery.toLowerCase().trim();
         const nama = (m.nama || '').toLowerCase();
         const email = (m.email || '').toLowerCase();
+        const sobat = (m.sobatId || '').toLowerCase();
         const kec = (m.kecamatan || '').toLowerCase();
+        const desa = (m.desa || '').toLowerCase();
         const pj = (m.pj || '').toLowerCase();
-        matchQuery = nama.includes(q) || email.includes(q) || kec.includes(q) || pj.includes(q);
+        matchQuery = nama.includes(q) || email.includes(q) || sobat.includes(q) || kec.includes(q) || desa.includes(q) || pj.includes(q);
       }
 
       const matchRole = selectedRoleFilter === 'all' || m.role === selectedRoleFilter;
@@ -1136,20 +1579,48 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     { value: 'layak', label: '👍 Layak Ditawari (80–89)', count: stats.countDirekom },
     { value: 'cadangan', label: '⚠️ Cadangan (60–79)', count: stats.countCukup },
     { value: 'blacklist', label: '⛔ Blacklist (< 60)', count: stats.countBlacklist },
-    { value: 'pending', label: '⏳ Belum Dievaluasi', count: stats.pending }
+    { value: 'pending', label: '⏳ Belum Diberi Penilaian', count: stats.countPending }
   ], [stats]);
 
-  // Filter Data Khusus Direktori Penawaran Kerja (Mendukung Multi-Select Kategori, Posisi, dan Kecamatan)
+  // Opsi Desa Domisili (Terhubung dinamis dengan Filter Kecamatan)
+  const desaOptions = useMemo(() => {
+    const s = new Set<string>();
+    mitraList.forEach(m => {
+      if (m.desa && m.desa.trim()) {
+        if (direktoriKecFilters.length === 0 || direktoriKecFilters.includes(m.kecamatan)) {
+          s.add(m.desa.trim());
+        }
+      }
+    });
+    return Array.from(s).sort().map(d => ({
+      value: d,
+      label: d,
+      count: mitraList.filter(m => {
+        if (m.desa !== d) return false;
+        if (direktoriKecFilters.length === 0) return true;
+        return direktoriKecFilters.includes(m.kecamatan);
+      }).length
+    }));
+  }, [mitraList, direktoriKecFilters]);
+
+  // Sinkronisasi otomatis filter desa saat kecamatan diubah (pastikan nyambung)
+  useEffect(() => {
+    if (direktoriKecFilters.length > 0 && direktoriDesaFilters.length > 0) {
+      setDirektoriDesaFilters(prev => prev.filter(d => desaOptions.some(opt => opt.value === d)));
+    }
+  }, [direktoriKecFilters, desaOptions]);
+
+  // Filter Data Khusus Direktori Penawaran Kerja (Mendukung Multi-Select Kategori, Posisi, Kecamatan, dan Desa)
   const direktoriFilteredMitra = useMemo(() => {
     return mitraList.filter(m => {
       // 1. Category Multi-Filter
       let matchCat = true;
       if (direktoriCategoryFilters.length > 0) {
         matchCat = direktoriCategoryFilters.some(cat => {
-          if (cat === 'prioritas') return (m.nilai || 0) >= 90;
-          if (cat === 'layak') return (m.nilai || 0) >= 80 && (m.nilai || 0) < 90;
-          if (cat === 'cadangan') return (m.nilai || 0) >= 60 && (m.nilai || 0) < 80;
-          if (cat === 'blacklist') return m.nilai !== null && (m.nilai || 0) < 60;
+          if (cat === 'prioritas') return m.nilai !== null && m.nilai >= 90;
+          if (cat === 'layak') return m.nilai !== null && m.nilai >= 80 && m.nilai < 90;
+          if (cat === 'cadangan') return m.nilai !== null && m.nilai >= 60 && m.nilai < 80;
+          if (cat === 'blacklist') return m.nilai !== null && m.nilai < 60;
           if (cat === 'pending') return m.nilai === null || m.nilai === undefined;
           return false;
         });
@@ -1167,21 +1638,31 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         matchKec = direktoriKecFilters.includes(m.kecamatan || '');
       }
 
-      // 4. Search query
+      // 4. Desa Domisili Multi-Filter
+      let matchDesa = true;
+      if (direktoriDesaFilters.length > 0) {
+        matchDesa = direktoriDesaFilters.includes(m.desa || '');
+      }
+
+      // 5. Search query (Nama, Email, SOBAT ID, Kecamatan, Desa, Alamat Detail, No Telp, PJ, Catatan)
       let matchSearch = true;
       if (direktoriSearch.trim()) {
         const q = direktoriSearch.toLowerCase().trim();
         const nama = (m.nama || '').toLowerCase();
         const email = (m.email || '').toLowerCase();
+        const sobat = (m.sobatId || '').toLowerCase();
         const kec = (m.kecamatan || '').toLowerCase();
+        const desa = (m.desa || '').toLowerCase();
+        const detail = (m.alamatDetail || '').toLowerCase();
+        const noTelp = (m.noTelp || '').toLowerCase();
         const pj = (m.pj || '').toLowerCase();
         const catatan = (m.catatan || '').toLowerCase();
-        matchSearch = nama.includes(q) || email.includes(q) || kec.includes(q) || pj.includes(q) || catatan.includes(q);
+        matchSearch = nama.includes(q) || email.includes(q) || sobat.includes(q) || kec.includes(q) || desa.includes(q) || detail.includes(q) || noTelp.includes(q) || pj.includes(q) || catatan.includes(q);
       }
 
-      return matchCat && matchRole && matchKec && matchSearch;
+      return matchCat && matchRole && matchKec && matchDesa && matchSearch;
     });
-  }, [mitraList, direktoriCategoryFilters, direktoriRoleFilters, direktoriKecFilters, direktoriSearch]);
+  }, [mitraList, direktoriCategoryFilters, direktoriRoleFilters, direktoriKecFilters, direktoriDesaFilters, direktoriSearch]);
 
   // Salin email ke clipboard
   const handleCopyEmail = (emailStr: string) => {
@@ -1194,7 +1675,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
   const handleExportPenawaranKerja = () => {
     const formattedRows = direktoriFilteredMitra.map((m, idx) => {
       let statusPenawaran = 'Belum Dinilai';
-      if (m.nilai !== null) {
+      if (m.nilai !== null && m.nilai !== undefined) {
         if (m.nilai >= 90) statusPenawaran = '🌟 Prioritas Utama (Sangat Direkomendasikan)';
         else if (m.nilai >= 80) statusPenawaran = '👍 Layak Ditawari (Direkomendasikan)';
         else if (m.nilai >= 60) statusPenawaran = '⚠️ Cadangan / Selektif (Cukup)';
@@ -1203,12 +1684,18 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
       return {
         'No': idx + 1,
+        'SOBAT ID': m.sobatId || '-',
         'Nama Mitra': m.nama,
         'Email': m.email,
+        'No Telp': m.noTelp || '-',
         'Posisi / Jabatan': m.role,
-        'Wilayah / Kecamatan': m.kecamatan,
-        'PJ Pembina Sebelumnya': m.pj,
-        'Nilai Kinerja (0-100)': m.nilai !== null ? m.nilai : 'Belum Ada',
+        'Kecamatan Domisili': m.kecamatan,
+        'Desa Domisili': m.desa || '-',
+        'Alamat Lengkap': m.alamatDetail || '-',
+        'Pendidikan': m.pendidikan || '-',
+        'Pekerjaan': m.pekerjaan || '-',
+        'PJ Pembina': m.pj,
+        'Nilai Kinerja (0-100)': m.nilai !== null && m.nilai !== undefined ? m.nilai : 'Belum Ada',
         'Kategori Kinerja': m.kategori || 'Belum Dinilai',
         'Catatan Kinerja Lapangan': m.catatan || '-',
         'Rekomendasi Penawaran Kerja': statusPenawaran
@@ -2268,14 +2755,26 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                                         {/* Nama & Role */}
                                         <td className="py-3 px-3">
                                           <div className="flex items-center gap-2">
-                                            <p className="font-bold text-slate-900">{m.nama}</p>
+                                            <button
+                                              type="button"
+                                              onClick={() => setSelectedMitraForDetail(m)}
+                                              className="font-bold text-slate-900 hover:text-primary-600 hover:underline cursor-pointer text-left transition-colors"
+                                              title="Klik untuk melihat data diri lengkap mitra"
+                                            >
+                                              {m.nama}
+                                            </button>
                                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                                               m.role === 'PML' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-600'
                                             }`}>
                                               {m.role}
                                             </span>
                                           </div>
-                                          <p className="text-[10px] text-slate-400 lg:hidden mt-0.5">{m.email}</p>
+                                          <div className="flex items-center gap-1.5 mt-0.5">
+                                            {m.sobatId && (
+                                              <span className="text-[10px] font-mono text-slate-400">ID: {m.sobatId} •</span>
+                                            )}
+                                            <p className="text-[10px] text-slate-400 lg:hidden">{m.email}</p>
+                                          </div>
                                         </td>
 
                                         {/* Email */}
@@ -2430,7 +2929,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
             </div>
 
             {/* Quick KPI Cards - Bright, Clean & Clickable for Quick Filtering (Mendukung Multi-Pilihan Kategori) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
               {/* Prioritas Utama */}
               {(() => {
                 const isActive = direktoriCategoryFilters.includes('prioritas');
@@ -2448,7 +2947,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                       <span className={`text-[10px] uppercase font-black tracking-wider ${
                         isActive ? 'text-emerald-100' : 'text-emerald-700'
                       }`}>
-                        ⭐ Prioritas Utama
+                        ⭐ Prioritas
                       </span>
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                         isActive ? 'bg-white/20 text-white' : 'bg-emerald-100/80 text-emerald-800'
@@ -2465,7 +2964,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                     <p className={`text-[11px] mt-1 truncate ${
                       isActive ? 'text-emerald-100' : 'text-slate-500'
                     }`}>
-                      Sangat Direkomendasikan
+                      Sangat Rekomendasi
                     </p>
                   </button>
                 );
@@ -2488,7 +2987,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                       <span className={`text-[10px] uppercase font-black tracking-wider ${
                         isActive ? 'text-sky-100' : 'text-sky-700'
                       }`}>
-                        👍 Layak Ditawari
+                        👍 Layak
                       </span>
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                         isActive ? 'bg-white/20 text-white' : 'bg-sky-100/80 text-sky-800'
@@ -2590,10 +3089,50 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                   </button>
                 );
               })()}
+
+              {/* Belum Diberi Penilaian */}
+              {(() => {
+                const isActive = direktoriCategoryFilters.includes('pending');
+                return (
+                  <button
+                    type="button"
+                    onClick={() => toggleCategoryFilter('pending')}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-slate-700 text-white border-slate-800 shadow-sm ring-2 ring-slate-400/40'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200/80 hover:shadow-2xs'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`text-[10px] uppercase font-black tracking-wider ${
+                        isActive ? 'text-slate-200' : 'text-slate-600'
+                      }`}>
+                        ⏳ Belum Dinilai
+                      </span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        Baru
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl sm:text-3xl font-black">{stats.countPending}</span>
+                      <span className={`text-xs font-semibold ${
+                        isActive ? 'text-slate-200' : 'text-slate-500'
+                      }`}>Mitra</span>
+                    </div>
+                    <p className={`text-[11px] mt-1 truncate ${
+                      isActive ? 'text-slate-200' : 'text-slate-500'
+                    }`}>
+                      Belum Diberi Penilaian
+                    </p>
+                  </button>
+                );
+              })()}
             </div>
           </div>
 
-          {/* Filter Bar Direktori (Mendukung Multi-Pilihan Kategori, Posisi, dan Kecamatan) */}
+          {/* Filter Bar Direktori (Mendukung Multi-Pilihan Kategori, Posisi, Kecamatan, dan Desa Domisili) */}
           <div className="space-y-2.5">
             <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
               {/* Search Input */}
@@ -2601,7 +3140,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Cari nama mitra, email, catatan kualitatif, atau PJ..."
+                  placeholder="Cari nama mitra, SOBAT ID, email, kecamatan, desa, catatan..."
                   value={direktoriSearch}
                   onChange={(e) => setDirektoriSearch(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-800 focus:bg-white focus:border-primary-500 outline-none transition-all"
@@ -2647,8 +3186,22 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                   prefix="Kec: "
                 />
 
+                {/* Filter Desa Domisili (Multi-Select, Connected to Kecamatan) */}
+                <SmoothMultiSelect
+                  values={direktoriDesaFilters}
+                  onChange={setDirektoriDesaFilters}
+                  options={desaOptions}
+                  placeholder={
+                    direktoriKecFilters.length > 0
+                      ? `Pilih Desa (${desaOptions.length})`
+                      : 'Semua Desa Domisili'
+                  }
+                  searchPlaceholder="Cari Desa Domisili..."
+                  prefix="Desa: "
+                />
+
                 {/* Reset Button */}
-                {(direktoriSearch || direktoriCategoryFilters.length > 0 || direktoriRoleFilters.length > 0 || direktoriKecFilters.length > 0) && (
+                {(direktoriSearch || direktoriCategoryFilters.length > 0 || direktoriRoleFilters.length > 0 || direktoriKecFilters.length > 0 || direktoriDesaFilters.length > 0) && (
                   <button
                     type="button"
                     onClick={() => {
@@ -2656,6 +3209,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                       setDirektoriCategoryFilters([]);
                       setDirektoriRoleFilters([]);
                       setDirektoriKecFilters([]);
+                      setDirektoriDesaFilters([]);
                     }}
                     className="p-2 text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
                     title="Reset Semua Filter"
@@ -2666,8 +3220,8 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
               </div>
             </div>
 
-            {/* Active Filters Pills (Menampilkan Chip Filter Aktif yang Bisa Dihapus Langsung) */}
-            {(direktoriCategoryFilters.length > 0 || direktoriRoleFilters.length > 0 || direktoriKecFilters.length > 0) && (
+            {/* Active Filters Pills */}
+            {(direktoriCategoryFilters.length > 0 || direktoriRoleFilters.length > 0 || direktoriKecFilters.length > 0 || direktoriDesaFilters.length > 0) && (
               <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600 bg-slate-50/80 px-3.5 py-2.5 rounded-2xl border border-slate-200/70">
                 <span className="text-[11px] font-bold text-slate-400 mr-1">Filter Aktif:</span>
                 
@@ -2728,12 +3282,31 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                   </span>
                 ))}
 
+                {/* Desa Pills */}
+                {direktoriDesaFilters.map(desa => (
+                  <span 
+                    key={desa} 
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 border border-blue-200 rounded-xl text-[11px] font-bold text-blue-800 shadow-2xs"
+                  >
+                    <span>Desa: {desa}</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setDirektoriDesaFilters(prev => prev.filter(d => d !== desa))}
+                      className="text-blue-400 hover:text-rose-500 cursor-pointer"
+                      title="Hapus filter desa ini"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+
                 <button
                   type="button"
                   onClick={() => {
                     setDirektoriCategoryFilters([]);
                     setDirektoriRoleFilters([]);
                     setDirektoriKecFilters([]);
+                    setDirektoriDesaFilters([]);
                   }}
                   className="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer ml-1.5"
                 >
@@ -2761,18 +3334,20 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                    <th className="py-3 px-4">Nama Mitra</th>
-                    <th className="py-3 px-3">Wilayah & Posisi</th>
-                    <th className="py-3 px-3 w-32 text-center">Nilai Kinerja</th>
-                    <th className="py-3 px-3 w-40 text-center">Status Rekomendasi</th>
-                    <th className="py-3 px-4 min-w-[260px]">Catatan Kinerja (Wajib, Min. 10 Karakter)</th>
-                    <th className="py-3 px-3 w-28 text-center">Aksi Cepat</th>
+                    <th className="py-3 px-4">Nama Mitra & SOBAT ID</th>
+                    <th className="py-3 px-3">Posisi</th>
+                    <th className="py-3 px-3">Kecamatan</th>
+                    <th className="py-3 px-3">Desa Domisili</th>
+                    <th className="py-3 px-3 w-28 text-center">Nilai Kinerja</th>
+                    <th className="py-3 px-3 w-36 text-center">Status Rekomendasi</th>
+                    <th className="py-3 px-4 min-w-[220px]">Catatan Kinerja</th>
+                    <th className="py-3 px-3 w-24 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {direktoriFilteredMitra.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
+                      <td colSpan={8} className="py-12 text-center text-slate-400 font-medium">
                         Tidak ada mitra yang cocok dengan filter penawaran kerja.
                       </td>
                     </tr>
@@ -2784,7 +3359,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                         text: '⏳ Belum Dinilai',
                         bg: 'bg-slate-100 text-slate-600 border-slate-200'
                       };
-                      if (m.nilai !== null) {
+                      if (m.nilai !== null && m.nilai !== undefined) {
                         if (m.nilai >= 90) offerBadge = { text: '🌟 Prioritas Ditawari', bg: 'bg-emerald-50 text-emerald-700 border-emerald-300 font-black' };
                         else if (m.nilai >= 80) offerBadge = { text: '👍 Layak Ditawari', bg: 'bg-sky-50 text-sky-700 border-sky-300 font-black' };
                         else if (m.nilai >= 60) offerBadge = { text: '⚠️ Cadangan Bersyarat', bg: 'bg-amber-50 text-amber-800 border-amber-300 font-bold' };
@@ -2793,10 +3368,25 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
                       return (
                         <tr key={itemKey} className="hover:bg-slate-50/70 transition-colors">
-                          {/* Nama & Email */}
+                          {/* Nama & SOBAT ID & Email */}
                           <td className="py-3.5 px-4">
-                            <p className="font-bold text-slate-900 text-sm">{m.nama}</p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedMitraForDetail(m)}
+                              className="font-black text-slate-900 hover:text-primary-600 hover:underline text-sm flex items-center gap-1.5 cursor-pointer text-left group transition-colors"
+                              title="Klik untuk melihat data diri lengkap mitra"
+                            >
+                              <span>{m.nama}</span>
+                              <span className="text-[10px] px-1.5 py-0.2 bg-primary-50 text-primary-600 rounded-md border border-primary-200 font-normal opacity-0 group-hover:opacity-100 transition-opacity">
+                                Detail ↗
+                              </span>
+                            </button>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                              {m.sobatId && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+                                  ID: {m.sobatId}
+                                </span>
+                              )}
                               <span className="font-mono text-[11px] text-slate-500">{m.email}</span>
                               <button 
                                 type="button" 
@@ -2804,25 +3394,49 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                                 title="Salin Email"
                                 className="text-slate-400 hover:text-primary-600 cursor-pointer p-0.5 transition-colors"
                               >
-                                <Copy className="w-3.5 h-3.5" />
+                                <Copy className="w-3 h-3" />
                               </button>
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-0.5">PJ Pembina: {m.pj}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">PJ Pembina: <span className="font-semibold text-slate-600">{m.pj}</span></p>
                           </td>
 
-                          {/* Wilayah & Posisi */}
+                          {/* Posisi */}
                           <td className="py-3.5 px-3">
-                            <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 ${
-                              m.role === 'PML' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'
+                            <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              m.role === 'PML' 
+                                ? 'bg-indigo-100 text-indigo-800' 
+                                : m.role === 'PPL' 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'bg-slate-100 text-slate-700'
                             }`}>
                               {m.role}
                             </span>
-                            <p className="font-bold text-slate-700 text-xs">Kec. {m.kecamatan}</p>
+                          </td>
+
+                          {/* Kecamatan */}
+                          <td className="py-3.5 px-3">
+                            <div className="flex items-center gap-1 font-bold text-slate-700 text-xs">
+                              <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>Kec. {m.kecamatan}</span>
+                            </div>
+                          </td>
+
+                          {/* Desa Domisili */}
+                          <td className="py-3.5 px-3">
+                            <div className="flex items-center gap-1 font-bold text-slate-800 text-xs">
+                              <Home className="w-3.5 h-3.5 text-primary-500 shrink-0" />
+                              <span>Desa {m.desa || '-'}</span>
+                            </div>
+                            {m.alamatDetail && (
+                              <p className="text-[10px] text-slate-400 truncate max-w-[180px] mt-0.5" title={m.alamatDetail}>
+                                {m.alamatDetail}
+                              </p>
+                            )}
                           </td>
 
                           {/* Nilai */}
                           <td className="py-3.5 px-3 text-center">
-                            {m.nilai !== null ? (
+                            {m.nilai !== null && m.nilai !== undefined ? (
                               <div>
                                 <span className="text-base font-black text-slate-900">{m.nilai}</span>
                                 <span className="text-[10px] text-slate-400 block font-medium">Skala 0-100</span>
@@ -3777,6 +4391,16 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
               </button>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DETAIL DATA DIRI LENGKAP MITRA */}
+      <AnimatePresence>
+        {selectedMitraForDetail && (
+          <MitraDetailModal
+            mitra={selectedMitraForDetail}
+            onClose={() => setSelectedMitraForDetail(null)}
+          />
         )}
       </AnimatePresence>
 

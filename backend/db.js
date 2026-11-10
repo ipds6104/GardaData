@@ -405,6 +405,25 @@ async function initDB() {
           await connection.query(`ALTER TABLE mitra_evaluations ADD INDEX idx_mitra_email (email)`);
           console.log('✅ Migrasi tabel mitra_evaluations berhasil!');
         }
+
+        // Auto-migrate columns for detailed address & profile
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN sobatId VARCHAR(50) AFTER id, ADD INDEX idx_mitra_sobat (sobatId)`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN desa VARCHAR(100) AFTER kecamatan, ADD INDEX idx_mitra_desa (desa)`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN alamatDetail TEXT AFTER desa`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN alamatKabKota VARCHAR(100) AFTER alamatDetail`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN alamatProvinsi VARCHAR(100) AFTER alamatKabKota`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN noTelp VARCHAR(50) AFTER alamatProvinsi`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN jenisKelamin VARCHAR(20) AFTER noTelp`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN tempatTanggalLahir VARCHAR(100) AFTER jenisKelamin`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN umur INT AFTER tempatTanggalLahir`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN statusKawin VARCHAR(50) AFTER umur`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN pendidikan VARCHAR(100) AFTER statusKawin`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN pekerjaan VARCHAR(100) AFTER pendidikan`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN posisiDaftar VARCHAR(100) AFTER pekerjaan`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN statusSeleksi VARCHAR(50) AFTER posisiDaftar`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN statusNik VARCHAR(50) AFTER statusSeleksi`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN verifikasiPada VARCHAR(50) AFTER statusNik`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN profileData JSON AFTER verifikasiPada`); } catch (e) {}
       }
     } catch (migErr) {
       console.warn('Catatan migrasi mitra_evaluations:', migErr.message);
@@ -413,60 +432,146 @@ async function initDB() {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS mitra_evaluations (
         id VARCHAR(255) PRIMARY KEY,
+        sobatId VARCHAR(50) DEFAULT NULL,
         email VARCHAR(255) NOT NULL,
         nama VARCHAR(255) NOT NULL,
         role VARCHAR(50) NOT NULL,
         pj VARCHAR(255) NOT NULL,
         kecamatan VARCHAR(100) NOT NULL,
+        desa VARCHAR(100) DEFAULT NULL,
+        alamatDetail TEXT DEFAULT NULL,
+        alamatKabKota VARCHAR(100) DEFAULT NULL,
+        alamatProvinsi VARCHAR(100) DEFAULT NULL,
+        noTelp VARCHAR(50) DEFAULT NULL,
+        jenisKelamin VARCHAR(20) DEFAULT NULL,
+        tempatTanggalLahir VARCHAR(100) DEFAULT NULL,
+        umur INT DEFAULT NULL,
+        statusKawin VARCHAR(50) DEFAULT NULL,
+        pendidikan VARCHAR(100) DEFAULT NULL,
+        pekerjaan VARCHAR(100) DEFAULT NULL,
+        posisiDaftar VARCHAR(100) DEFAULT NULL,
+        statusSeleksi VARCHAR(50) DEFAULT NULL,
+        statusNik VARCHAR(50) DEFAULT NULL,
+        verifikasiPada VARCHAR(50) DEFAULT NULL,
+        profileData JSON DEFAULT NULL,
         nilai INT DEFAULT NULL,
         kategori VARCHAR(50) DEFAULT NULL,
         catatan TEXT DEFAULT NULL,
         penilai VARCHAR(255) DEFAULT NULL,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_mitra_sobat (sobatId),
         INDEX idx_mitra_email (email),
         INDEX idx_mitra_pj (pj),
-        INDEX idx_mitra_kec (kecamatan)
+        INDEX idx_mitra_kec (kecamatan),
+        INDEX idx_mitra_desa (desa)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
-    // Auto-seed data mitra awal dari JSON jika tabel masih kosong atau kurang dari 244
+    // Auto-seed data mitra awal dari JSON jika tabel masih kosong atau data bertambah
     try {
-      const [mRows] = await connection.query('SELECT COUNT(*) as count FROM mitra_evaluations');
       const fs = require('fs');
       const path = require('path');
+      const crypto = require('crypto');
       const initialJsonPath = path.join(__dirname, '../public/data/initial_mitra_se2026.json');
 
       if (fs.existsSync(initialJsonPath)) {
-        console.log('🔄 Menyelaraskan data mitra & evaluasi SE2026 ke tabel MySQL mitra_evaluations (target 244 mitra: 214 PPL + 30 PML)...');
-        const mitraList = JSON.parse(fs.readFileSync(initialJsonPath, 'utf8'));
-        for (const m of mitraList) {
-          const id = m.id || `${(m.email || '').toLowerCase()}_${(m.role || 'ppl').toLowerCase()}`;
-          await connection.execute(`
-            INSERT INTO mitra_evaluations 
-            (id, email, nama, role, pj, kecamatan, nilai, kategori, catatan)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-            nama = VALUES(nama),
-            role = VALUES(role),
-            pj = VALUES(pj),
-            kecamatan = VALUES(kecamatan),
-            nilai = COALESCE(VALUES(nilai), mitra_evaluations.nilai),
-            kategori = COALESCE(VALUES(kategori), mitra_evaluations.kategori),
-            catatan = IF(VALUES(catatan) != '', VALUES(catatan), mitra_evaluations.catatan)
-          `, [
-            id,
-            m.email || '',
-            m.nama || '',
-            m.role || 'PPL',
-            m.pj || '-',
-            m.kecamatan || '-',
-            m.nilai !== undefined ? m.nilai : null,
-            m.kategori || null,
-            m.catatan || ''
-          ]);
+        const rawPayload = JSON.parse(fs.readFileSync(initialJsonPath, 'utf8'));
+        let mitraList = [];
+        if (rawPayload && rawPayload.algo === 'AES-256-GCM' && rawPayload.data) {
+          const SECRET_PASSPHRASE = 'GARDA-DATA-SE2026-BPS-MEMPAWAH-MILITARY-GRADE-AES256-SECURE-KEY!';
+          const SALT_STR = 'garda_data_salt_6104_mempawah_sec';
+          const key = crypto.pbkdf2Sync(SECRET_PASSPHRASE, SALT_STR, 100000, 32, 'sha256');
+          const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(rawPayload.iv, 'base64'));
+          decipher.setAuthTag(Buffer.from(rawPayload.tag, 'base64'));
+          let dec = decipher.update(Buffer.from(rawPayload.data, 'base64'), null, 'utf8');
+          dec += decipher.final('utf8');
+          mitraList = JSON.parse(dec);
+        } else if (Array.isArray(rawPayload)) {
+          mitraList = rawPayload;
         }
-        console.log(`✅ Berhasil menyelaraskan ${mitraList.length} mitra & evaluasi ke database MySQL!`);
+
+        if (Array.isArray(mitraList) && mitraList.length > 0) {
+          console.log(`🔄 Menyelaraskan ${mitraList.length} data mitra & evaluasi SE2026 ke tabel MySQL mitra_evaluations...`);
+          for (const m of mitraList) {
+            const id = m.id || m.sobatId || `${(m.email || '').toLowerCase()}_${(m.role || 'ppl').toLowerCase()}`;
+            const profile = {
+              kendaraanMotor: m.kendaraanMotor,
+              bisaMotor: m.bisaMotor,
+              hpAndroid: m.hpAndroid,
+              merkHp: m.merkHp,
+              tipeHp: m.tipeHp,
+              ramHp: m.ramHp,
+              bisaKomputer: m.bisaKomputer,
+              punyaLaptop: m.punyaLaptop,
+              pengalamanCapi: m.pengalamanCapi,
+              pengalamanBps: m.pengalamanBps,
+              deskripsiPekerjaanLain: m.deskripsiPekerjaanLain,
+              terikatKontrakKldi: m.terikatKontrakKldi,
+              namaKldi: m.namaKldi
+            };
+
+            await connection.execute(`
+              INSERT INTO mitra_evaluations 
+              (id, sobatId, email, nama, role, pj, kecamatan, desa, alamatDetail, alamatKabKota, alamatProvinsi, noTelp, jenisKelamin, tempatTanggalLahir, umur, statusKawin, pendidikan, pekerjaan, posisiDaftar, statusSeleksi, statusNik, verifikasiPada, profileData, nilai, kategori, catatan, penilai)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE
+              sobatId = VALUES(sobatId),
+              nama = VALUES(nama),
+              role = VALUES(role),
+              pj = VALUES(pj),
+              kecamatan = VALUES(kecamatan),
+              desa = VALUES(desa),
+              alamatDetail = VALUES(alamatDetail),
+              alamatKabKota = VALUES(alamatKabKota),
+              alamatProvinsi = VALUES(alamatProvinsi),
+              noTelp = VALUES(noTelp),
+              jenisKelamin = VALUES(jenisKelamin),
+              tempatTanggalLahir = VALUES(tempatTanggalLahir),
+              umur = VALUES(umur),
+              statusKawin = VALUES(statusKawin),
+              pendidikan = VALUES(pendidikan),
+              pekerjaan = VALUES(pekerjaan),
+              posisiDaftar = VALUES(posisiDaftar),
+              statusSeleksi = VALUES(statusSeleksi),
+              statusNik = VALUES(statusNik),
+              verifikasiPada = VALUES(verifikasiPada),
+              profileData = VALUES(profileData),
+              nilai = COALESCE(VALUES(nilai), mitra_evaluations.nilai),
+              kategori = COALESCE(VALUES(kategori), mitra_evaluations.kategori),
+              catatan = IF(VALUES(catatan) != '', VALUES(catatan), mitra_evaluations.catatan)
+            `, [
+              id,
+              m.sobatId || null,
+              m.email || '',
+              m.nama || '',
+              m.role || 'PPL',
+              m.pj || '-',
+              m.kecamatan || '-',
+              m.desa || null,
+              m.alamatDetail || null,
+              m.alamatKabKota || null,
+              m.alamatProvinsi || null,
+              m.noTelp || null,
+              m.jenisKelamin || null,
+              m.tempatTanggalLahir || null,
+              m.umur !== undefined && m.umur !== null ? m.umur : null,
+              m.statusKawin || null,
+              m.pendidikan || null,
+              m.pekerjaan || null,
+              m.posisiDaftar || null,
+              m.statusSeleksi || null,
+              m.statusNik || null,
+              m.verifikasiPada || null,
+              JSON.stringify(profile),
+              m.nilai !== undefined ? m.nilai : null,
+              m.kategori || null,
+              m.catatan || '',
+              m.penilai || null
+            ]);
+          }
+          console.log(`✅ Berhasil menyelaraskan ${mitraList.length} mitra & evaluasi ke database MySQL!`);
+        }
       }
     } catch (mErr) {
       console.warn('⚠️ Gagal auto-seeding mitra ke MySQL:', mErr.message);
