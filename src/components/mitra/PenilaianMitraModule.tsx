@@ -247,6 +247,222 @@ const SmoothSelect: React.FC<SmoothSelectProps> = ({
   );
 };
 
+// Component Dropdown Multi-Select Stylish & Responsif untuk Kategori, Posisi, dan Kecamatan
+interface SmoothMultiSelectOption {
+  value: string;
+  label: string;
+  count?: number;
+}
+
+interface SmoothMultiSelectProps {
+  values: string[];
+  onChange: (vals: string[]) => void;
+  options: (string | SmoothMultiSelectOption)[];
+  placeholder: string;
+  searchPlaceholder?: string;
+  prefix?: string;
+  className?: string;
+}
+
+const SmoothMultiSelect: React.FC<SmoothMultiSelectProps> = ({
+  values,
+  onChange,
+  options,
+  placeholder,
+  searchPlaceholder = 'Cari...',
+  prefix = '',
+  className = ''
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const normalizedOptions = useMemo(() => {
+    return options.map(opt => typeof opt === 'string' ? { value: opt, label: opt } : opt);
+  }, [options]);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return normalizedOptions;
+    const q = search.toLowerCase();
+    return normalizedOptions.filter(o => 
+      o.label.toLowerCase().includes(q) || 
+      o.value.toLowerCase().includes(q)
+    );
+  }, [normalizedOptions, search]);
+
+  const toggleOption = (val: string) => {
+    if (values.includes(val)) {
+      onChange(values.filter(v => v !== val));
+    } else {
+      onChange([...values, val]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (values.length === normalizedOptions.length) {
+      onChange([]);
+    } else {
+      onChange(normalizedOptions.map(o => o.value));
+    }
+  };
+
+  const isAllSelected = normalizedOptions.length > 0 && values.length === normalizedOptions.length;
+  const hasSelection = values.length > 0;
+
+  const displayLabel = useMemo(() => {
+    if (values.length === 0) return placeholder;
+    if (values.length === 1) {
+      const match = normalizedOptions.find(o => o.value === values[0]);
+      return `${prefix}${match ? match.label : values[0]}`;
+    }
+    return `${prefix}${values.length} Dipilih`;
+  }, [values, normalizedOptions, placeholder, prefix]);
+
+  return (
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      <button 
+        type="button"
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!isOpen) setSearch('');
+        }}
+        className={`flex items-center justify-between gap-2 min-w-[145px] sm:min-w-[175px] bg-white border rounded-2xl px-3.5 py-2 text-xs font-bold transition-all duration-200 cursor-pointer select-none ${
+          isOpen 
+            ? 'border-primary-500 ring-2 ring-primary-500/20 text-primary-950 shadow-sm' 
+            : hasSelection
+              ? 'border-primary-400 bg-primary-50/50 text-primary-900 hover:border-primary-500'
+              : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50/80'
+        }`}
+      >
+        <div className="flex items-center gap-1.5 truncate max-w-[170px]">
+          <span className="truncate">{displayLabel}</span>
+          {hasSelection && (
+            <span className="bg-primary-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-black shrink-0 leading-none">
+              {values.length}
+            </span>
+          )}
+        </div>
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-primary-600' : ''}`} />
+      </button>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.97 }}
+            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute z-50 top-full left-0 mt-1.5 min-w-[230px] max-w-[340px] w-max bg-white border border-slate-200/90 rounded-2xl shadow-xl shadow-slate-900/10 overflow-hidden flex flex-col"
+          >
+            {/* Quick Actions: Pilih Semua & Reset */}
+            <div className="p-2 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between gap-2 text-[11px]">
+              <button
+                type="button"
+                onClick={handleSelectAll}
+                className="font-bold text-primary-600 hover:text-primary-800 transition-colors cursor-pointer"
+              >
+                {isAllSelected ? 'Batalkan Semua' : 'Pilih Semua'}
+              </button>
+              {hasSelection && (
+                <button
+                  type="button"
+                  onClick={() => onChange([])}
+                  className="text-slate-400 hover:text-rose-600 transition-colors cursor-pointer font-medium"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+
+            {/* Search filter if items > 5 */}
+            {normalizedOptions.length > 5 && (
+              <div className="p-2 border-b border-slate-100 bg-white">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input 
+                    type="text" 
+                    placeholder={searchPlaceholder}
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 pl-8 pr-7 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                    autoFocus
+                  />
+                  {search && (
+                    <button 
+                      type="button" 
+                      onClick={() => setSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Checkbox Options List */}
+            <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5 scrollbar-thin scrollbar-thumb-slate-200">
+              {filtered.map(opt => {
+                const isSelected = values.includes(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => toggleOption(opt.value)}
+                    className={`w-full flex items-center justify-between text-left px-3 py-2 text-xs rounded-xl transition-all cursor-pointer ${
+                      isSelected 
+                        ? 'bg-primary-50 text-primary-900 font-black' 
+                        : 'text-slate-700 hover:bg-slate-100/80 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                        isSelected 
+                          ? 'bg-primary-600 border-primary-600 text-white' 
+                          : 'border-slate-300 bg-white'
+                      }`}>
+                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
+                      <span className="truncate">{opt.label}</span>
+                    </div>
+                    {opt.count !== undefined && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
+                        isSelected ? 'bg-primary-200/60 text-primary-800 font-bold' : 'text-slate-400 bg-slate-100'
+                      }`}>
+                        {opt.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              {filtered.length === 0 && (
+                <div className="px-3 py-4 text-center text-xs text-slate-400 italic">Tidak ditemukan</div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBack }) => {
   const { user } = useAuth();
 
@@ -345,12 +561,19 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState('all');
 
-  // State filter khusus direktori kerja
+  // State filter khusus direktori kerja (Mendukung Multi-Select Kategori, Posisi, dan Kecamatan)
   const [direktoriSearch, setDirektoriSearch] = useState('');
-  const [direktoriCategoryFilter, setDirektoriCategoryFilter] = useState('all');
-  const [direktoriRoleFilter, setDirektoriRoleFilter] = useState('all');
-  const [direktoriKecFilter, setDirektoriKecFilter] = useState('all');
+  const [direktoriCategoryFilters, setDirektoriCategoryFilters] = useState<string[]>([]);
+  const [direktoriRoleFilters, setDirektoriRoleFilters] = useState<string[]>([]);
+  const [direktoriKecFilters, setDirektoriKecFilters] = useState<string[]>([]);
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
+
+  // Helper toggle kategori rekomendasi kerja
+  const toggleCategoryFilter = (cat: string) => {
+    setDirektoriCategoryFilters(prev => 
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
 
   // State accordion level 1 (PJ) yang terbuka (Default: KOSONG / COLLAPSED / HIDE)
   const [expandedPjs, setExpandedPjs] = useState<Record<string, boolean>>({});
@@ -884,24 +1107,67 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     });
   };
 
-  // Filter Data Khusus Direktori Penawaran Kerja
+  // Daftar Role unik untuk filter posisi direktori
+  const uniqueRoles = useMemo(() => {
+    const s = new Set<string>();
+    mitraList.forEach(m => { if (m.role) s.add(m.role.trim()); });
+    if (s.size === 0) { s.add('PPL'); s.add('PML'); }
+    return Array.from(s).sort();
+  }, [mitraList]);
+
+  const roleOptions = useMemo(() => {
+    return uniqueRoles.map(r => ({
+      value: r,
+      label: r,
+      count: mitraList.filter(m => m.role === r).length
+    }));
+  }, [uniqueRoles, mitraList]);
+
+  const kecOptions = useMemo(() => {
+    return uniqueKecList.map(k => ({
+      value: k,
+      label: k,
+      count: mitraList.filter(m => m.kecamatan === k).length
+    }));
+  }, [uniqueKecList, mitraList]);
+
+  const categoryOptions = useMemo(() => [
+    { value: 'prioritas', label: '⭐ Prioritas Utama (90–100)', count: stats.countSangat },
+    { value: 'layak', label: '👍 Layak Ditawari (80–89)', count: stats.countDirekom },
+    { value: 'cadangan', label: '⚠️ Cadangan (60–79)', count: stats.countCukup },
+    { value: 'blacklist', label: '⛔ Blacklist (< 60)', count: stats.countBlacklist },
+    { value: 'pending', label: '⏳ Belum Dievaluasi', count: stats.pending }
+  ], [stats]);
+
+  // Filter Data Khusus Direktori Penawaran Kerja (Mendukung Multi-Select Kategori, Posisi, dan Kecamatan)
   const direktoriFilteredMitra = useMemo(() => {
     return mitraList.filter(m => {
-      // Category filter
+      // 1. Category Multi-Filter
       let matchCat = true;
-      if (direktoriCategoryFilter === 'prioritas') matchCat = (m.nilai || 0) >= 90;
-      else if (direktoriCategoryFilter === 'layak') matchCat = (m.nilai || 0) >= 80 && (m.nilai || 0) < 90;
-      else if (direktoriCategoryFilter === 'cadangan') matchCat = (m.nilai || 0) >= 60 && (m.nilai || 0) < 80;
-      else if (direktoriCategoryFilter === 'blacklist') matchCat = m.nilai !== null && (m.nilai || 0) < 60;
-      else if (direktoriCategoryFilter === 'pending') matchCat = m.nilai === null || m.nilai === undefined;
+      if (direktoriCategoryFilters.length > 0) {
+        matchCat = direktoriCategoryFilters.some(cat => {
+          if (cat === 'prioritas') return (m.nilai || 0) >= 90;
+          if (cat === 'layak') return (m.nilai || 0) >= 80 && (m.nilai || 0) < 90;
+          if (cat === 'cadangan') return (m.nilai || 0) >= 60 && (m.nilai || 0) < 80;
+          if (cat === 'blacklist') return m.nilai !== null && (m.nilai || 0) < 60;
+          if (cat === 'pending') return m.nilai === null || m.nilai === undefined;
+          return false;
+        });
+      }
 
-      // Role filter
-      const matchRole = direktoriRoleFilter === 'all' || m.role === direktoriRoleFilter;
+      // 2. Role / Posisi Multi-Filter
+      let matchRole = true;
+      if (direktoriRoleFilters.length > 0) {
+        matchRole = direktoriRoleFilters.includes(m.role || '');
+      }
 
-      // Kec filter
-      const matchKec = direktoriKecFilter === 'all' || m.kecamatan === direktoriKecFilter;
+      // 3. Kecamatan Multi-Filter
+      let matchKec = true;
+      if (direktoriKecFilters.length > 0) {
+        matchKec = direktoriKecFilters.includes(m.kecamatan || '');
+      }
 
-      // Search query
+      // 4. Search query
       let matchSearch = true;
       if (direktoriSearch.trim()) {
         const q = direktoriSearch.toLowerCase().trim();
@@ -915,7 +1181,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
       return matchCat && matchRole && matchKec && matchSearch;
     });
-  }, [mitraList, direktoriCategoryFilter, direktoriRoleFilter, direktoriKecFilter, direktoriSearch]);
+  }, [mitraList, direktoriCategoryFilters, direktoriRoleFilters, direktoriKecFilters, direktoriSearch]);
 
   // Salin email ke clipboard
   const handleCopyEmail = (emailStr: string) => {
@@ -2163,234 +2429,318 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
               </div>
             </div>
 
-            {/* Quick KPI Cards - Bright, Clean & Clickable for Quick Filtering */}
+            {/* Quick KPI Cards - Bright, Clean & Clickable for Quick Filtering (Mendukung Multi-Pilihan Kategori) */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
               {/* Prioritas Utama */}
-              <button
-                type="button"
-                onClick={() => setDirektoriCategoryFilter(direktoriCategoryFilter === 'prioritas' ? 'all' : 'prioritas')}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                  direktoriCategoryFilter === 'prioritas'
-                    ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-400/40'
-                    : 'bg-emerald-50/60 hover:bg-emerald-50 text-emerald-950 border-emerald-200/80 hover:shadow-2xs'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className={`text-[10px] uppercase font-black tracking-wider ${
-                    direktoriCategoryFilter === 'prioritas' ? 'text-emerald-100' : 'text-emerald-700'
-                  }`}>
-                    ⭐ Prioritas Utama
-                  </span>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    direktoriCategoryFilter === 'prioritas' ? 'bg-white/20 text-white' : 'bg-emerald-100/80 text-emerald-800'
-                  }`}>
-                    90–100
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl sm:text-3xl font-black">{stats.countSangat}</span>
-                  <span className={`text-xs font-semibold ${
-                    direktoriCategoryFilter === 'prioritas' ? 'text-emerald-100' : 'text-emerald-600'
-                  }`}>Mitra</span>
-                </div>
-                <p className={`text-[11px] mt-1 truncate ${
-                  direktoriCategoryFilter === 'prioritas' ? 'text-emerald-100' : 'text-slate-500'
-                }`}>
-                  Sangat Direkomendasikan
-                </p>
-              </button>
+              {(() => {
+                const isActive = direktoriCategoryFilters.includes('prioritas');
+                return (
+                  <button
+                    type="button"
+                    onClick={() => toggleCategoryFilter('prioritas')}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-400/40'
+                        : 'bg-emerald-50/60 hover:bg-emerald-50 text-emerald-950 border-emerald-200/80 hover:shadow-2xs'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`text-[10px] uppercase font-black tracking-wider ${
+                        isActive ? 'text-emerald-100' : 'text-emerald-700'
+                      }`}>
+                        ⭐ Prioritas Utama
+                      </span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-emerald-100/80 text-emerald-800'
+                      }`}>
+                        90–100
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl sm:text-3xl font-black">{stats.countSangat}</span>
+                      <span className={`text-xs font-semibold ${
+                        isActive ? 'text-emerald-100' : 'text-emerald-600'
+                      }`}>Mitra</span>
+                    </div>
+                    <p className={`text-[11px] mt-1 truncate ${
+                      isActive ? 'text-emerald-100' : 'text-slate-500'
+                    }`}>
+                      Sangat Direkomendasikan
+                    </p>
+                  </button>
+                );
+              })()}
 
               {/* Layak Ditawari */}
-              <button
-                type="button"
-                onClick={() => setDirektoriCategoryFilter(direktoriCategoryFilter === 'layak' ? 'all' : 'layak')}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                  direktoriCategoryFilter === 'layak'
-                    ? 'bg-sky-500 text-white border-sky-600 shadow-sm ring-2 ring-sky-400/40'
-                    : 'bg-sky-50/60 hover:bg-sky-50 text-sky-950 border-sky-200/80 hover:shadow-2xs'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className={`text-[10px] uppercase font-black tracking-wider ${
-                    direktoriCategoryFilter === 'layak' ? 'text-sky-100' : 'text-sky-700'
-                  }`}>
-                    👍 Layak Ditawari
-                  </span>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    direktoriCategoryFilter === 'layak' ? 'bg-white/20 text-white' : 'bg-sky-100/80 text-sky-800'
-                  }`}>
-                    80–89
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl sm:text-3xl font-black">{stats.countDirekom}</span>
-                  <span className={`text-xs font-semibold ${
-                    direktoriCategoryFilter === 'layak' ? 'text-sky-100' : 'text-sky-600'
-                  }`}>Mitra</span>
-                </div>
-                <p className={`text-[11px] mt-1 truncate ${
-                  direktoriCategoryFilter === 'layak' ? 'text-sky-100' : 'text-slate-500'
-                }`}>
-                  Direkomendasikan
-                </p>
-              </button>
+              {(() => {
+                const isActive = direktoriCategoryFilters.includes('layak');
+                return (
+                  <button
+                    type="button"
+                    onClick={() => toggleCategoryFilter('layak')}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-sky-500 text-white border-sky-600 shadow-sm ring-2 ring-sky-400/40'
+                        : 'bg-sky-50/60 hover:bg-sky-50 text-sky-950 border-sky-200/80 hover:shadow-2xs'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`text-[10px] uppercase font-black tracking-wider ${
+                        isActive ? 'text-sky-100' : 'text-sky-700'
+                      }`}>
+                        👍 Layak Ditawari
+                      </span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-sky-100/80 text-sky-800'
+                      }`}>
+                        80–89
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl sm:text-3xl font-black">{stats.countDirekom}</span>
+                      <span className={`text-xs font-semibold ${
+                        isActive ? 'text-sky-100' : 'text-sky-600'
+                      }`}>Mitra</span>
+                    </div>
+                    <p className={`text-[11px] mt-1 truncate ${
+                      isActive ? 'text-sky-100' : 'text-slate-500'
+                    }`}>
+                      Direkomendasikan
+                    </p>
+                  </button>
+                );
+              })()}
 
               {/* Cadangan Bersyarat */}
-              <button
-                type="button"
-                onClick={() => setDirektoriCategoryFilter(direktoriCategoryFilter === 'cadangan' ? 'all' : 'cadangan')}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                  direktoriCategoryFilter === 'cadangan'
-                    ? 'bg-amber-500 text-white border-amber-600 shadow-sm ring-2 ring-amber-400/40'
-                    : 'bg-amber-50/60 hover:bg-amber-50 text-amber-950 border-amber-200/80 hover:shadow-2xs'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className={`text-[10px] uppercase font-black tracking-wider ${
-                    direktoriCategoryFilter === 'cadangan' ? 'text-amber-100' : 'text-amber-700'
-                  }`}>
-                    ⚠️ Cadangan
-                  </span>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    direktoriCategoryFilter === 'cadangan' ? 'bg-white/20 text-white' : 'bg-amber-100/80 text-amber-800'
-                  }`}>
-                    60–79
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl sm:text-3xl font-black">{stats.countCukup}</span>
-                  <span className={`text-xs font-semibold ${
-                    direktoriCategoryFilter === 'cadangan' ? 'text-amber-100' : 'text-amber-600'
-                  }`}>Mitra</span>
-                </div>
-                <p className={`text-[11px] mt-1 truncate ${
-                  direktoriCategoryFilter === 'cadangan' ? 'text-amber-100' : 'text-slate-500'
-                }`}>
-                  Kinerja Cukup
-                </p>
-              </button>
+              {(() => {
+                const isActive = direktoriCategoryFilters.includes('cadangan');
+                return (
+                  <button
+                    type="button"
+                    onClick={() => toggleCategoryFilter('cadangan')}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-sm ring-2 ring-amber-400/40'
+                        : 'bg-amber-50/60 hover:bg-amber-50 text-amber-950 border-amber-200/80 hover:shadow-2xs'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`text-[10px] uppercase font-black tracking-wider ${
+                        isActive ? 'text-amber-100' : 'text-amber-700'
+                      }`}>
+                        ⚠️ Cadangan
+                      </span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-amber-100/80 text-amber-800'
+                      }`}>
+                        60–79
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl sm:text-3xl font-black">{stats.countCukup}</span>
+                      <span className={`text-xs font-semibold ${
+                        isActive ? 'text-amber-100' : 'text-amber-600'
+                      }`}>Mitra</span>
+                    </div>
+                    <p className={`text-[11px] mt-1 truncate ${
+                      isActive ? 'text-amber-100' : 'text-slate-500'
+                    }`}>
+                      Kinerja Cukup
+                    </p>
+                  </button>
+                );
+              })()}
 
               {/* Blacklist */}
-              <button
-                type="button"
-                onClick={() => setDirektoriCategoryFilter(direktoriCategoryFilter === 'blacklist' ? 'all' : 'blacklist')}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                  direktoriCategoryFilter === 'blacklist'
-                    ? 'bg-rose-500 text-white border-rose-600 shadow-sm ring-2 ring-rose-400/40'
-                    : 'bg-rose-50/60 hover:bg-rose-50 text-rose-950 border-rose-200/80 hover:shadow-2xs'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className={`text-[10px] uppercase font-black tracking-wider ${
-                    direktoriCategoryFilter === 'blacklist' ? 'text-rose-100' : 'text-rose-700'
-                  }`}>
-                    ⛔ Blacklist
-                  </span>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    direktoriCategoryFilter === 'blacklist' ? 'bg-white/20 text-white' : 'bg-rose-100/80 text-rose-800'
-                  }`}>
-                    &lt; 60
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl sm:text-3xl font-black">{stats.countBlacklist}</span>
-                  <span className={`text-xs font-semibold ${
-                    direktoriCategoryFilter === 'blacklist' ? 'text-rose-100' : 'text-rose-600'
-                  }`}>Mitra</span>
-                </div>
-                <p className={`text-[11px] mt-1 truncate ${
-                  direktoriCategoryFilter === 'blacklist' ? 'text-rose-100' : 'text-slate-500'
-                }`}>
-                  Hindari Penugasan
-                </p>
-              </button>
+              {(() => {
+                const isActive = direktoriCategoryFilters.includes('blacklist');
+                return (
+                  <button
+                    type="button"
+                    onClick={() => toggleCategoryFilter('blacklist')}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-rose-500 text-white border-rose-600 shadow-sm ring-2 ring-rose-400/40'
+                        : 'bg-rose-50/60 hover:bg-rose-50 text-rose-950 border-rose-200/80 hover:shadow-2xs'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`text-[10px] uppercase font-black tracking-wider ${
+                        isActive ? 'text-rose-100' : 'text-rose-700'
+                      }`}>
+                        ⛔ Blacklist
+                      </span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-rose-100/80 text-rose-800'
+                      }`}>
+                        &lt; 60
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl sm:text-3xl font-black">{stats.countBlacklist}</span>
+                      <span className={`text-xs font-semibold ${
+                        isActive ? 'text-rose-100' : 'text-rose-600'
+                      }`}>Mitra</span>
+                    </div>
+                    <p className={`text-[11px] mt-1 truncate ${
+                      isActive ? 'text-rose-100' : 'text-slate-500'
+                    }`}>
+                      Hindari Penugasan
+                    </p>
+                  </button>
+                );
+              })()}
             </div>
           </div>
 
-          {/* Filter Bar Direktori */}
-          <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
-            {/* Search Input */}
-            <div className="relative flex-grow min-w-[240px]">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Cari nama mitra, email, catatan kualitatif, atau PJ..."
-                value={direktoriSearch}
-                onChange={(e) => setDirektoriSearch(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-800 focus:bg-white focus:border-primary-500 outline-none transition-all"
-              />
-              {direktoriSearch && (
-                <button 
-                  type="button" 
-                  onClick={() => setDirektoriSearch('')} 
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+          {/* Filter Bar Direktori (Mendukung Multi-Pilihan Kategori, Posisi, dan Kecamatan) */}
+          <div className="space-y-2.5">
+            <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+              {/* Search Input */}
+              <div className="relative flex-grow min-w-[240px]">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Cari nama mitra, email, catatan kualitatif, atau PJ..."
+                  value={direktoriSearch}
+                  onChange={(e) => setDirektoriSearch(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-800 focus:bg-white focus:border-primary-500 outline-none transition-all"
+                />
+                {direktoriSearch && (
+                  <button 
+                    type="button" 
+                    onClick={() => setDirektoriSearch('')} 
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Multi-Select Filter Dropdowns */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Filter Kategori Rekomendasi Kerja (Multi-Select) */}
+                <SmoothMultiSelect
+                  values={direktoriCategoryFilters}
+                  onChange={setDirektoriCategoryFilters}
+                  options={categoryOptions}
+                  placeholder="Semua Kategori"
+                  prefix="Kategori: "
+                />
+
+                {/* Filter Posisi (Multi-Select) */}
+                <SmoothMultiSelect
+                  values={direktoriRoleFilters}
+                  onChange={setDirektoriRoleFilters}
+                  options={roleOptions}
+                  placeholder="Semua Posisi"
+                  prefix="Posisi: "
+                />
+
+                {/* Filter Kecamatan (Multi-Select) */}
+                <SmoothMultiSelect
+                  values={direktoriKecFilters}
+                  onChange={setDirektoriKecFilters}
+                  options={kecOptions}
+                  placeholder="Semua Kecamatan"
+                  searchPlaceholder="Cari Kecamatan..."
+                  prefix="Kec: "
+                />
+
+                {/* Reset Button */}
+                {(direktoriSearch || direktoriCategoryFilters.length > 0 || direktoriRoleFilters.length > 0 || direktoriKecFilters.length > 0) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDirektoriSearch('');
+                      setDirektoriCategoryFilters([]);
+                      setDirektoriRoleFilters([]);
+                      setDirektoriKecFilters([]);
+                    }}
+                    className="p-2 text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+                    title="Reset Semua Filter"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Filter Dropdowns */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              {/* Filter Rekomendasi Kerja */}
-              <SmoothSelect
-                value={direktoriCategoryFilter}
-                onChange={setDirektoriCategoryFilter}
-                options={[
-                  { value: 'all', label: `Semua Kategori (${mitraList.length})` },
-                  { value: 'prioritas', label: `🌟 Prioritas Ditawari (${stats.countSangat})` },
-                  { value: 'layak', label: `👍 Layak Ditawari (${stats.countDirekom})` },
-                  { value: 'cadangan', label: `⚠️ Cadangan (${stats.countCukup})` },
-                  { value: 'blacklist', label: `⛔ Blacklist (${stats.countBlacklist})` },
-                  { value: 'pending', label: `⏳ Belum Dievaluasi (${stats.pending})` }
-                ]}
-                placeholder="Semua Kategori"
-                prefix="Rekomendasi: "
-              />
+            {/* Active Filters Pills (Menampilkan Chip Filter Aktif yang Bisa Dihapus Langsung) */}
+            {(direktoriCategoryFilters.length > 0 || direktoriRoleFilters.length > 0 || direktoriKecFilters.length > 0) && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600 bg-slate-50/80 px-3.5 py-2.5 rounded-2xl border border-slate-200/70">
+                <span className="text-[11px] font-bold text-slate-400 mr-1">Filter Aktif:</span>
+                
+                {/* Category Pills */}
+                {direktoriCategoryFilters.map(cat => {
+                  const opt = categoryOptions.find(o => o.value === cat);
+                  return (
+                    <span 
+                      key={cat} 
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 shadow-2xs"
+                    >
+                      <span>{opt ? opt.label : cat}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => toggleCategoryFilter(cat)}
+                        className="text-slate-400 hover:text-rose-500 cursor-pointer"
+                        title="Hapus filter ini"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  );
+                })}
 
-              {/* Filter Posisi */}
-              <SmoothSelect
-                value={direktoriRoleFilter}
-                onChange={setDirektoriRoleFilter}
-                options={[
-                  { value: 'all', label: `Semua Posisi (${mitraList.length})` },
-                  { value: 'PPL', label: `PPL (${mitraList.filter(m => m.role === 'PPL').length})` },
-                  { value: 'PML', label: `PML (${mitraList.filter(m => m.role === 'PML').length})` }
-                ]}
-                placeholder="Semua Posisi"
-                prefix="Posisi: "
-              />
+                {/* Role Pills */}
+                {direktoriRoleFilters.map(role => (
+                  <span 
+                    key={role} 
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-50 border border-sky-200 rounded-xl text-[11px] font-bold text-sky-800 shadow-2xs"
+                  >
+                    <span>Posisi: {role}</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setDirektoriRoleFilters(prev => prev.filter(r => r !== role))}
+                      className="text-sky-400 hover:text-rose-500 cursor-pointer"
+                      title="Hapus filter ini"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
 
-              {/* Filter Kecamatan */}
-              <SmoothSelect
-                value={direktoriKecFilter}
-                onChange={setDirektoriKecFilter}
-                options={[
-                  { value: 'all', label: `Semua Kecamatan (${uniqueKecList.length})` },
-                  ...uniqueKecList.map(k => ({ value: k, label: k }))
-                ]}
-                placeholder="Semua Kecamatan"
-                searchPlaceholder="Cari Kecamatan..."
-                prefix="Kec: "
-              />
+                {/* Kecamatan Pills */}
+                {direktoriKecFilters.map(kec => (
+                  <span 
+                    key={kec} 
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] font-bold text-emerald-800 shadow-2xs"
+                  >
+                    <span>Kec: {kec}</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setDirektoriKecFilters(prev => prev.filter(k => k !== kec))}
+                      className="text-emerald-400 hover:text-rose-500 cursor-pointer"
+                      title="Hapus filter ini"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
 
-              {/* Reset */}
-              {(direktoriSearch || direktoriCategoryFilter !== 'all' || direktoriRoleFilter !== 'all' || direktoriKecFilter !== 'all') && (
                 <button
                   type="button"
                   onClick={() => {
-                    setDirektoriSearch('');
-                    setDirektoriCategoryFilter('all');
-                    setDirektoriRoleFilter('all');
-                    setDirektoriKecFilter('all');
+                    setDirektoriCategoryFilters([]);
+                    setDirektoriRoleFilters([]);
+                    setDirektoriKecFilters([]);
                   }}
-                  className="p-2 text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
-                  title="Reset Filter"
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer ml-1.5"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  Hapus Semua Filter
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Daftar Mitra & Profil Kinerja untuk Penawaran Kerja */}
