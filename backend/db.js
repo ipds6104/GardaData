@@ -424,6 +424,9 @@ async function initDB() {
         try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN statusNik VARCHAR(50) AFTER statusSeleksi`); } catch (e) {}
         try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN verifikasiPada VARCHAR(50) AFTER statusNik`); } catch (e) {}
         try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN profileData JSON AFTER verifikasiPada`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN isDuplicate BOOLEAN DEFAULT FALSE AFTER profileData`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN duplicateOf VARCHAR(100) DEFAULT NULL AFTER isDuplicate`); } catch (e) {}
+        try { await connection.query(`ALTER TABLE mitra_evaluations ADD COLUMN duplicateNotes TEXT DEFAULT NULL AFTER duplicateOf`); } catch (e) {}
       }
     } catch (migErr) {
       console.warn('Catatan migrasi mitra_evaluations:', migErr.message);
@@ -454,6 +457,9 @@ async function initDB() {
         statusNik VARCHAR(50) DEFAULT NULL,
         verifikasiPada VARCHAR(50) DEFAULT NULL,
         profileData JSON DEFAULT NULL,
+        isDuplicate BOOLEAN DEFAULT FALSE,
+        duplicateOf VARCHAR(100) DEFAULT NULL,
+        duplicateNotes TEXT DEFAULT NULL,
         nilai INT DEFAULT NULL,
         kategori VARCHAR(50) DEFAULT NULL,
         catatan TEXT DEFAULT NULL,
@@ -513,8 +519,8 @@ async function initDB() {
 
             await connection.execute(`
               INSERT INTO mitra_evaluations 
-              (id, sobatId, email, nama, role, pj, kecamatan, desa, alamatDetail, alamatKabKota, alamatProvinsi, noTelp, jenisKelamin, tempatTanggalLahir, umur, statusKawin, pendidikan, pekerjaan, posisiDaftar, statusSeleksi, statusNik, verifikasiPada, profileData, nilai, kategori, catatan, penilai)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              (id, sobatId, email, nama, role, pj, kecamatan, desa, alamatDetail, alamatKabKota, alamatProvinsi, noTelp, jenisKelamin, tempatTanggalLahir, umur, statusKawin, pendidikan, pekerjaan, posisiDaftar, statusSeleksi, statusNik, verifikasiPada, profileData, isDuplicate, duplicateOf, duplicateNotes, nilai, kategori, catatan, penilai)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
               ON DUPLICATE KEY UPDATE
               sobatId = VALUES(sobatId),
               nama = VALUES(nama),
@@ -537,6 +543,9 @@ async function initDB() {
               statusNik = VALUES(statusNik),
               verifikasiPada = VALUES(verifikasiPada),
               profileData = VALUES(profileData),
+              isDuplicate = VALUES(isDuplicate),
+              duplicateOf = VALUES(duplicateOf),
+              duplicateNotes = VALUES(duplicateNotes),
               nilai = COALESCE(VALUES(nilai), mitra_evaluations.nilai),
               kategori = COALESCE(VALUES(kategori), mitra_evaluations.kategori),
               catatan = IF(VALUES(catatan) != '', VALUES(catatan), mitra_evaluations.catatan)
@@ -564,6 +573,9 @@ async function initDB() {
               m.statusNik || null,
               m.verifikasiPada || null,
               JSON.stringify(profile),
+              m.isDuplicate ? 1 : 0,
+              m.duplicateOf || null,
+              m.duplicateNotes || null,
               m.nilai !== undefined ? m.nilai : null,
               m.kategori || null,
               m.catatan || '',

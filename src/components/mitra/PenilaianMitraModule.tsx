@@ -7,12 +7,13 @@ import {
   FileSpreadsheet, Sparkles, ShieldAlert, RefreshCw, Briefcase,
   MessageSquare, Copy, CheckCheck, FileDown, CheckSquare, Square, ListChecks,
   Edit3, FileText, Pencil, Phone, Mail, MapPin, Home, GraduationCap,
-  Smartphone, Laptop, Car, ExternalLink, User, ShieldCheck
+  Smartphone, Laptop, Car, ExternalLink, User, ShieldCheck, RotateCcw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
-import { useAuth } from '../../lib/auth';
+import { useAuth, isAhmadAuliaUser } from '../../lib/auth';
 import { decryptMilitaryPayload } from '../../utils/cryptoSecurity';
+import { MEMPAWAH_REGIONS, KECAMATAN_LIST } from '../../data/regions';
 
 interface PenilaianMitraModuleProps {
   onBack: () => void;
@@ -67,6 +68,10 @@ export interface MitraRecord {
   catatan?: string;
   penilai?: string;
   updatedAt?: string;
+  // Manajemen Data Duplikat (Hanya Dihitung 1 Mitra)
+  isDuplicate?: boolean;
+  duplicateOf?: string; // SOBAT ID atau Identifier Mitra Master
+  duplicateNotes?: string;
 }
 
 export const getRecordKey = (m: MitraRecord): string => {
@@ -511,9 +516,11 @@ const SmoothMultiSelect: React.FC<SmoothMultiSelectProps> = ({
 interface MitraDetailModalProps {
   mitra: MitraRecord;
   onClose: () => void;
+  onEditProfile?: (mitra: MitraRecord) => void;
+  isAdmin?: boolean;
 }
 
-const MitraDetailModal: React.FC<MitraDetailModalProps> = ({ mitra, onClose }) => {
+const MitraDetailModal: React.FC<MitraDetailModalProps> = ({ mitra, onClose, onEditProfile, isAdmin }) => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const handleCopy = (text: string, keyName: string) => {
@@ -535,6 +542,28 @@ const MitraDetailModal: React.FC<MitraDetailModalProps> = ({ mitra, onClose }) =
         className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Duplicate Alert Banner */}
+        {mitra.isDuplicate && (
+          <div className="bg-amber-500 text-white px-5 py-2 flex items-center justify-between text-xs shrink-0 font-bold shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">🔁</span>
+              <span>Data Ini Ditandai Sebagai Mitra Duplikat</span>
+              {mitra.duplicateOf && (
+                <span className="bg-amber-700/60 px-2 py-0.5 rounded text-[11px] font-mono">
+                  Master: {mitra.duplicateOf}
+                </span>
+              )}
+              {mitra.duplicateNotes && (
+                <span className="text-[11px] opacity-90 hidden sm:inline">
+                  ({mitra.duplicateNotes})
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+              1x Dihitung
+            </span>
+          </div>
+        )}
         {/* Header */}
         <div className="bg-gradient-to-r from-primary-600 via-primary-700 to-indigo-700 text-white p-5 sm:p-6 shrink-0 relative">
           <button
@@ -840,11 +869,24 @@ const MitraDetailModal: React.FC<MitraDetailModalProps> = ({ mitra, onClose }) =
         </div>
 
         {/* Footer */}
-        <div className="bg-slate-50 border-t border-slate-100 p-4 flex items-center justify-between shrink-0">
+        <div className="bg-slate-50 border-t border-slate-100 p-4 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
           <span className="text-[11px] text-slate-400">
             Terverifikasi: {mitra.verifikasiPada || 'Sistem BPS'}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {isAdmin && onEditProfile && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onEditProfile(mitra);
+                }}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                <span>Edit Data Diri &amp; Duplikasi</span>
+              </button>
+            )}
             {mitra.noTelp && (
               <a
                 href={`https://wa.me/${cleanPhone}`}
@@ -870,8 +912,591 @@ const MitraDetailModal: React.FC<MitraDetailModalProps> = ({ mitra, onClose }) =
   );
 };
 
+// =========================================================================
+// MODAL KHUSUS ADMIN: UBAH DATA DIRI MITRA SECARA MANUAL & STATUS DUPLIKAT
+// =========================================================================
+interface MitraEditProfileModalProps {
+  mitra: MitraRecord;
+  allMitra: MitraRecord[];
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (updated: MitraRecord) => Promise<void>;
+  isSaving: boolean;
+}
+
+const MitraEditProfileModal: React.FC<MitraEditProfileModalProps> = ({
+  mitra,
+  allMitra,
+  isOpen,
+  onClose,
+  onSave,
+  isSaving
+}) => {
+  const [formData, setFormData] = useState<MitraRecord>({ ...mitra });
+  const [duplicateSearch, setDuplicateSearch] = useState('');
+
+  useEffect(() => {
+    setFormData({ ...mitra });
+    setDuplicateSearch('');
+  }, [mitra]);
+
+  if (!isOpen) return null;
+
+  // Options desa based on selected kecamatan
+  const currentKec = formData.kecamatan || 'Mempawah Hilir';
+  const availableDesas = (() => {
+    const listFromRegions = MEMPAWAH_REGIONS[currentKec] || [];
+    const listFromData = allMitra
+      .filter(m => m.kecamatan === currentKec && m.desa)
+      .map(m => m.desa!.trim());
+    return Array.from(new Set([...listFromRegions, ...listFromData])).sort();
+  })();
+
+  // Filter kandidat master mitra untuk duplikasi (kecualikan diri sendiri)
+  const masterCandidates = allMitra.filter(m => {
+    const keySelf = mitra.id || mitra.sobatId || mitra.email;
+    const keyM = m.id || m.sobatId || m.email;
+    if (keySelf === keyM) return false;
+    if (!duplicateSearch.trim()) return true;
+    const q = duplicateSearch.toLowerCase();
+    return (
+      (m.nama || '').toLowerCase().includes(q) ||
+      (m.sobatId || '').toLowerCase().includes(q) ||
+      (m.email || '').toLowerCase().includes(q) ||
+      (m.kecamatan || '').toLowerCase().includes(q) ||
+      (m.desa || '').toLowerCase().includes(q)
+    );
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.nama.trim()) {
+      alert('Nama mitra wajib diisi!');
+      return;
+    }
+    await onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[1500] flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 15 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 15 }}
+        className="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header Modal Edit */}
+        <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white p-5 sm:p-6 shrink-0 relative flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+              <Pencil className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-md inline-block mb-1">
+                Akses Administrator
+              </span>
+              <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                Ubah Data Diri &amp; Duplikasi Mitra
+              </h3>
+              <p className="text-xs text-white/80">
+                Pembaruan data resmi untuk <strong>{mitra.nama}</strong>
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSaving}
+            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Form Body (Scrollable) */}
+        <form onSubmit={handleSubmit} className="overflow-y-auto custom-scrollbar p-5 sm:p-6 space-y-6 text-xs text-slate-700 flex-1">
+          {/* Section 1: Identitas & Akun */}
+          <div className="space-y-3">
+            <h4 className="font-black text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-2 text-amber-700">
+              <User className="w-4 h-4 text-amber-600" />
+              <span>1. Identitas Pribadi &amp; Akun</span>
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Nama Lengkap <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.nama}
+                  onChange={(e) => setFormData(p => ({ ...p, nama: e.target.value }))}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  SOBAT ID BPS
+                </label>
+                <input
+                  type="text"
+                  value={formData.sobatId || ''}
+                  onChange={(e) => setFormData(p => ({ ...p, sobatId: e.target.value }))}
+                  placeholder="Contoh: 6104230001"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Email Akun
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  No. WhatsApp / HP
+                </label>
+                <input
+                  type="text"
+                  value={formData.noTelp || ''}
+                  onChange={(e) => setFormData(p => ({ ...p, noTelp: e.target.value }))}
+                  placeholder="08xxxxxxxxxx"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Posisi / Peran Tugas
+                </label>
+                <select
+                  value={formData.role || 'PPL'}
+                  onChange={(e) => setFormData(p => ({ ...p, role: e.target.value }))}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-amber-500"
+                >
+                  <option value="PPL">PPL (Petugas Pendataan Lapangan)</option>
+                  <option value="PML">PML (Petugas Pengawas Lapangan)</option>
+                  <option value="Mitra Pendataan">Mitra Pendataan</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Penanggung Jawab (PJ SE2026)
+                </label>
+                <input
+                  type="text"
+                  value={formData.pj || ''}
+                  onChange={(e) => setFormData(p => ({ ...p, pj: e.target.value }))}
+                  placeholder="Nama PJ BPS"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Wilayah Domisili (Level Terkecil) */}
+          <div className="space-y-3">
+            <h4 className="font-black text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-2 text-emerald-700">
+              <MapPin className="w-4 h-4 text-emerald-600" />
+              <span>2. Wilayah Domisili Tempat Tinggal (Level Terkecil)</span>
+            </h4>
+            <div className="bg-emerald-50/40 p-4 rounded-2xl border border-emerald-200/80 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                    Kecamatan Domisili
+                  </label>
+                  <select
+                    value={formData.kecamatan || ''}
+                    onChange={(e) => setFormData(p => ({ ...p, kecamatan: e.target.value, desa: '' }))}
+                    className="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                  >
+                    <option value="">-- Pilih Kecamatan --</option>
+                    {KECAMATAN_LIST.map(k => (
+                      <option key={k} value={k}>{k}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                    Desa / Kelurahan Domisili (Terhubung Dinamis)
+                  </label>
+                  <input
+                    type="text"
+                    list="desa-suggestions"
+                    value={formData.desa || ''}
+                    onChange={(e) => setFormData(p => ({ ...p, desa: e.target.value }))}
+                    placeholder="Pilih atau ketik nama desa/kelurahan..."
+                    className="w-full bg-white border border-emerald-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                  />
+                  <datalist id="desa-suggestions">
+                    {availableDesas.map(d => (
+                      <option key={d} value={d} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                  Alamat Lengkap / Detail (RT, RW, Dusun, Gang, No. Rumah)
+                </label>
+                <textarea
+                  rows={2}
+                  value={formData.alamatDetail || ''}
+                  onChange={(e) => setFormData(p => ({ ...p, alamatDetail: e.target.value }))}
+                  placeholder="Contoh: Jl. Gusti Sulung Lelanang RT 04 / RW 02 No. 12"
+                  className="w-full bg-white border border-emerald-200 rounded-xl p-3 text-xs text-slate-800 outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Profil Demografi */}
+          <div className="space-y-3">
+            <h4 className="font-black text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-2 text-indigo-700">
+              <ShieldCheck className="w-4 h-4 text-indigo-600" />
+              <span>3. Profil Demografi &amp; Kualifikasi</span>
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-200/70">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Jenis Kelamin
+                </label>
+                <select
+                  value={formData.jenisKelamin || ''}
+                  onChange={(e) => setFormData(p => ({ ...p, jenisKelamin: e.target.value }))}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-amber-500"
+                >
+                  <option value="">-</option>
+                  <option value="Laki-Laki">Laki-Laki</option>
+                  <option value="Perempuan">Perempuan</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Pendidikan Terakhir
+                </label>
+                <input
+                  type="text"
+                  value={formData.pendidikan || ''}
+                  onChange={(e) => setFormData(p => ({ ...p, pendidikan: e.target.value }))}
+                  placeholder="Contoh: S1 / SMA"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Pekerjaan Utama
+                </label>
+                <input
+                  type="text"
+                  value={formData.pekerjaan || ''}
+                  onChange={(e) => setFormData(p => ({ ...p, pekerjaan: e.target.value }))}
+                  placeholder="Contoh: Wiraswasta"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: MANAJEMEN DATA DUPLIKAT (HANYA DIHITUNG 1 MITRA) */}
+          <div className="space-y-3">
+            <h4 className="font-black text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-2 text-amber-800">
+              <span className="text-base">🔁</span>
+              <span>4. Manajemen Data Duplikat (Hanya Dihitung 1 Mitra)</span>
+            </h4>
+            <div className={`p-4 rounded-2xl border transition-all ${
+              formData.isDuplicate
+                ? 'bg-amber-50 border-amber-300 shadow-sm'
+                : 'bg-slate-50/80 border-slate-200/80'
+            }`}>
+              {/* Checkbox Toggle */}
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={Boolean(formData.isDuplicate)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setFormData(p => ({
+                      ...p,
+                      isDuplicate: checked,
+                      duplicateOf: checked ? p.duplicateOf : '',
+                      duplicateNotes: checked ? p.duplicateNotes : ''
+                    }));
+                  }}
+                  className="w-4 h-4 mt-0.5 text-amber-600 rounded border-slate-300 focus:ring-amber-500"
+                />
+                <div>
+                  <span className="font-black text-slate-900 text-xs block">
+                    Tandai Record Ini Sebagai Mitra Duplikat
+                  </span>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Jika dicentang, record ini dianggap sebagai entri duplikat dan <strong>hanya terhitung 1 mitra</strong> pada seluruh statistik, dashboard KPI, dan kuota kecamatan.
+                  </p>
+                </div>
+              </label>
+
+              {/* Sub-Form Duplikasi Jika Dicentang */}
+              {formData.isDuplicate && (
+                <div className="mt-4 pt-4 border-t border-amber-200/80 space-y-3.5">
+                  <div className="p-2.5 rounded-xl bg-amber-100/70 border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
+                    💡 <strong>Aturan Perhitungan:</strong> Mitra duplikat ini akan dikecualikan dari penjumlahan kuota unik agar tidak terjadi double counting. Nilai evaluasi tetap dapat disimpan atau merujuk ke data master.
+                  </div>
+
+                  {/* Pilihan Data Master Rujukan */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-amber-900 uppercase tracking-wider">
+                      Duplikat Dengan Data Yang Mana? (Master Mitra Rujukan)
+                    </label>
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Cari kandidat master mitra (nama, SOBAT ID, kecamatan)..."
+                        value={duplicateSearch}
+                        onChange={(e) => setDuplicateSearch(e.target.value)}
+                        className="w-full bg-white border border-amber-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-800 outline-none focus:border-amber-500 mb-2"
+                      />
+                    </div>
+                    <select
+                      value={formData.duplicateOf || ''}
+                      onChange={(e) => setFormData(p => ({ ...p, duplicateOf: e.target.value }))}
+                      className="w-full bg-white border border-amber-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-amber-500"
+                    >
+                      <option value="">-- Pilih Master Mitra Rujukan --</option>
+                      {masterCandidates.slice(0, 100).map(cand => {
+                        const candKey = cand.sobatId || cand.id || cand.email;
+                        return (
+                          <option key={candKey} value={candKey}>
+                            {cand.nama} {cand.sobatId ? `(SOBAT: ${cand.sobatId})` : ''} - Kec. {cand.kecamatan || '-'} ({cand.role})
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {formData.duplicateOf && (
+                      <p className="text-[11px] text-amber-800 font-mono">
+                        Rujukan terpilih: <strong>{formData.duplicateOf}</strong>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Catatan / Keterangan Duplikasi */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-amber-900 uppercase tracking-wider">
+                      Catatan / Keterangan Duplikasi
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.duplicateNotes || ''}
+                      onChange={(e) => setFormData(p => ({ ...p, duplicateNotes: e.target.value }))}
+                      placeholder="Contoh: Akun dobel email Gmail & Yahoo / Terdaftar 2x di SOBAT"
+                      className="w-full bg-white border border-amber-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs transition-colors cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer hover:shadow-lg disabled:opacity-50"
+            >
+              {isSaving ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Menyimpan Perubahan...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Simpan Perubahan Data Diri</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
+};
+
+// =========================================================================
+// MODAL MONITORING PROGRES PER KECAMATAN (DUPLIKAT HANYA 1 MITRA)
+// =========================================================================
+interface ModalMonitoringKecamatanProps {
+  isOpen: boolean;
+  onClose: () => void;
+  data: Array<{
+    kecamatan: string;
+    totalUnik: number;
+    totalDuplikat: number;
+    evaluated: number;
+    pending: number;
+    percent: number;
+    avg: string;
+    pjs: string;
+    totalDesa: number;
+    status: string;
+  }>;
+}
+
+const ModalMonitoringKecamatan: React.FC<ModalMonitoringKecamatanProps> = ({ isOpen, onClose, data }) => {
+  if (!isOpen) return null;
+
+  const totalUnikAll = data.reduce((acc, c) => acc + c.totalUnik, 0);
+  const totalDupAll = data.reduce((acc, c) => acc + c.totalDuplikat, 0);
+  const totalEvaluatedAll = data.reduce((acc, c) => acc + c.evaluated, 0);
+  const overallPct = totalUnikAll > 0 ? Math.round((totalEvaluatedAll / totalUnikAll) * 100) : 0;
+
+  return (
+    <div className="fixed inset-0 z-[1400] flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 15 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 15 }}
+        className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="bg-gradient-to-r from-primary-600 via-indigo-600 to-primary-700 text-white p-5 sm:p-6 shrink-0 relative flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-md inline-block mb-1">
+              Monitoring Agregat Wilayah
+            </span>
+            <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+              Rekapitulasi Penilaian Kinerja per Kecamatan
+            </h3>
+            <p className="text-xs text-white/80">
+              Total {data.length} Kecamatan • {totalUnikAll} Mitra Unik {totalDupAll > 0 ? `(+${totalDupAll} Duplikat)` : ''} • Progres {overallPct}%
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto custom-scrollbar p-5 sm:p-6 flex-1">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  <th className="py-2.5 px-3">Kecamatan</th>
+                  <th className="py-2.5 px-3 text-center">Mitra Unik</th>
+                  <th className="py-2.5 px-3 text-center">Duplikat</th>
+                  <th className="py-2.5 px-3 text-center">Sudah Dinilai</th>
+                  <th className="py-2.5 px-3 text-center">Belum Dinilai</th>
+                  <th className="py-2.5 px-3 w-36 text-center">Progres %</th>
+                  <th className="py-2.5 px-3 text-center">Rata-Rata</th>
+                  <th className="py-2.5 px-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {data.map((item) => (
+                  <tr key={item.kecamatan} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3 px-3">
+                      <p className="font-bold text-slate-900">{item.kecamatan}</p>
+                      <p className="text-[10px] text-slate-400">PJ: {item.pjs || '-'}</p>
+                    </td>
+                    <td className="py-3 px-3 text-center font-bold text-slate-800">
+                      {item.totalUnik}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {item.totalDuplikat > 0 ? (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                          {item.totalDuplikat}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center font-bold text-emerald-600">
+                      {item.evaluated}
+                    </td>
+                    <td className="py-3 px-3 text-center font-bold text-amber-600">
+                      {item.pending}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-20 h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-300 ${
+                              item.percent === 100 ? 'bg-emerald-500' : item.percent > 0 ? 'bg-primary-500' : 'bg-slate-300'
+                            }`}
+                            style={{ width: `${item.percent}%` }}
+                          />
+                        </div>
+                        <span className="font-mono text-[11px] font-bold text-slate-700 w-8 text-right">
+                          {item.percent}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-3 text-center font-bold text-slate-800">
+                      {item.avg}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        item.percent === 100
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : item.percent > 0
+                            ? 'bg-sky-100 text-sky-800'
+                            : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {item.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="bg-slate-50 border-t border-slate-100 p-4 flex items-center justify-end shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+          >
+            Tutup
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBack }) => {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || isAhmadAuliaUser(user);
 
   // State data utama
   const [mitraList, setMitraList] = useState<MitraRecord[]>([]);
@@ -895,8 +1520,13 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
   // State dropdown manajemen data (default tersembunyi / hidden)
   const [isDataManagementOpen, setIsDataManagementOpen] = useState(false);
 
-  // State modal monitoring PJ
+  // State modal monitoring PJ & Kecamatan
   const [showPjModal, setShowPjModal] = useState(false);
+  const [showKecModal, setShowKecModal] = useState(false);
+
+  // State modal edit data diri & duplikasi mitra (Khusus Admin)
+  const [editingMitraForProfile, setEditingMitraForProfile] = useState<MitraRecord | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // State modal download dengan pemilihan kolom kustom
   const [showExportModal, setShowExportModal] = useState(false);
@@ -958,8 +1588,8 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     }
   }, [saveSuccessPopup]);
 
-  // Tab aktif: 'form' (Form Penilaian Per PJ) | 'direktori' (Direktori Rekomendasi Kerja)
-  const [activeTab, setActiveTab] = useState<'form' | 'direktori'>('direktori');
+  // Tab aktif: 'form' (Form Penilaian Per Kecamatan) | 'direktori' (Direktori Rekomendasi Kerja)
+  const [activeTab, setActiveTab] = useState<'form' | 'direktori'>('form');
 
   // State filter & pencarian form penilaian
   const [searchQuery, setSearchQuery] = useState('');
@@ -967,6 +1597,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
   const [selectedKecFilter, setSelectedKecFilter] = useState('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState('all');
+  const [selectedDuplicateFilter, setSelectedDuplicateFilter] = useState<'all' | 'exclude' | 'only'>('all');
 
   // State filter khusus direktori kerja (Mendukung Multi-Select Kategori, Posisi, Kecamatan, dan Desa)
   const [direktoriSearch, setDirektoriSearch] = useState('');
@@ -984,11 +1615,12 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     );
   };
 
-  // State accordion level 1 (PJ) yang terbuka (Default: KOSONG / COLLAPSED / HIDE)
+  // State accordion level 1 (Kecamatan & PJ) yang terbuka (Default: SEMUA KECAMATAN TERBUKA)
+  const [expandedKecs, setExpandedKecs] = useState<Record<string, boolean>>({});
   const [expandedPjs, setExpandedPjs] = useState<Record<string, boolean>>({});
 
   // Proteksi hak akses role admin
-  if (!user || user.role !== 'admin') {
+  if (!user || (!isAdmin && user.role !== 'admin')) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
         <div className="p-4 bg-rose-50 text-rose-600 rounded-3xl mb-4 border border-rose-100 shadow-sm">
@@ -1017,10 +1649,10 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     try {
-      // 1. Muat acuan baseline resmi 244 mitra (214 PPL + 30 PML)
+      // 1. Muat acuan baseline resmi 388 mitra (dengan cadangan evaluasi lengkap)
       let baseline: MitraRecord[] = [];
       try {
-        const localRes = await fetch('/data/initial_mitra_se2026.json');
+        const localRes = await fetch(`/data/initial_mitra_se2026.json?t=${Date.now()}`);
         if (localRes.ok) {
           const rawPayload = await localRes.json();
           if (rawPayload && (rawPayload.algo === 'AES-256-GCM' || rawPayload.data)) {
@@ -1033,9 +1665,9 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         console.warn('Gagal memuat baseline data mitra terenkripsi:', e);
       }
 
-      // Ambil cache lokal v4 yang menyimpan evaluasi dan profil lengkap mitra
+      // Ambil cache lokal (v4, v3, v2) yang menyimpan evaluasi dan profil lengkap mitra
       let localCachedRecords: MitraRecord[] = [];
-      const cached = localStorage.getItem('garda_mitra_cache_v4');
+      const cached = localStorage.getItem('garda_mitra_cache_v4') || localStorage.getItem('garda_mitra_cache_v3') || localStorage.getItem('garda_mitra_cache_v2');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -1067,14 +1699,16 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         localCachedRecords.forEach(m => {
           const key = m.id || `${(m.email || '').toLowerCase()}_${(m.role || 'ppl').toLowerCase()}`;
           localMap.set(key, m);
+          if (m.sobatId) localMap.set(m.sobatId, m);
           if (m.email) localMap.set(m.email.toLowerCase(), m);
+          if (m.nama) localMap.set(m.nama.toLowerCase(), m);
         });
 
         const unsyncedToPush: MitraRecord[] = [];
 
         incomingData = incomingData.map(apiItem => {
           const key = apiItem.id || `${(apiItem.email || '').toLowerCase()}_${(apiItem.role || 'ppl').toLowerCase()}`;
-          const localItem = localMap.get(key) || (apiItem.email ? localMap.get(apiItem.email.toLowerCase()) : undefined);
+          const localItem = localMap.get(key) || (apiItem.sobatId ? localMap.get(apiItem.sobatId) : undefined) || (apiItem.email ? localMap.get(apiItem.email.toLowerCase()) : undefined) || (apiItem.nama ? localMap.get(apiItem.nama.toLowerCase()) : undefined);
 
           if (localItem && (localItem.nilai !== null && localItem.nilai !== undefined || (localItem.catatan && localItem.catatan.trim().length >= 10))) {
             if (apiItem.nilai === null || apiItem.nilai === undefined || !apiItem.catatan || apiItem.catatan.trim() === '') {
@@ -1082,7 +1716,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                 ...apiItem,
                 nilai: localItem.nilai !== null && localItem.nilai !== undefined ? localItem.nilai : apiItem.nilai,
                 kategori: localItem.kategori || apiItem.kategori || getKategoriFromNilai(localItem.nilai),
-                catatan: localItem.catatan || apiItem.catatan || ''
+                catatan: (localItem.catatan && localItem.catatan.trim()) ? localItem.catatan : (apiItem.catatan || '')
               };
               unsyncedToPush.push(combinedItem);
               return combinedItem;
@@ -1112,7 +1746,9 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         incomingData.forEach(m => {
           const key = m.id || `${(m.email || '').toLowerCase()}_${(m.role || 'ppl').toLowerCase()}`;
           incomingMap.set(key, m);
+          if (m.sobatId) incomingMap.set(m.sobatId, m);
           if (m.email) incomingMap.set(m.email.toLowerCase(), m);
+          if (m.nama) incomingMap.set(m.nama.toLowerCase(), m);
         });
 
         const baselineKeys = new Set<string>();
@@ -1121,9 +1757,15 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
           baselineKeys.add(key);
           if (b.sobatId) baselineKeys.add(b.sobatId);
           if (b.email) baselineKeys.add(b.email.toLowerCase());
+          if (b.nama) baselineKeys.add(b.nama.toLowerCase());
 
-          const existing = incomingMap.get(key) || (b.sobatId ? incomingMap.get(b.sobatId) : null) || (incomingData.length === 243 && b.email.toLowerCase() === 'denok8881@gmail.com' ? null : incomingMap.get(b.email.toLowerCase()));
+          const existing = incomingMap.get(key) || (b.sobatId ? incomingMap.get(b.sobatId) : null) || (b.email ? incomingMap.get(b.email.toLowerCase()) : null) || (b.nama ? incomingMap.get(b.nama.toLowerCase()) : null);
           if (existing) {
+            // Pemulihan cerdas: Jika nilai incoming kosong tapi baseline memiliki nilai dari data backup, pertahankan baseline
+            const finalNilai = (existing.nilai !== undefined && existing.nilai !== null) ? existing.nilai : b.nilai;
+            const finalCatatan = (existing.catatan && existing.catatan.trim()) ? existing.catatan : (b.catatan || '');
+            const finalKategori = existing.kategori || b.kategori || getKategoriFromNilai(finalNilai);
+
             return {
               ...b,
               ...existing,
@@ -1157,9 +1799,9 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
               role: existing.role || b.role,
               pj: existing.pj && existing.pj !== '-' ? existing.pj : b.pj,
               kecamatan: existing.kecamatan && existing.kecamatan !== '-' ? existing.kecamatan : b.kecamatan,
-              nilai: existing.nilai !== undefined && existing.nilai !== null ? existing.nilai : b.nilai,
-              kategori: existing.kategori || b.kategori,
-              catatan: existing.catatan || b.catatan || ''
+              nilai: finalNilai,
+              kategori: finalKategori,
+              catatan: finalCatatan
             };
           }
           return b;
@@ -1180,11 +1822,38 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         merged = incomingData;
       }
 
-      // Bersihkan cache lama dan simpan cache v4 (388 mitra dengan evaluasi dan alamat lengkap)
-      localStorage.removeItem('garda_mitra_cache');
-      localStorage.removeItem('garda_mitra_cache_v2');
-      localStorage.removeItem('garda_mitra_cache_v3');
+      // 4. Selaraskan nilai & catatan untuk baris duplikat agar data penilaian tidak tampak hilang
+      const evaluatedByName = new Map<string, { nilai: number; kategori: string; catatan: string; penilai: any }>();
+      merged.forEach(m => {
+        if (m.nilai !== null && m.nilai !== undefined && m.nama) {
+          evaluatedByName.set(m.nama.trim().toLowerCase(), {
+            nilai: m.nilai,
+            kategori: m.kategori || getKategoriFromNilai(m.nilai) || '',
+            catatan: m.catatan || '',
+            penilai: m.penilai
+          });
+        }
+      });
+
+      merged = merged.map(m => {
+        if ((m.nilai === null || m.nilai === undefined) && m.nama) {
+          const evalFound = evaluatedByName.get(m.nama.trim().toLowerCase());
+          if (evalFound) {
+            return {
+              ...m,
+              nilai: evalFound.nilai,
+              kategori: evalFound.kategori,
+              catatan: m.catatan || evalFound.catatan,
+              penilai: m.penilai || evalFound.penilai
+            };
+          }
+        }
+        return m;
+      });
+
+      // Simpan cache v4 dan v3 untuk kompatibilitas penuh
       localStorage.setItem('garda_mitra_cache_v4', JSON.stringify(merged));
+      localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(merged));
       setMitraList(merged);
     } catch (err) {
       console.error('Error in fetchMitraData:', err);
@@ -1210,9 +1879,11 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     return Array.from(s).sort();
   }, [mitraList]);
 
-  // Statistik & Monitoring KPI
+  // Statistik & Monitoring KPI (Duplikat hanya dihitung 1 mitra)
   const stats = useMemo(() => {
-    const total = mitraList.length;
+    const uniqueMitras = mitraList.filter(m => !m.isDuplicate);
+    const total = uniqueMitras.length;
+    const totalDuplicates = mitraList.filter(m => m.isDuplicate).length;
     let evaluated = 0;
     let totalScore = 0;
     let countSangat = 0;
@@ -1220,7 +1891,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     let countCukup = 0;
     let countBlacklist = 0;
 
-    mitraList.forEach(m => {
+    uniqueMitras.forEach(m => {
       if (m.nilai !== null && m.nilai !== undefined && !isNaN(m.nilai)) {
         evaluated++;
         totalScore += m.nilai;
@@ -1237,6 +1908,8 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
     return {
       total,
+      totalDuplicates,
+      totalAllRecords: mitraList.length,
       evaluated,
       pending,
       countPending: pending,
@@ -1296,20 +1969,79 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     }).sort((a, b) => b.total - a.total || a.pj.localeCompare(b.pj));
   }, [mitraList]);
 
-  // Filter Data Mitra
+  // Rekapitulasi progres per Kecamatan (Duplikat hanya dihitung 1 mitra)
+  const kecMonitoringData = useMemo(() => {
+    const map: Record<string, {
+      kecamatan: string;
+      totalUnik: number;
+      totalDuplikat: number;
+      evaluated: number;
+      pending: number;
+      pjs: Set<string>;
+      desas: Set<string>;
+      totalScore: number;
+    }> = {};
+
+    mitraList.forEach(m => {
+      const k = m.kecamatan || 'Kecamatan Lainnya';
+      if (!map[k]) {
+        map[k] = { kecamatan: k, totalUnik: 0, totalDuplikat: 0, evaluated: 0, pending: 0, pjs: new Set(), desas: new Set(), totalScore: 0 };
+      }
+      if (m.pj) map[k].pjs.add(m.pj);
+      if (m.desa) map[k].desas.add(m.desa);
+
+      if (m.isDuplicate) {
+        map[k].totalDuplikat++;
+      } else {
+        map[k].totalUnik++;
+        if (m.nilai !== null && m.nilai !== undefined && !isNaN(m.nilai)) {
+          map[k].evaluated++;
+          map[k].totalScore += m.nilai;
+        } else {
+          map[k].pending++;
+        }
+      }
+    });
+
+    return Object.values(map).map(item => {
+      const pct = item.totalUnik > 0 ? Math.round((item.evaluated / item.totalUnik) * 100) : 0;
+      const avg = item.evaluated > 0 ? (item.totalScore / item.evaluated).toFixed(1) : '-';
+      return {
+        kecamatan: item.kecamatan,
+        totalUnik: item.totalUnik,
+        totalDuplikat: item.totalDuplikat,
+        evaluated: item.evaluated,
+        pending: item.pending,
+        percent: pct,
+        avg,
+        pjs: Array.from(item.pjs).join(', '),
+        totalDesa: item.desas.size,
+        status: pct === 100 ? 'Selesai' : (pct > 0 ? 'Sedang Berjalan' : 'Belum Mulai')
+      };
+    }).sort((a, b) => b.totalUnik - a.totalUnik || a.kecamatan.localeCompare(b.kecamatan));
+  }, [mitraList]);
+
+  // Filter Data Mitra (Mendukung filter status belum dinilai/sudah dinilai & status duplikat)
   const filteredMitra = useMemo(() => {
     return mitraList.filter(m => {
+      // 1. Filter Duplikat
+      if (selectedDuplicateFilter === 'exclude' && m.isDuplicate) return false;
+      if (selectedDuplicateFilter === 'only' && !m.isDuplicate) return false;
+
+      // 2. Filter PJ & Kecamatan
       const matchPj = selectedPjFilter === 'all' || m.pj === selectedPjFilter;
       const matchKec = selectedKecFilter === 'all' || m.kecamatan === selectedKecFilter;
       
+      // 3. Filter Status Penilaian
       let matchStatus = true;
-      if (selectedStatusFilter === 'evaluated') matchStatus = m.nilai !== null && m.nilai !== undefined;
-      else if (selectedStatusFilter === 'pending') matchStatus = m.nilai === null || m.nilai === undefined;
+      if (selectedStatusFilter === 'evaluated') matchStatus = m.nilai !== null && m.nilai !== undefined && !isNaN(m.nilai);
+      else if (selectedStatusFilter === 'pending') matchStatus = m.nilai === null || m.nilai === undefined || isNaN(m.nilai);
       else if (selectedStatusFilter === 'sangat') matchStatus = (m.nilai || 0) >= 90;
       else if (selectedStatusFilter === 'direkom') matchStatus = (m.nilai || 0) >= 80 && (m.nilai || 0) < 90;
       else if (selectedStatusFilter === 'cukup') matchStatus = (m.nilai || 0) >= 60 && (m.nilai || 0) < 80;
       else if (selectedStatusFilter === 'blacklist') matchStatus = m.nilai !== null && (m.nilai || 0) < 60;
 
+      // 4. Pencarian teks
       let matchQuery = true;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -1319,16 +2051,45 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         const kec = (m.kecamatan || '').toLowerCase();
         const desa = (m.desa || '').toLowerCase();
         const pj = (m.pj || '').toLowerCase();
-        matchQuery = nama.includes(q) || email.includes(q) || sobat.includes(q) || kec.includes(q) || desa.includes(q) || pj.includes(q);
+        const detail = (m.alamatDetail || '').toLowerCase();
+        matchQuery = nama.includes(q) || email.includes(q) || sobat.includes(q) || kec.includes(q) || desa.includes(q) || pj.includes(q) || detail.includes(q);
       }
 
+      // 5. Filter Posisi / Peran
       const matchRole = selectedRoleFilter === 'all' || m.role === selectedRoleFilter;
 
       return matchPj && matchKec && matchStatus && matchRole && matchQuery;
     });
-  }, [mitraList, selectedPjFilter, selectedKecFilter, selectedStatusFilter, selectedRoleFilter, searchQuery]);
+  }, [mitraList, selectedPjFilter, selectedKecFilter, selectedStatusFilter, selectedRoleFilter, selectedDuplicateFilter, searchQuery]);
 
-  // Hierarchical Structure (Grup Level 1: PJ -> Grup Level 2: Kecamatan -> List Mitra)
+  // Hierarchical Structure Langsung Per Kecamatan (Grup Level 1: Kecamatan -> List Mitra)
+  const kecHierarchicalData = useMemo(() => {
+    const map: Record<string, MitraRecord[]> = {};
+
+    filteredMitra.forEach(m => {
+      const kec = m.kecamatan || 'Kecamatan Lainnya';
+      if (!map[kec]) map[kec] = [];
+      map[kec].push(m);
+    });
+
+    // Urutkan mitra di setiap kecamatan: mitra asli terlebih dahulu, lalu menurut desa, lalu nama
+    const sortedMap: Record<string, MitraRecord[]> = {};
+    Object.keys(map).sort().forEach(k => {
+      sortedMap[k] = [...map[k]].sort((a, b) => {
+        if (Boolean(a.isDuplicate) !== Boolean(b.isDuplicate)) {
+          return a.isDuplicate ? 1 : -1;
+        }
+        const desaA = a.desa || '';
+        const desaB = b.desa || '';
+        if (desaA !== desaB) return desaA.localeCompare(desaB);
+        return (a.nama || '').localeCompare(b.nama || '');
+      });
+    });
+
+    return sortedMap;
+  }, [filteredMitra]);
+
+  // Hierarchical Structure Lama (Grup Level 1: PJ -> Grup Level 2: Kecamatan -> List Mitra)
   const hierarchicalData = useMemo(() => {
     const pjMap: Record<string, Record<string, MitraRecord[]>> = {};
 
@@ -1439,7 +2200,8 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
       return next;
     });
 
-    // Update local cache v3
+    // Update local cache v4 & v3
+    localStorage.setItem('garda_mitra_cache_v4', JSON.stringify(mitraList));
     localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(mitraList));
     setTimeout(() => setSavingStatus(null), 2500);
 
@@ -1532,6 +2294,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
       return next;
     });
 
+    localStorage.setItem('garda_mitra_cache_v4', JSON.stringify(mitraList));
     localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(mitraList));
     setTimeout(() => setSavingStatus(null), 3000);
 
@@ -1546,6 +2309,131 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         { label: 'Total Mitra Tersimpan', val: `${itemsInPj.length} orang` },
         { label: 'Status Sinkronisasi', val: isServerOk ? 'Tersimpan di Database' : 'Tersimpan Lokal' },
         { label: 'Waktu Simpan', val: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB' }
+      ]
+    });
+  };
+
+  // Simpan semua nilai dalam 1 grup Kecamatan
+  const saveAllInKec = async (kecName: string) => {
+    const itemsInKec = mitraList.filter(m => (m.kecamatan || 'Kecamatan Lainnya') === kecName);
+    
+    // Validasi catatan minimal 10 karakter untuk mitra yang dinilai
+    const evaluatedItems = itemsInKec.filter(m => m.nilai !== null && m.nilai !== undefined);
+    const invalidItems = evaluatedItems.filter(m => (m.catatan || '').trim().length < 10);
+
+    if (invalidItems.length > 0) {
+      alert(`⚠️ Catatan kinerja wajib diisi minimal 10 karakter untuk seluruh mitra yang dinilai!\n\nTerdapat ${invalidItems.length} mitra dengan catatan kurang dari 10 karakter:\n${invalidItems.slice(0, 5).map(m => `• ${m.nama} (${(m.catatan || '').trim().length}/10 karakter)`).join('\n')}${invalidItems.length > 5 ? `\n...dan ${invalidItems.length - 5} mitra lainnya.` : ''}\n\nSilakan lengkapi catatan terlebih dahulu sebelum menyimpan.`);
+      return;
+    }
+
+    setSavingStatus(`Menyimpan ${itemsInKec.length} nilai Kecamatan ${kecName}...`);
+
+    const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+    const token = localStorage.getItem('navigasi_token');
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    let isServerOk = false;
+    try {
+      const res = await fetch(`${baseUrl}/api/mitra/bulk`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ items: itemsInKec })
+      });
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
+      isServerOk = true;
+      setSavingStatus(`✅ Berhasil menyimpan semua nilai & catatan Kec. ${kecName}`);
+    } catch (e) {
+      console.warn('Simpan massal offline ke cache:', e);
+      setSavingStatus(`✅ Tersimpan lokal (${itemsInKec.length} data)`);
+    }
+
+    // Bersihkan unsavedKeys untuk seluruh item di Kecamatan ini
+    setUnsavedKeys(prev => {
+      const next = new Set(prev);
+      itemsInKec.forEach(m => next.delete(getRecordKey(m)));
+      return next;
+    });
+
+    localStorage.setItem('garda_mitra_cache_v4', JSON.stringify(mitraList));
+    setTimeout(() => setSavingStatus(null), 3000);
+
+    // Tampilkan Pop Up notifikasi data telah tersimpan di database
+    setSaveSuccessPopup({
+      isOpen: true,
+      title: 'Data Berhasil Tersimpan di Database!',
+      badge: isServerOk ? `Database MySQL: Kec. ${kecName}` : 'Tersimpan ke Cache',
+      message: `Seluruh data penilaian (${itemsInKec.length} mitra) untuk Kecamatan ${kecName} telah berhasil disimpan ke database.`,
+      details: [
+        { label: 'Kecamatan', val: kecName },
+        { label: 'Total Mitra Tersimpan', val: `${itemsInKec.length} orang` },
+        { label: 'Status Sinkronisasi', val: isServerOk ? 'Tersimpan di Database' : 'Tersimpan Lokal' },
+        { label: 'Waktu Simpan', val: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB' }
+      ]
+    });
+  };
+
+  // Simpan data diri mitra & status duplikasi (Khusus Admin)
+  const handleSaveMitraProfile = async (updated: MitraRecord) => {
+    setIsSavingProfile(true);
+    const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+    const token = localStorage.getItem('navigasi_token');
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const identifier = updated.id || updated.sobatId || updated.email;
+    let isServerOk = false;
+
+    try {
+      const res = await fetch(`${baseUrl}/api/mitra/${encodeURIComponent(identifier)}/profile`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updated)
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `HTTP ${res.status}`);
+      }
+      isServerOk = true;
+    } catch (e: any) {
+      console.warn('Gagal simpan profil ke server, menyimpan ke lokal cache:', e);
+    }
+
+    // Update state mitraList
+    setMitraList(prev => {
+      const next = prev.map(m => {
+        const keyM = m.id || m.sobatId || `${(m.email || '').toLowerCase()}_${(m.role || 'ppl').toLowerCase()}`;
+        const keyUp = updated.id || updated.sobatId || `${(updated.email || '').toLowerCase()}_${(updated.role || 'ppl').toLowerCase()}`;
+        if (keyM === keyUp || (m.sobatId && m.sobatId === updated.sobatId) || (m.email && m.email.toLowerCase() === (updated.email || '').toLowerCase() && m.role === updated.role)) {
+          return { ...m, ...updated };
+        }
+        return m;
+      });
+      localStorage.setItem('garda_mitra_cache_v4', JSON.stringify(next));
+      return next;
+    });
+
+    setIsSavingProfile(false);
+    setEditingMitraForProfile(null);
+
+    // Jika sedang membuka detail mitra, perbarui juga state detail
+    if (selectedMitraForDetail && (selectedMitraForDetail.id === updated.id || selectedMitraForDetail.sobatId === updated.sobatId || selectedMitraForDetail.email === updated.email)) {
+      setSelectedMitraForDetail(updated);
+    }
+
+    setSaveSuccessPopup({
+      isOpen: true,
+      title: 'Data Diri Mitra Berhasil Diperbarui!',
+      badge: isServerOk ? 'Database MySQL Tersinkron' : 'Tersimpan ke Cache Lokal',
+      message: `Profil data diri dan status duplikasi untuk "${updated.nama}" telah berhasil diperbarui${updated.isDuplicate ? ' (Ditandai sebagai Mitra Duplikat - Terhitung 1 mitra)' : ''}.`,
+      details: [
+        { label: 'Nama Mitra', val: updated.nama },
+        { label: 'SOBAT ID', val: updated.sobatId || '-' },
+        { label: 'Kecamatan', val: updated.kecamatan || '-' },
+        { label: 'Desa', val: updated.desa || '-' },
+        { label: 'Status Duplikat', val: updated.isDuplicate ? `Ya (Rujukan: ${updated.duplicateOf || 'Master'})` : 'Bukan Duplikat (Data Asli)' }
       ]
     });
   };
@@ -2048,6 +2936,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
     });
 
     const merged = Array.from(recordMap.values());
+    localStorage.setItem('garda_mitra_cache_v4', JSON.stringify(merged));
     localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(merged));
     setMitraList(merged);
 
@@ -2068,6 +2957,91 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         { label: 'Status Sinkronisasi', val: 'Database & Cache Tersinkron' }
       ]
     });
+  };
+
+  // 6. Pulihkan Nilai dan Keterangan Kinerja Mitra dari Data Backup Resmi
+  const handleRestoreFromBackup = async () => {
+    if (!confirm('Pulihkan seluruh nilai dan keterangan kinerja mitra yang hilang dari data backup cadangan resmi?')) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/data/initial_mitra_se2026.json?t=${Date.now()}`);
+      if (!res.ok) throw new Error('Gagal memuat berkas cadangan data');
+      const payload = await res.json();
+      let backupList: MitraRecord[] = [];
+      if (payload && (payload.algo === 'AES-256-GCM' || payload.data)) {
+        backupList = await decryptMilitaryPayload<MitraRecord[]>(payload);
+      } else if (Array.isArray(payload)) {
+        backupList = payload;
+      }
+
+      if (!backupList || backupList.length === 0) {
+        alert('Data backup cadangan tidak ditemukan.');
+        return;
+      }
+
+      // Buat pemetaan evaluasi dari backup
+      const evalBySobat = new Map<string, MitraRecord>();
+      const evalByEmail = new Map<string, MitraRecord>();
+      const evalByName = new Map<string, MitraRecord>();
+
+      backupList.forEach(b => {
+        if (b.nilai !== null && b.nilai !== undefined || (b.catatan && b.catatan.trim())) {
+          if (b.sobatId) evalBySobat.set(b.sobatId, b);
+          if (b.email) evalByEmail.set(b.email.toLowerCase().trim(), b);
+          if (b.nama) evalByName.set(b.nama.toLowerCase().trim(), b);
+        }
+      });
+
+      let recoveredCount = 0;
+      const updated = mitraList.map(m => {
+        const sobat = m.sobatId;
+        const email = (m.email || '').toLowerCase().trim();
+        const nama = (m.nama || '').toLowerCase().trim();
+
+        const b = (sobat ? evalBySobat.get(sobat) : null) || evalByEmail.get(email) || evalByName.get(nama);
+        if (b) {
+          const needNilai = m.nilai === null || m.nilai === undefined;
+          const needCatatan = !m.catatan || !m.catatan.trim();
+
+          if (needNilai || (needCatatan && b.catatan)) {
+            recoveredCount++;
+            return {
+              ...m,
+              nilai: m.nilai !== null && m.nilai !== undefined ? m.nilai : b.nilai,
+              kategori: m.kategori || b.kategori || getKategoriFromNilai(b.nilai),
+              catatan: (m.catatan && m.catatan.trim()) ? m.catatan : (b.catatan || ''),
+              penilai: m.penilai || b.penilai || 'Admin'
+            };
+          }
+        }
+        return m;
+      });
+
+      // Simpan ke cache lokal
+      localStorage.setItem('garda_mitra_cache_v4', JSON.stringify(updated));
+      localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(updated));
+      setMitraList(updated);
+
+      // PUSH ke server jika online
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const token = localStorage.getItem('navigasi_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (baseUrl) {
+        fetch(`${baseUrl}/api/mitra/bulk`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ items: updated.filter(u => u.nilai !== null && u.nilai !== undefined) })
+        }).catch(err => console.warn('Background sync after restore failed:', err));
+      }
+
+      alert(`✅ Berhasil memulihkan ${recoveredCount} data penilaian dan keterangan kinerja mitra dari cadangan backup!`);
+    } catch (e: any) {
+      console.error(e);
+      alert('Gagal memulihkan data: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -2138,7 +3112,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
             }`}
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Form Penilaian (Per PJ)</span>
+            <span>Form Penilaian (Per Kecamatan)</span>
           </button>
         </div>
 
@@ -2182,7 +3156,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
               transition={{ duration: 0.2 }}
               className="border-t border-slate-100 bg-slate-50/50 p-5"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 
                 {/* Opsi 1: Import & Pembaruan Data */}
                 <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
@@ -2267,6 +3241,34 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                   </div>
                 </div>
 
+                {/* Opsi 3: Pulihkan Nilai & Keterangan dari Backup Cadangan */}
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-orange-200/80 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <RotateCcw className="w-4 h-4 text-orange-600" />
+                      <h4 className="font-black text-xs text-slate-800 uppercase tracking-wider">
+                        Pulihkan Data Penilaian dari Backup
+                      </h4>
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed mb-3">
+                      Pulihkan nilai dan catatan kualitatif kinerja mitra yang hilang secara otomatis dari basis data cadangan resmi SE2026.
+                    </p>
+                    <div className="p-2.5 rounded-xl bg-orange-50 border border-orange-200/70 mb-4 text-[11px] text-orange-800 leading-relaxed">
+                      🛡️ <strong>Jaminan Keamanan:</strong> Menyelaraskan seluruh evaluasi dan keterangan kualitatif bagi 70 mitra yang telah dievaluasi, termasuk data duplikat dan penugasan khusus.
+                    </div>
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={handleRestoreFromBackup}
+                      className="w-full py-2.5 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4 shrink-0" />
+                      <span>Pulihkan Nilai & Catatan Sekarang</span>
+                    </button>
+                  </div>
+                </div>
+
               </div>
             </motion.div>
           )}
@@ -2280,9 +3282,15 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Mitra</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Mitra Unik</p>
               <p className="text-2xl sm:text-3xl font-black text-slate-900">{stats.total}</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">PML & PPL SE2026</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {stats.totalDuplicates > 0 ? (
+                  <span className="text-amber-600 font-bold">+{stats.totalDuplicates} duplikat (1x dihitung)</span>
+                ) : (
+                  'PML & PPL SE2026'
+                )}
+              </p>
             </div>
             <div className="p-3 bg-slate-100 text-slate-700 rounded-2xl">
               <Users className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -2293,7 +3301,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sudah Dinilai</p>
               <p className="text-2xl sm:text-3xl font-black text-emerald-600">{stats.evaluated}</p>
-              <p className="text-[11px] font-bold text-emerald-600 mt-0.5">{stats.evaluatedPercent}% dari total</p>
+              <p className="text-[11px] font-bold text-emerald-600 mt-0.5">{stats.evaluatedPercent}% dari total unik</p>
             </div>
             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
               <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -2304,7 +3312,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Belum Dinilai</p>
               <p className="text-2xl sm:text-3xl font-black text-amber-500">{stats.pending}</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Perlu evaluasi PJ</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Perlu evaluasi</p>
             </div>
             <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
               <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -2323,7 +3331,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
           </div>
         </div>
 
-        {/* Visual Kategori Kinerja & Tombol Monitoring PJ */}
+        {/* Visual Kategori Kinerja & Tombol Monitoring Wilayah */}
         <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div>
@@ -2331,17 +3339,28 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                 <BarChart3 className="w-4 h-4 text-primary-600" />
                 Distribusi Mutu & Rekomendasi Kinerja Mitra
               </h3>
-              <p className="text-xs text-slate-500">Rentang nilai penilaian mitra yang telah terisi</p>
+              <p className="text-xs text-slate-500">Rentang nilai penilaian mitra yang telah terisi (duplikat dihitung 1)</p>
             </div>
 
-            {/* Tombol Tabel Monitoring Pengisian Nilai per PJ SE2026 */}
-            <button
-              onClick={() => setShowPjModal(true)}
-              className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all active:scale-95"
-            >
-              <UserCheck className="w-4 h-4" />
-              <span>Tabel Monitoring per PJ SE2026 ({pjMonitoringData.length} PJ)</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Tombol Tabel Monitoring Pengisian Nilai per Kecamatan */}
+              <button
+                onClick={() => setShowKecModal(true)}
+                className="px-4 py-2 bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+              >
+                <MapPin className="w-4 h-4" />
+                <span>Monitoring per Kecamatan ({kecMonitoringData.length} Kec)</span>
+              </button>
+
+              {/* Tombol Tabel Monitoring Pengisian Nilai per PJ SE2026 */}
+              <button
+                onClick={() => setShowPjModal(true)}
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer border border-slate-200"
+              >
+                <UserCheck className="w-3.5 h-3.5 text-slate-600" />
+                <span>Monitoring per PJ ({pjMonitoringData.length})</span>
+              </button>
+            </div>
           </div>
 
           {/* Bar Distribusi Kategori */}
@@ -2553,14 +3572,28 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
             prefix="Status: "
           />
 
+          {/* Filter Status Duplikat */}
+          <SmoothSelect
+            value={selectedDuplicateFilter}
+            onChange={(val: any) => setSelectedDuplicateFilter(val)}
+            options={[
+              { value: 'all', label: `Semua Data (${stats.totalAllRecords || mitraList.length})` },
+              { value: 'exclude', label: `Hanya Data Asli (${stats.total})` },
+              { value: 'only', label: `Hanya Duplikat (${stats.totalDuplicates})` }
+            ]}
+            placeholder="Duplikat: Semua"
+            prefix="Duplikat: "
+          />
+
           {/* Reset Filter Button */}
-          {(selectedPjFilter !== 'all' || selectedKecFilter !== 'all' || selectedRoleFilter !== 'all' || selectedStatusFilter !== 'all' || searchQuery) && (
+          {(selectedPjFilter !== 'all' || selectedKecFilter !== 'all' || selectedRoleFilter !== 'all' || selectedStatusFilter !== 'all' || selectedDuplicateFilter !== 'all' || searchQuery) && (
             <button
               onClick={() => {
                 setSelectedPjFilter('all');
                 setSelectedKecFilter('all');
                 setSelectedRoleFilter('all');
                 setSelectedStatusFilter('all');
+                setSelectedDuplicateFilter('all');
                 setSearchQuery('');
               }}
               className="p-2 text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
@@ -2573,324 +3606,422 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
 
       </div>
 
-      {/* FORM PENILAIAN HIERARKIS: LEVEL 1 (PJ) -> LEVEL 2 (KECAMATAN) -> LEVEL 3 (MITRA) */}
+      {/* QUICK STATUS FILTER PILLS (Belum Dinilai, Sudah Dinilai, Semua, Duplikat) */}
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedStatusFilter('all');
+            setSelectedDuplicateFilter('all');
+          }}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            selectedStatusFilter === 'all' && selectedDuplicateFilter === 'all'
+              ? 'bg-slate-900 text-white shadow-sm ring-2 ring-slate-400'
+              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+          }`}
+        >
+          <span>Semua Mitra</span>
+          <span className="font-mono text-[11px] opacity-80">({stats.total})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedStatusFilter('pending');
+            setSelectedDuplicateFilter('all');
+          }}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            selectedStatusFilter === 'pending'
+              ? 'bg-amber-500 text-white shadow-sm ring-2 ring-amber-300'
+              : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200'
+          }`}
+        >
+          <span>⏳ Belum Dinilai</span>
+          <span className="font-mono text-[11px] font-black">({stats.pending})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedStatusFilter('evaluated');
+            setSelectedDuplicateFilter('all');
+          }}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            selectedStatusFilter === 'evaluated'
+              ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-300'
+              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
+          }`}
+        >
+          <span>✅ Sudah Dinilai</span>
+          <span className="font-mono text-[11px] font-black">({stats.evaluated})</span>
+        </button>
+
+        {stats.totalDuplicates > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDuplicateFilter(selectedDuplicateFilter === 'only' ? 'all' : 'only');
+            }}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              selectedDuplicateFilter === 'only'
+                ? 'bg-purple-600 text-white shadow-sm ring-2 ring-purple-300'
+                : 'bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200'
+            }`}
+          >
+            <span>🔁 Data Duplikat</span>
+            <span className="font-mono text-[11px] font-black">({stats.totalDuplicates})</span>
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={handleRestoreFromBackup}
+          className="ml-auto px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 bg-orange-50 hover:bg-orange-100 text-orange-800 border border-orange-200 shadow-2xs"
+          title="Pulihkan seluruh data penilaian dan keterangan kinerja mitra dari cadangan backup resmi SE2026"
+        >
+          <RotateCcw className="w-3.5 h-3.5 text-orange-600" />
+          <span>Pulihkan Nilai Backup</span>
+        </button>
+      </div>
+
+      {/* FORM PENILAIAN LANGSUNG PER KECAMATAN */}
       <div className="space-y-4">
         {loading ? (
           <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center">
             <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-3"></div>
             <p className="font-bold text-slate-700 text-sm">Memuat Data Mitra & Penilaian...</p>
           </div>
-        ) : Object.keys(hierarchicalData).length === 0 ? (
+        ) : Object.keys(kecHierarchicalData).length === 0 ? (
           <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center">
             <p className="text-slate-400 font-bold text-sm">Tidak ada mitra yang cocok dengan filter pencarian.</p>
             <button
               onClick={() => {
                 setSelectedPjFilter('all');
                 setSelectedKecFilter('all');
+                setSelectedRoleFilter('all');
                 setSelectedStatusFilter('all');
+                setSelectedDuplicateFilter('all');
                 setSearchQuery('');
               }}
-              className="mt-3 px-4 py-2 bg-primary-600 text-white font-bold rounded-xl text-xs hover:bg-primary-700"
+              className="mt-3 px-4 py-2 bg-primary-600 text-white font-bold rounded-xl text-xs hover:bg-primary-700 cursor-pointer"
             >
               Reset Filter
             </button>
           </div>
         ) : (
           <>
-            {/* Kontrol Buka/Tutup Semua Akordeon PJ (Default: HIDE / COLLAPSED) */}
+            {/* Kontrol Buka/Tutup Semua Akordeon Kecamatan (Default: Terbuka) */}
             <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-1">
               <span className="text-xs font-bold text-slate-500">
-                Pengelompokan menurut Penanggung Jawab ({Object.keys(hierarchicalData).length} PJ)
+                Pengelompokan Langsung per Kecamatan ({Object.keys(kecHierarchicalData).length} Kecamatan)
               </span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     const allOpen: Record<string, boolean> = {};
-                    Object.keys(hierarchicalData).forEach(p => { allOpen[p] = true; });
-                    setExpandedPjs(allOpen);
+                    Object.keys(kecHierarchicalData).forEach(k => { allOpen[k] = true; });
+                    setExpandedKecs(allOpen);
                   }}
                   className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                 >
                   <ChevronDown className="w-3.5 h-3.5 text-primary-600" />
-                  <span>Buka Semua PJ</span>
+                  <span>Buka Semua Kecamatan</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setExpandedPjs({})}
+                  onClick={() => {
+                    const allClosed: Record<string, boolean> = {};
+                    Object.keys(kecHierarchicalData).forEach(k => { allClosed[k] = false; });
+                    setExpandedKecs(allClosed);
+                  }}
                   className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                 >
                   <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Tutup Semua PJ</span>
+                  <span>Tutup Semua Kecamatan</span>
                 </button>
               </div>
             </div>
 
-            {Object.entries(hierarchicalData).map(([pjName, kecMap]) => {
-              // Hitung total mitra & yang sudah dinilai pada PJ ini
-              let totalInPj = 0;
-              let evaluatedInPj = 0;
-              Object.values(kecMap).forEach(list => {
-                totalInPj += list.length;
-                list.forEach(m => {
-                  if (m.nilai !== null && m.nilai !== undefined) evaluatedInPj++;
-                });
-              });
-              const pctInPj = totalInPj > 0 ? Math.round((evaluatedInPj / totalInPj) * 100) : 0;
-              const isExpanded = expandedPjs[pjName] === true; // Default HIDE / COLLAPSED
+            {Object.entries(kecHierarchicalData).map(([kecName, mitras]) => {
+              // Hitung statistik di dalam kecamatan (Duplikat hanya dihitung 1)
+              const uniqueInKec = mitras.filter(m => !m.isDuplicate).length;
+              const dupInKec = mitras.filter(m => m.isDuplicate).length;
+              const evaluatedInKec = mitras.filter(m => !m.isDuplicate && m.nilai !== null && m.nilai !== undefined && !isNaN(m.nilai)).length;
+              const pctInKec = uniqueInKec > 0 ? Math.round((evaluatedInKec / uniqueInKec) * 100) : 0;
+              const isExpanded = expandedKecs[kecName] !== false; // Default: Terbuka
+              const hasUnsavedInKec = mitras.some(m => unsavedKeys.has(getRecordKey(m)));
+              const desasInKec = Array.from(new Set(mitras.map(m => m.desa).filter(Boolean)));
 
               return (
                 <div 
-                  key={pjName} 
+                  key={kecName} 
                   className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden transition-all"
                 >
-                {/* GRUP LEVEL 1: NAMA PJ SE2026 */}
-                <div 
-                  className="p-4 sm:p-5 bg-gradient-to-r from-slate-50 to-orange-50/40 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none"
-                  onClick={() => setExpandedPjs(p => ({ ...p, [pjName]: !isExpanded }))}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-2xl bg-orange-100 text-orange-700 font-bold shrink-0">
-                      <UserCheck className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-orange-700 bg-orange-100/70 px-2 py-0.5 rounded-md">
-                          PJ SE2026
-                        </span>
-                        <h3 className="font-black text-base text-slate-900 tracking-tight">
-                          {pjName}
-                        </h3>
+                  {/* HEADER KECAMATAN */}
+                  <div 
+                    className="p-4 sm:p-5 bg-gradient-to-r from-slate-50 via-primary-50/30 to-indigo-50/30 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none"
+                    onClick={() => setExpandedKecs(p => ({ ...p, [kecName]: isExpanded ? false : true }))}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-2xl bg-primary-100 text-primary-700 font-bold shrink-0">
+                        <MapPin className="w-5 h-5" />
                       </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {totalInPj} Mitra Lapangan • {Object.keys(kecMap).length} Kecamatan
-                      </p>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-primary-700 bg-primary-100/70 px-2 py-0.5 rounded-md">
+                            Wilayah Kecamatan
+                          </span>
+                          <h3 className="font-black text-base text-slate-900 tracking-tight">
+                            Kecamatan {kecName}
+                          </h3>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {uniqueInKec} Mitra Unik {dupInKec > 0 ? `(+ ${dupInKec} Duplikat)` : ''} • {desasInKec.length} Desa Terdaftar
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Progres & Tombol Aksi Kecamatan */}
+                    <div className="flex items-center gap-3 self-end sm:self-auto" onClick={(e) => e.stopPropagation()}>
+                      <div className="text-right hidden sm:block">
+                        <p className="text-xs font-bold text-slate-700">
+                          {evaluatedInKec} / {uniqueInKec} Dinilai
+                        </p>
+                        <div className="w-28 h-1.5 bg-slate-200 rounded-full mt-1 overflow-hidden">
+                          <div 
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                            style={{ width: `${pctInKec}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => saveAllInKec(kecName)}
+                        className={`px-3 py-1.5 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer ${
+                          hasUnsavedInKec
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md ring-2 ring-emerald-300 animate-pulse'
+                            : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                        }`}
+                        title="Simpan Semua Nilai Kecamatan Ini ke Database"
+                      >
+                        <Save className={`w-3.5 h-3.5 ${hasUnsavedInKec ? 'text-white' : 'text-primary-600'}`} />
+                        <span className="hidden sm:inline">{hasUnsavedInKec ? 'Simpan Kecamatan (Ada Perubahan)' : 'Simpan Kecamatan'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setExpandedKecs(p => ({ ...p, [kecName]: isExpanded ? false : true }))}
+                        className="p-1.5 rounded-xl hover:bg-slate-200/60 text-slate-500"
+                      >
+                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                      </button>
                     </div>
                   </div>
 
-                    {/* Progres & Tombol Aksi PJ */}
-                    {(() => {
-                      const hasUnsavedInPj = Object.values(kecMap).some(list => list.some(m => unsavedKeys.has(getRecordKey(m))));
-                      return (
-                        <div className="flex items-center gap-3 self-end sm:self-auto" onClick={(e) => e.stopPropagation()}>
-                          <div className="text-right hidden sm:block">
-                            <p className="text-xs font-bold text-slate-700">
-                              {evaluatedInPj} / {totalInPj} Dinilai
-                            </p>
-                            <div className="w-28 h-1.5 bg-slate-200 rounded-full mt-1 overflow-hidden">
-                              <div 
-                                className="h-full bg-emerald-500 rounded-full transition-all duration-300"
-                                style={{ width: `${pctInPj}%` }}
-                              ></div>
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => saveAllInPj(pjName)}
-                            className={`px-3 py-1.5 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer ${
-                              hasUnsavedInPj
-                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md ring-2 ring-emerald-300 animate-pulse'
-                                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
-                            }`}
-                            title="Simpan Semua Nilai PJ Ini ke Database"
-                          >
-                            <Save className={`w-3.5 h-3.5 ${hasUnsavedInPj ? 'text-white' : 'text-primary-600'}`} />
-                            <span className="hidden sm:inline">{hasUnsavedInPj ? 'Simpan PJ (Ada Perubahan)' : 'Simpan PJ'}</span>
-                          </button>
-
-                          <button
-                            onClick={() => setExpandedPjs(p => ({ ...p, [pjName]: !isExpanded }))}
-                            className="p-1.5 rounded-xl hover:bg-slate-200/60 text-slate-500"
-                          >
-                            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                          </button>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* GRUP LEVEL 2: KECAMATAN */}
+                  {/* TABEL DAFTAR MITRA DI KECAMATAN */}
                   <AnimatePresence>
                     {isExpanded && (
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="p-4 sm:p-5 space-y-5"
+                        className="p-4 sm:p-5"
                       >
-                        {Object.entries(kecMap).map(([kecName, mitras]) => (
-                          <div key={kecName} className="space-y-3">
-                            {/* Sub-Header Kecamatan */}
-                            <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
-                              <span className="w-2 h-2 rounded-full bg-primary-500"></span>
-                              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600">
-                                Kecamatan {kecName}
-                              </h4>
-                              <span className="text-[10px] text-slate-400 font-bold font-mono">
-                                ({mitras.length} Mitra)
-                              </span>
-                            </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                <th className="py-2.5 px-3">Nama Mitra &amp; Jabatan</th>
+                                <th className="py-2.5 px-3">Desa / Domisili</th>
+                                <th className="py-2.5 px-3">PJ SE2026</th>
+                                <th className="py-2.5 px-3 w-32 text-center">Nilai (0–100 Bulat)</th>
+                                <th className="py-2.5 px-3 w-40 text-center">Kategori Rekomendasi</th>
+                                <th className="py-2.5 px-3 min-w-[240px]">Catatan Kinerja (Min. 10 Karakter)</th>
+                                <th className="py-2.5 px-3 w-32 text-center">Aksi</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {mitras.map((m) => {
+                                const badge = getKategoriBadge(m.kategori);
+                                const itemKey = getRecordKey(m);
+                                const noteLength = (m.catatan || '').trim().length;
+                                const isUnsaved = unsavedKeys.has(itemKey);
+                                return (
+                                  <tr 
+                                    key={itemKey} 
+                                    className={`hover:bg-slate-50/70 transition-colors group ${
+                                      m.isDuplicate 
+                                        ? 'bg-amber-50/40 border-l-4 border-l-amber-400' 
+                                        : isUnsaved 
+                                          ? 'bg-amber-50/30' 
+                                          : ''
+                                    }`}
+                                  >
+                                    {/* Nama & Role & SOBAT ID & Duplikat Tag */}
+                                    <td className="py-3 px-3">
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => setSelectedMitraForDetail(m)}
+                                          className="font-bold text-slate-900 hover:text-primary-600 hover:underline cursor-pointer text-left transition-colors"
+                                          title="Klik untuk melihat data diri lengkap mitra"
+                                        >
+                                          {m.nama}
+                                        </button>
+                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                          m.role === 'PML' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-600'
+                                        }`}>
+                                          {m.role}
+                                        </span>
+                                        {m.isDuplicate && (
+                                          <span 
+                                            className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 flex items-center gap-1" 
+                                            title={m.duplicateOf ? `Duplikat dari master: ${m.duplicateOf}` : 'Data Duplikat (1x dihitung)'}
+                                          >
+                                            <span>🔁 Duplikat</span>
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-400 font-mono">
+                                        {m.sobatId && <span>ID: {m.sobatId} •</span>}
+                                        <span>{m.email}</span>
+                                      </div>
+                                    </td>
 
-                            {/* LEVEL 3: TABEL DAFTAR MITRA */}
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-left text-xs">
-                                <thead>
-                                  <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                                    <th className="py-2.5 px-3">Nama Mitra & Jabatan</th>
-                                    <th className="py-2.5 px-3 hidden lg:table-cell">Email</th>
-                                    <th className="py-2.5 px-3 w-32 text-center">Nilai (0–100 Bulat)</th>
-                                    <th className="py-2.5 px-3 w-40 text-center">Kategori Rekomendasi</th>
-                                    <th className="py-2.5 px-3 min-w-[260px]">Catatan Kinerja (Wajib, Min. 10 Karakter)</th>
-                                    <th className="py-2.5 px-3 w-28 text-center">Aksi</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                  {mitras.map((m) => {
-                                    const badge = getKategoriBadge(m.kategori);
-                                    const itemKey = getRecordKey(m);
-                                    const noteLength = (m.catatan || '').trim().length;
-                                    const isUnsaved = unsavedKeys.has(itemKey);
-                                    return (
-                                      <tr key={itemKey} className={`hover:bg-slate-50/70 transition-colors group ${isUnsaved ? 'bg-amber-50/30' : ''}`}>
-                                        {/* Nama & Role */}
-                                        <td className="py-3 px-3">
-                                          <div className="flex items-center gap-2">
-                                            <button
-                                              type="button"
-                                              onClick={() => setSelectedMitraForDetail(m)}
-                                              className="font-bold text-slate-900 hover:text-primary-600 hover:underline cursor-pointer text-left transition-colors"
-                                              title="Klik untuk melihat data diri lengkap mitra"
-                                            >
-                                              {m.nama}
-                                            </button>
-                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                                              m.role === 'PML' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-600'
+                                    {/* Desa & Domisili */}
+                                    <td className="py-3 px-3">
+                                      <span className="font-bold text-slate-800 text-[11px] block">{m.desa || '-'}</span>
+                                      {m.alamatDetail && (
+                                        <span className="text-[10px] text-slate-400 block truncate max-w-[200px]" title={m.alamatDetail}>
+                                          {m.alamatDetail}
+                                        </span>
+                                      )}
+                                    </td>
+
+                                    {/* PJ SE2026 */}
+                                    <td className="py-3 px-3">
+                                      <span className="font-semibold text-slate-700 text-xs block">{m.pj || '-'}</span>
+                                    </td>
+
+                                    {/* Input Nilai Bulat */}
+                                    <td className="py-3 px-3 text-center">
+                                      <div className="inline-flex items-center justify-center">
+                                        <input
+                                          type="number"
+                                          step="1"
+                                          min="0"
+                                          max="100"
+                                          placeholder="—"
+                                          value={m.nilai !== null && m.nilai !== undefined ? m.nilai : ''}
+                                          onChange={(e) => handleScoreChange(itemKey, e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E') {
+                                              e.preventDefault();
+                                            }
+                                          }}
+                                          className={`w-20 px-2 py-1.5 text-center font-black text-sm rounded-xl border outline-none transition-all ${
+                                            m.nilai !== null
+                                              ? 'bg-white border-primary-400 text-slate-900 shadow-xs focus:ring-2 focus:ring-primary-200'
+                                              : 'bg-slate-50 border-slate-200 text-slate-400 focus:bg-white focus:border-primary-400'
+                                          }`}
+                                        />
+                                      </div>
+                                    </td>
+
+                                    {/* Kategori Badge */}
+                                    <td className="py-3 px-3 text-center">
+                                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border ${badge.bg}`}>
+                                        {badge.label}
+                                      </span>
+                                    </td>
+
+                                    {/* Catatan Kinerja */}
+                                    <td className="py-3 px-3">
+                                      <div className="space-y-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => openNotePopup(m)}
+                                          className={`w-full text-left p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 group ${
+                                            noteLength >= 10
+                                              ? 'bg-slate-50 hover:bg-primary-50/60 border-slate-200/90 hover:border-primary-300'
+                                              : noteLength > 0
+                                                ? 'bg-amber-50/70 hover:bg-amber-100/70 border-amber-200 text-amber-900'
+                                                : 'bg-slate-50/50 hover:bg-slate-100 border-dashed border-slate-300 text-slate-400'
+                                          }`}
+                                          title="Klik untuk membuka pop up Catatan Kinerja"
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                                            <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${
+                                              noteLength >= 10 ? 'text-primary-600' : noteLength > 0 ? 'text-amber-600' : 'text-slate-400'
+                                            }`} />
+                                            <span className={`text-xs truncate ${
+                                              noteLength > 0 ? 'font-medium text-slate-800' : 'italic text-slate-400'
                                             }`}>
-                                              {m.role}
+                                              {m.catatan && m.catatan.trim() ? m.catatan : 'Belum ada catatan...'}
                                             </span>
                                           </div>
-                                          <div className="flex items-center gap-1.5 mt-0.5">
-                                            {m.sobatId && (
-                                              <span className="text-[10px] font-mono text-slate-400">ID: {m.sobatId} •</span>
-                                            )}
-                                            <p className="text-[10px] text-slate-400 lg:hidden">{m.email}</p>
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md font-bold ${
+                                              noteLength >= 10
+                                                ? 'bg-emerald-100 text-emerald-800'
+                                                : noteLength > 0
+                                                  ? 'bg-amber-100 text-amber-800'
+                                                  : 'bg-slate-200 text-slate-600'
+                                            }`}>
+                                              {noteLength > 0 ? `${noteLength} krt` : '+ Isi'}
+                                            </span>
+                                            <Pencil className="w-3 h-3 text-slate-400 group-hover:text-primary-600 transition-colors ml-0.5" />
                                           </div>
-                                        </td>
+                                        </button>
+                                        {m.nilai !== null && noteLength < 10 && (
+                                          <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 pl-1">
+                                            <span>⚠️ Kurang {10 - noteLength} karakter lagi</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                    </td>
 
-                                        {/* Email */}
-                                        <td className="py-3 px-3 hidden lg:table-cell font-mono text-[11px] text-slate-500">
-                                          {m.email}
-                                        </td>
+                                    {/* Tombol Aksi */}
+                                    <td className="py-3 px-3 text-center">
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        <button
+                                          onClick={() => saveSingleMitra(m)}
+                                          className={`rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                                            isUnsaved
+                                              ? 'bg-primary-600 hover:bg-primary-700 text-white font-bold shadow-sm ring-2 ring-primary-300 animate-pulse px-2.5 py-1.5 text-[11px]'
+                                              : 'p-1.5 bg-slate-100 hover:bg-primary-50 text-slate-500 hover:text-primary-600'
+                                          }`}
+                                          title={isUnsaved ? 'Perubahan belum disimpan! Klik untuk simpan ke database' : 'Simpan Penilaian & Catatan'}
+                                        >
+                                          <Save className="w-3.5 h-3.5" />
+                                          {isUnsaved && <span>Simpan</span>}
+                                        </button>
 
-                                        {/* Input Nilai Bulat */}
-                                        <td className="py-3 px-3 text-center">
-                                          <div className="inline-flex items-center justify-center">
-                                            <input
-                                              type="number"
-                                              step="1"
-                                              min="0"
-                                              max="100"
-                                              placeholder="—"
-                                              value={m.nilai !== null && m.nilai !== undefined ? m.nilai : ''}
-                                              onChange={(e) => handleScoreChange(itemKey, e.target.value)}
-                                              onKeyDown={(e) => {
-                                                // Mencegah karakter desimal (titik/koma)
-                                                if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E') {
-                                                  e.preventDefault();
-                                                }
-                                              }}
-                                              className={`w-20 px-2 py-1.5 text-center font-black text-sm rounded-xl border outline-none transition-all ${
-                                                m.nilai !== null
-                                                  ? 'bg-white border-primary-400 text-slate-900 shadow-xs focus:ring-2 focus:ring-primary-200'
-                                                  : 'bg-slate-50 border-slate-200 text-slate-400 focus:bg-white focus:border-primary-400'
-                                              }`}
-                                            />
-                                          </div>
-                                        </td>
-
-                                        {/* Kategori Badge */}
-                                        <td className="py-3 px-3 text-center">
-                                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border ${badge.bg}`}>
-                                            {badge.label}
-                                          </span>
-                                        </td>
-
-                                        {/* Kolom Catatan Penilaian (Kualitatif) -> Pop Up Modal */}
-                                        <td className="py-3 px-3">
-                                          <div className="space-y-1">
-                                            <button
-                                              type="button"
-                                              onClick={() => openNotePopup(m)}
-                                              className={`w-full text-left p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 group ${
-                                                noteLength >= 10
-                                                  ? 'bg-slate-50 hover:bg-primary-50/60 border-slate-200/90 hover:border-primary-300'
-                                                  : noteLength > 0
-                                                    ? 'bg-amber-50/70 hover:bg-amber-100/70 border-amber-200 text-amber-900'
-                                                    : 'bg-slate-50/50 hover:bg-slate-100 border-dashed border-slate-300 text-slate-400'
-                                              }`}
-                                              title="Klik untuk membuka pop up Catatan Kinerja"
-                                            >
-                                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${
-                                                  noteLength >= 10 ? 'text-primary-600' : noteLength > 0 ? 'text-amber-600' : 'text-slate-400'
-                                                }`} />
-                                                <span className={`text-xs truncate ${
-                                                  noteLength > 0 ? 'font-medium text-slate-800' : 'italic text-slate-400'
-                                                }`}>
-                                                  {m.catatan && m.catatan.trim() ? m.catatan : 'Belum ada catatan...'}
-                                                </span>
-                                              </div>
-                                              <div className="flex items-center gap-1 shrink-0">
-                                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md font-bold ${
-                                                  noteLength >= 10
-                                                    ? 'bg-emerald-100 text-emerald-800'
-                                                    : noteLength > 0
-                                                      ? 'bg-amber-100 text-amber-800'
-                                                      : 'bg-slate-200 text-slate-600'
-                                                }`}>
-                                                  {noteLength > 0 ? `${noteLength} krt` : '+ Isi'}
-                                                </span>
-                                                <Pencil className="w-3 h-3 text-slate-400 group-hover:text-primary-600 transition-colors ml-0.5" />
-                                              </div>
-                                            </button>
-                                            {m.nilai !== null && noteLength < 10 && (
-                                              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 pl-1">
-                                                <span>⚠️ Kurang {10 - noteLength} karakter lagi</span>
-                                              </p>
-                                            )}
-                                          </div>
-                                        </td>
-
-                                        {/* Tombol Simpan Baris */}
-                                        <td className="py-3 px-3 text-center">
+                                        {isAdmin && (
                                           <button
-                                            onClick={() => saveSingleMitra(m)}
-                                            className={`rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 mx-auto ${
-                                              isUnsaved
-                                                ? 'bg-primary-600 hover:bg-primary-700 text-white font-bold shadow-sm ring-2 ring-primary-300 animate-pulse px-2.5 py-1.5 text-[11px]'
-                                                : 'p-1.5 bg-slate-100 hover:bg-primary-50 text-slate-500 hover:text-primary-600'
-                                            }`}
-                                            title={isUnsaved ? 'Perubahan belum disimpan! Klik untuk simpan ke database' : 'Simpan Penilaian & Catatan'}
+                                            type="button"
+                                            onClick={() => setEditingMitraForProfile(m)}
+                                            className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl transition-colors cursor-pointer border border-amber-200/70"
+                                            title="Ubah Data Diri & Status Duplikat (Admin)"
                                           >
-                                            <Save className="w-3.5 h-3.5" />
-                                            {isUnsaved && <span>Simpan</span>}
+                                            <Edit3 className="w-3.5 h-3.5" />
                                           </button>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                            </table>
-                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
                         </div>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-              </div>
-            );
-          })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
           </>
         )}
       </div>
@@ -3377,6 +4508,11 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                               title="Klik untuk melihat data diri lengkap mitra"
                             >
                               <span>{m.nama}</span>
+                              {m.isDuplicate && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 border border-amber-300">
+                                  🔁 Duplikat
+                                </span>
+                              )}
                               <span className="text-[10px] px-1.5 py-0.2 bg-primary-50 text-primary-600 rounded-md border border-primary-200 font-normal opacity-0 group-hover:opacity-100 transition-opacity">
                                 Detail ↗
                               </span>
@@ -3511,6 +4647,16 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                                 <Save className="w-3.5 h-3.5" />
                                 <span>Simpan</span>
                               </button>
+                              {isAdmin && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingMitraForProfile(m)}
+                                  className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl transition-colors cursor-pointer border border-amber-200/70"
+                                  title="Ubah Data Diri & Status Duplikat (Admin)"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -4400,6 +5546,33 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
           <MitraDetailModal
             mitra={selectedMitraForDetail}
             onClose={() => setSelectedMitraForDetail(null)}
+            onEditProfile={(m) => setEditingMitraForProfile(m)}
+            isAdmin={isAdmin}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* MODAL KHUSUS ADMIN: UBAH DATA DIRI & DUPLIKASI */}
+      <AnimatePresence>
+        {editingMitraForProfile && (
+          <MitraEditProfileModal
+            isOpen={Boolean(editingMitraForProfile)}
+            mitra={editingMitraForProfile}
+            allMitra={mitraList}
+            onClose={() => setEditingMitraForProfile(null)}
+            onSave={handleSaveMitraProfile}
+            isSaving={isSavingProfile}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* MODAL MONITORING PROGRES PER KECAMATAN */}
+      <AnimatePresence>
+        {showKecModal && (
+          <ModalMonitoringKecamatan
+            isOpen={showKecModal}
+            onClose={() => setShowKecModal(false)}
+            data={kecMonitoringData}
           />
         )}
       </AnimatePresence>

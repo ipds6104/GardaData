@@ -9,6 +9,9 @@ const {
   getBackupList,
   getRevisionList,
   restoreRecordFromRevision,
+  getSnapshotList,
+  restoreFeatureSnapshot,
+  restoreFullBackup,
   MONITORED_TABLES
 } = require('../services/backupService');
 
@@ -82,6 +85,48 @@ router.post('/restore-revision/:id', async (req, res) => {
   } catch (error) {
     console.error('Error restoring revision:', error);
     res.status(500).json({ error: error.message || 'Gagal memulihkan revisi' });
+  }
+});
+
+// GET /api/backups/snapshots: Daftar master snapshot independen
+router.get('/snapshots', async (req, res) => {
+  try {
+    const snapshots = await getSnapshotList();
+    res.json({
+      status: 'success',
+      snapshots
+    });
+  } catch (error) {
+    console.error('Error fetching snapshots:', error);
+    res.status(500).json({ error: 'Gagal mengambil daftar master snapshot' });
+  }
+});
+
+// POST /api/backups/restore-feature/:feature: Pulihkan fitur dari snapshot master
+router.post('/restore-feature/:feature', async (req, res) => {
+  try {
+    const { feature } = req.params;
+    const result = await restoreFeatureSnapshot(feature);
+    res.json({
+      status: 'success',
+      message: `Pemulihan data fitur [${feature.toUpperCase()}] berhasil diselesaikan.`,
+      result
+    });
+  } catch (error) {
+    console.error(`Error restoring feature ${req.params.feature}:`, error);
+    res.status(500).json({ error: error.message || 'Gagal memulihkan data fitur' });
+  }
+});
+
+// POST /api/backups/restore-full/:id: Pulihkan seluruh database dari arsip cadangan
+router.post('/restore-full/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await restoreFullBackup(id);
+    res.json(result);
+  } catch (error) {
+    console.error(`Error restoring full backup ${req.params.id}:`, error);
+    res.status(500).json({ error: error.message || 'Gagal memulihkan cadangan menyeluruh' });
   }
 });
 

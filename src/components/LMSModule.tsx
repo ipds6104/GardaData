@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink, GripVertical, Clock, Copy, RotateCcw } from 'lucide-react';
+import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink, GripVertical, Clock, Copy, RotateCcw, Sparkles, Layers, AlertCircle, Check } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { IndonesianDateTimePicker } from './common/IndonesianDateTimePicker';
 import { IndonesianCategorySelect } from './common/IndonesianCategorySelect';
@@ -32,6 +32,19 @@ interface LMSTraining {
 }
 
 const DEFAULT_CATEGORIES = ['Absensi', 'Administrasi', 'Materi dan Instrumen Pelatihan', 'Jadwal Pelatihan', 'Kuis dan Pendalaman'];
+
+// Struktur Standar Pelatihan Statistik BPS (Template Cadangan Resmi 5 Kategori)
+const STANDARD_BPS_BUTTONS: LMSButton[] = [
+  { id: 'std_1', title: 'Presensi Kehadiran Peserta (Pagi / Masuk)', url: 'https://', category: 'Absensi', isActive: true },
+  { id: 'std_2', title: 'Presensi Kehadiran Peserta (Sore / Pulang)', url: 'https://', category: 'Absensi', isActive: true },
+  { id: 'std_3', title: 'Unggah Kelengkapan Administrasi & Surat Tugas', url: 'https://', category: 'Administrasi', isActive: true },
+  { id: 'std_4', title: 'Buku Pedoman Pencacahan & Konsep Definisi', url: 'https://', category: 'Materi dan Instrumen Pelatihan', isActive: true },
+  { id: 'std_5', title: 'Kuesioner Lapangan & Instrumen Survei', url: 'https://', category: 'Materi dan Instrumen Pelatihan', isActive: true },
+  { id: 'std_6', title: 'Slide Bahan Paparan / Tayang Fasilitator', url: 'https://', category: 'Materi dan Instrumen Pelatihan', isActive: true },
+  { id: 'std_7', title: 'Jadwal Agenda Pelatihan & Pembagian Kelas', url: 'https://', category: 'Jadwal Pelatihan', isActive: true },
+  { id: 'std_8', title: 'Pre-Test Pemahaman Awal Peserta', url: 'https://', category: 'Kuis dan Pendalaman', isActive: true },
+  { id: 'std_9', title: 'Post-Test & Evaluasi Penyelenggaraan', url: 'https://', category: 'Kuis dan Pendalaman', isActive: true }
+];
 
 const ICON_MAP: Record<string, React.ElementType> = {
   'ketenagakerjaan': Briefcase,
@@ -168,6 +181,8 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   // Copy Template Modal state
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [selectedSourceId, setSelectedSourceId] = useState('');
+  const [copyMode, setCopyMode] = useState<'merge' | 'replace'>('merge');
+  const [isCopying, setIsCopying] = useState(false);
 
   const fetchTrainings = async () => {
     setLoading(true);
@@ -176,13 +191,25 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       const res = await fetch(`${baseUrl}/api/lms/configs?t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
       if (res.ok) {
         const data = await res.json();
-        const formatted = data.map((d: any) => ({
-          ...d,
-          startDate: d.startDate ? d.startDate.split('T')[0] : '',
-          endDate: d.endDate ? d.endDate.split('T')[0] : '',
-          isActive: Boolean(d.isActive),
-          buttons: typeof d.buttons === 'string' ? JSON.parse(d.buttons) : (d.buttons || [])
-        })) as LMSTraining[];
+        const formatted = data.map((d: any) => {
+          let parsedButtons: LMSButton[] = [];
+          if (typeof d.buttons === 'string') {
+            try {
+              parsedButtons = JSON.parse(d.buttons);
+            } catch (e) {
+              parsedButtons = [];
+            }
+          } else if (Array.isArray(d.buttons)) {
+            parsedButtons = d.buttons;
+          }
+          return {
+            ...d,
+            startDate: d.startDate ? d.startDate.split('T')[0] : '',
+            endDate: d.endDate ? d.endDate.split('T')[0] : '',
+            isActive: Boolean(d.isActive),
+            buttons: parsedButtons
+          };
+        }) as LMSTraining[];
         setTrainings(formatted);
       }
     } catch (err) {
@@ -390,36 +417,78 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     } catch (err) {}
   };
 
-  const handleCopyButtonsFromTraining = async (sourceId: string) => {
+  const handleCopyButtonsFromTraining = async (sourceId: string, mode: 'merge' | 'replace' = 'merge') => {
     if (!selectedTrainingId) return;
     const targetTraining = trainings.find(t => t.id === selectedTrainingId);
-    const sourceTraining = trainings.find(t => t.id === sourceId);
-    if (!targetTraining || !sourceTraining) return;
+    if (!targetTraining) return;
 
-    const sourceButtons = sourceTraining.buttons || [];
+    let sourceButtons: LMSButton[] = [];
+    let sourceName = '';
+
+    if (sourceId === 'template_bps_standard') {
+      sourceButtons = STANDARD_BPS_BUTTONS;
+      sourceName = 'Template Standar Pelatihan BPS (5 Kategori)';
+    } else {
+      const sourceTraining = trainings.find(t => t.id === sourceId);
+      if (!sourceTraining) {
+        alert('Pelatihan sumber tidak ditemukan.');
+        return;
+      }
+      sourceButtons = sourceTraining.buttons || [];
+      sourceName = sourceTraining.name;
+    }
+
     if (sourceButtons.length === 0) {
-      alert('Pelatihan sumber tidak memiliki tautan.');
+      alert(`Pelatihan sumber "${sourceName}" tidak memiliki tautan materi.`);
       return;
     }
 
-    if (!confirm(`Salin ${sourceButtons.length} tautan dari "${sourceTraining.name}" ke "${targetTraining.name}"?`)) {
-      return;
+    const existingButtons = targetTraining.buttons || [];
+
+    if (mode === 'replace' && existingButtons.length > 0) {
+      if (!confirm(`⚠️ PERINGATAN: Anda memilih mode Ganti Semua.\n\n${existingButtons.length} tautan yang sudah ada saat ini akan diganti seluruhnya dengan ${sourceButtons.length} tautan dari "${sourceName}".\n\nLanjutkan?`)) {
+        return;
+      }
     }
 
+    setIsCopying(true);
     try {
+      // Salin buttons dengan ID baru unik
       const clonedButtons: LMSButton[] = sourceButtons.map(b => ({
         ...b,
-        id: Date.now().toString() + '_' + Math.random().toString(36).substring(2, 6)
+        id: Date.now().toString() + '_' + Math.random().toString(36).substring(2, 7)
       }));
+
+      let finalButtons: LMSButton[] = [];
+
+      if (mode === 'merge') {
+        // PERTAHANKAN DATA YANG SUDAH ADA
+        // Hindari duplikasi persis kategori + judul yang sama
+        const existingKeys = new Set(existingButtons.map(b => `${(b.category || '').toLowerCase()}:::${(b.title || '').trim().toLowerCase()}`));
+        const toAdd = clonedButtons.filter(b => !existingKeys.has(`${(b.category || '').toLowerCase()}:::${(b.title || '').trim().toLowerCase()}`));
+        finalButtons = [...existingButtons, ...toAdd];
+      } else {
+        // Mode Ganti Seluruhnya
+        finalButtons = clonedButtons;
+      }
+
+      // Amankan backup lokal sebelum update agar data aman 100%
+      try {
+        if (existingButtons.length > 0) {
+          localStorage.setItem(`garda_lms_backup_precopy_${selectedTrainingId}`, JSON.stringify(existingButtons));
+        }
+        localStorage.setItem(`garda_lms_backup_${selectedTrainingId}`, JSON.stringify(finalButtons));
+      } catch (e) {}
 
       const baseUrl = (import.meta as any).env.VITE_API_URL || '';
       const payload = {
         name: targetTraining.name,
-        startDate: targetTraining.startDate,
-        endDate: targetTraining.endDate,
-        icon: targetTraining.icon,
-        isActive: targetTraining.isActive,
-        buttons: clonedButtons
+        startDate: targetTraining.startDate || null,
+        endDate: targetTraining.endDate || null,
+        period: targetTraining.period || '',
+        icon: targetTraining.icon || 'pendidikan',
+        isActive: targetTraining.isActive !== false,
+        buttons: finalButtons
       };
 
       const res = await fetch(`${baseUrl}/api/lms/configs/${selectedTrainingId}`, {
@@ -429,18 +498,23 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       });
 
       if (res.ok) {
-        try {
-          localStorage.setItem(`garda_lms_backup_${selectedTrainingId}`, JSON.stringify(clonedButtons));
-        } catch (e) {}
         setShowCopyModal(false);
         await fetchTrainings();
-        alert(`Berhasil menyalin ${clonedButtons.length} tautan ke "${targetTraining.name}"!`);
+        const addedCount = finalButtons.length - existingButtons.length;
+        if (mode === 'merge' && existingButtons.length > 0) {
+          alert(`✅ Berhasil menyalin struktur dari "${sourceName}"!\n\nData lama tetap aman: ${existingButtons.length} tautan lama dipertahankan, dan ${addedCount} tautan baru berhasil ditambahkan (Total: ${finalButtons.length} tautan).`);
+        } else {
+          alert(`✅ Berhasil menyalin ${finalButtons.length} tautan materi dari "${sourceName}" ke "${targetTraining.name}"!`);
+        }
       } else {
-        alert('Gagal menyalin tautan');
+        const errJson = await res.json().catch(() => ({}));
+        alert(`Gagal menyalin tautan: ${errJson.error || res.statusText}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Terjadi kesalahan saat menyalin tautan');
+      alert(`Terjadi kesalahan saat menyalin struktur: ${err.message || 'Gagal'}`);
+    } finally {
+      setIsCopying(false);
     }
   };
 
@@ -764,7 +838,16 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   <button onClick={() => { setButtonFormData({ title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true }); setIsCustomCategory(false); setShowButtonForm(true); }} className="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold flex items-center gap-2 transition-colors shadow-md text-xs sm:text-sm">
                     <Plus className="w-4 h-4" /> Tautan Baru
                   </button>
-                  <button onClick={() => { setSelectedSourceId(trainings.find(t => t.id !== activeTraining.id && (t.buttons || []).length > 0)?.id || ''); setShowCopyModal(true); }} className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm text-xs sm:text-sm" title="Salin Materi dari Pelatihan Lain">
+                  <button 
+                    onClick={() => { 
+                      const firstAvailable = trainings.find(t => t.id !== activeTraining.id && (t.buttons || []).length > 0);
+                      setSelectedSourceId(firstAvailable ? firstAvailable.id : 'template_bps_standard');
+                      setCopyMode('merge');
+                      setShowCopyModal(true); 
+                    }} 
+                    className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm text-xs sm:text-sm" 
+                    title="Salin Materi dari Pelatihan Lain"
+                  >
                     <Copy className="w-4 h-4" /> Salin Materi
                   </button>
                   <button onClick={() => { setFormData({...activeTraining, startDate: activeTraining.startDate||'', endDate: activeTraining.endDate||''}); setShowForm(true); }} className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-colors" title="Edit Data Pelatihan"><Edit2 className="w-5 h-5"/></button>
@@ -809,12 +892,10 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 })()}
                 <button
                   onClick={() => {
-                    const defaultSource = trainings.find(t => t.id !== activeTraining.id && (t.buttons || []).length > 0);
-                    if (defaultSource) {
-                      handleCopyButtonsFromTraining(defaultSource.id);
-                    } else {
-                      alert('Belum ada pelatihan lain dengan tautan.');
-                    }
+                    const firstAvailable = trainings.find(t => t.id !== activeTraining.id && (t.buttons || []).length > 0);
+                    setSelectedSourceId(firstAvailable ? firstAvailable.id : 'template_bps_standard');
+                    setCopyMode('merge');
+                    setShowCopyModal(true);
                   }}
                   className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
                 >
@@ -1062,69 +1143,194 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         {/* Modal Salin Materi dari Pelatihan Lain */}
         {showCopyModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-md shadow-2xl my-8">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="p-3 bg-amber-100 text-amber-700 rounded-2xl">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-xl shadow-2xl my-8">
+              <div className="flex items-center gap-3.5 mb-5 pb-4 border-b border-slate-100">
+                <div className="p-3 bg-amber-100 text-amber-700 rounded-2xl shrink-0">
                   <Copy className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900">Salin Materi Pelatihan</h3>
-                  <p className="text-xs text-slate-500">Salin seluruh tautan & struktur materi dari pelatihan lain</p>
+                  <h3 className="text-xl font-black text-slate-900">Salin Struktur Materi Pelatihan</h3>
+                  <p className="text-xs text-slate-500">Pilih pelatihan sumber atau template baku BPS untuk disalin ke pelatihan ini</p>
                 </div>
               </div>
 
+              {activeTraining && (
+                <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Target Pelatihan:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-800">{activeTraining.name}</span>
+                    <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md font-semibold text-[11px]">
+                      {(activeTraining.buttons || []).length} Tautan Tersedia
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Pilih Pelatihan Sumber</label>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2 flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-amber-600" /> Pilih Sumber Struktur
+                  </label>
                   <select
                     value={selectedSourceId}
                     onChange={e => setSelectedSourceId(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-sm focus:ring-2 focus:ring-amber-500 outline-none"
                   >
-                    <option value="">-- Pilih Pelatihan --</option>
-                    {trainings
-                      .filter(t => t.id !== selectedTrainingId && (t.buttons || []).length > 0)
-                      .map(t => (
-                        <option key={t.id} value={t.id}>
-                          {t.name} ({(t.buttons || []).length} tautan)
-                        </option>
-                      ))}
+                    <option value="">-- Pilih Sumber Pelatihan / Template --</option>
+                    
+                    {/* Daftar Pelatihan Tersimpan di Database */}
+                    <optgroup label="Pelatihan Tersimpan di Database">
+                      {trainings
+                        .filter(t => t.id !== selectedTrainingId && (t.buttons || []).length > 0)
+                        .map(t => (
+                          <option key={t.id} value={t.id}>
+                            {t.name} ({(t.buttons || []).length} tautan materi)
+                          </option>
+                        ))}
+                      {trainings.filter(t => t.id !== selectedTrainingId && (t.buttons || []).length > 0).length === 0 && (
+                        <option value="" disabled>Belum ada pelatihan lain dengan tautan di database</option>
+                      )}
+                    </optgroup>
+
+                    {/* Template Baku BPS */}
+                    <optgroup label="Template Baku BPS">
+                      <option value="template_bps_standard">
+                        Template Standar Pelatihan BPS (5 Kategori Baku: Absensi, Admin, Materi, Jadwal, Kuis)
+                      </option>
+                    </optgroup>
                   </select>
                 </div>
 
+                {/* Pratinjau Struktur Pelatihan yang Dipilih */}
                 {(() => {
-                  const src = trainings.find(t => t.id === selectedSourceId);
-                  if (!src) return null;
+                  let previewButtons: LMSButton[] = [];
+                  let title = '';
+                  let isTemplate = false;
+
+                  if (selectedSourceId === 'template_bps_standard') {
+                    previewButtons = STANDARD_BPS_BUTTONS;
+                    title = 'Template Standar Pelatihan BPS';
+                    isTemplate = true;
+                  } else if (selectedSourceId) {
+                    const src = trainings.find(t => t.id === selectedSourceId);
+                    if (src) {
+                      previewButtons = src.buttons || [];
+                      title = src.name;
+                    }
+                  }
+
+                  if (previewButtons.length === 0) return null;
+
+                  // Group by categories
+                  const grouped: Record<string, string[]> = {};
+                  previewButtons.forEach(b => {
+                    const cat = b.category || 'Lainnya';
+                    if (!grouped[cat]) grouped[cat] = [];
+                    grouped[cat].push(b.title);
+                  });
+
                   return (
-                    <div className="p-4 bg-amber-50/70 border border-amber-200/60 rounded-2xl text-xs text-slate-600 space-y-1.5">
+                    <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl text-xs space-y-2.5">
                       <div className="font-bold text-amber-900 flex items-center justify-between">
-                        <span>{src.name}</span>
-                        <span className="bg-amber-200 text-amber-900 px-2 py-0.5 rounded-md font-mono text-[11px]">
-                          {(src.buttons || []).length} Tautan
+                        <span className="flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-amber-600" />
+                          Pratinjau: {title}
+                        </span>
+                        <span className="bg-amber-200/80 text-amber-900 font-bold px-2 py-0.5 rounded-lg text-[11px]">
+                          {previewButtons.length} Tautan
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500">
-                        Seluruh kategori materi (Absensi, Bahan Ajar, Pretest/Postest, Jadwal, dll.) akan disalin ke pelatihan ini. Anda dapat mengedit URL atau jadwal masing-masing tautan setelahnya.
+                      
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                        {Object.entries(grouped).map(([category, items]) => (
+                          <div key={category} className="bg-white/80 p-2 rounded-xl border border-amber-100">
+                            <span className="font-bold text-slate-800 text-[11px] block text-amber-800">{category} ({items.length})</span>
+                            <span className="text-[11px] text-slate-500 truncate block">
+                              {items.join(', ')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 italic">
+                        {isTemplate 
+                          ? 'Tautan standar akan disiapkan. Anda dapat mengganti link URL Google Form / Drive / Jadwal sesuai kebutuhan.'
+                          : 'Struktur materi, kategori, dan tautan akan disalin. URL tautan dapat diubah kapan saja.'}
                       </p>
                     </div>
                   );
                 })()}
 
+                {/* Pilihan Mode Penyalinan (Merge vs Overwrite) */}
+                {activeTraining && (activeTraining.buttons || []).length > 0 && (
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                      Metode Penyalinan Data
+                    </label>
+                    <div className="space-y-2">
+                      <label 
+                        onClick={() => setCopyMode('merge')} 
+                        className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${copyMode === 'merge' ? 'bg-amber-50/50 border-amber-400 text-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100/50'}`}
+                      >
+                        <input
+                          type="radio"
+                          name="copyMode"
+                          checked={copyMode === 'merge'}
+                          onChange={() => setCopyMode('merge')}
+                          className="mt-0.5 text-amber-600 focus:ring-amber-500"
+                        />
+                        <div>
+                          <div className="text-xs font-bold flex items-center gap-1.5 text-slate-900">
+                            <span>Gabungkan dengan Tautan yang Ada</span>
+                            <span className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded font-black uppercase">Direkomendasikan</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {(activeTraining.buttons || []).length} tautan yang sudah ada <strong>tidak akan hilang</strong>. Tautan baru dari sumber akan ditambahkan tanpa duplikasi.
+                          </p>
+                        </div>
+                      </label>
+
+                      <label 
+                        onClick={() => setCopyMode('replace')} 
+                        className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${copyMode === 'replace' ? 'bg-rose-50/50 border-rose-300 text-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100/50'}`}
+                      >
+                        <input
+                          type="radio"
+                          name="copyMode"
+                          checked={copyMode === 'replace'}
+                          onChange={() => setCopyMode('replace')}
+                          className="mt-0.5 text-rose-600 focus:ring-rose-500"
+                        />
+                        <div>
+                          <div className="text-xs font-bold text-rose-900 flex items-center gap-1">
+                            <span>Ganti Seluruh Tautan (Overwrite)</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Menghapus tautan yang ada dan mengganti seluruhnya dengan struktur baru.
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-3 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setShowCopyModal(false)}
+                    disabled={isCopying}
                     className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-colors text-sm"
                   >
                     Batal
                   </button>
                   <button
                     type="button"
-                    disabled={!selectedSourceId}
-                    onClick={() => handleCopyButtonsFromTraining(selectedSourceId)}
+                    disabled={!selectedSourceId || isCopying}
+                    onClick={() => handleCopyButtonsFromTraining(selectedSourceId, copyMode)}
                     className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors shadow-md text-sm flex items-center justify-center gap-1.5"
                   >
-                    <Copy className="w-4 h-4" /> Salin Sekarang
+                    <Copy className="w-4 h-4" />
+                    {isCopying ? 'Menyalin Struktur...' : 'Salin Sekarang'}
                   </button>
                 </div>
               </div>

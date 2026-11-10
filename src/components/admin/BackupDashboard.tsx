@@ -42,15 +42,29 @@ interface RevisionItem {
   previousData: any;
 }
 
+interface SnapshotItem {
+  feature: 'mitra' | 'lms' | 'laporan' | 'all';
+  fileName: string;
+  title: string;
+  description: string;
+  exists: boolean;
+  size: string;
+  updatedAt: string | null;
+  details: any;
+}
+
 export const BackupDashboard: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'backups' | 'revisions'>('backups');
+  const [activeTab, setActiveTab] = useState<'backups' | 'revisions' | 'snapshots'>('snapshots');
   const [loading, setLoading] = useState(false);
   const [creatingBackup, setCreatingBackup] = useState(false);
   const [backupScope, setBackupScope] = useState<'all' | 'lms-monitoring' | 'laporan'>('all');
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [restoringFeature, setRestoringFeature] = useState<string | null>(null);
+  const [restoringFullId, setRestoringFullId] = useState<string | null>(null);
   const [backups, setBackups] = useState<BackupItem[]>([]);
   const [revisions, setRevisions] = useState<RevisionItem[]>([]);
+  const [snapshots, setSnapshots] = useState<SnapshotItem[]>([]);
   const [monitoredTables, setMonitoredTables] = useState<string[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -62,12 +76,21 @@ export const BackupDashboard: React.FC<{ onBack: () => void }> = ({ onBack }) =>
     setMessage(null);
     try {
       const baseUrl = (import.meta as any).env.VITE_API_URL || '';
-      const res = await fetch(`${baseUrl}/api/backups?t=${Date.now()}`);
+      const [res, snapRes] = await Promise.all([
+        fetch(`${baseUrl}/api/backups?t=${Date.now()}`),
+        fetch(`${baseUrl}/api/backups/snapshots?t=${Date.now()}`).catch(() => null)
+      ]);
+
       if (res.ok) {
         const data = await res.json();
         setBackups(data.backups || []);
         setRevisions(data.revisions || []);
         setMonitoredTables(data.monitoredTables || []);
+      }
+
+      if (snapRes && snapRes.ok) {
+        const snapData = await snapRes.json();
+        setSnapshots(snapData.snapshots || []);
       }
     } catch (err: any) {
       console.error('Gagal mengambil data backup:', err);
@@ -131,6 +154,58 @@ export const BackupDashboard: React.FC<{ onBack: () => void }> = ({ onBack }) =>
       setMessage({ type: 'error', text: 'Terjadi kesalahan saat memulihkan revisi' });
     } finally {
       setRestoringId(null);
+    }
+  };
+
+  const handleRestoreFeature = async (feature: string, featureTitle: string) => {
+    if (!confirm(`Konfirmasi Pemulihan Master Snapshot:\n\nApakah Anda yakin ingin memulihkan data [${featureTitle}]?\nData akan disinkronkan kembali dari snapshot master independen tanpa merusak konfigurasi sistem lainnya.`)) {
+      return;
+    }
+
+    setRestoringFeature(feature);
+    setMessage(null);
+    try {
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/backups/restore-feature/${feature}`, {
+        method: 'POST'
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setMessage({ type: 'success', text: json.message || `Data [${featureTitle}] berhasil dipulihkan dari snapshot master!` });
+        await fetchBackupData();
+      } else {
+        setMessage({ type: 'error', text: json.error || 'Gagal memulihkan fitur dari snapshot' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: 'Terjadi kesalahan saat memulihkan snapshot' });
+    } finally {
+      setRestoringFeature(null);
+    }
+  };
+
+  const handleRestoreFull = async (backupId: string, timestamp: string) => {
+    if (!confirm(`PERINGATAN PEMULIHAN SISTEM MENYELURUH:\n\nAnda akan memulihkan SELURUH tabel database ke titik waktu ${timestamp}.\nPastikan Anda telah membuat cadangan terbaru terlebih dahulu sebelum melanjutkan.\n\nLanjutkan pemulihan database?`)) {
+      return;
+    }
+
+    setRestoringFullId(backupId);
+    setMessage(null);
+    try {
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const res = await fetch(`${baseUrl}/api/backups/restore-full/${backupId}`, {
+        method: 'POST'
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setMessage({ type: 'success', text: json.message || 'Database berhasil dipulihkan secara menyeluruh!' });
+        await fetchBackupData();
+      } else {
+        setMessage({ type: 'error', text: json.error || 'Gagal memulihkan cadangan menyeluruh' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: 'Terjadi kesalahan saat memulihkan database' });
+    } finally {
+      setRestoringFullId(null);
     }
   };
 
@@ -329,6 +404,17 @@ export const BackupDashboard: React.FC<{ onBack: () => void }> = ({ onBack }) =>
             <RotateCcw className="w-4 h-4" /> 
             Riwayat Snapshot Revisi ({revisions.length})
           </button>
+          <button
+            onClick={() => setActiveTab('snapshots')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'snapshots'
+                ? 'bg-primary-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" /> 
+            Pusat Pemulihan Independen (Master Snapshot)
+          </button>
         </div>
 
         {/* Tab 1: Log Cadangan Arsip ZIP/JSON */}
@@ -425,6 +511,26 @@ export const BackupDashboard: React.FC<{ onBack: () => void }> = ({ onBack }) =>
 
                           <td className="py-4 px-5 text-right">
                             <div className="flex items-center justify-end gap-2">
+                              {/* Rollback to this backup */}
+                              <button
+                                onClick={() => handleRestoreFull(item.id, `${dateFormatted} ${timeFormatted}`)}
+                                disabled={restoringFullId === item.id}
+                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                                title="Pulihkan Seluruh Database ke Kondisi Cadangan Ini"
+                              >
+                                {restoringFullId === item.id ? (
+                                  <>
+                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                    <span>Memulihkan...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    <span>Pulihkan DB</span>
+                                  </>
+                                )}
+                              </button>
+
                               {/* Download as ZIP Archive */}
                               <a
                                 href={`${baseUrl}/api/backups/download-zip/${item.id}`}
@@ -561,6 +667,224 @@ export const BackupDashboard: React.FC<{ onBack: () => void }> = ({ onBack }) =>
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Tab 3: Pusat Pemulihan Independen (Master Snapshot) */}
+        {activeTab === 'snapshots' && (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-700/60">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                      Fail-Safe Master Snapshots
+                    </span>
+                  </div>
+                  <h3 className="font-black text-slate-800 dark:text-white text-lg">
+                    Pusat Pemulihan Data Independen (Master Snapshot)
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                    Data master setiap fitur utama diamankan ke dalam file JSON independen di folder <code className="text-primary-600 dark:text-primary-400 font-mono bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded">database/snapshots/</code>. Kebal terhadap galat sintaks coding saat pengembangan dan dapat dipulihkan sewaktu-waktu.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => handleRestoreFeature('all', 'Semua Fitur Sistem')}
+                  disabled={restoringFeature !== null}
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-2 cursor-pointer transition-all self-start md:self-auto shrink-0"
+                >
+                  {restoringFeature === 'all' ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Memulihkan Sistem Penuh...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Pulihkan Semua Modul Sekaligus</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Grid 3 Fitur Utama */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
+                {/* 1. Penilaian Kinerja Mitra */}
+                <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-50 to-white dark:from-slate-900/60 dark:to-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
+                        <FileCheck className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950 px-2 py-0.5 rounded-full">
+                        388 Mitra • 232 Nilai Pulih
+                      </span>
+                    </div>
+
+                    <h4 className="font-black text-slate-800 dark:text-white text-sm">
+                      Penilaian Kinerja Mitra SE2026
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      Memuat 388 basis data mitra lengkap dengan 232 nilai evaluasi dan catatan kualitatif yang dipulihkan dari cadangan Excel resmi, alamat hingga level desa, serta ID SOBAT.
+                    </p>
+
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                      <div className="flex justify-between">
+                        <span>File Snapshot:</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300">master_snapshot_mitra.json</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Status Evaluasi:</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">100% Terverifikasi</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleRestoreFeature('mitra', 'Penilaian Kinerja Mitra SE2026')}
+                    disabled={restoringFeature !== null}
+                    className="mt-5 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {restoringFeature === 'mitra' ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Memulihkan Data Mitra...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Pulihkan Nilai Mitra</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* 2. LMS Modul Pelatihan */}
+                <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-50 to-white dark:from-slate-900/60 dark:to-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800">
+                        <Layers className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100/70 dark:bg-indigo-950 px-2 py-0.5 rounded-full">
+                        3 Modul Pelatihan
+                      </span>
+                    </div>
+
+                    <h4 className="font-black text-slate-800 dark:text-white text-sm">
+                      Modul & Pelatihan LMS BPS
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      Memuat struktur baku pelatihan statistik (SE2026, Susenas, Sakernas) lengkap dengan 5 kategori materi (Absensi, Administrasi, Buku Pedoman, Jadwal, Kuis) dan tautan interaktif.
+                    </p>
+
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                      <div className="flex justify-between">
+                        <span>File Snapshot:</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300">master_snapshot_lms.json</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Kategori Materi:</span>
+                        <span className="text-indigo-600 dark:text-indigo-400 font-bold">5 Kategori Standar BPS</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleRestoreFeature('lms', 'Modul Pelatihan LMS')}
+                    disabled={restoringFeature !== null}
+                    className="mt-5 w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {restoringFeature === 'lms' ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Memulihkan LMS...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Pulihkan Struktur LMS</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* 3. Laporan Pendataan */}
+                <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-50 to-white dark:from-slate-900/60 dark:to-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800">
+                        <FileSpreadsheet className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-950 px-2 py-0.5 rounded-full">
+                        Kegiatan & Formulir
+                      </span>
+                    </div>
+
+                    <h4 className="font-black text-slate-800 dark:text-white text-sm">
+                      Sistem Laporan Pendataan
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      Memuat skema kegiatan pendataan sensus/survei, formulir pelaporan progres mingguan, field kontrol mutu bertingkat kecamatan-desa, dan verifikasi spasial.
+                    </p>
+
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                      <div className="flex justify-between">
+                        <span>File Snapshot:</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300">master_snapshot_laporan.json</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Validasi Spasial:</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-bold">Geotagging Aktif</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleRestoreFeature('laporan', 'Sistem Laporan Pendataan')}
+                    disabled={restoringFeature !== null}
+                    className="mt-5 w-full py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {restoringFeature === 'laporan' ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Memulihkan Laporan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Pulihkan Form Laporan</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Developer CLI Emergency Tool Guide */}
+              <div className="mt-6 p-4 rounded-2xl bg-slate-900 text-slate-200 border border-slate-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Panduan Pemulihan Darurat Konsol Terminal (Zero-Dependency CLI)
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Jika terjadi galat sintaks kode saat tahap pengembangan dan halaman web tidak dapat diakses, Anda dapat menjalankan perintah mandiri langsung dari terminal PowerShell/Bash tanpa bergantung pada antarmuka web:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 font-mono text-[11px]">
+                  <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                    <span className="text-emerald-400">npm run backup:restore</span>
+                    <span className="text-[10px] text-slate-500">Pulihkan Semua Fitur</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                    <span className="text-sky-400">npm run backup:snapshot</span>
+                    <span className="text-[10px] text-slate-500">Perbarui Master Snapshot</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

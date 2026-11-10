@@ -1,0 +1,139 @@
+{
+  "version": "2.0-master",
+  "snapshotId": "master-laporan-snapshot",
+  "feature": "laporan_pendataan",
+  "title": "Master Snapshot Sistem Laporan Pendataan",
+  "createdAt": "2026-11-10T09:01:00.284Z",
+  "description": "Skema kegiatan survei/sensus BPS, formulir pelaporan progres, dan field dinamis kontrol kualitas",
+  "totalActivities": 2,
+  "totalForms": 2,
+  "totalFields": 5,
+  "data": {
+    "activities": [
+      {
+        "id": "act-se2026-lapangan",
+        "title": "Pendataan Lapangan Sensus Ekonomi 2026",
+        "description": "Pelaporan progres harian dan pengawasan mutu pencacahan usaha/perusahaan SE2026.",
+        "category": "Sensus Ekonomi",
+        "startDate": "2026-05-01",
+        "endDate": "2026-06-30",
+        "isOpen": true,
+        "icon": "TrendingUp",
+        "sheetUrl": "",
+        "sheetName": "",
+        "settings": "{\"allowDuplicateEntries\":false,\"requireGeoLocation\":true}"
+      },
+      {
+        "id": "act-susenas-lapangan",
+        "title": "Pelaporan Lapangan Susenas 2026",
+        "description": "Monitoring pencacahan rumah tangga sampel Susenas tingkat kecamatan dan desa.",
+        "category": "Statistik Sosial",
+        "startDate": "2026-02-15",
+        "endDate": "2026-03-31",
+        "isOpen": true,
+        "icon": "FileText",
+        "sheetUrl": "",
+        "sheetName": "",
+        "settings": "{\"allowDuplicateEntries\":false,\"requireGeoLocation\":true}"
+      }
+    ],
+    "forms": [
+      {
+        "id": "form-se2026-progres",
+        "activityId": "act-se2026-lapangan",
+        "title": "Formulir Laporan Progres Pencacahan SE2026",
+        "icon": "FileSpreadsheet",
+        "orderIndex": 0,
+        "sheetUrl": "",
+        "sheetName": "",
+        "webhookUrl": "",
+        "groupingLevels": "[\"kecamatan\",\"desa\"]",
+        "settings": "{\"enableGeo\":true}"
+      },
+      {
+        "id": "form-se2026-supervisi",
+        "activityId": "act-se2026-lapangan",
+        "title": "Formulir Catatan Supervisi PML / Koseka",
+        "icon": "CheckSquare",
+        "orderIndex": 1,
+        "sheetUrl": "",
+        "sheetName": "",
+        "webhookUrl": "",
+        "groupingLevels": "[\"kecamatan\"]",
+        "settings": "{\"enableGeo\":true}"
+      }
+    ],
+    "fields": [
+      {
+        "id": "fld-1",
+        "formId": "form-se2026-progres",
+        "label": "Kecamatan",
+        "columnName": "kecamatan",
+        "dataType": "select",
+        "isRequired": 1,
+        "groupSection": "Wilayah",
+        "orderIndex": 0,
+        "options": "[\"Mempawah Hilir\",\"Mempawah Timur\",\"Sungai Pinyuh\",\"Anjongan\",\"Toho\",\"Sadaniang\",\"Sungai Kunyit\",\"Segedong\",\"Siantan\"]",
+        "isKey": 1,
+        "isLabel": 0,
+        "isEditable": 1
+      },
+      {
+        "id": "fld-2",
+        "formId": "form-se2026-progres",
+        "label": "Desa / Kelurahan",
+        "columnName": "desa",
+        "dataType": "text",
+        "isRequired": 1,
+        "groupSection": "Wilayah",
+        "orderIndex": 1,
+        "options": "[]",
+        "isKey": 0,
+        "isLabel": 1,
+        "isEditable": 1
+      },
+      {
+        "id": "fld-3",
+        "formId": "form-se2026-progres",
+        "label": "Nama Petugas Pencacah (PPL)",
+        "columnName": "nama_petugas",
+        "dataType": "text",
+        "isRequired": 1,
+        "groupSection": "Petugas",
+        "orderIndex": 2,
+        "options": "[]",
+        "isKey": 0,
+        "isLabel": 0,
+        "isEditable": 1
+      },
+      {
+        "id": "fld-4",
+        "formId": "form-se2026-progres",
+        "label": "Jumlah Usaha Tercacah Hari Ini",
+        "columnName": "usaha_tercacah",
+        "dataType": "number",
+        "isRequired": 1,
+        "groupSection": "Progres",
+        "orderIndex": 3,
+        "options": "[]",
+        "isKey": 0,
+        "isLabel": 0,
+        "isEditable": 1
+      },
+      {
+        "id": "fld-5",
+        "formId": "form-se2026-progres",
+        "label": "Kendala / Hambatan Lapangan",
+        "columnName": "kendala",
+        "dataType": "textarea",
+        "isRequired": 0,
+        "groupSection": "Keterangan",
+        "orderIndex": 4,
+        "options": "[]",
+        "isKey": 0,
+        "isLabel": 0,
+        "isEditable": 1
+      }
+    ]
+  }
+}

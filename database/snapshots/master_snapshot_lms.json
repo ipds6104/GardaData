@@ -1,0 +1,163 @@
+{
+  "version": "2.0-master",
+  "snapshotId": "master-lms-snapshot",
+  "feature": "lms",
+  "title": "Master Snapshot Modul Pelatihan (LMS)",
+  "createdAt": "2026-11-10T09:01:00.284Z",
+  "description": "Struktur standar pelatihan BPS lengkap dengan 5 kategori materi, tombol interaktif, dan presensi",
+  "totalTrainings": 3,
+  "data": [
+    {
+      "id": "lms-se2026-master",
+      "name": "Pelatihan Petugas Sensus Ekonomi 2026 (SE2026)",
+      "period": "Tahun 2026",
+      "icon": "ekonomi",
+      "isActive": true,
+      "startDate": "2026-05-01T08:00",
+      "endDate": "2026-05-31T17:00",
+      "buttons": [
+        {
+          "id": "std_1",
+          "title": "Presensi Kehadiran Peserta (Pagi / Masuk)",
+          "url": "https://",
+          "category": "Absensi",
+          "isActive": true
+        },
+        {
+          "id": "std_2",
+          "title": "Presensi Kehadiran Peserta (Sore / Pulang)",
+          "url": "https://",
+          "category": "Absensi",
+          "isActive": true
+        },
+        {
+          "id": "std_3",
+          "title": "Unggah Kelengkapan Administrasi & Surat Tugas",
+          "url": "https://",
+          "category": "Administrasi",
+          "isActive": true
+        },
+        {
+          "id": "std_4",
+          "title": "Buku Pedoman Pencacahan & Konsep Definisi",
+          "url": "https://",
+          "category": "Materi dan Instrumen Pelatihan",
+          "isActive": true
+        },
+        {
+          "id": "std_5",
+          "title": "Kuesioner Lapangan & Instrumen Survei",
+          "url": "https://",
+          "category": "Materi dan Instrumen Pelatihan",
+          "isActive": true
+        },
+        {
+          "id": "std_6",
+          "title": "Slide Bahan Paparan / Tayang Fasilitator",
+          "url": "https://",
+          "category": "Materi dan Instrumen Pelatihan",
+          "isActive": true
+        },
+        {
+          "id": "std_7",
+          "title": "Jadwal Agenda Pelatihan & Pembagian Kelas",
+          "url": "https://",
+          "category": "Jadwal Pelatihan",
+          "isActive": true
+        },
+        {
+          "id": "std_8",
+          "title": "Pre-Test Pemahaman Awal Peserta",
+          "url": "https://",
+          "category": "Kuis dan Pendalaman",
+          "isActive": true
+        },
+        {
+          "id": "std_9",
+          "title": "Post-Test & Evaluasi Penyelenggaraan",
+          "url": "https://",
+          "category": "Kuis dan Pendalaman",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "id": "lms-susenas-master",
+      "name": "Pelatihan Petugas Survei Sosial Ekonomi Nasional (Susenas)",
+      "period": "Semester 1 2026",
+      "icon": "sosial",
+      "isActive": true,
+      "startDate": "2026-02-01T08:00",
+      "endDate": "2026-03-31T17:00",
+      "buttons": [
+        {
+          "id": "sus_1",
+          "title": "Daftar Hadir Kelas Susenas",
+          "url": "https://",
+          "category": "Absensi",
+          "isActive": true
+        },
+        {
+          "id": "sus_2",
+          "title": "Buku 1 Pedoman Pencacah Susenas",
+          "url": "https://",
+          "category": "Materi dan Instrumen Pelatihan",
+          "isActive": true
+        },
+        {
+          "id": "sus_3",
+          "title": "Kuesioner Kor & Modul Konsumsi",
+          "url": "https://",
+          "category": "Materi dan Instrumen Pelatihan",
+          "isActive": true
+        },
+        {
+          "id": "sus_4",
+          "title": "Simulasi Kasus Pencacahan",
+          "url": "https://",
+          "category": "Kuis dan Pendalaman",
+          "isActive": true
+        }
+      ]
+    },
+    {
+      "id": "lms-sakernas-master",
+      "name": "Pelatihan Petugas Survei Angkatan Kerja Nasional (Sakernas)",
+      "period": "Tahun 2026",
+      "icon": "ketenagakerjaan",
+      "isActive": true,
+      "startDate": "2026-08-01T08:00",
+      "endDate": "2026-08-31T17:00",
+      "buttons": [
+        {
+          "id": "sak_1",
+          "title": "Presensi Peserta Sakernas",
+          "url": "https://",
+          "category": "Absensi",
+          "isActive": true
+        },
+        {
+          "id": "sak_2",
+          "title": "Buku Pedoman Konsep Ketenagakerjaan Sakernas",
+          "url": "https://",
+          "category": "Materi dan Instrumen Pelatihan",
+          "isActive": true
+        },
+        {
+          "id": "sak_3",
+          "title": "Kuesioner Sakernas CAPI/PAPI",
+          "url": "https://",
+          "category": "Materi dan Instrumen Pelatihan",
+          "isActive": true
+        },
+        {
+          "id": "sak_4",
+          "title": "Kuis Evaluasi Pemahaman Konsep Bekerja",
+          "url": "https://",
+          "category": "Kuis dan Pendalaman",
+          "isActive": true
+        }
+      ]
+    }
+  ]
+}

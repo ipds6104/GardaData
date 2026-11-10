@@ -1,0 +1,24 @@
+{
+  "version": "2.0-master",
+  "snapshotId": "master-system-all-snapshot",
+  "title": "Master Snapshot Sistem Garda Data (Full)",
+  "createdAt": "2026-11-10T09:01:00.307Z",
+  "system": "Garda Data - BPS Kabupaten Mempawah",
+  "features": {
+    "mitra": {
+      "totalRecords": 388,
+      "evaluatedRecords": 232,
+      "snapshotFile": "master_snapshot_mitra.json"
+    },
+    "lms": {
+      "totalTrainings": 3,
+      "snapshotFile": "master_snapshot_lms.json"
+    },
+    "laporan": {
+      "totalActivities": 2,
+      "totalForms": 2,
+      "totalFields": 5,
+      "snapshotFile": "master_snapshot_laporan.json"
+    }
+  }
+}

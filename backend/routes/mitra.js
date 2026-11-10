@@ -19,7 +19,7 @@ function getKategoriFromNilai(nilai) {
 // GET /api/mitra - Mengambil seluruh data mitra & penilaian
 router.get('/', async (req, res) => {
   try {
-    const { pj, kecamatan, desa, status, search } = req.query;
+    const { pj, kecamatan, desa, status, search, duplicate } = req.query;
     let query = 'SELECT * FROM mitra_evaluations WHERE 1=1';
     const params = [];
 
@@ -42,14 +42,20 @@ router.get('/', async (req, res) => {
       query += ' AND nilai IS NOT NULL';
     } else if (status === 'pending') {
       query += ' AND nilai IS NULL';
-    } else if (status === 'sangat_direkomendasikan') {
+    } else if (status === 'sangat_direkomendasikan' || status === 'sangat') {
       query += ' AND nilai >= 90';
-    } else if (status === 'direkomendasikan') {
+    } else if (status === 'direkomendasikan' || status === 'direkom') {
       query += ' AND nilai >= 80 AND nilai < 90';
     } else if (status === 'cukup') {
       query += ' AND nilai >= 60 AND nilai < 80';
     } else if (status === 'blacklist') {
       query += ' AND nilai IS NOT NULL AND nilai < 60';
+    }
+
+    if (duplicate === 'exclude') {
+      query += ' AND (isDuplicate = 0 OR isDuplicate IS NULL)';
+    } else if (duplicate === 'only') {
+      query += ' AND isDuplicate = 1';
     }
 
     if (search && search.trim() !== '') {
@@ -58,13 +64,53 @@ router.get('/', async (req, res) => {
       params.push(s, s, s, s, s, s);
     }
 
-    query += ' ORDER BY pj ASC, kecamatan ASC, desa ASC, nama ASC';
+    query += ' ORDER BY kecamatan ASC, desa ASC, nama ASC';
 
     const [rows] = await pool.query(query, params);
     res.json(rows);
   } catch (error) {
     console.error('Error fetching mitra evaluations:', error);
     res.status(500).json({ error: 'Gagal mengambil data mitra' });
+  }
+});
+
+// GET /api/mitra/monitoring-kecamatan - Rekapitulasi progres pengisian per Kecamatan
+router.get('/monitoring-kecamatan', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        kecamatan,
+        COUNT(*) as totalBaris,
+        SUM(CASE WHEN isDuplicate = 1 THEN 0 ELSE 1 END) as totalMitraUnik,
+        SUM(CASE WHEN isDuplicate = 1 THEN 1 ELSE 0 END) as totalDuplikat,
+        SUM(CASE WHEN (isDuplicate = 0 OR isDuplicate IS NULL) AND nilai IS NOT NULL THEN 1 ELSE 0 END) as sudahDinilai,
+        SUM(CASE WHEN (isDuplicate = 0 OR isDuplicate IS NULL) AND nilai IS NULL THEN 1 ELSE 0 END) as belumDinilai,
+        ROUND(AVG(CASE WHEN (isDuplicate = 0 OR isDuplicate IS NULL) THEN nilai END), 1) as avgNilai,
+        GROUP_CONCAT(DISTINCT desa ORDER BY desa SEPARATOR ', ') as daftarDesa,
+        SUM(CASE WHEN (isDuplicate = 0 OR isDuplicate IS NULL) AND nilai >= 90 THEN 1 ELSE 0 END) as sangatDirekomendasikan,
+        SUM(CASE WHEN (isDuplicate = 0 OR isDuplicate IS NULL) AND nilai >= 80 AND nilai < 90 THEN 1 ELSE 0 END) as direkomendasikan,
+        SUM(CASE WHEN (isDuplicate = 0 OR isDuplicate IS NULL) AND nilai >= 60 AND nilai < 80 THEN 1 ELSE 0 END) as cukup,
+        SUM(CASE WHEN (isDuplicate = 0 OR isDuplicate IS NULL) AND nilai IS NOT NULL AND nilai < 60 THEN 1 ELSE 0 END) as blacklist
+      FROM mitra_evaluations
+      GROUP BY kecamatan
+      ORDER BY totalMitraUnik DESC, kecamatan ASC
+    `);
+
+    const result = rows.map(r => {
+      const total = r.totalMitraUnik || 0;
+      const sudah = r.sudahDinilai || 0;
+      const persen = total > 0 ? Math.round((sudah / total) * 100) : 0;
+      return {
+        ...r,
+        persenSelesai: persen,
+        status: persen === 100 ? 'Selesai' : (persen > 0 ? 'Sedang Berjalan' : 'Belum Mulai')
+      };
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching Kecamatan monitoring summary:', error);
+    res.status(500).json({ error: 'Gagal merekap monitoring per Kecamatan' });
   }
 });
 
@@ -161,10 +207,10 @@ router.put('/:identifier', async (req, res) => {
         (id, email, nama, role, pj, kecamatan, nilai, kategori, catatan, penilai)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-        nilai = VALUES(nilai),
-        kategori = VALUES(kategori),
-        catatan = VALUES(catatan),
-        penilai = VALUES(penilai)
+        nilai = COALESCE(VALUES(nilai), mitra_evaluations.nilai),
+        kategori = COALESCE(VALUES(kategori), mitra_evaluations.kategori),
+        catatan = IF(VALUES(catatan) IS NOT NULL AND VALUES(catatan) != '', VALUES(catatan), mitra_evaluations.catatan),
+        penilai = COALESCE(VALUES(penilai), mitra_evaluations.penilai)
       `, [id, email, nama, role, pj, kecamatan, finalNilai, kategori, catatan || null, penilai || 'Admin']);
     }
 
@@ -176,6 +222,117 @@ router.put('/:identifier', async (req, res) => {
   } catch (error) {
     console.error('Error updating mitra evaluation:', error);
     res.status(500).json({ error: 'Gagal memperbarui nilai mitra' });
+  }
+});
+
+// PUT /api/mitra/:identifier/profile - Memperbarui data diri lengkap & status duplikat mitra (Khusus Admin)
+router.put('/:identifier/profile', async (req, res) => {
+  try {
+    const identifier = decodeURIComponent(req.params.identifier).trim();
+    const {
+      nama,
+      sobatId,
+      email,
+      noTelp,
+      role,
+      pj,
+      kecamatan,
+      desa,
+      alamatDetail,
+      alamatKabKota,
+      alamatProvinsi,
+      pendidikan,
+      pekerjaan,
+      jenisKelamin,
+      tempatTanggalLahir,
+      umur,
+      statusKawin,
+      isDuplicate,
+      duplicateOf,
+      duplicateNotes
+    } = req.body;
+
+    if (!nama || !nama.trim()) {
+      return res.status(400).json({ error: 'Nama mitra tidak boleh kosong.' });
+    }
+
+    const dupBool = isDuplicate === true || isDuplicate === 1 || isDuplicate === 'true' ? 1 : 0;
+    const dupRef = dupBool ? (duplicateOf ? String(duplicateOf).trim() : null) : null;
+    const dupNotes = dupBool ? (duplicateNotes ? String(duplicateNotes).trim() : null) : null;
+
+    const query = `
+      UPDATE mitra_evaluations 
+      SET 
+        nama = ?,
+        sobatId = ?,
+        email = ?,
+        noTelp = ?,
+        role = ?,
+        pj = ?,
+        kecamatan = ?,
+        desa = ?,
+        alamatDetail = ?,
+        alamatKabKota = ?,
+        alamatProvinsi = ?,
+        pendidikan = ?,
+        pekerjaan = ?,
+        jenisKelamin = ?,
+        tempatTanggalLahir = ?,
+        umur = ?,
+        statusKawin = ?,
+        isDuplicate = ?,
+        duplicateOf = ?,
+        duplicateNotes = ?
+      WHERE id = ? OR sobatId = ? OR (LOWER(email) = LOWER(?))
+    `;
+
+    const [result] = await pool.execute(query, [
+      nama.trim(),
+      sobatId ? String(sobatId).trim() : null,
+      email ? String(email).trim().toLowerCase() : '',
+      noTelp ? String(noTelp).trim() : null,
+      role ? String(role).trim() : 'PPL',
+      pj ? String(pj).trim() : '-',
+      kecamatan ? String(kecamatan).trim() : '-',
+      desa ? String(desa).trim() : null,
+      alamatDetail ? String(alamatDetail).trim() : null,
+      alamatKabKota ? String(alamatKabKota).trim() : 'Kabupaten Mempawah',
+      alamatProvinsi ? String(alamatProvinsi).trim() : 'Kalimantan Barat',
+      pendidikan ? String(pendidikan).trim() : null,
+      pekerjaan ? String(pekerjaan).trim() : null,
+      jenisKelamin ? String(jenisKelamin).trim() : null,
+      tempatTanggalLahir ? String(tempatTanggalLahir).trim() : null,
+      umur !== undefined && umur !== null && umur !== '' ? parseInt(umur, 10) : null,
+      statusKawin ? String(statusKawin).trim() : null,
+      dupBool,
+      dupRef,
+      dupNotes,
+      identifier,
+      identifier,
+      identifier
+    ]);
+
+    res.json({
+      success: true,
+      message: 'Data diri mitra dan status duplikasi berhasil disimpan ke database',
+      data: {
+        identifier,
+        nama: nama.trim(),
+        sobatId: sobatId ? String(sobatId).trim() : null,
+        email: email ? String(email).trim().toLowerCase() : '',
+        noTelp: noTelp ? String(noTelp).trim() : null,
+        role: role ? String(role).trim() : 'PPL',
+        pj: pj ? String(pj).trim() : '-',
+        kecamatan: kecamatan ? String(kecamatan).trim() : '-',
+        desa: desa ? String(desa).trim() : null,
+        isDuplicate: Boolean(dupBool),
+        duplicateOf: dupRef,
+        duplicateNotes: dupNotes
+      }
+    });
+  } catch (error) {
+    console.error('Error updating mitra profile:', error);
+    res.status(500).json({ error: 'Gagal memperbarui data diri mitra' });
   }
 });
 
@@ -214,10 +371,10 @@ router.post('/bulk', async (req, res) => {
         (id, email, nama, role, pj, kecamatan, nilai, kategori, catatan, penilai)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-        nilai = VALUES(nilai),
-        kategori = VALUES(kategori),
-        catatan = COALESCE(VALUES(catatan), catatan),
-        penilai = VALUES(penilai)
+        nilai = COALESCE(VALUES(nilai), mitra_evaluations.nilai),
+        kategori = COALESCE(VALUES(kategori), mitra_evaluations.kategori),
+        catatan = IF(VALUES(catatan) IS NOT NULL AND VALUES(catatan) != '', VALUES(catatan), mitra_evaluations.catatan),
+        penilai = COALESCE(VALUES(penilai), mitra_evaluations.penilai)
       `, [id, email, nama, role, pj, kecamatan, finalNilai, kategori, item.catatan || null, item.penilai || 'Admin']);
     }
 
