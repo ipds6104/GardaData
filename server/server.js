@@ -73,6 +73,7 @@ const kbliRoutes = require('./routes/kbli');
 const kbjiRoutes = require('./routes/kbji');
 const analyticsRoutes = require('./routes/analytics');
 const mitraRoutes = require('./routes/mitra');
+const pengolahanRoutes = require('./routes/pengolahan');
 
 // API Routes
 app.use('/api/auth', authRoutes);

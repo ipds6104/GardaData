@@ -26,8 +26,12 @@ SLS_GEOJSON = os.path.join(BASE_DIR, "../public/data/batas_sls_6104.geojson")
 
 OUTPUT_DIR = os.path.join(BASE_DIR, "../public/data/se2026_responden")
 DIST_DIR = os.path.join(BASE_DIR, "../dist/data/se2026_responden")
+SERVER_DATA_DIR = os.path.join(BASE_DIR, "../server/data")
+BACKEND_DATA_DIR = os.path.join(BASE_DIR, "../backend/data")
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(SERVER_DATA_DIR, exist_ok=True)
+os.makedirs(BACKEND_DATA_DIR, exist_ok=True)
 
 # AES-256-GCM Key Derivation (NIST SP 800-38D)
 SECRET_PASSPHRASE = b"GARDA-DATA-SE2026-BPS-MEMPAWAH-MILITARY-GRADE-AES256-SECURE-KEY!"
@@ -314,14 +318,135 @@ if os.path.exists(DTSEN_PARQUET):
     print(f"   Indexed ART for {len(art_map):,} assignments.")
     print(f"   Indexed SLS from dtsen for {len(sls_dtsen_map):,} assignments.")
 
+def extract_q_details(r, prefix=''):
+    def get_val(key):
+        k = f"{prefix}{key}" if prefix else key
+        v = r.get(k)
+        if pd.isna(v) or v is None:
+            return ''
+        s = str(v).strip()
+        if s.lower() in ['nan', 'none', 'null', '-']:
+            return ''
+        return s
+
+    def get_num(key):
+        s = get_val(key)
+        if not s or s == '-':
+            return ''
+        try:
+            f = float(s)
+            if f.is_integer():
+                return str(int(f))
+            return str(f)
+        except:
+            return s
+
+    nu = get_val('nama_usaha')
+    nKom = get_val('nama_komersial')
+    peng = get_val('pengusaha')
+    bu = clean_badan_usaha(get_val('badan_usaha_label'))
+    ju = get_val('jenis_usaha_label')
+    if ju.startswith(('1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.')):
+        ju = re.sub(r'^\d+\.\s*', '', ju).strip()
+
+    # 13. Kegiatan Utama dan Produk Utama (poin a-i)
+    q13 = {
+        'ku': get_val('keg_utama'),
+        'prod': get_val('produk'),
+        'proc': get_val('proses'),
+        'jk': get_val('jenis_kegiatan'),
+        'kpj': re.sub(r'^\d+\.\s*', '', get_val('keg_penjualan_label')).strip(),
+        'kj': re.sub(r'^\d+\.\s*', '', get_val('keg_jasa_label')).strip(),
+        'mm': re.sub(r'^\d+\.\s*', '', get_val('layanan_mamin_label')).strip(),
+        'ps': re.sub(r'^\d+\.\s*', '', get_val('produk_sendiri_label')).strip(),
+        'pl': re.sub(r'^\d+\.\s*', '', get_val('produksi_lingkungan_label')).strip(),
+        'psn': re.sub(r'^\d+\.\s*', '', get_val('produk_seni_label')).strip()
+    }
+    q13 = {k: v for k, v in q13.items() if v}
+
+    # 14. Jaringan Usaha
+    jar = get_val('jaringan_label')
+    if jar.startswith(('1.', '2.', '3.', '4.', '5.')):
+        jar = re.sub(r'^\d+\.\s*', '', jar).strip()
+
+    # 24. Pekerja (poin a1-c2)
+    q24 = {
+        'l': get_num('tk_laki'),
+        'p': get_num('tk_pr'),
+        'totJk': get_num('total_tk_jk'),
+        'bayar': get_num('tk_dibayar'),
+        'unpaid': get_num('tk_tdk_dibayar'),
+        'totBayar': get_num('total_tk_bayar')
+    }
+    q24 = {k: v for k, v in q24.items() if v}
+
+    # 25. Tahun Mulai Beroperasi Komersial
+    thOp = get_num('tahun_operasi')
+    if thOp in ['0', '9999']: thOp = ''
+
+    # 26. Rincian Pengeluaran Tahun 2025 (poin a-f)
+    q26 = {
+        'beli': get_num('biaya_pembelian'),
+        'prod': get_num('biaya_produksi'),
+        'gaji': get_num('gaji'),
+        'op': get_num('operasional'),
+        'nonOp': get_num('non_operasional'),
+        'tot': get_num('total_pengeluaran')
+    }
+    q26 = {k: v for k, v in q26.items() if v}
+
+    # 27. Rincian Nilai Produksi/Penjualan/Pendapatan Tahun 2025 (poin a-d)
+    q27 = {
+        'nilai': get_num('nilai_pendapatan'),
+        'online': get_num('pendapatan_online'),
+        'lain': get_num('pendapatan_lain'),
+        'tot': get_num('total_pendapatan')
+    }
+    q27 = {k: v for k, v in q27.items() if v}
+
+    # 29. Susunan Kepemilikan Modal (poin a-f)
+    q29 = {
+        'pem': get_num('pemerintah'),
+        'pribadi': get_num('pribadi'),
+        'asing': get_num('asing'),
+        'publik': get_num('publik'),
+        'nonPub': get_num('non_publik'),
+        'nonProf': get_num('non_profit')
+    }
+    q29 = {k: v for k, v in q29.items() if v}
+
+    return {
+        'nu': nu,
+        'nKom': nKom,
+        'peng': peng,
+        'bu': bu,
+        'ju': ju,
+        'jar': jar,
+        'thOp': thOp,
+        'q13': q13,
+        'q24': q24,
+        'q26': q26,
+        'q27': q27,
+        'q29': q29
+    }
+
 # 4. Load Nested Businesses (se2026_nested.parquet)
-print("📦 Loading se2026_nested.parquet (Business, KBLI & SLS)...")
+print("📦 Loading se2026_nested.parquet (Business, KBLI, Detailed Questionnaire & SLS)...")
 business_map = {}
+business_details_db = {}
 sls_nested_map = {}
 if os.path.exists(NESTED_PARQUET):
     nested_cols = [
         'assignment_id', 'nama_usaha', 'nama_komersial', 'pengusaha',
-        'badan_usaha_label', 'tahun_operasi', 'total_tk_jk',
+        'jenis_usaha_label', 'badan_usaha_label', 'tahun_operasi',
+        'keg_utama', 'produk', 'proses', 'jenis_kegiatan',
+        'keg_penjualan_label', 'keg_jasa_label', 'layanan_mamin_label',
+        'produk_sendiri_label', 'produksi_lingkungan_label', 'produk_seni_label',
+        'jaringan_label',
+        'tk_laki', 'tk_pr', 'total_tk_jk', 'tk_dibayar', 'tk_tdk_dibayar', 'total_tk_bayar',
+        'biaya_pembelian', 'biaya_produksi', 'gaji', 'operasional', 'non_operasional', 'total_pengeluaran',
+        'nilai_pendapatan', 'pendapatan_online', 'pendapatan_lain', 'total_pendapatan',
+        'pemerintah', 'pribadi', 'asing', 'publik', 'non_publik', 'non_profit',
         'kbli_label', 'kbli_genai_label', 'kbli_akhir', 'kbli_value', 'kbli_prelist',
         'kategori_2025', 'kodesls_l', 'sls_l'
     ]
@@ -339,16 +464,13 @@ if os.path.exists(NESTED_PARQUET):
         if a_id not in sls_nested_map and ks_raw and sn_raw and ks_raw.lower() not in ['nan', 'none', '000000']:
             sls_nested_map[a_id] = (ks_raw.zfill(6)[-6:], sn_raw)
         
-        nu = str(r['nama_usaha'] or '').strip()
-        nKom = str(r['nama_komersial'] or '').strip()
-        peng = str(r['pengusaha'] or '').strip()
-        bu = clean_badan_usaha(r['badan_usaha_label'])
-        thOp = str(r['tahun_operasi'] or '').strip()
-        if thOp in ['nan', 'none', '0']:
-            thOp = ''
-        tk = str(r['total_tk_jk'] or '').strip()
-        if tk in ['nan', 'none', '0']:
-            tk = ''
+        q_det = extract_q_details(r)
+        nu = q_det['nu']
+        nKom = q_det['nKom']
+        peng = q_det['peng']
+        bu = q_det['bu']
+        thOp = q_det['thOp']
+        tk = q_det['q24'].get('totJk') or q_det['q24'].get('totBayar') or ''
             
         kb_complete = resolve_complete_kbli(
             r['kbli_label'], r['kbli_genai_label'], r['kbli_akhir'],
@@ -362,13 +484,38 @@ if os.path.exists(NESTED_PARQUET):
         displayName = sanitize_pii(displayName[:120])
         ownerName = extract_owner(peng, nu, nKom)
             
-        b_obj = {
+        # Backend-only secure record for Administrator
+        b_detail = {
+            'aid': a_id,
             'nu': displayName.upper(),
+            'nKom': nKom.upper() if nKom else '',
             'bu': bu,
+            'ju': q_det['ju'],
             'thOp': thOp,
             'peng': ownerName,
             'tk': tk,
-            'kb': kb_complete
+            'kb': kb_complete,
+            'jar': q_det['jar'],
+            'q13': q_det['q13'],
+            'q24': q_det['q24'],
+            'q26': q_det['q26'],
+            'q27': q_det['q27'],
+            'q29': q_det['q29']
+        }
+        business_details_db[a_id] = b_detail
+
+        # Frontend map object: contains ZERO sensitive questionnaire metrics
+        b_obj = {
+            'aid': a_id,
+            'nu': displayName.upper(),
+            'nKom': nKom.upper() if nKom else '',
+            'bu': bu,
+            'ju': q_det['ju'],
+            'thOp': thOp,
+            'peng': ownerName,
+            'tk': tk,
+            'kb': kb_complete,
+            'jar': q_det['jar']
         }
         
         if a_id not in business_map:
@@ -424,7 +571,15 @@ a_cols = [
     'root_jumlah_ak', 'root_jml_ak_tinggal', 'root_jk_krt', 'root_umur_krt',
     'root_jumlah_usaha', 'root_no_bang', 'se2026_no_bang_l',
     'se2026_nama_usaha', 'se2026_nama_komersial', 'se2026_pengusaha',
-    'se2026_badan_usaha_label', 'se2026_tahun_operasi', 'se2026_total_tk_jk',
+    'se2026_jenis_usaha_label', 'se2026_badan_usaha_label', 'se2026_tahun_operasi', 'se2026_total_tk_jk',
+    'se2026_keg_utama', 'se2026_produk', 'se2026_proses', 'se2026_jenis_kegiatan',
+    'se2026_keg_penjualan_label', 'se2026_keg_jasa_label', 'se2026_layanan_mamin_label',
+    'se2026_produk_sendiri_label', 'se2026_produksi_lingkungan_label', 'se2026_produk_seni_label',
+    'se2026_jaringan_label',
+    'se2026_tk_laki', 'se2026_tk_pr', 'se2026_tk_dibayar', 'se2026_tk_tdk_dibayar', 'se2026_total_tk_bayar',
+    'se2026_biaya_pembelian', 'se2026_biaya_produksi', 'se2026_gaji', 'se2026_operasional', 'se2026_non_operasional', 'se2026_total_pengeluaran',
+    'se2026_nilai_pendapatan', 'se2026_pendapatan_online', 'se2026_pendapatan_lain', 'se2026_total_pendapatan',
+    'se2026_pemerintah', 'se2026_pribadi', 'se2026_asing', 'se2026_publik', 'se2026_non_publik', 'se2026_non_profit',
     'se2026_kbli_label', 'se2026_kbli_genai_label', 'se2026_kbli_akhir', 'se2026_kbli_value', 'se2026_kbli_prelist'
 ]
 
@@ -582,6 +737,7 @@ for _, row in df_valid.iterrows():
 
     pt = {
         'i': safe_id,
+        'aid': raw_aid,
         'k': unmasked_kk,
         'lt': round(float(row['lat']), 6),
         'lg': round(float(row['lng']), 6),
@@ -612,38 +768,85 @@ for _, row in df_valid.iterrows():
                 'h': 'Kepala Keluarga'
             }]
 
-    # 6. Informasi Usaha (100% Guaranteed Full KBLI 2025)
+    # 6. Informasi Usaha (100% Guaranteed Full KBLI 2025 & Clean Frontend Object)
     if as_type in ['usaha', 'keluarga_usaha']:
         if raw_aid in business_map and len(business_map[raw_aid]) > 0:
             b_list = business_map[raw_aid]
             primary_b = b_list[0]
             pt['nu'] = primary_b['nu']
+            pt['nKom'] = primary_b.get('nKom', '')
             pt['bu'] = primary_b['bu']
-            if primary_b['thOp']:
-                pt['thOp'] = primary_b['thOp']
+            pt['ju'] = primary_b.get('ju', '')
+            pt['jar'] = primary_b.get('jar', '')
+            pt['thOp'] = primary_b.get('thOp', '')
             pt['peng'] = primary_b['peng'] if primary_b['peng'] else unmasked_kk
-            if primary_b['tk']:
-                pt['tk'] = primary_b['tk']
+            pt['tk'] = primary_b.get('tk', '')
             pt['kb'] = primary_b['kb'] if primary_b['kb'] else resolve_complete_kbli(nu=primary_b['nu'])
-            if len(b_list) > 1:
-                pt['usahas'] = b_list
+            pt['usahas'] = b_list
+            if raw_aid in business_details_db:
+                business_details_db[safe_id] = business_details_db[raw_aid]
         else:
-            nu = str(row['se2026_nama_usaha'] or row['se2026_nama_komersial'] or '').strip()
-            displayName = nu[:120].upper() if nu else 'UNIT USAHA SE2026'
-            pt['nu'] = displayName
-            pt['bu'] = clean_badan_usaha(row['se2026_badan_usaha_label'])
-            thOp = str(row['se2026_tahun_operasi'] or '').strip()
-            if thOp and thOp not in ['nan', 'none', '0']:
-                pt['thOp'] = thOp
-            pt['peng'] = extract_owner(row['se2026_pengusaha'], row['se2026_nama_usaha'], '', unmasked_kk)
-            tk = str(row['se2026_total_tk_jk'] or '').strip()
-            if tk and tk not in ['nan', 'none', '0']:
-                pt['tk'] = tk
-            pt['kb'] = resolve_complete_kbli(
+            q_det = extract_q_details(row, prefix='se2026_')
+            nu = q_det['nu']
+            nKom = q_det['nKom']
+            displayName = nu if nu else nKom
+            if not displayName:
+                displayName = 'UNIT USAHA SE2026'
+            displayName = displayName[:120].upper()
+            ownerName = extract_owner(row['se2026_pengusaha'], row['se2026_nama_usaha'], row['se2026_nama_komersial'], unmasked_kk)
+            
+            kb_res = resolve_complete_kbli(
                 row['se2026_kbli_label'], row['se2026_kbli_genai_label'], row['se2026_kbli_akhir'],
                 row['se2026_kbli_value'], row['se2026_kbli_prelist'],
                 nu=displayName
             )
+            tk_val = q_det['q24'].get('totJk') or q_det['q24'].get('totBayar') or str(row['se2026_total_tk_jk'] or '').strip()
+            if tk_val in ['nan', 'none', '0']: tk_val = ''
+
+            # Frontend map point (Clean, ZERO sensitive questionnaire metrics)
+            pt['nu'] = displayName
+            pt['nKom'] = nKom.upper() if nKom else ''
+            pt['bu'] = q_det['bu']
+            pt['ju'] = q_det['ju']
+            pt['jar'] = q_det['jar']
+            pt['thOp'] = q_det['thOp']
+            pt['peng'] = ownerName
+            pt['tk'] = tk_val
+            pt['kb'] = kb_res
+            pt['usahas'] = [{
+                'aid': raw_aid,
+                'nu': displayName,
+                'nKom': nKom.upper() if nKom else '',
+                'bu': q_det['bu'],
+                'ju': q_det['ju'],
+                'thOp': q_det['thOp'],
+                'peng': ownerName,
+                'tk': tk_val,
+                'kb': kb_res,
+                'jar': q_det['jar']
+            }]
+
+            # Backend-only secure record for Administrator
+            b_detail = {
+                'aid': raw_aid,
+                'pointId': safe_id,
+                'nu': displayName,
+                'nKom': nKom.upper() if nKom else '',
+                'bu': q_det['bu'],
+                'ju': q_det['ju'],
+                'thOp': q_det['thOp'],
+                'peng': ownerName,
+                'tk': tk_val,
+                'kb': kb_res,
+                'jar': q_det['jar'],
+                'q13': q_det['q13'],
+                'q24': q_det['q24'],
+                'q26': q_det['q26'],
+                'q27': q_det['q27'],
+                'q29': q_det['q29']
+            }
+            business_details_db[raw_aid] = b_detail
+            business_details_db[safe_id] = b_detail
 
     # 7. Enrich with Matching SE-ST
     if raw_aid in matching_map:
@@ -777,7 +980,20 @@ with open(index_path, 'w', encoding='utf-8') as f:
 if os.path.exists(DIST_DIR):
     shutil.copy2(index_path, os.path.join(DIST_DIR, "metadata_index.json"))
 
-print("\n🎉 SUCCESS! SE2026 data updated and encrypted with AES-256-GCM!")
+# 10. Write Backend-Only Detailed Questionnaire Database (Zero Exposure to Frontend/Git)
+print(f"\n🔒 Saving {len(business_details_db):,} backend-only business questionnaire records...")
+server_details_path = os.path.join(SERVER_DATA_DIR, "se2026_business_details.json")
+backend_details_path = os.path.join(BACKEND_DATA_DIR, "se2026_business_details.json")
+
+with open(server_details_path, 'w', encoding='utf-8') as f:
+    json.dump(business_details_db, f)
+with open(backend_details_path, 'w', encoding='utf-8') as f:
+    json.dump(business_details_db, f)
+
+print(f"   Saved to {server_details_path} ({os.path.getsize(server_details_path)/1024/1024:.2f} MB)")
+print(f"   Saved to {backend_details_path} ({os.path.getsize(backend_details_path)/1024/1024:.2f} MB)")
+
+print("\n🎉 SUCCESS! SE2026 data updated: Frontend files are sanitized & backend database is ready!")
 print(f"   Total valid points: {stats['totalResponden']:,}")
 print(f"   Keluarga Murni: {stats['totalKeluarga']:,}")
 print(f"   Keluarga Ada Usaha: {stats['totalKeluargaUsaha']:,}")

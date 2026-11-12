@@ -11,7 +11,7 @@ import {
   Maximize2, Minimize2, ChevronDown, ChevronUp, AlertTriangle, XCircle, FileText, Phone, UserCheck, Tag,
   Zap, Droplets, Coins, Wallet
 } from 'lucide-react';
-import { useAuth } from '../../lib/auth';
+import { useAuth, isAhmadAuliaUser } from '../../lib/auth';
 import { decryptMilitaryPayload } from '../../utils/cryptoSecurity';
 
 // Helper Formatting Functions for Family & Business Characteristics
@@ -88,13 +88,69 @@ export interface ArtMember {
   h?: string;    // hubungan dengan KK (Kepala Keluarga, Istri/Suami, Anak, dll)
 }
 
+export interface BusinessQuestionnaire13 {
+  ku?: string;   // a. Kegiatan Utama
+  prod?: string; // b. Produk / Jasa Utama
+  proc?: string; // c. Proses Produksi
+  jk?: string;   // d. Jenis Kegiatan
+  kpj?: string;  // e. Kegiatan Penjualan / Distribusi
+  kj?: string;   // f. Kegiatan Jasa
+  mm?: string;   // g. Layanan Makanan / Minuman
+  ps?: string;   // h. Menghasilkan Produk Sendiri
+  pl?: string;   // i1. Produksi Berwawasan Lingkungan
+  psn?: string;  // i2. Produk Seni Budaya / Kearifan Lokal
+}
+
+export interface BusinessQuestionnaire24 {
+  l?: string;        // a1. Pekerja Laki-laki
+  p?: string;        // a2. Pekerja Perempuan
+  totJk?: string;    // a3. Total Pekerja (L+P)
+  bayar?: string;    // b1. Pekerja Dibayar
+  unpaid?: string;   // b2. Pekerja Tidak Dibayar
+  totBayar?: string; // c1/c2. Total Pekerja
+}
+
+export interface BusinessQuestionnaire26 {
+  beli?: string;  // a. Pembelian Barang Dagangan / Bahan Baku
+  prod?: string;  // b. Biaya Produksi / Operasional Utama
+  gaji?: string;  // c. Upah / Gaji / Imbalan Pekerja
+  op?: string;    // d. Biaya Operasional Lainnya
+  nonOp?: string; // e. Biaya Non-Operasional
+  tot?: string;   // f. Total Pengeluaran Tahun 2025
+}
+
+export interface BusinessQuestionnaire27 {
+  nilai?: string;  // a. Nilai Produksi / Penjualan Utama
+  online?: string; // b. Penjualan / Pendapatan Online (E-Commerce)
+  lain?: string;   // c. Pendapatan Lainnya
+  tot?: string;    // d. Total Nilai Produksi / Penjualan / Pendapatan
+}
+
+export interface BusinessQuestionnaire29 {
+  pem?: string;     // a. Pemerintah (Pusat / Daerah / BUMN / BUMD) (%)
+  pribadi?: string; // b. Swasta Nasional / Pribadi / Keluarga (%)
+  asing?: string;   // c. Asing (%)
+  publik?: string;  // d. Saham Terbuka (Publik) (%)
+  nonPub?: string;  // e. Tertutup (Non-Publik) (%)
+  nonProf?: string; // f. Lembaga Non-Profit (%)
+}
+
 export interface BusinessItem {
+  aid?: string;   // ID Assignment asli
   nu?: string;    // nama usaha
+  nKom?: string;  // nama komersial usaha/perusahaan
   bu?: string;    // status badan usaha
-  thOp?: string;  // tahun berdiri
-  peng?: string;  // nama pemilik usaha
+  ju?: string;    // jenis usaha/perusahaan (Butir 9.a)
+  jar?: string;   // jaringan usaha (Butir 14.a)
+  thOp?: string;  // tahun mulai beroperasi komersial (Butir 25)
+  peng?: string;  // nama pengusaha / penanggung jawab (Butir 12.a)
   tk?: string;    // jumlah pekerja
   kb?: string;    // KBLI 2025 lengkap
+  q13?: BusinessQuestionnaire13; // Butir 13 (poin a-i)
+  q24?: BusinessQuestionnaire24; // Butir 24 (poin a1-c2)
+  q26?: BusinessQuestionnaire26; // Butir 26 (poin a-f)
+  q27?: BusinessQuestionnaire27; // Butir 27 (poin a-d)
+  q29?: BusinessQuestionnaire29; // Butir 29 (susunan modal)
   sk?: string;
   lok?: string;
   omz?: string;
@@ -105,6 +161,7 @@ export interface BusinessItem {
 
 export interface RespondenPoint {
   i: string;       // safe hashed id (e.g. SE26-A1B2C3D4 or MST-...)
+  aid?: string;    // ID Assignment asli (CAPI / Lapangan)
   k: string;       // nama kepala keluarga / responden (unmasked)
   kk?: string;     // nama kepala keluarga
   lt: number;      // lat
@@ -117,6 +174,9 @@ export interface RespondenPoint {
   ks: string;      // kode SLS (e.g. 002600)
   u: number;       // jmlUsaha
   nu?: string;     // namaUsaha
+  nKom?: string;   // nama komersial usaha/perusahaan
+  ju?: string;     // jenis usaha/perusahaan (Butir 9.a)
+  jar?: string;    // jaringan usaha (Butir 14.a)
   kb?: string;     // KBLI 2025 lengkap
   st?: string;     // status
   sk?: string;     // skala
@@ -129,6 +189,11 @@ export interface RespondenPoint {
   thOp?: string;   // Tahun Berdiri / Mulai Operasi
   tk?: string;     // Tenaga Kerja / Jumlah Pekerja
   art?: ArtMember[]; // Daftar Anggota Rumah Tangga
+  q13?: BusinessQuestionnaire13; // Butir 13 (poin a-i)
+  q24?: BusinessQuestionnaire24; // Butir 24 (poin a1-c2)
+  q26?: BusinessQuestionnaire26; // Butir 26 (poin a-f)
+  q27?: BusinessQuestionnaire27; // Butir 27 (poin a-d)
+  q29?: BusinessQuestionnaire29; // Butir 29 (susunan modal)
   // Karakteristik Keluarga & Usaha legacy fallback
   ak?: number;
   jkKrt?: string;
@@ -1757,6 +1822,7 @@ function ViewportPointsLayer({
 
 export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack }) => {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || isAhmadAuliaUser(user);
 
   // Fullscreen toggle state
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -2298,12 +2364,15 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
     return result;
   }, [allLoadedPoints, pointsByKec, selectedKec, selectedDesa, selectedSls, selectedOfficer, pplCanonicalByName, pmlCanonicalByName, filterUsaha, selectedStatuses]);
 
-  // Search Match Tester
+  // Search Match Tester (Includes Assignment ID, Nama Usaha, Nama Komersial & Usaha dalam Keluarga)
   const matchesQuery = useCallback((p: RespondenPoint, q: string) => {
     return (
+      (p.aid && p.aid.toLowerCase().includes(q)) ||
+      (p.i && p.i.toLowerCase().includes(q)) ||
       (p.k && p.k.toLowerCase().includes(q)) ||
       (p.kk && p.kk.toLowerCase().includes(q)) ||
       (p.nu && p.nu.toLowerCase().includes(q)) ||
+      (p.nKom && p.nKom.toLowerCase().includes(q)) ||
       (p.peng && p.peng.toLowerCase().includes(q)) ||
       (p.nb && p.nb.toLowerCase().includes(q)) ||
       (p.s && p.s.toLowerCase().includes(q)) ||
@@ -2312,10 +2381,15 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
       (p.d && p.d.toLowerCase().includes(q)) ||
       (p.kn && p.kn.toLowerCase().includes(q)) ||
       (p.kc && p.kc.toLowerCase().includes(q)) ||
-      (p.i && p.i.toLowerCase().includes(q)) ||
       (p.kb && p.kb.toLowerCase().includes(q)) ||
       (p.art && p.art.some(a => a.n && a.n.toLowerCase().includes(q))) ||
-      (p.usahas && p.usahas.some(b => (b.nu && b.nu.toLowerCase().includes(q)) || (b.peng && b.peng.toLowerCase().includes(q)) || (b.kb && b.kb.toLowerCase().includes(q)))) ||
+      (p.usahas && p.usahas.some(b => 
+        (b.nu && b.nu.toLowerCase().includes(q)) || 
+        (b.nKom && b.nKom.toLowerCase().includes(q)) || 
+        (b.peng && b.peng.toLowerCase().includes(q)) || 
+        (b.aid && b.aid.toLowerCase().includes(q)) || 
+        (b.kb && b.kb.toLowerCase().includes(q))
+      )) ||
       (p.stKel && p.stKel.toLowerCase().includes(q)) ||
       (p.stUsaha && p.stUsaha.toLowerCase().includes(q)) ||
       (p.mKat && p.mKat.toLowerCase().includes(q)) ||
@@ -2770,7 +2844,7 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   }}
                   onFocus={() => setShowSearchDropdown(true)}
                   onKeyDown={handleSearchKeyDown}
-                  placeholder="Cari Nama KK (Tekan Enter utk Zoom)..."
+                  placeholder="Cari Nama Usaha, ID Assignment, Nama KK..."
                   className="w-full pl-8 pr-7 py-2 text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-2xl focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none shadow-2xs transition-all"
                 />
                 {searchQuery && (
@@ -2803,44 +2877,63 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
 
                       {searchSuggestions.length > 0 ? (
                         <ul className="divide-y divide-slate-100">
-                          {searchSuggestions.map((item) => (
-                            <li key={item.i}>
-                              <button
-                                onClick={() => handleSelectAndZoomToPoint(item)}
-                                className="w-full text-left p-2.5 hover:bg-cyan-50/70 flex items-start justify-between gap-2 transition-colors cursor-pointer group"
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-extrabold text-xs text-slate-900 group-hover:text-cyan-700 truncate">
-                                      {item.asType === 'usaha' ? '💼' : '👤'} {item.k || 'Responden SE2026'}
-                                    </span>
-                                    <span className={`text-[8px] font-black px-1.5 py-0.2 rounded-full shrink-0 ${
-                                      item.asType === 'keluarga_usaha'
-                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                        : item.asType === 'usaha'
-                                        ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                                        : 'bg-blue-100 text-blue-800 border border-blue-200'
-                                    }`}>
-                                      {item.asType === 'keluarga_usaha'
-                                        ? `Keluarga & ${item.u} Usaha`
-                                        : item.asType === 'usaha'
-                                        ? 'Unit Usaha'
-                                        : 'Keluarga'}
-                                    </span>
-                                  </div>
-                                  <p className="text-[10px] text-slate-500 truncate mt-0.5">
-                                    📍 {item.s} • {item.dn || item.d}
-                                  </p>
-                                  {item.nu && (
-                                    <p className="text-[10px] font-bold text-emerald-700 truncate">
-                                      💼 {item.nu}
+                          {searchSuggestions.map((item) => {
+                            const qL = searchQuery.toLowerCase().trim();
+                            const matchedB = item.usahas?.find(b => 
+                              (b.nu && b.nu.toLowerCase().includes(qL)) || 
+                              (b.nKom && b.nKom.toLowerCase().includes(qL)) ||
+                              (b.aid && b.aid.toLowerCase().includes(qL))
+                            );
+                            const isAidMatch = item.aid && item.aid.toLowerCase().includes(qL);
+
+                            return (
+                              <li key={item.i}>
+                                <button
+                                  onClick={() => handleSelectAndZoomToPoint(item)}
+                                  className="w-full text-left p-2.5 hover:bg-cyan-50/70 flex items-start justify-between gap-2 transition-colors cursor-pointer group"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="font-extrabold text-xs text-slate-900 group-hover:text-cyan-700 truncate">
+                                        {item.asType === 'usaha' ? '💼' : '👤'} {item.k || 'Responden SE2026'}
+                                      </span>
+                                      <span className={`text-[8px] font-black px-1.5 py-0.2 rounded-full shrink-0 ${
+                                        item.asType === 'keluarga_usaha'
+                                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                          : item.asType === 'usaha'
+                                          ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                          : 'bg-blue-100 text-blue-800 border border-blue-200'
+                                      }`}>
+                                        {item.asType === 'keluarga_usaha'
+                                          ? `Keluarga & ${item.u || item.usahas?.length || 1} Usaha`
+                                          : item.asType === 'usaha'
+                                          ? 'Unit Usaha'
+                                          : 'Keluarga'}
+                                      </span>
+                                      {isAidMatch && (
+                                        <span className="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-100 text-cyan-800 border border-cyan-200">
+                                          ID: {item.aid?.slice(0, 8)}...
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                                      📍 {item.s} • {item.dn || item.d}
                                     </p>
-                                  )}
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-cyan-600 shrink-0 mt-1 transition-transform group-hover:translate-x-0.5" />
-                              </button>
-                            </li>
-                          ))}
+                                    {matchedB ? (
+                                      <p className="text-[10px] font-bold text-emerald-700 truncate mt-0.5">
+                                        💼 {matchedB.nu} {matchedB.nKom ? `(${matchedB.nKom})` : ''} {item.asType === 'keluarga_usaha' ? '• Usaha Keluarga' : ''}
+                                      </p>
+                                    ) : item.nu ? (
+                                      <p className="text-[10px] font-bold text-emerald-700 truncate mt-0.5">
+                                        💼 {item.nu} {item.nKom ? `(${item.nKom})` : ''}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-cyan-600 shrink-0 mt-1 transition-transform group-hover:translate-x-0.5" />
+                                </button>
+                              </li>
+                            );
+                          })}
                         </ul>
                       ) : (
                         <div className="p-3 text-center text-xs text-slate-400">
@@ -3164,8 +3257,10 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                 {selectedPoint.asType === 'usaha' && (
                   <div className="text-[10px] space-y-0.5 bg-purple-50/70 p-1.5 rounded-lg border border-purple-100">
                     <p className="font-bold text-purple-950 truncate">💼 {selectedPoint.nu || 'Unit Usaha'}</p>
+                    {selectedPoint.nKom && <p className="text-purple-800 text-[9px] font-medium truncate"><b>Komersial:</b> {selectedPoint.nKom}</p>}
                     <p><b>Pemilik:</b> {maskName(selectedPoint.peng || selectedPoint.k)}</p>
                     <p><b>Badan Usaha:</b> {selectedPoint.bu || 'Bukan Badan Usaha'}</p>
+                    {selectedPoint.aid && <p className="text-[9px] font-mono text-slate-500 truncate"><b>ID:</b> {selectedPoint.aid}</p>}
                     {selectedPoint.kb && <p className="truncate"><b>KBLI:</b> {selectedPoint.kb}</p>}
                   </div>
                 )}
@@ -3174,6 +3269,8 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   <div className="text-[10px] space-y-0.5 bg-emerald-50/70 p-1.5 rounded-lg border border-emerald-100">
                     <p className="font-bold text-emerald-950 truncate">👤 KK: {maskName(selectedPoint.kk || selectedPoint.k)} ({selectedPoint.art ? `${selectedPoint.art.length} ART` : '1 ART'})</p>
                     <p className="font-bold text-emerald-900 truncate">💼 {selectedPoint.nu || 'Usaha Keluarga'}</p>
+                    {selectedPoint.nKom && <p className="text-emerald-800 text-[9px] font-medium truncate"><b>Komersial:</b> {selectedPoint.nKom}</p>}
+                    {selectedPoint.aid && <p className="text-[9px] font-mono text-slate-500 truncate"><b>ID:</b> {selectedPoint.aid}</p>}
                     {selectedPoint.kb && <p className="truncate"><b>KBLI:</b> {selectedPoint.kb}</p>}
                   </div>
                 )}
@@ -3263,9 +3360,9 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                           {isValidText(pt.mNotFound) && <p className="text-rose-700 font-bold truncate">❌ Tdk Ditemukan: {pt.mNotFound}</p>}
                           {isValidText(pt.mClosed) && <p className="text-amber-700 font-bold truncate">⚠️ Tutup: {pt.mClosed}</p>}
                         </div>
-                      ) : isValidText(pt.nu) ? (
+                      ) : isValidText(pt.nu) || (pt.usahas && pt.usahas.length > 0) ? (
                         <p className="text-[11px] font-bold text-emerald-700 truncate mt-1">
-                          💼 {pt.nu}
+                          💼 {pt.nu || pt.usahas?.[0]?.nu} {pt.nKom || pt.usahas?.[0]?.nKom ? `(${pt.nKom || pt.usahas?.[0]?.nKom})` : ''}
                         </p>
                       ) : null}
                     </button>
@@ -3661,30 +3758,67 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                   </div>
                 )}
 
-                {/* 3. INFORMASI USAHA (Hanya Variabel: Nama Usaha, Status Badan Usaha, Tahun Berdiri, Nama Pemilik, Jumlah Pekerja, KBLI 2025 Lengkap) */}
+                {/* 3. INFORMASI USAHA */}
                 {(selectedPoint.asType === 'usaha' || (selectedPoint.asType === 'keluarga_usaha' && detailTab === 'usaha')) && (() => {
-                  const bList = (selectedPoint.usahas && selectedPoint.usahas.length > 0)
+                  const bList: BusinessItem[] = (selectedPoint.usahas && selectedPoint.usahas.length > 0)
                     ? selectedPoint.usahas
                     : [{
+                        aid: selectedPoint.aid,
                         nu: selectedPoint.nu,
+                        nKom: selectedPoint.nKom,
                         bu: selectedPoint.bu,
+                        ju: selectedPoint.ju,
+                        jar: selectedPoint.jar,
                         thOp: selectedPoint.thOp,
                         peng: selectedPoint.peng,
                         tk: selectedPoint.tk,
-                        kb: selectedPoint.kb
+                        kb: selectedPoint.kb,
+                        q13: selectedPoint.q13,
+                        q24: selectedPoint.q24,
+                        q26: selectedPoint.q26,
+                        q27: selectedPoint.q27,
+                        q29: selectedPoint.q29
                       }];
-                  const currB = bList[activeBusinessIdx] || bList[0];
+                  const currB: BusinessItem = bList[activeBusinessIdx] || bList[0];
+
+                  // Resolve values with fallback to selectedPoint
+                  const bAid = currB.aid || selectedPoint.aid;
+                  const bNu = currB.nu || selectedPoint.nu || 'Unit Usaha SE2026';
+                  const bNKom = currB.nKom || selectedPoint.nKom;
+                  const bPeng = currB.peng || selectedPoint.peng || selectedPoint.k || '-';
+                  const bJu = currB.ju || selectedPoint.ju;
+                  const bBu = currB.bu || selectedPoint.bu || 'Bukan Badan Usaha';
+                  const bJar = currB.jar || selectedPoint.jar;
+                  const bThOp = currB.thOp || selectedPoint.thOp || '-';
+                  const bTk = currB.tk || selectedPoint.tk;
+                  const bKb = currB.kb || selectedPoint.kb;
+                  const bQ13 = currB.q13 || selectedPoint.q13;
+                  const bQ24 = currB.q24 || selectedPoint.q24;
+                  const bQ26 = currB.q26 || selectedPoint.q26;
+                  const bQ27 = currB.q27 || selectedPoint.q27;
+                  const bQ29 = currB.q29 || selectedPoint.q29;
 
                   return (
                     <div className="p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-200/90 space-y-3 shadow-2xs">
                       <div className="flex items-center justify-between pb-1.5 border-b border-emerald-200/60">
                         <div className="flex items-center gap-1.5 font-black text-xs text-emerald-950">
                           <Briefcase className="w-4 h-4 text-emerald-700 shrink-0" />
-                          <span>Informasi Usaha</span>
+                          <span>Informasi Usaha {isAdmin ? '(Kuesioner SE2026 Lengkap)' : ''}</span>
                         </div>
-                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
-                          {currB.bu || 'Bukan Badan Usaha'}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {isAdmin ? (
+                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-700 text-white shadow-2xs flex items-center gap-1">
+                              <ShieldCheck className="w-3 h-3" /> Admin
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                              Petugas Pengolahan
+                            </span>
+                          )}
+                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                            {bBu}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Switcher if family has multiple businesses */}
@@ -3711,71 +3845,379 @@ export const PetaRespondenSE2026: React.FC<PetaRespondenSE2026Props> = ({ onBack
                         </div>
                       )}
 
-                      {/* 6 Variabel Utama Karakteristik Usaha */}
-                      <div className="space-y-2 text-xs">
-                        {/* 1. Nama Usaha */}
-                        <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
-                          <span className="text-[9px] font-bold uppercase text-slate-400 block">Nama Usaha</span>
-                          <span className="font-black text-sm text-emerald-950 block">
-                            {currB.nu || selectedPoint.nu || 'Unit Usaha SE2026'}
-                          </span>
-                        </div>
+                      {/* --- ADMIN VIEW: FULL 12 QUESTIONNAIRE POINTS --- */}
+                      {isAdmin ? (
+                        <div className="space-y-2.5 text-xs">
+                          {/* ID Assignment CAPI */}
+                          {bAid && (
+                            <div className="p-2.5 bg-cyan-50/80 rounded-xl border border-cyan-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                              <div className="min-w-0">
+                                <span className="text-[9px] font-extrabold uppercase text-cyan-800 block">ID Assignment CAPI</span>
+                                <span className="font-mono font-black text-xs text-cyan-950 block truncate">{bAid}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(bAid, 'aid_' + activeBusinessIdx)}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer bg-white hover:bg-cyan-100 text-cyan-900 border-cyan-300 shadow-2xs shrink-0"
+                                title="Salin ID Assignment"
+                              >
+                                {copiedId === 'aid_' + activeBusinessIdx ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                                <span>{copiedId === 'aid_' + activeBusinessIdx ? 'Tersalin' : 'Salin'}</span>
+                              </button>
+                            </div>
+                          )}
 
-                        {/* 2. Nama Pemilik Usaha */}
-                        <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
-                          <span className="text-[9px] font-bold uppercase text-slate-400 block">Nama Pemilik Usaha</span>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-extrabold text-xs text-slate-900 block break-words">
+                          {/* Identitas Usaha: Nama Usaha & Nama Komersial */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                              <span className="text-[9px] font-bold uppercase text-slate-400 block">Nama Usaha / Perusahaan</span>
+                              <span className="font-black text-sm text-emerald-950 block">
+                                {bNu}
+                              </span>
+                            </div>
+                            <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                              <span className="text-[9px] font-bold uppercase text-slate-400 block">Nama Komersial Usaha / Perusahaan</span>
+                              <span className="font-extrabold text-xs text-slate-800 block">
+                                {bNKom || '-'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* 12. a. Nama Pengusaha / Penanggung Jawab */}
+                          <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] font-bold uppercase text-slate-400 block">12. a. Nama Pengusaha / Penanggung Jawab</span>
+                              <button
+                                type="button"
+                                onClick={() => toggleNameReveal(`peng_${activeBusinessIdx}`)}
+                                className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                                title={isNameRevealed(`peng_${activeBusinessIdx}`) ? "Sensor Nama" : "Lihat Nama Lengkap"}
+                              >
+                                {isNameRevealed(`peng_${activeBusinessIdx}`) ? <EyeOff className="w-3.5 h-3.5 text-emerald-600" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                            <span className="font-black text-sm text-slate-900 block break-words">
                               {isNameRevealed(`peng_${activeBusinessIdx}`)
-                                ? (currB.peng || selectedPoint.peng || selectedPoint.k || '-')
-                                : maskName(currB.peng || selectedPoint.peng || selectedPoint.k || '-')}
+                                ? bPeng
+                                : maskName(bPeng)}
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => toggleNameReveal(`peng_${activeBusinessIdx}`)}
-                              className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer shrink-0"
-                              title={isNameRevealed(`peng_${activeBusinessIdx}`) ? "Sensor Nama Pemilik" : "Lihat Nama Pemilik"}
-                            >
-                              {isNameRevealed(`peng_${activeBusinessIdx}`) ? <EyeOff className="w-3.5 h-3.5 text-emerald-600" /> : <Eye className="w-3.5 h-3.5" />}
-                            </button>
+                          </div>
+
+                          {/* 9. a. Jenis Usaha & 11. a. Status Badan Usaha */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                              <span className="text-[9px] font-bold uppercase text-slate-400 block">9. a. Jenis Usaha / Perusahaan</span>
+                              <span className="font-extrabold text-xs text-slate-900 block">
+                                {bJu || '-'}
+                              </span>
+                            </div>
+                            <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                              <span className="text-[9px] font-bold uppercase text-slate-400 block">11. a. Status Badan Usaha</span>
+                              <span className="font-extrabold text-xs text-slate-900 block truncate">
+                                {bBu}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* 14. a. Jaringan Usaha & 25. Tahun Mulai Beroperasi Komersial */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                              <span className="text-[9px] font-bold uppercase text-slate-400 block">14. a. Jaringan Usaha</span>
+                              <span className="font-extrabold text-xs text-slate-900 block">
+                                {bJar || '-'}
+                              </span>
+                            </div>
+                            <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                              <span className="text-[9px] font-bold uppercase text-slate-400 block">25. Tahun Mulai Beroperasi Komersial</span>
+                              <span className="font-black text-xs text-emerald-900 block">
+                                {bThOp}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* KBLI 2025 Lengkap */}
+                          <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-1 shadow-2xs">
+                            <span className="text-[9px] font-bold uppercase text-slate-400 block">Klasifikasi Baku Lapangan Usaha Indonesia (KBLI 2025)</span>
+                            <div className="p-2 bg-emerald-50/80 rounded-lg border border-emerald-200">
+                              <span className="font-extrabold text-emerald-950 text-xs block leading-relaxed">
+                                {bKb || 'Klasifikasi KBLI Belum Tercatat'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* 13. Kegiatan Utama dan Produk Utama (poin a - i) */}
+                          <div className="p-3 bg-white rounded-xl border border-emerald-200 space-y-2 shadow-2xs">
+                            <div className="flex items-center gap-1.5 pb-1 border-b border-slate-100 text-[11px] font-black text-emerald-950">
+                              <Tag className="w-3.5 h-3.5 text-emerald-700" />
+                              <span>13. Kegiatan Utama dan Produk Utama Usaha/Perusahaan (poin a - i)</span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-1.5 text-xs">
+                              <div className="p-2 bg-slate-50/90 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">a. Kegiatan Utama Usaha</span>
+                                <span className="font-semibold text-slate-800">{bQ13?.ku || '-'}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50/90 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">b. Produk / Jasa Utama yang Dihasilkan</span>
+                                <span className="font-semibold text-slate-800">{bQ13?.prod || '-'}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50/90 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">c. Proses Produksi / Cara Kerja Utama</span>
+                                <span className="font-semibold text-slate-800">{bQ13?.proc || '-'}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50/90 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">d. Jenis Kegiatan</span>
+                                <span className="font-semibold text-slate-800">{bQ13?.jk || '-'}</span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                <div className="p-1.5 bg-slate-50/90 rounded-lg">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase block">e. Penjualan / Distribusi</span>
+                                  <span className="font-semibold text-slate-800">{bQ13?.kpj || '-'}</span>
+                                </div>
+                                <div className="p-1.5 bg-slate-50/90 rounded-lg">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase block">f. Kegiatan Jasa</span>
+                                  <span className="font-semibold text-slate-800">{bQ13?.kj || '-'}</span>
+                                </div>
+                                <div className="p-1.5 bg-slate-50/90 rounded-lg">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase block">g. Layanan Makanan / Minuman</span>
+                                  <span className="font-semibold text-slate-800">{bQ13?.mm || '-'}</span>
+                                </div>
+                                <div className="p-1.5 bg-slate-50/90 rounded-lg">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase block">h. Menghasilkan Produk Sendiri</span>
+                                  <span className="font-semibold text-slate-800">{bQ13?.ps || '-'}</span>
+                                </div>
+                                <div className="p-1.5 bg-slate-50/90 rounded-lg">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase block">i1. Produksi Berwawasan Lingkungan</span>
+                                  <span className="font-semibold text-slate-800">{bQ13?.pl || '-'}</span>
+                                </div>
+                                <div className="p-1.5 bg-slate-50/90 rounded-lg">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase block">i2. Seni Budaya & Kearifan Lokal</span>
+                                  <span className="font-semibold text-slate-800">{bQ13?.psn || '-'}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 24. Pekerja (poin a1 - c2) */}
+                          <div className="p-3 bg-white rounded-xl border border-emerald-200 space-y-2 shadow-2xs">
+                            <div className="flex items-center justify-between pb-1 border-b border-slate-100 text-[11px] font-black text-emerald-950">
+                              <div className="flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 text-emerald-700" />
+                                <span>24. Pekerja (Tenaga Kerja) (poin a1 - c2)</span>
+                              </div>
+                              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                Total: {bQ24?.totBayar || bQ24?.totJk || bTk || '0'} Orang
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">a1. Laki-laki</span>
+                                <span className="font-black text-slate-900">{bQ24?.l || '0'} Orang</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">a2. Perempuan</span>
+                                <span className="font-black text-slate-900">{bQ24?.p || '0'} Orang</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">a3. Total (L+P)</span>
+                                <span className="font-black text-emerald-800">{bQ24?.totJk || '0'} Orang</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">b1. Pekerja Dibayar</span>
+                                <span className="font-black text-slate-900">{bQ24?.bayar || '0'} Orang</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">b2. Tidak Dibayar</span>
+                                <span className="font-black text-slate-900">{bQ24?.unpaid || '0'} Orang</span>
+                              </div>
+                              <div className="p-2 bg-emerald-50 rounded-lg border border-emerald-200">
+                                <span className="text-[9px] font-bold text-emerald-700 uppercase block">c. Total Pekerja</span>
+                                <span className="font-black text-emerald-950">{bQ24?.totBayar || bTk || '0'} Orang</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 26. Rincian Pengeluaran Tahun 2025 (poin a - f) */}
+                          <div className="p-3 bg-white rounded-xl border border-emerald-200 space-y-2 shadow-2xs">
+                            <div className="flex items-center justify-between pb-1 border-b border-slate-100 text-[11px] font-black text-emerald-950">
+                              <div className="flex items-center gap-1.5">
+                                <Wallet className="w-3.5 h-3.5 text-emerald-700" />
+                                <span>26. Rincian Pengeluaran Tahun 2025 (poin a - f)</span>
+                              </div>
+                              <span className="text-[10px] font-mono font-black text-amber-700">
+                                {formatRupiah(bQ26?.tot)}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">a. Pembelian Barang Dagangan / Bahan Baku</span>
+                                <span className="font-bold text-slate-900">{formatRupiah(bQ26?.beli)}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">b. Biaya Produksi / Operasional Utama</span>
+                                <span className="font-bold text-slate-900">{formatRupiah(bQ26?.prod)}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">c. Upah / Gaji / Imbalan Pekerja</span>
+                                <span className="font-bold text-slate-900">{formatRupiah(bQ26?.gaji)}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">d. Biaya Operasional Lainnya</span>
+                                <span className="font-bold text-slate-900">{formatRupiah(bQ26?.op)}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">e. Biaya Non-Operasional</span>
+                                <span className="font-bold text-slate-900">{formatRupiah(bQ26?.nonOp)}</span>
+                              </div>
+                              <div className="p-2 bg-amber-50 rounded-lg border border-amber-200">
+                                <span className="text-[9px] font-bold text-amber-800 uppercase block">f. Total Pengeluaran Tahun 2025</span>
+                                <span className="font-black text-amber-950">{formatRupiah(bQ26?.tot)}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 27. Rincian Nilai Produksi / Penjualan / Pendapatan Tahun 2025 (poin a - d) */}
+                          <div className="p-3 bg-white rounded-xl border border-emerald-200 space-y-2 shadow-2xs">
+                            <div className="flex items-center justify-between pb-1 border-b border-slate-100 text-[11px] font-black text-emerald-950">
+                              <div className="flex items-center gap-1.5">
+                                <Coins className="w-3.5 h-3.5 text-emerald-700" />
+                                <span>27. Nilai Produksi / Penjualan / Pendapatan Tahun 2025 (poin a - d)</span>
+                              </div>
+                              <span className="text-[10px] font-mono font-black text-emerald-800">
+                                {formatRupiah(bQ27?.tot)}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">a. Nilai Produksi / Penjualan Utama</span>
+                                <span className="font-bold text-slate-900">{formatRupiah(bQ27?.nilai)}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">b. Penjualan / Pendapatan Online (E-Commerce)</span>
+                                <span className="font-bold text-slate-900">{formatRupiah(bQ27?.online)}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">c. Pendapatan Lainnya</span>
+                                <span className="font-bold text-slate-900">{formatRupiah(bQ27?.lain)}</span>
+                              </div>
+                              <div className="p-2 bg-emerald-50 rounded-lg border border-emerald-200">
+                                <span className="text-[9px] font-bold text-emerald-800 uppercase block">d. Total Nilai Produksi / Penjualan / Pendapatan</span>
+                                <span className="font-black text-emerald-950">{formatRupiah(bQ27?.tot)}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 29. Susunan Kepemilikan Modal per 31 Desember 2025 */}
+                          <div className="p-3 bg-white rounded-xl border border-emerald-200 space-y-2 shadow-2xs">
+                            <div className="flex items-center gap-1.5 pb-1 border-b border-slate-100 text-[11px] font-black text-emerald-950">
+                              <Building2 className="w-3.5 h-3.5 text-emerald-700" />
+                              <span>29. Susunan Kepemilikan Modal per 31 Desember 2025</span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">a. Pemerintah (Pusat/Daerah/BUMN)</span>
+                                <span className="font-black text-slate-900">{bQ29?.pem ? `${bQ29.pem}%` : '0%'}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">b. Swasta / Pribadi / Keluarga</span>
+                                <span className="font-black text-slate-900">{bQ29?.pribadi ? `${bQ29.pribadi}%` : '0%'}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">c. Asing</span>
+                                <span className="font-black text-slate-900">{bQ29?.asing ? `${bQ29.asing}%` : '0%'}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">d. Saham Terbuka (Publik)</span>
+                                <span className="font-black text-slate-900">{bQ29?.publik ? `${bQ29.publik}%` : '0%'}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">e. Tertutup (Non-Publik)</span>
+                                <span className="font-black text-slate-900">{bQ29?.nonPub ? `${bQ29.nonPub}%` : '0%'}</span>
+                              </div>
+                              <div className="p-2 bg-slate-50 rounded-lg">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase block">f. Lembaga Non-Profit</span>
+                                <span className="font-black text-slate-900">{bQ29?.nonProf ? `${bQ29.nonProf}%` : '0%'}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
-
-                        {/* 3 & 4. Status Badan Usaha & Tahun Berdiri */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      ) : (
+                        /* --- NON-ADMIN VIEW (Petugas Pengolahan): 6 Variabel Standar Saja --- */
+                        <div className="space-y-2 text-xs">
+                          {/* 1. Nama Usaha */}
                           <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
-                            <span className="text-[9px] font-bold uppercase text-slate-400 block">Status Badan Usaha</span>
-                            <span className="font-extrabold text-xs text-slate-900 block truncate">
-                              {currB.bu || selectedPoint.bu || 'Bukan Badan Usaha'}
+                            <span className="text-[9px] font-bold uppercase text-slate-400 block">Nama Usaha</span>
+                            <span className="font-black text-sm text-emerald-950 block">
+                              {bNu}
                             </span>
                           </div>
 
+                          {/* 2. Nama Pemilik Usaha */}
                           <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
-                            <span className="text-[9px] font-bold uppercase text-slate-400 block">Tahun Berdiri</span>
-                            <span className="font-black text-xs text-emerald-900 block">
-                              {currB.thOp || selectedPoint.thOp || '-'}
+                            <span className="text-[9px] font-bold uppercase text-slate-400 block">Nama Pemilik Usaha</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-extrabold text-xs text-slate-900 block break-words">
+                                {isNameRevealed(`peng_${activeBusinessIdx}`)
+                                  ? bPeng
+                                  : maskName(bPeng)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => toggleNameReveal(`peng_${activeBusinessIdx}`)}
+                                className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                                title={isNameRevealed(`peng_${activeBusinessIdx}`) ? "Sensor Nama Pemilik" : "Lihat Nama Pemilik"}
+                              >
+                                {isNameRevealed(`peng_${activeBusinessIdx}`) ? <EyeOff className="w-3.5 h-3.5 text-emerald-600" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* 3 & 4. Status Badan Usaha & Tahun Berdiri */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                              <span className="text-[9px] font-bold uppercase text-slate-400 block">Status Badan Usaha</span>
+                              <span className="font-extrabold text-xs text-slate-900 block truncate">
+                                {bBu}
+                              </span>
+                            </div>
+
+                            <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                              <span className="text-[9px] font-bold uppercase text-slate-400 block">Tahun Berdiri</span>
+                              <span className="font-black text-xs text-emerald-900 block">
+                                {bThOp}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* 5. Jumlah Pekerja */}
+                          <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
+                            <span className="text-[9px] font-bold uppercase text-slate-400 block">Jumlah Pekerja</span>
+                            <span className="font-extrabold text-xs text-slate-900 block">
+                              {bTk ? `${bTk} Orang Tenaga Kerja` : '-'}
                             </span>
                           </div>
-                        </div>
 
-                        {/* 5. Jumlah Pekerja */}
-                        <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-0.5 shadow-2xs">
-                          <span className="text-[9px] font-bold uppercase text-slate-400 block">Jumlah Pekerja</span>
-                          <span className="font-extrabold text-xs text-slate-900 block">
-                            {(currB.tk || selectedPoint.tk) ? `${currB.tk || selectedPoint.tk} Orang Tenaga Kerja` : '-'}
-                          </span>
-                        </div>
+                          {/* 6. KBLI 2025 Lengkapnya */}
+                          <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-1 shadow-2xs">
+                            <span className="text-[9px] font-bold uppercase text-slate-400 block">KBLI 2025 Lengkap</span>
+                            <div className="p-2 bg-emerald-50/80 rounded-lg border border-emerald-200">
+                              <span className="font-extrabold text-emerald-950 text-xs block leading-relaxed">
+                                {bKb || 'Klasifikasi KBLI Belum Tercatat'}
+                              </span>
+                            </div>
+                          </div>
 
-                        {/* 6. KBLI 2025 Lengkapnya */}
-                        <div className="p-2.5 bg-white rounded-xl border border-emerald-100 space-y-1 shadow-2xs">
-                          <span className="text-[9px] font-bold uppercase text-slate-400 block">KBLI 2025 Lengkap</span>
-                          <div className="p-2 bg-emerald-50/80 rounded-lg border border-emerald-200">
-                            <span className="font-extrabold text-emerald-950 text-xs block leading-relaxed">
-                              {currB.kb || selectedPoint.kb || 'Klasifikasi KBLI Belum Tercatat'}
-                            </span>
+                          {/* Security Notice for Petugas Pengolahan */}
+                          <div className="p-2.5 bg-amber-50/90 rounded-xl border border-amber-200/90 flex items-start gap-2 text-xs text-amber-900 shadow-2xs">
+                            <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="font-bold text-[11px] block">Akses Rincian Kuesioner Terbatas</span>
+                              <p className="text-[10px] text-amber-800 leading-relaxed mt-0.5">
+                                Petugas Pengolahan hanya memiliki izin untuk melihat informasi dasar usaha. Data finansial, ketenagakerjaan rinci, dan kuesioner SE2026 lengkap hanya dapat diakses oleh Administrator.
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })()}
