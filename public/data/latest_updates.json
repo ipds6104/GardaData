@@ -1,0 +1,27 @@
+[
+  {
+    "title": "Penilaian Kinerja Mitra",
+    "date": "15 Nov 2026",
+    "desc": "Pemulihan data diri lengkap mitra dari Kepka BPS, perbaikan tampilan angka 0 pada nama, dan penambahan endpoint profil admin."
+  },
+  {
+    "title": "Keamanan Peta Responden SE2026",
+    "date": "12 Nov 2026",
+    "desc": "Sanitasi data frontend, proteksi database kuesioner backend, API detail admin aman dengan zero-cache HTTP headers."
+  },
+  {
+    "title": "Pemulihan Evaluasi & Fail-Safe Mitra",
+    "date": "10 Nov 2026",
+    "desc": "Pemulihan nilai & catatan kinerja mitra dari cadangan Excel serta arsitektur snapshot master independen fail-safe."
+  },
+  {
+    "title": "Hierarki Wilayah & SOBAT ID Mitra",
+    "date": "10 Nov 2026",
+    "desc": "Integrasi hierarki alamat lengkap, ID SOBAT sebagai primary key, filter desa dependen, dan basis data 388 mitra."
+  },
+  {
+    "title": "Direktori Penawaran Kerja Mitra",
+    "date": "10 Nov 2026",
+    "desc": "Multi-select filter untuk kategori rekomendasi, posisi (PPL/PML), dan kecamatan untuk penawaran kerja lanjutan."
+  }
+]

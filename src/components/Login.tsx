@@ -51,6 +51,9 @@ function parseGitHubCommit(commitObj: any): FeatureUpdate {
     let scopeName = '';
     if (rawScope) {
       const scopeMap: Record<string, string> = {
+        'mitra': 'Penilaian Kinerja Mitra',
+        'pengolahan': 'Peta Responden SE2026',
+        'se2026': 'Peta Responden SE2026',
         'laporan-lms': 'Laporan & LMS',
         'laporan': 'Laporan Pendataan',
         'lms': 'LMS Pelatihan',
@@ -81,8 +84,21 @@ function parseGitHubCommit(commitObj: any): FeatureUpdate {
     return { title, date: formattedDate, desc };
   }
 
+  // Fallback intelligent title detection
+  const lowerMsg = firstLine.toLowerCase();
+  let fallbackTitle = 'Pembaruan Sistem';
+  if (lowerMsg.includes('se2026') || lowerMsg.includes('responden')) {
+    fallbackTitle = 'Keamanan Peta Responden SE2026';
+  } else if (lowerMsg.includes('mitra')) {
+    fallbackTitle = 'Penilaian Kinerja Mitra';
+  } else if (lowerMsg.includes('lms')) {
+    fallbackTitle = 'LMS Pelatihan';
+  } else if (lowerMsg.includes('laporan')) {
+    fallbackTitle = 'Laporan Pendataan';
+  }
+
   return {
-    title: 'Pembaruan Sistem',
+    title: fallbackTitle,
     date: formattedDate,
     desc: firstLine
   };
@@ -90,29 +106,29 @@ function parseGitHubCommit(commitObj: any): FeatureUpdate {
 
 const LATEST_UPDATES: FeatureUpdate[] = [
   {
-    title: 'Laporan & LMS Terintegrasi',
-    date: '08 Nov 2026',
-    desc: 'Integrasi folder Google Drive BPS, rute GPS penelusuran responden, dan proteksi isian read-only.',
+    title: 'Penilaian Kinerja Mitra',
+    date: '15 Nov 2026',
+    desc: 'Pemulihan data diri lengkap mitra dari Kepka BPS, perbaikan tampilan angka 0 pada nama, dan penambahan endpoint profil admin.',
   },
   {
-    title: 'Sistem Cadangan & Backup Otomatis',
-    date: '05 Nov 2026',
-    desc: 'Pencadangan data periodik otomatis & perekaman riwayat revisi sebelum perubahan sistem untuk seluruh modul.',
+    title: 'Keamanan Peta Responden SE2026',
+    date: '12 Nov 2026',
+    desc: 'Sanitasi data frontend, proteksi database kuesioner backend, API detail admin aman dengan zero-cache HTTP headers.',
   },
   {
-    title: 'Halaman Developer: Manajemen Cadangan',
-    date: '05 Nov 2026',
-    desc: 'Pencadangan manual, pemantauan log audit, dan ekspor arsip ZIP terlindungi khusus akun ahmad.aulia.',
+    title: 'Pemulihan Evaluasi & Fail-Safe Mitra',
+    date: '10 Nov 2026',
+    desc: 'Pemulihan nilai & catatan kinerja mitra dari cadangan Excel serta arsitektur snapshot master independen fail-safe.',
   },
   {
-    title: 'LMS Pelatihan & Template Safety',
-    date: '05 Nov 2026',
-    desc: 'Kloning template jadwal dari pelatihan yang ada dan proteksi auto-backup lokal saat penyusunan jadwal.',
+    title: 'Hierarki Wilayah & SOBAT ID Mitra',
+    date: '10 Nov 2026',
+    desc: 'Integrasi hierarki alamat lengkap, ID SOBAT sebagai primary key, filter desa dependen, dan basis data 388 mitra.',
   },
   {
-    title: 'Klasifikasi Baku KBJI 2026',
-    date: '04 Nov 2026',
-    desc: 'Integrasi 2.378 jabatan standar Klasifikasi Baku Jabatan Indonesia 2026 & selektor kalender 24 jam WIB.',
+    title: 'Direktori Penawaran Kerja Mitra',
+    date: '10 Nov 2026',
+    desc: 'Multi-select filter untuk kategori rekomendasi, posisi (PPL/PML), dan kecamatan untuk penawaran kerja lanjutan.',
   },
 ];
 
@@ -128,15 +144,15 @@ export const Login: React.FC = () => {
   const [showSsoInfoModal, setShowSsoInfoModal] = useState(false);
   const [ssoModalMessage, setSsoModalMessage] = useState('');
 
-  // 5 Update Fitur Terbaru Dinamis dari Repositori GitHub
+  // 5 Update Fitur Terbaru Dinamis dari Repositori GitHub & Static Asset
   const [updates, setUpdates] = useState<FeatureUpdate[]>(() => {
     try {
-      const cached = localStorage.getItem('garda_latest_github_updates');
+      localStorage.removeItem('garda_latest_github_updates'); // Hapus cache usang
+      const cached = localStorage.getItem('garda_latest_github_updates_v2');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Hanya gunakan cache jika memuat update tanggal 5 Nov ke atas
-          const hasRecent = parsed.some((u: any) => u.date && (u.date.includes('08 Nov') || u.date.includes('05 Nov') || u.date.includes('Nov 2026')));
+          const hasRecent = parsed.some((u: any) => u.date && (u.date.includes('15 Nov') || u.date.includes('12 Nov') || u.date.includes('10 Nov')));
           if (hasRecent) return parsed;
         }
       }
@@ -148,21 +164,42 @@ export const Login: React.FC = () => {
   const fetchLatestUpdates = async () => {
     try {
       setIsFetchingUpdates(true);
-      const res = await fetch('https://api.github.com/repos/ipds6104/GardaData/commits?per_page=5', {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json'
+      let fetched: FeatureUpdate[] | null = null;
+
+      // 1. Ambil dari static asset lokal repository (instan < 5ms, 100% andal, bebas batas rate GitHub)
+      try {
+        const staticRes = await fetch(`/data/latest_updates.json?t=${Date.now()}`);
+        if (staticRes.ok) {
+          const data = await staticRes.json();
+          if (Array.isArray(data) && data.length > 0) {
+            fetched = data;
+          }
         }
-      });
-      if (res.ok) {
-        const commits = await res.json();
-        if (Array.isArray(commits) && commits.length > 0) {
-          const formatted = commits.map(parseGitHubCommit);
-          setUpdates(formatted);
-          localStorage.setItem('garda_latest_github_updates', JSON.stringify(formatted));
-        }
+      } catch (err) {}
+
+      // 2. Fallback live fetch ke GitHub Commits API
+      if (!fetched) {
+        try {
+          const res = await fetch('https://api.github.com/repos/ipds6104/GardaData/commits?per_page=5', {
+            headers: {
+              'Accept': 'application/vnd.github.v3+json'
+            }
+          });
+          if (res.ok) {
+            const commits = await res.json();
+            if (Array.isArray(commits) && commits.length > 0) {
+              fetched = commits.map(parseGitHubCommit);
+            }
+          }
+        } catch (err) {}
+      }
+
+      if (fetched && fetched.length > 0) {
+        setUpdates(fetched);
+        localStorage.setItem('garda_latest_github_updates_v2', JSON.stringify(fetched));
       }
     } catch (e) {
-      console.warn('Could not fetch latest GitHub updates:', e);
+      console.warn('Could not fetch latest updates:', e);
     } finally {
       setIsFetchingUpdates(false);
     }
