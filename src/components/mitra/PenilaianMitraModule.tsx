@@ -543,7 +543,7 @@ const MitraDetailModal: React.FC<MitraDetailModalProps> = ({ mitra, onClose, onE
         onClick={(e) => e.stopPropagation()}
       >
         {/* Duplicate Alert Banner */}
-        {mitra.isDuplicate && (
+        {Boolean(mitra.isDuplicate) && (
           <div className="bg-amber-500 text-white px-5 py-2 flex items-center justify-between text-xs shrink-0 font-bold shadow-xs">
             <div className="flex items-center gap-2">
               <span className="text-sm">🔁</span>
@@ -1251,7 +1251,7 @@ const MitraEditProfileModal: React.FC<MitraEditProfileModalProps> = ({
               </label>
 
               {/* Sub-Form Duplikasi Jika Dicentang */}
-              {formData.isDuplicate && (
+              {Boolean(formData.isDuplicate) && (
                 <div className="mt-4 pt-4 border-t border-amber-200/80 space-y-3.5">
                   <div className="p-2.5 rounded-xl bg-amber-100/70 border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
                     💡 <strong>Aturan Perhitungan:</strong> Mitra duplikat ini akan dikecualikan dari penjumlahan kuota unik agar tidak terjadi double counting. Nilai evaluasi tetap dapat disimpan atau merujuk ke data master.
@@ -1665,14 +1665,17 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         console.warn('Gagal memuat baseline data mitra terenkripsi:', e);
       }
 
-      // Ambil cache lokal (v4, v3, v2) yang menyimpan evaluasi dan profil lengkap mitra
+      // Ambil cache lokal (v5, v4, v3) yang menyimpan evaluasi dan profil lengkap mitra
       let localCachedRecords: MitraRecord[] = [];
-      const cached = localStorage.getItem('garda_mitra_cache_v4') || localStorage.getItem('garda_mitra_cache_v3') || localStorage.getItem('garda_mitra_cache_v2');
+      const cached = localStorage.getItem('garda_mitra_cache_v5') || localStorage.getItem('garda_mitra_cache_v4') || localStorage.getItem('garda_mitra_cache_v3') || localStorage.getItem('garda_mitra_cache_v2');
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            localCachedRecords = parsed;
+            localCachedRecords = parsed.map(item => ({
+              ...item,
+              isDuplicate: Boolean(item.isDuplicate)
+            }));
           }
         } catch (err) {}
       }
@@ -1683,8 +1686,14 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         const res = await fetch(`${baseUrl}/api/mitra`, { headers });
         if (res.ok) {
           const apiData = await res.json();
-          if (Array.isArray(apiData) && apiData.length > 0) {
-            incomingData = apiData;
+          const list = Array.isArray(apiData)
+            ? apiData
+            : (Array.isArray(apiData?.data) ? apiData.data : []);
+          if (list.length > 0) {
+            incomingData = list.map((item: any) => ({
+              ...item,
+              isDuplicate: Boolean(item.isDuplicate)
+            }));
           }
         } else {
           console.warn(`Respon API tidak OK (${res.status}), menggunakan fallback cache lokal`);
@@ -1801,10 +1810,16 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
               kecamatan: existing.kecamatan && existing.kecamatan !== '-' ? existing.kecamatan : b.kecamatan,
               nilai: finalNilai,
               kategori: finalKategori,
-              catatan: finalCatatan
+              catatan: finalCatatan,
+              isDuplicate: Boolean(existing.isDuplicate !== undefined ? existing.isDuplicate : b.isDuplicate),
+              duplicateOf: existing.duplicateOf || b.duplicateOf,
+              duplicateNotes: existing.duplicateNotes || b.duplicateNotes
             };
           }
-          return b;
+          return {
+            ...b,
+            isDuplicate: Boolean(b.isDuplicate)
+          };
         });
 
         // Pertahankan mitra baru yang belum ada di acuan baseline agar tidak hilang
@@ -1816,10 +1831,10 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         });
 
         if (extraMitra.length > 0) {
-          merged = [...merged, ...extraMitra];
+          merged = [...merged, ...extraMitra.map(m => ({ ...m, isDuplicate: Boolean(m.isDuplicate) }))];
         }
       } else if (incomingData.length > 0) {
-        merged = incomingData;
+        merged = incomingData.map(m => ({ ...m, isDuplicate: Boolean(m.isDuplicate) }));
       }
 
       // 4. Selaraskan nilai & catatan untuk baris duplikat agar data penilaian tidak tampak hilang
@@ -1851,7 +1866,8 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
         return m;
       });
 
-      // Simpan cache v4 dan v3 untuk kompatibilitas penuh
+      // Simpan cache v5, v4 dan v3 untuk kompatibilitas penuh
+      localStorage.setItem('garda_mitra_cache_v5', JSON.stringify(merged));
       localStorage.setItem('garda_mitra_cache_v4', JSON.stringify(merged));
       localStorage.setItem('garda_mitra_cache_v3', JSON.stringify(merged));
       setMitraList(merged);
@@ -3874,7 +3890,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                                         }`}>
                                           {m.role}
                                         </span>
-                                        {m.isDuplicate && (
+                                        {Boolean(m.isDuplicate) && (
                                           <span 
                                             className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 flex items-center gap-1" 
                                             title={m.duplicateOf ? `Duplikat dari master: ${m.duplicateOf}` : 'Data Duplikat (1x dihitung)'}
@@ -4508,7 +4524,7 @@ export const PenilaianMitraModule: React.FC<PenilaianMitraModuleProps> = ({ onBa
                               title="Klik untuk melihat data diri lengkap mitra"
                             >
                               <span>{m.nama}</span>
-                              {m.isDuplicate && (
+                              {Boolean(m.isDuplicate) && (
                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 border border-amber-300">
                                   🔁 Duplikat
                                 </span>

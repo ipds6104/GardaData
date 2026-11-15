@@ -22,21 +22,22 @@ console.log(`   Waktu Eksekusi  : ${new Date().toLocaleString('id-ID')}`);
 console.log('===============================================================\n');
 
 // Helper AES-256-GCM encryption for public JSON
-const SECRET_SEED = 'GARDA_DATA_BPS_MEMPAWAH_SECRET_KEY_2026';
-const ALGORITHM = 'aes-256-gcm';
+const SECRET_PASSPHRASE = 'GARDA-DATA-SE2026-BPS-MEMPAWAH-MILITARY-GRADE-AES256-SECURE-KEY!';
+const SALT_STR = 'garda_data_salt_6104_mempawah_sec';
 
 function encryptPublicData(plainObj) {
-  const key = crypto.createHash('sha256').update(SECRET_SEED).digest();
+  const key = crypto.pbkdf2Sync(SECRET_PASSPHRASE, SALT_STR, 100000, 32, 'sha256');
   const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   const jsonStr = JSON.stringify(plainObj);
-  let encrypted = cipher.update(jsonStr, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  const authTag = cipher.getAuthTag().toString('hex');
+  let encrypted = cipher.update(jsonStr, 'utf8', 'base64');
+  encrypted += cipher.final('base64');
+  const tag = cipher.getAuthTag();
   return {
-    encrypted: true,
-    iv: iv.toString('hex'),
-    tag: authTag,
+    v: 1,
+    algo: 'AES-256-GCM',
+    iv: iv.toString('base64'),
+    tag: tag.toString('base64'),
     data: encrypted
   };
 }

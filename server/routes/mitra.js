@@ -591,6 +591,70 @@ router.put('/:id', (req, res) => {
 });
 
 // =========================================================================
+// 5b. PUT /api/mitra/:id/profile: Perbarui Data Diri Lengkap & Status Duplikat Mitra (Khusus Admin)
+// =========================================================================
+router.put('/:id/profile', (req, res) => {
+    try {
+        const paramId = decodeURIComponent(req.params.id).trim();
+        const allData = loadMitraData();
+
+        let targetIdx = allData.findIndex(m => 
+            (m.id && m.id.toLowerCase() === paramId.toLowerCase()) ||
+            (m.sobatId && m.sobatId.toLowerCase() === paramId.toLowerCase()) ||
+            (m.email && m.email.toLowerCase() === paramId.toLowerCase()) ||
+            getRecordKey(m).toLowerCase() === paramId.toLowerCase()
+        );
+
+        if (targetIdx === -1) {
+            return res.status(404).json({
+                success: false,
+                message: `Data mitra dengan identifier '${paramId}' tidak ditemukan.`
+            });
+        }
+
+        const b = req.body;
+        const curr = allData[targetIdx];
+        const isDup = Boolean(b.isDuplicate);
+
+        allData[targetIdx] = {
+            ...curr,
+            nama: b.nama ? String(b.nama).trim() : curr.nama,
+            sobatId: b.sobatId ? String(b.sobatId).trim() : curr.sobatId,
+            email: b.email ? String(b.email).trim().toLowerCase() : curr.email,
+            noTelp: b.noTelp !== undefined ? String(b.noTelp).trim() : curr.noTelp,
+            role: b.role ? String(b.role).trim().toUpperCase() : curr.role,
+            pj: b.pj ? String(b.pj).trim() : curr.pj,
+            kecamatan: b.kecamatan ? String(b.kecamatan).trim() : curr.kecamatan,
+            desa: b.desa !== undefined ? String(b.desa).trim() : curr.desa,
+            alamatDetail: b.alamatDetail !== undefined ? String(b.alamatDetail).trim() : curr.alamatDetail,
+            alamatKabKota: b.alamatKabKota !== undefined ? String(b.alamatKabKota).trim() : curr.alamatKabKota,
+            alamatProvinsi: b.alamatProvinsi !== undefined ? String(b.alamatProvinsi).trim() : curr.alamatProvinsi,
+            pendidikan: b.pendidikan !== undefined ? String(b.pendidikan).trim() : curr.pendidikan,
+            pekerjaan: b.pekerjaan !== undefined ? String(b.pekerjaan).trim() : curr.pekerjaan,
+            jenisKelamin: b.jenisKelamin !== undefined ? String(b.jenisKelamin).trim() : curr.jenisKelamin,
+            tempatTanggalLahir: b.tempatTanggalLahir !== undefined ? String(b.tempatTanggalLahir).trim() : curr.tempatTanggalLahir,
+            umur: (b.umur !== undefined && b.umur !== null && b.umur !== '') ? Number(b.umur) : curr.umur,
+            statusKawin: b.statusKawin !== undefined ? String(b.statusKawin).trim() : curr.statusKawin,
+            isDuplicate: isDup,
+            duplicateOf: isDup ? (b.duplicateOf ? String(b.duplicateOf).trim() : '') : '',
+            duplicateNotes: isDup ? (b.duplicateNotes ? String(b.duplicateNotes).trim() : '') : '',
+            updatedAt: new Date().toISOString()
+        };
+
+        saveMitraData(allData);
+        trySyncToMySql(allData[targetIdx]);
+
+        return res.json({
+            success: true,
+            message: `Data diri mitra dan status duplikasi untuk ${allData[targetIdx].nama} berhasil diperbarui.`,
+            data: allData[targetIdx]
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// =========================================================================
 // 6. POST /api/mitra/bulk: Simpan Banyak Nilai Sekaligus (Batch / Auto-sync)
 // =========================================================================
 router.post('/bulk', (req, res) => {

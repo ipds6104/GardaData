@@ -1,10 +1,10 @@
 {
-  "version": "2.0-master",
+  "version": "2.1-kepka-complete",
   "snapshotId": "master-mitra-snapshot",
   "feature": "penilaian_mitra",
-  "title": "Master Snapshot Penilaian Kinerja Mitra SE2026",
-  "createdAt": "2026-11-10T09:01:00.274Z",
-  "description": "Data independen 388 Mitra dengan 229 evaluasi terverifikasi dari backup data penilaian Mitra SE2026.xlsx",
+  "title": "Master Snapshot Penilaian Kinerja Mitra SE2026 (Kepka Complete)",
+  "createdAt": "2026-11-15T08:10:35.058Z",
+  "description": "Data independen 388 Mitra dengan profil data diri lengkap dari 2026_6104_exportmitrakepka_2026-11-10_100709.xlsx dan evaluasi terverifikasi.",
   "totalRecords": 388,
   "evaluatedRecords": 232,
   "data": [
@@ -55,7 +55,9 @@
       "nilai": 40,
       "kategori": "Blacklist",
       "catatan": "gak banget deh pokoknya, dia lepas tangan sampek mengguncang tim",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.005Z"
     },
     {
       "id": "610422020045",
@@ -104,7 +106,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "komunikasi baik",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.005Z"
     },
     {
       "id": "610422020044",
@@ -153,14 +157,16 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "komunikasi baik",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.005Z"
     },
     {
       "id": "610422020011",
       "sobatId": "610422020011",
       "email": "sovianaayuni568@gmail.com",
       "nama": "SOVIANA AYUNI",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Hilir",
       "desa": "Terusan",
@@ -202,14 +208,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.005Z"
     },
     {
       "id": "610422020014",
       "sobatId": "610422020014",
       "email": "isranurhidayatmempawah@gmail.com",
       "nama": "ISRA NURHIDAYAT",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Segedong",
       "desa": "Parit Bugis",
@@ -251,7 +259,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.005Z"
     },
     {
       "id": "610422020025",
@@ -300,7 +310,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Mitra lama dan tanggung jawab",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.005Z"
     },
     {
       "id": "610422020023",
@@ -349,7 +361,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.005Z"
     },
     {
       "id": "610422020016",
@@ -398,14 +412,16 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "masih bisa untuk kegiatan kecil,untuk menjadi PML kegiatan Besar sepertinya agak kurang",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.005Z"
     },
     {
       "id": "610422020048",
       "sobatId": "610422020048",
       "email": "herigustamanmpw@gmail.com",
       "nama": "Herri Gustaman",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Sejegi",
@@ -447,7 +463,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.005Z"
     },
     {
       "id": "610422020041",
@@ -496,7 +514,9 @@
       "nilai": 86,
       "kategori": "Direkomendasikan",
       "catatan": "Baik jarang anomali tapi sibuk sehingga proses lambat",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.005Z"
     },
     {
       "id": "610422020040",
@@ -545,7 +565,9 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.005Z"
     },
     {
       "id": "610422020027",
@@ -594,7 +616,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "bagus, tapi kemaren prelisnya yang sangsot",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.005Z"
     },
     {
       "id": "610422020032",
@@ -643,7 +667,9 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "Mitra lama",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422020039",
@@ -692,7 +718,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "bagus pemahamannya",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422020037",
@@ -741,7 +769,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "Pandai atur jadwal,sehingga tetap on target walaupun banyak job di luar BPS",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422020047",
@@ -790,7 +820,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422030001",
@@ -839,14 +871,16 @@
       "nilai": 99,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "mitra andalan, sangat berpengalaman di seluruh kegiatan bps",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422030002",
       "sobatId": "610422030002",
       "email": "detierniwidiastuti27@gmail.com",
       "nama": "Deti erni widiastuti",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Segedong",
       "desa": "Peniti Dalam I",
@@ -888,7 +922,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423110194",
@@ -937,14 +973,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422030004",
       "sobatId": "610422030004",
       "email": "jumaliayyubi11@gmail.com",
       "nama": "Jumali",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Jongkat",
       "desa": "Wajok Hulu",
@@ -986,7 +1024,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040029",
@@ -1035,7 +1075,9 @@
       "nilai": 81,
       "kategori": "Direkomendasikan",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040002",
@@ -1084,7 +1126,9 @@
       "nilai": 100,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Petugas terbaik menurut saya bintangnya 5",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040053",
@@ -1133,14 +1177,16 @@
       "nilai": 94,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Baik, perlu komunikasi lagi",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040004",
       "sobatId": "610422040004",
       "email": "listina.mubarrokah@gmail.com",
       "nama": "Listina",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Kunyit",
       "desa": "Sungai Kunyit Hulu",
@@ -1182,7 +1228,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040013",
@@ -1231,7 +1279,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040005",
@@ -1280,7 +1330,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Tempo kerjanya keliatan lama tapi karena pemeriksaannya teliti banget dan ada anak bayi",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040038",
@@ -1329,7 +1381,9 @@
       "nilai": 89,
       "kategori": "Direkomendasikan",
       "catatan": "paktur usia",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040006",
@@ -1378,7 +1432,9 @@
       "nilai": 89,
       "kategori": "Direkomendasikan",
       "catatan": "baik kalo dari teknis lapangan dan konsep. direkomendasikan untuk jadi PPL, tapi tidak direkomenndasikan kalo jadi PML karena manajemen waktu dan cara mengatur SDM yang kurang, terutama dari sisi komunikasi dengan bawahan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040027",
@@ -1427,14 +1483,16 @@
       "nilai": 91,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "pemahaman konsep bagus, probing bagus, bisa mengikuti timeline kerja . tapi, selain itu juga merupakan guru honorer",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040045",
       "sobatId": "610422040045",
       "email": "fikramaris1@gmail.com",
       "nama": "Vikram Aris Munandar",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Toho",
       "desa": "Sambora",
@@ -1476,7 +1534,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040012",
@@ -1525,14 +1585,16 @@
       "nilai": 75,
       "kategori": "Cukup",
       "catatan": "Sibuk abangnya susah banget diajak ketemu",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040028",
       "sobatId": "610422040028",
       "email": "fizahh842@gmail.com",
       "nama": "Hafizh",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Pasir Panjang",
@@ -1574,14 +1636,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423110192",
       "sobatId": "610423110192",
       "email": "agusguatiani048@gmail.com",
       "nama": "Gustiani",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Jongkat",
       "desa": "Jungkat",
@@ -1623,7 +1687,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040035",
@@ -1672,14 +1738,16 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Pemahaman konsep, cara komunikasi, dan kecepatan kerja oke banget",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040039",
       "sobatId": "610422040039",
       "email": "mayairyani.1995@gmail.com",
       "nama": "Maya Iryani",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Sejegi",
@@ -1721,7 +1789,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040049",
@@ -1770,7 +1840,9 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "pemahaman konsep kurang, sering miskom dalam menerima arahan.  tidak cocok untuk  jadi PML karena manajemen nya kurang banget. lumayan oke sii kalo jadi PPL, tapi biasa aja",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040030",
@@ -1819,7 +1891,9 @@
       "nilai": 86,
       "kategori": "Direkomendasikan",
       "catatan": "bisa membackup tim , kadang slow respon kalo lagi sibuk kerjaan lainnya",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040034",
@@ -1868,14 +1942,16 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "bagus, tapi kadang kurang menemani semua ppl saat turun lapangan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040051",
       "sobatId": "610422040051",
       "email": "dedesridelvi009@gmail.com",
       "nama": "Dede sri delvey",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Segedong",
       "desa": "Sungai Purun Besar",
@@ -1917,7 +1993,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040058",
@@ -1966,7 +2044,9 @@
       "nilai": 99,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Jiwa menjaga data yang tinggi",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040044",
@@ -2015,7 +2095,9 @@
       "nilai": 84,
       "kategori": "Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040043",
@@ -2064,7 +2146,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040052",
@@ -2113,7 +2197,9 @@
       "nilai": 78,
       "kategori": "Cukup",
       "catatan": "Tidak direkomendasikan untuk jadi PML, Kurang Mendampingi petugas baru",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040056",
@@ -2162,7 +2248,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "selalu turun mengawas",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040059",
@@ -2211,7 +2299,9 @@
       "nilai": 98,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Manajemen lapangan ok, manajemen anggota tim ok, penguasaan kondef ok, oke lah pokoknya",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040061",
@@ -2260,7 +2350,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "mitra andalan dan sudah berpengalaman di banyak kegiatan bps",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422040062",
@@ -2309,14 +2401,16 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Orang desa, punya kemampuan menghandle dan backup tim",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422050008",
       "sobatId": "610422050008",
       "email": "realmedesi8@gmail.com",
       "nama": "Desi Natalia",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Toho",
       "desa": "Terap",
@@ -2358,7 +2452,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100085",
@@ -2407,7 +2503,9 @@
       "nilai": 100,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Petugas terbaik menurut saya bintangnya 5",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422060001",
@@ -2456,7 +2554,9 @@
       "nilai": 97,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "pekerjaan susai target dan mau bantu teman",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100001",
@@ -2505,7 +2605,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "mitra lama, probing baik, kesibukan lain guru honorer",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422050003",
@@ -2554,7 +2656,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100008",
@@ -2603,7 +2707,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "komunikasi baik",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100124",
@@ -2652,7 +2758,9 @@
       "nilai": 97,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Inisiatif pendampingan PPL yang tinggi",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423090027",
@@ -2701,7 +2809,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422060005",
@@ -2750,7 +2860,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422070003",
@@ -2799,7 +2911,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "bagus, tapi diam diam aja",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100167",
@@ -2848,7 +2962,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "sangat baik dalam pemahaman konsep",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100006",
@@ -2897,7 +3013,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100231",
@@ -2946,7 +3064,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610426050001",
@@ -2995,7 +3115,9 @@
       "nilai": 82,
       "kategori": "Direkomendasikan",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100084",
@@ -3044,14 +3166,16 @@
       "nilai": 78,
       "kategori": "Cukup",
       "catatan": "kurang teliti dalam pengisian,sering mendebat kebijakan atau arahan dari PML. kemanan data terutama data NIK dan KK diragukan, bebal dikasih tau masih diulangi terus",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100005",
       "sobatId": "610422100005",
       "email": "dhialalak@gmail.com",
       "nama": "Nabilah Dhia Annisa",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Segedong",
       "desa": "Parit Bugis",
@@ -3093,7 +3217,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100066",
@@ -3142,7 +3268,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100079",
@@ -3191,14 +3319,16 @@
       "nilai": 50,
       "kategori": "Blacklist",
       "catatan": "pemahaman konsep biasa aja, kinerja lapangan kurang banget sampai perlu dibantu. komunikasi dengan sesama petugas minus",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100009",
       "sobatId": "610422100009",
       "email": "sherlypermatasari34@gmail.com",
       "nama": "Sherly Permata Sari",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Jongkat",
       "desa": "Jungkat",
@@ -3240,7 +3370,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100018",
@@ -3289,7 +3421,9 @@
       "nilai": 89,
       "kategori": "Direkomendasikan",
       "catatan": "pemahaman kondef lumayan, cuma perlu reminder aja di awal biar tidak kelewat lagi. kerjanya cepat, probing lumayan,  bisa bekerja dibawah deadline mepet. tidak ada kerjaan lain juga.",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100099",
@@ -3338,7 +3472,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "komunikasi baik",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100106",
@@ -3387,7 +3523,9 @@
       "nilai": 87,
       "kategori": "Direkomendasikan",
       "catatan": "pemahaman konsep nya cukup. kemampuan dilapangan bisa tepat waktu. komunikasi dengan rekan kerja juga baik. so far normal2 aja sii",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100126",
@@ -3436,7 +3574,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100038",
@@ -3485,7 +3625,9 @@
       "nilai": 98,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Petugas terbaik menurut saya bintangnya 5",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100016",
@@ -3534,7 +3676,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "kualitas data sangat bagus tapi progress cukup lama",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100155",
@@ -3583,7 +3727,9 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "pemahaman yang cepat dalam menangkap arahan, bersedia memperbaiki jika ada kesalahan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100101",
@@ -3632,7 +3778,9 @@
       "nilai": 96,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Dedikatif, tapi habis kecelakaan belum bisa naik motor sendiri",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100133",
@@ -3681,7 +3829,9 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "kerja tidak teliti",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100030",
@@ -3730,7 +3880,9 @@
       "nilai": 76,
       "kategori": "Cukup",
       "catatan": "Baik, tapi progress lama",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100076",
@@ -3779,14 +3931,16 @@
       "nilai": 97,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "penguasaan konsep bagus, aktif dan responsif, progress cepat",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100033",
       "sobatId": "610422100033",
       "email": "ando01076@gmail.com",
       "nama": "Muslimat",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Kunyit",
       "desa": "Sungai Kunyit Hulu",
@@ -3828,7 +3982,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100140",
@@ -3877,7 +4033,9 @@
       "nilai": 99,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "kerja teliti bantu krjaan teman dan juga pekerjaan pml",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100053",
@@ -3926,7 +4084,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100279",
@@ -3975,14 +4135,16 @@
       "nilai": 70,
       "kategori": "Cukup",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100059",
       "sobatId": "610422100059",
       "email": "dheaananda899@gmail.com",
       "nama": "ISNA DYAHWATI",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Pasir Wan Salim",
@@ -4024,14 +4186,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100044",
       "sobatId": "610422100044",
       "email": "somatabdus88@gmail.com",
       "nama": "Abdus Somat",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Jongkat",
       "desa": "Wajok Hulu",
@@ -4073,7 +4237,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100055",
@@ -4122,7 +4288,9 @@
       "nilai": 98,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "tugas pml dikerjakan dengan baik, lancar, dan minim kendala",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100105",
@@ -4171,7 +4339,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "ferfetcsionis akhirnya terlambat tapi jujur, punya orientasi dan bertanggung jawab",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100148",
@@ -4220,7 +4390,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Bagus di lapangan rajin",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100131",
@@ -4269,7 +4441,9 @@
       "nilai": 98,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "sangat mengayomi dan selalu membantu ppl, pengalaman banyak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100276",
@@ -4318,7 +4492,9 @@
       "nilai": 60,
       "kategori": "Cukup",
       "catatan": "cukup saja",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100180",
@@ -4367,7 +4543,9 @@
       "nilai": 0,
       "kategori": "Blacklist",
       "catatan": "Bebal parah males ah",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100074",
@@ -4416,7 +4594,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "Koordinir orang bagus tapi dalam pemeriksaan dokumen kurang detail jadi mungkin next jadi PPL aja",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100086",
@@ -4465,7 +4645,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "bagus pemahaman",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100111",
@@ -4514,7 +4696,9 @@
       "nilai": 94,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Tes simpan catatan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100128",
@@ -4563,7 +4747,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Manajemen waktunya oke, pemahaman konsep bagus, kalo dapet di wilayahnya beneran paham wilayah",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100144",
@@ -4612,7 +4798,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "Bagus, cuma agak slow",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100147",
@@ -4661,14 +4849,16 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "tanggung jawab",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100143",
       "sobatId": "610422100143",
       "email": "fladilasaswitaa@gmail.com",
       "nama": "Fladila Saswita",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Pulau Pedalaman",
@@ -4710,7 +4900,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100210",
@@ -4759,14 +4951,16 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "Perlu bimbingan tapi bertanggung jawab dan kooperatif",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100146",
       "sobatId": "610422100146",
       "email": "atiekj@gmail.com",
       "nama": "Juliati",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Anjongan",
       "desa": "Kepayang",
@@ -4808,7 +5002,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100175",
@@ -4857,14 +5053,16 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "Bagus tetapi tetap dlama pengawasan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100162",
       "sobatId": "610422100162",
       "email": "elma180320@gmail.com",
       "nama": "ELMA",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Toho",
       "desa": "Kecurit",
@@ -4906,7 +5104,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100172",
@@ -4955,7 +5155,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Mitra lama bagus di lapangan cepat",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100179",
@@ -5004,14 +5206,16 @@
       "nilai": 79,
       "kategori": "Cukup",
       "catatan": "Orang kantor desa. Kak indah ini mau pergi nyacah kalo ada temannya. Jadi kemarin agak terkendala progres karena saling menemankan di lapangan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100277",
       "sobatId": "610422100277",
       "email": "holil81301@gmail.com",
       "nama": "Holil",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Pinyuh",
       "desa": "Sungai Batang",
@@ -5053,14 +5257,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100244",
       "sobatId": "610422100244",
       "email": "sugiantosadaniang@gmail.com",
       "nama": "Sugianto",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sadaniang",
       "desa": "Bumbun",
@@ -5102,7 +5308,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100176",
@@ -5151,7 +5359,9 @@
       "nilai": 75,
       "kategori": "Cukup",
       "catatan": "Lambat dan terlewat di fasih",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100272",
@@ -5200,7 +5410,9 @@
       "nilai": 79,
       "kategori": "Cukup",
       "catatan": "Adiknya pcl lain Ela Hamdari. Masih kuliah. Bisa mengikuti timeline pendataan. Probing lumayan.",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100184",
@@ -5249,7 +5461,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "sangat baik dan cepat dalam menyelesaikan pekerjaan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100188",
@@ -5298,7 +5512,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100196",
@@ -5347,14 +5563,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100217",
       "sobatId": "610422100217",
       "email": "arif.maulana.080992@gmail.com",
       "nama": "Arif Maulana",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Segedong",
       "desa": "Peniti Dalam I",
@@ -5396,7 +5614,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100257",
@@ -5445,7 +5665,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100269",
@@ -5494,14 +5716,16 @@
       "nilai": 79,
       "kategori": "Cukup",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100270",
       "sobatId": "610422100270",
       "email": "kudratikaindayani@gmail.com",
       "nama": "Kudratika indayani",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Antibar",
@@ -5543,14 +5767,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422100294",
       "sobatId": "610422100294",
       "email": "nonihandini15@gmail.com",
       "nama": "Noni handini",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Jongkat",
       "desa": "Jungkat",
@@ -5592,7 +5818,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "617122110049",
@@ -5641,7 +5869,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423040016",
@@ -5690,7 +5920,9 @@
       "nilai": 78,
       "kategori": "Cukup",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610422110019",
@@ -5739,7 +5971,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423040014",
@@ -5788,7 +6022,9 @@
       "nilai": 96,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423040022",
@@ -5837,7 +6073,9 @@
       "nilai": 98,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Selalu mendampingi PPL dan bertanggung jawab",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423030004",
@@ -5886,7 +6124,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "mitra lama. pemahaman konsep oke. tapi kadang agak kurang komunikasi dengan sesama petugas",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423040021",
@@ -5935,7 +6175,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423030006",
@@ -5984,7 +6226,9 @@
       "nilai": 98,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Sangat rekom bisa menyelesaikan masalah lapangan dengan sangat baik dan menguasai",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423040002",
@@ -6033,7 +6277,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423040004",
@@ -6082,7 +6328,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Kinerja cepat, gigih, perlu cek kualitas data",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423040006",
@@ -6131,14 +6379,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423040015",
       "sobatId": "610423040015",
       "email": "isulkifli02imam@gmail.com",
       "nama": "ZULKIFLI",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Sungai Kunyit",
       "desa": "Sungai Kunyit Hulu",
@@ -6180,7 +6430,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423040007",
@@ -6229,7 +6481,9 @@
       "nilai": 91,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "bagus dalam wawancara agak sedikit kurang penguasaan dengan HP",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423040018",
@@ -6278,7 +6532,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "tanggung jawab",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423040023",
@@ -6327,7 +6583,9 @@
       "nilai": 72,
       "kategori": "Cukup",
       "catatan": "kerjanya lama",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423050002",
@@ -6376,7 +6634,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610425110006",
@@ -6425,14 +6685,16 @@
       "nilai": 78,
       "kategori": "Cukup",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610425110022",
       "sobatId": "610425110022",
       "email": "igalosta1999@gmail.com",
       "nama": "IGA LOSTA",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Sadaniang",
       "desa": "Sekabuk",
@@ -6474,14 +6736,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423110151",
       "sobatId": "610423110151",
       "email": "keycimomo@gmail.com",
       "nama": "sintia miramis",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Pasir Panjang",
@@ -6523,7 +6787,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.006Z"
     },
     {
       "id": "610423090024",
@@ -6572,7 +6838,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "kooperatif,bekerja keras tetapi suka membantah jika diberi arahan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110009",
@@ -6621,7 +6889,9 @@
       "nilai": 50,
       "kategori": "Blacklist",
       "catatan": "sudah tua dan kurang melek jika pendataan menggunakan FASIH.",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110164",
@@ -6670,7 +6940,9 @@
       "nilai": 86,
       "kategori": "Direkomendasikan",
       "catatan": "cepet, sering membantu yang lain,  tapi tidak sesuai sop",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423090001",
@@ -6719,14 +6991,16 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "baik dan cepat dalam menyelesaikan pekerjaan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423090005",
       "sobatId": "610423090005",
       "email": "ramdaniram19766@gmail.com",
       "nama": "RAMDANI,SHI",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Pinyuh",
       "desa": "Sungai Pinyuh",
@@ -6768,7 +7042,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423090018",
@@ -6817,14 +7093,16 @@
       "nilai": 82,
       "kategori": "Direkomendasikan",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423090017",
       "sobatId": "610423090017",
       "email": "bernadussupranoto@gmail.com",
       "nama": "Bernadus Supranoto",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Anjongan",
       "desa": "Pak Bulu",
@@ -6866,7 +7144,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423090006",
@@ -6915,7 +7195,9 @@
       "nilai": 79,
       "kategori": "Cukup",
       "catatan": "Kemarin agak banyak masalah (hp rusak, motor rusak) jadi pendataan sangat bergantung sama PML. Penyelesaian kegiatan juga agak mepet deadline. Tapi akhirnya selesai dan membantu backup anggota lain (Pak Ramdani)",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423090026",
@@ -6964,14 +7246,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423090009",
       "sobatId": "610423090009",
       "email": "endanghidayahap93@gmail.com",
       "nama": "Endang hidayah",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Sungai Bakau Kecil",
@@ -7013,14 +7297,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110109",
       "sobatId": "610423110109",
       "email": "nurmalaturrohmah@gmail.com",
       "nama": "Nurmala",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Sungai Pinyuh",
       "desa": "Sungai Rasau",
@@ -7062,15 +7348,17 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110077",
       "sobatId": "610423110077",
       "email": "khairunnisa260596@gmail.com",
       "nama": "Khairunnisa",
-      "role": "Mitra Pendataan",
-      "pj": "-",
+      "role": "PPL",
+      "pj": "Ihza Fikri Zaki Karunia",
       "kecamatan": "Segedong",
       "desa": "Sungai Purun Besar",
       "alamatDetail": "Parit makmur RT 016 /005",
@@ -7111,14 +7399,16 @@
       "nilai": 83,
       "kategori": "Direkomendasikan",
       "catatan": "Lambat di awal",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110183",
       "sobatId": "610423110183",
       "email": "azharredmis2@gmail.com",
       "nama": "azhar",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Jongkat",
       "desa": "Sungai Nipah",
@@ -7160,7 +7450,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425050001",
@@ -7209,7 +7501,9 @@
       "nilai": 86,
       "kategori": "Direkomendasikan",
       "catatan": "Pengusaan konsep baik. kinerja lapangan cepat asalkan tidak ada kendala yang sulit diselesaiakan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110111",
@@ -7258,7 +7552,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110032",
@@ -7307,14 +7603,16 @@
       "nilai": 82,
       "kategori": "Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110006",
       "sobatId": "610423110006",
       "email": "widyrifhaldi@gmail.com",
       "nama": "WIDY RIFHALDI",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Pinyuh",
       "desa": "Peniraman",
@@ -7356,7 +7654,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110058",
@@ -7405,7 +7705,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110029",
@@ -7454,7 +7756,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110129",
@@ -7503,7 +7807,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110015",
@@ -7552,7 +7858,9 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "masih pemula sangat canggung dalam menghadapi rersponden, tapi jika dilatih akan terbiasa dan sangat jujur",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110071",
@@ -7601,14 +7909,16 @@
       "nilai": 70,
       "kategori": "Cukup",
       "catatan": "pekerjaan sendiri belum selesai tapi mengerjakan milik orang lain, saat dilapangan banyak pertanyaan yang terlewat",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110117",
       "sobatId": "610423110117",
       "email": "dickyrahman.ppdt@gmail.com",
       "nama": "Dicky Rahman",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Segedong",
       "desa": "Sungai Purun Besar",
@@ -7650,14 +7960,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110064",
       "sobatId": "610423110064",
       "email": "mesri.jasianti26@gmail.com",
       "nama": "Mesri Jasianti",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Toho",
       "desa": "Benuang",
@@ -7699,7 +8011,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610423110087",
@@ -7748,14 +8062,16 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "mudah nangkap, teliti dan tidak suka banyak bicara senang bertanya jika belum faham",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "611223110222",
       "sobatId": "611223110222",
       "email": "marfianaa212@gmail.com",
       "nama": "Mardiana",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Segedong",
       "desa": "Peniti Besar",
@@ -7797,7 +8113,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610323110274",
@@ -7846,7 +8164,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "tanggung jawab",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110007",
@@ -7895,7 +8215,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110088",
@@ -7944,7 +8266,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110012",
@@ -7993,7 +8317,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110077",
@@ -8042,14 +8368,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110018",
       "sobatId": "610425110018",
       "email": "nellysansry@gmail.com",
       "nama": "Nelly Sansry S",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Pontianak Barat",
       "desa": "Pal Lima",
@@ -8091,7 +8419,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110003",
@@ -8099,7 +8429,7 @@
       "email": "ccapriliakart@gmail.com",
       "nama": "Saidah",
       "role": "Mitra Pengolahan",
-      "pj": "-",
+      "pj": "Arini Faurizah",
       "kecamatan": "Sungai Pinyuh",
       "desa": "Sungai Bakau Besar Darat",
       "alamatDetail": "Parit Ayub Dusun Mega Jaya",
@@ -8140,14 +8470,16 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Pemahaman konsep dan cara komunikasi oke. Tanggung jawab dan kooperatif juga",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110001",
       "sobatId": "610425110001",
       "email": "munawarjos6@gmail.com",
       "nama": "Munawar",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Kunyit",
       "desa": "Sungai Kunyit Hulu",
@@ -8189,7 +8521,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110011",
@@ -8197,7 +8531,7 @@
       "email": "khairunflx9@gmail.com",
       "nama": "Khairunnisa",
       "role": "Mitra Pengolahan",
-      "pj": "-",
+      "pj": "Ihza Fikri Zaki Karunia",
       "kecamatan": "Anjongan",
       "desa": "Anjungan Melancar",
       "alamatDetail": "Jalan Ambalau RT 011 / RW 004",
@@ -8238,7 +8572,9 @@
       "nilai": 83,
       "kategori": "Direkomendasikan",
       "catatan": "Lambat di awal",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110058",
@@ -8287,7 +8623,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110061",
@@ -8336,7 +8674,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110056",
@@ -8385,7 +8725,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110057",
@@ -8434,7 +8776,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110053",
@@ -8483,7 +8827,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110034",
@@ -8532,7 +8878,9 @@
       "nilai": 60,
       "kategori": "Cukup",
       "catatan": "kadang pemahaman kurang",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110060",
@@ -8581,7 +8929,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110030",
@@ -8630,7 +8980,9 @@
       "nilai": 59,
       "kategori": "Blacklist",
       "catatan": "gak banget pokok nya. pemahaman konsep biasa aja. kinerja lapangan gak banget, malesan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110008",
@@ -8679,14 +9031,16 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Pemahaman konsep oke, sopan, dan cepat.",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110031",
       "sobatId": "610425110031",
       "email": "toni170319@gmail.com",
       "nama": "Azzah zulfa",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Kunyit",
       "desa": "Sungai Kunyit Laut",
@@ -8728,7 +9082,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110033",
@@ -8777,7 +9133,9 @@
       "nilai": 89,
       "kategori": "Direkomendasikan",
       "catatan": "probing lumayan baik, timeline kerja bisa mengikuti,  mudah menyesuaikan timeline. tapi selain itu juga ngajar honorer guru TK.",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110066",
@@ -8826,7 +9184,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110089",
@@ -8875,14 +9235,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110026",
       "sobatId": "610425110026",
       "email": "sahlipeniraman@gmail.com",
       "nama": "SAHLI",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Pinyuh",
       "desa": "Peniraman",
@@ -8924,7 +9286,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110010",
@@ -8973,7 +9337,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110044",
@@ -9022,7 +9388,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "sangat baik dan cepat dalam menyelesaikan pekerjaan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110045",
@@ -9071,14 +9439,16 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Tahan banting, anti pecah, kerja cepat dan selalu siap back up, teruji di segala medan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110046",
       "sobatId": "610425110046",
       "email": "dediseptiadi8990@gmail.com",
       "nama": "Dedi septiadi",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Hilir",
       "desa": "Terusan",
@@ -9120,7 +9490,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110062",
@@ -9169,7 +9541,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110063",
@@ -9218,14 +9592,16 @@
       "nilai": 97,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Cepat dan membantu teman",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110027",
       "sobatId": "610425110027",
       "email": "deddybreax12@gmail.com",
       "nama": "Deddy Dwi Setiawan",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Pasir Panjang",
@@ -9267,7 +9643,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110068",
@@ -9316,14 +9694,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110047",
       "sobatId": "610425110047",
       "email": "studiomuba95@gmail.com",
       "nama": "Maryam",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Hilir",
       "desa": "Kuala Secapah",
@@ -9365,14 +9745,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110054",
       "sobatId": "610425110054",
       "email": "nasutionrestuabdullatif@gmail.com",
       "nama": "Restu Abdullatif Nasution",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Toho",
       "desa": "Sambora",
@@ -9414,7 +9796,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110092",
@@ -9463,7 +9847,9 @@
       "nilai": 79,
       "kategori": "Cukup",
       "catatan": "terlalu pendiam, kendala tidak mau disampaikan akhirnya keteteran diujung pendataan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110079",
@@ -9512,14 +9898,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110048",
       "sobatId": "610425110048",
       "email": "rahmanbarak43@student.untan.ac.id",
       "nama": "Surahman",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Anjongan",
       "desa": "Anjungan Melancar",
@@ -9561,7 +9949,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110095",
@@ -9610,14 +10000,16 @@
       "nilai": 97,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Cepat dan rapi",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110043",
       "sobatId": "610425110043",
       "email": "riddosaputra35@gmail.com",
       "nama": "Riddo saputra",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Hilir",
       "desa": "Malikian",
@@ -9659,7 +10051,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110083",
@@ -9708,7 +10102,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110013",
@@ -9757,7 +10153,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110049",
@@ -9806,7 +10204,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110042",
@@ -9855,7 +10255,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "bagus pemahaman",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110050",
@@ -9904,7 +10306,9 @@
       "nilai": 98,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "pemahaman konsep bagus, kinerja di lapangan cepat dan konsisten sesuai target",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110067",
@@ -9953,7 +10357,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110081",
@@ -10002,7 +10408,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "dalam pengerjaan sudah baik dan sesuai target",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110090",
@@ -10051,7 +10459,9 @@
       "nilai": 89,
       "kategori": "Direkomendasikan",
       "catatan": "pemahaman kondef lumayan bagus, kalem, probing lumayan baik, bisa mengikuti timeline kegiatan. tidak ada kesibukan lain juga",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110073",
@@ -10100,7 +10510,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110074",
@@ -10149,7 +10561,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110086",
@@ -10198,7 +10612,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Pemahaman konsep dan cara komunikasi oke. Tanggung jawab dan kooperatif juga",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110084",
@@ -10247,7 +10663,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "dalam pengerjaan sudah baik dan sesuai target",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110036",
@@ -10296,7 +10714,9 @@
       "nilai": 82,
       "kategori": "Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110076",
@@ -10345,7 +10765,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "Probing lumayan, bisa mengikuti jadwal kegiatan. Belum ada kegiatan lain",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110005",
@@ -10394,14 +10816,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050073",
       "sobatId": "610426050073",
       "email": "muhammadrizkioppo@gmail.com",
       "nama": "Muhammad Rizki",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Antibar",
@@ -10443,14 +10867,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110039",
       "sobatId": "610425110039",
       "email": "ikhsanul48@gmail.com",
       "nama": "Muhammad Ikhsanul Hakim",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Pasir Wan Salim",
@@ -10492,7 +10918,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110051",
@@ -10541,14 +10969,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110028",
       "sobatId": "610425110028",
       "email": "nurhuzaini95@gmail.com",
       "nama": "Nurhuzaini Hafizah",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Jongkat",
       "desa": "Jungkat",
@@ -10590,14 +11020,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110038",
       "sobatId": "610425110038",
       "email": "lorensiareza@gmail.com",
       "nama": "Lorensia Reza",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Toho",
       "desa": "Pak Laheng",
@@ -10639,14 +11071,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050074",
       "sobatId": "610426050074",
       "email": "trulyilaa31@gmail.com",
       "nama": "Dila adelia",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Kunyit",
       "desa": "Sungai Bundung Laut",
@@ -10688,7 +11122,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050075",
@@ -10737,7 +11173,9 @@
       "nilai": 97,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "kinerja bagus, gigih di lapangan, progress konsisten, aktif dan responsif",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110002",
@@ -10786,7 +11224,9 @@
       "nilai": 70,
       "kategori": "Cukup",
       "catatan": "penyelaian tugas lama",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110093",
@@ -10835,7 +11275,9 @@
       "nilai": 60,
       "kategori": "Cukup",
       "catatan": "lama, tidak sesuai sop",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110015",
@@ -10884,7 +11326,9 @@
       "nilai": 59,
       "kategori": "Blacklist",
       "catatan": "Timeline kegiatan tidak bisa mengikuti,  kualitas pendataan dan probing kurang",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110040",
@@ -10933,7 +11377,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110075",
@@ -10982,14 +11428,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110037",
       "sobatId": "610425110037",
       "email": "husaini012334@gmail.com",
       "nama": "Muhammad Husaini",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Pasir Palembang",
@@ -11031,14 +11479,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110023",
       "sobatId": "610425110023",
       "email": "e1021211090@student.untan.ac.id",
       "nama": "Rafikah Mukhlisah",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Timur",
       "desa": "Pasir Panjang",
@@ -11080,7 +11530,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110072",
@@ -11129,7 +11581,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110069",
@@ -11178,7 +11632,9 @@
       "nilai": 82,
       "kategori": "Direkomendasikan",
       "catatan": "sedikit lama dalam pekerjaan tetapi bagus di lapangan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110024",
@@ -11227,7 +11683,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "baik dan cepat dalam menyelesaikan pekerjaan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110014",
@@ -11276,14 +11734,16 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110017",
       "sobatId": "610425110017",
       "email": "abduladzis51@gmail.com",
       "nama": "Abdul Adzis",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Pulo Gadung",
       "desa": "Jati",
@@ -11325,14 +11785,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110082",
       "sobatId": "610425110082",
       "email": "risaichigawa17@gmail.com",
       "nama": "Risa",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Jongkat",
       "desa": "Wajok Hulu",
@@ -11374,7 +11836,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110070",
@@ -11423,14 +11887,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110094",
       "sobatId": "610425110094",
       "email": "isrofiqf@gmail.com",
       "nama": "ISROFIQ",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Pinyuh",
       "desa": "Peniraman",
@@ -11472,14 +11938,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110087",
       "sobatId": "610425110087",
       "email": "randifrisnawan@gmail.com",
       "nama": "Randi Frisnawan",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Hilir",
       "desa": "Tengah",
@@ -11521,14 +11989,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610425110085",
       "sobatId": "610425110085",
       "email": "tetiamalianov@gmail.com",
       "nama": "Teti Amalia Novianti",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Hilir",
       "desa": "Terusan",
@@ -11570,7 +12040,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050011",
@@ -11619,7 +12091,9 @@
       "nilai": 50,
       "kategori": "Blacklist",
       "catatan": "Sibuk, terlewat cacah",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050079",
@@ -11668,7 +12142,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050080",
@@ -11717,7 +12193,9 @@
       "nilai": 75,
       "kategori": "Cukup",
       "catatan": "lama di lapangan dan sulit menguasasi konsep",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050081",
@@ -11766,7 +12244,9 @@
       "nilai": 60,
       "kategori": "Cukup",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050082",
@@ -11815,7 +12295,9 @@
       "nilai": 98,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "sangat baik dan cepat dalam menyelesaikan pekerjaan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050032",
@@ -11864,7 +12346,9 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "bekerja sama yang baik dalam tim, terbuka dan mudah dalam menyerap materi",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050083",
@@ -11913,7 +12397,9 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "bertanggung jawab, sedikit pendiam cara bicara yang kurang konumikatif dengan responden",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050084",
@@ -11962,7 +12448,9 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050039",
@@ -12011,7 +12499,9 @@
       "nilai": 50,
       "kategori": "Blacklist",
       "catatan": "komunikasi kurang, tanggung jawab kurang",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050060",
@@ -12060,14 +12550,16 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "bagus , sesuai, tapi ada anak kecil",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050087",
       "sobatId": "610426050087",
       "email": "anitatriandriani35@gmail.com",
       "nama": "Anita Tri Andriani",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Mempawah Timur",
       "desa": "Parit Banjar",
@@ -12109,7 +12601,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.007Z"
     },
     {
       "id": "610426050088",
@@ -12158,7 +12652,9 @@
       "nilai": 78,
       "kategori": "Cukup",
       "catatan": "pemahaman kondef lumayan. kerjanya  lumayan cepat , probing  lumayan, tp sekarang udah ada kerjaan lain",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050089",
@@ -12207,7 +12703,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "Pekerjaan lumayan oke dan bertanggung jawab",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050055",
@@ -12256,7 +12754,9 @@
       "nilai": 68,
       "kategori": "Cukup",
       "catatan": "Kondef dan pengenalan wilayah kurang, mending fokus ngajar di STAIM aja deh :)",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050090",
@@ -12305,7 +12805,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050092",
@@ -12354,7 +12856,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Gigih, mau belajar, perlu cek kualitas data",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050093",
@@ -12403,14 +12907,16 @@
       "nilai": 60,
       "kategori": "Cukup",
       "catatan": "gak bs motor",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050094",
       "sobatId": "610426050094",
       "email": "dolin343434@gmail.com",
       "nama": "Dolin ukur",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sadaniang",
       "desa": "Amawang",
@@ -12452,7 +12958,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050050",
@@ -12501,14 +13009,16 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050095",
       "sobatId": "610426050095",
       "email": "panperno408@gmail.com",
       "nama": "Pamperno",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sadaniang",
       "desa": "Amawang",
@@ -12550,14 +13060,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050057",
       "sobatId": "610426050057",
       "email": "senjayaaji8@gmail.com",
       "nama": "Aji Senjaya",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Mempawah Hilir",
       "desa": "Pasir",
@@ -12599,7 +13111,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050096",
@@ -12648,7 +13162,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050069",
@@ -12697,7 +13213,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "bagus, tapi kemaren dibantu saudaranya",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050097",
@@ -12746,14 +13264,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050098",
       "sobatId": "610426050098",
       "email": "riapurwanti545@gmail.com",
       "nama": "Ria Purwanti",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Anjongan",
       "desa": "Anjungan Melancar",
@@ -12795,7 +13315,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050053",
@@ -12844,7 +13366,9 @@
       "nilai": 70,
       "kategori": "Cukup",
       "catatan": "lambat progressnya",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050099",
@@ -12893,7 +13417,9 @@
       "nilai": 86,
       "kategori": "Direkomendasikan",
       "catatan": "Baik jarang anomali tapi pemahaman agak lemah",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050100",
@@ -12942,7 +13468,9 @@
       "nilai": 84,
       "kategori": "Direkomendasikan",
       "catatan": "Cepat, tapi untuk yg kompleks mau diperdalam",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050101",
@@ -12991,7 +13519,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Cantik, Santun, lemah lembut tapi tahan hujatan responden",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050102",
@@ -13040,7 +13570,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "BAgus dan cepat menguasai lapangan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050019",
@@ -13089,7 +13621,9 @@
       "nilai": 60,
       "kategori": "Cukup",
       "catatan": "Sekdes SBBD jadi sibuk banget",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050009",
@@ -13138,7 +13672,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050104",
@@ -13187,14 +13723,16 @@
       "nilai": 78,
       "kategori": "Cukup",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050021",
       "sobatId": "610426050021",
       "email": "qhoriramadan@gmail.com",
       "nama": "Qhori Ramadan",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Jongkat",
       "desa": "Jungkat",
@@ -13236,7 +13774,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050106",
@@ -13285,7 +13825,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050005",
@@ -13334,7 +13876,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050002",
@@ -13383,14 +13927,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050034",
       "sobatId": "610426050034",
       "email": "satrio.dwi.putraa@gmail.com",
       "nama": "satrio dwi putra",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Anjongan",
       "desa": "Anjungan Dalam",
@@ -13432,7 +13978,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050107",
@@ -13481,7 +14029,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "wawasan yang luas dan tidak ska menunda kerja selalu berkoordinasi dengan anggota tim",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050044",
@@ -13530,7 +14080,9 @@
       "nilai": 78,
       "kategori": "Cukup",
       "catatan": "pemahaman konsep kurang. kinerja lapangan kurang, mentalitas untuk mendata dilapangan kurang, malesan untuk submit atau merapikan dokumen",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050006",
@@ -13579,7 +14131,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050108",
@@ -13628,7 +14182,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050109",
@@ -13677,7 +14233,9 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "penguasaan konsep bagus, tapi sekarang sedang bekerja di perusahaan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050111",
@@ -13726,7 +14284,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "Masih belajar, mesti sering ditanyain",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050063",
@@ -13775,7 +14335,9 @@
       "nilai": 62,
       "kategori": "Cukup",
       "catatan": "Progres paling lambat di dalam tim, kondef usaha kurang, bbrp usaha hampir saja terlewat cacah",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050037",
@@ -13824,7 +14386,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "pemahaman konsep baik, komunikasi dengan petugas normal, kinerja  lapangan sangat baik",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050113",
@@ -13873,7 +14437,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050114",
@@ -13922,7 +14488,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050115",
@@ -13971,7 +14539,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "pemahaman konsep nya baik. penyelesaian pekerjaan tepat waktu. komunikasi dengan rekan kerja dan PML juga senormalnya manusia",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050007",
@@ -14020,14 +14590,16 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050116",
       "sobatId": "610426050116",
       "email": "sulastrimarla6511@gmail.com",
       "nama": "Sulastri",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Toho",
       "desa": "Terap",
@@ -14069,14 +14641,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050054",
       "sobatId": "610426050054",
       "email": "rendi26442@gmail.com",
       "nama": "Rendi Anggeriawan",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Hilir",
       "desa": "Terusan",
@@ -14118,7 +14692,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050117",
@@ -14167,7 +14743,9 @@
       "nilai": 78,
       "kategori": "Cukup",
       "catatan": "kurang respon dengan arahan tim, susah dihubungi, bahasa daerah nya masih sangat kental",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050179",
@@ -14216,7 +14794,9 @@
       "nilai": 83,
       "kategori": "Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050178",
@@ -14265,7 +14845,9 @@
       "nilai": 78,
       "kategori": "Cukup",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050121",
@@ -14314,7 +14896,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050064",
@@ -14363,7 +14947,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050016",
@@ -14412,7 +14998,9 @@
       "nilai": 79,
       "kategori": "Cukup",
       "catatan": "Ibu rumah tangga, agak gesit. Biasanya ke lapangan bareng kak Indah jadi progres kadang stuck.",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050003",
@@ -14461,7 +15049,9 @@
       "nilai": 79,
       "kategori": "Cukup",
       "catatan": "pemahaman terkait konsep agak kurang baik",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050020",
@@ -14510,14 +15100,16 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "komunikasi baik",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050119",
       "sobatId": "610426050119",
       "email": "ptkhaniva@gmail.com",
       "nama": "Hanifa Ramadhani",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Toho",
       "desa": "Toho Ilir",
@@ -14559,14 +15151,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050120",
       "sobatId": "610426050120",
       "email": "elsa05942@gmail.com",
       "nama": "Elsa dwi cahyani",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Toho",
       "desa": "Toho Ilir",
@@ -14608,7 +15202,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050123",
@@ -14657,7 +15253,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "pemahaman bagus, progress sesuai target, tekun",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050124",
@@ -14706,7 +15304,9 @@
       "nilai": 84,
       "kategori": "Direkomendasikan",
       "catatan": "Cepat, tapi masih sering bingung",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050125",
@@ -14755,7 +15355,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "pengusaan konsep nya baik, tapi perlu penegasan mengenai konsep yang mendasar. Kinerja lapangan sangat baik",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050126",
@@ -14804,7 +15406,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Mitra baru tetapi gesit bagus di lapangan dan bisa menyelesaikan masalah di lapangan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050127",
@@ -14853,15 +15457,17 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050128",
       "sobatId": "610426050128",
       "email": "sukmawatitoho@gmail.com",
       "nama": "Sukmawati",
-      "role": "Mitra Pendataan",
-      "pj": "-",
+      "role": "PPL",
+      "pj": "Safira Nurrosyid, S.Tr.Stat.",
       "kecamatan": "Toho",
       "desa": "Toho Ilir",
       "alamatDetail": "Jl. Raya Desa Toho Ilir",
@@ -14902,14 +15508,16 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050129",
       "sobatId": "610426050129",
       "email": "trimursida1505@gmail.com",
       "nama": "Tri Mursida",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Toho",
       "desa": "Toho Ilir",
@@ -14951,7 +15559,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050041",
@@ -15000,7 +15610,9 @@
       "nilai": 78,
       "kategori": "Cukup",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050047",
@@ -15049,7 +15661,9 @@
       "nilai": 55,
       "kategori": "Blacklist",
       "catatan": "pengusaan konsep nya kurang. dilapangan terlalu lama. sulit dikenalikan oleh PML, biasanya kalo diarahkan dari PML suka mendebat. padahal arahannya sudah sesuai SOP",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050010",
@@ -15098,7 +15712,9 @@
       "nilai": 45,
       "kategori": "Blacklist",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050134",
@@ -15147,7 +15763,9 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "Bendahara desa tapi manajemen waktunya bagus",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050136",
@@ -15196,7 +15814,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050012",
@@ -15245,7 +15865,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Bagus di lapangan dan pengerjaan fasih",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050058",
@@ -15294,7 +15916,9 @@
       "nilai": 93,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Teruji untuk daerah pasar/kawasan usaha, bisa bahasa cina sedikit2",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050046",
@@ -15343,7 +15967,9 @@
       "nilai": 55,
       "kategori": "Blacklist",
       "catatan": "pemahaman konsep biasa aja. komunikasi dengan rekan kerja normal, tapi malesan buat menyelesaikan pekerjaan",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050015",
@@ -15392,7 +16018,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "Tanggung jawab dan komunikasi oke tapi agak sibuk karena jadwal mengajarnya padat",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050138",
@@ -15441,14 +16069,16 @@
       "nilai": 60,
       "kategori": "Cukup",
       "catatan": "cukup saja",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050045",
       "sobatId": "610426050045",
       "email": "fsulastry35@gmail.com",
       "nama": "Fitri Sulastry",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Segedong",
       "desa": "Peniti Besar",
@@ -15490,14 +16120,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050027",
       "sobatId": "610426050027",
       "email": "indravisca10@gmail.com",
       "nama": "Indra Gunawan",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Kunyit",
       "desa": "Sungai Duri I",
@@ -15539,7 +16171,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050139",
@@ -15588,14 +16222,16 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "Pekerjaan lumayan oke dan bertanggung jawab. Abangnya pemalu(?)",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050140",
       "sobatId": "610426050140",
       "email": "mega15wahyu@gmail.com",
       "nama": "MEGA WAHYUNI",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Sungai Kunyit",
       "desa": "Semparong Parit Raden",
@@ -15637,7 +16273,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050141",
@@ -15686,14 +16324,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050004",
       "sobatId": "610426050004",
       "email": "kamisah300798@gmail.com",
       "nama": "Kamisah",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Segedong",
       "desa": "Peniti Dalam Ii",
@@ -15735,7 +16375,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050035",
@@ -15784,7 +16426,9 @@
       "nilai": 49,
       "kategori": "Blacklist",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050142",
@@ -15833,14 +16477,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050028",
       "sobatId": "610426050028",
       "email": "luthfiramadhan40td@gmail.com",
       "nama": "LUTHFI RAMADHAN",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Jongkat",
       "desa": "Jungkat",
@@ -15882,14 +16528,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050024",
       "sobatId": "610426050024",
       "email": "aminah281020@gmail.com",
       "nama": "Putri indah sari",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Jongkat",
       "desa": "Wajok Hilir",
@@ -15931,7 +16579,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050143",
@@ -15980,7 +16630,9 @@
       "nilai": 78,
       "kategori": "Cukup",
       "catatan": "Progress baik, data baik,  tapi kadang terlewat cacah",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050144",
@@ -16029,7 +16681,9 @@
       "nilai": 59,
       "kategori": "Blacklist",
       "catatan": "Nggak jujur, defensive, pelanggaran sop",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050025",
@@ -16078,7 +16732,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050145",
@@ -16127,7 +16783,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "BAgus wlw medan sulit tetapi sedikit kurang dlam probing",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050185",
@@ -16176,14 +16834,16 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "komunikasi baik",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050008",
       "sobatId": "610426050008",
       "email": "nsri80170@gmail.com",
       "nama": "Neneng Sri Nurwanti",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Anjongan",
       "desa": "Anjungan Melancar",
@@ -16225,7 +16885,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050052",
@@ -16274,7 +16936,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050033",
@@ -16323,7 +16987,9 @@
       "nilai": 84,
       "kategori": "Direkomendasikan",
       "catatan": "Baik, progress agak lambat,  sesuai SOP",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050147",
@@ -16372,7 +17038,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "bagus tetapi sedikit kurang PD dalam wawancara",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050013",
@@ -16421,7 +17089,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "probing  lumayan, kesibukan lain guru honorer, tapi tetap bisa mengikuti timeline. kesibukan lain ngajar guru honorer",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.008Z"
     },
     {
       "id": "610426050051",
@@ -16470,14 +17140,16 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "bagus, gercep",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050148",
       "sobatId": "610426050148",
       "email": "sartinisalim97@gmail.com",
       "nama": "Sartini",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Toho",
       "desa": "Toho Ilir",
@@ -16519,7 +17191,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050048",
@@ -16568,7 +17242,9 @@
       "nilai": 55,
       "kategori": "Blacklist",
       "catatan": "tidak boleh digunakan lagi",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050149",
@@ -16617,7 +17293,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050150",
@@ -16666,7 +17344,9 @@
       "nilai": 82,
       "kategori": "Direkomendasikan",
       "catatan": "penguasaan konsep nya kurang. tapi oke kalo dilapangan. cuma kadang agak lambat kalo dia sibuk",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050018",
@@ -16715,7 +17395,9 @@
       "nilai": 75,
       "kategori": "Cukup",
       "catatan": "mudah dalam menerima materi, semangat kerja yang tinggu dan bisa kerjasama dalam tim, suka guyon sehingga banyak waktu terbuang akhirnya",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050153",
@@ -16764,7 +17446,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "penguasaan materi yang sangat baik, kerja keras, bisa bekerja sama dengan tim selalu punya motivasi untuk bekerja dan membantu teman yang membutuhkan, serta tidak pelit untuk mengajarkan kawan yang lain",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050031",
@@ -16813,7 +17497,9 @@
       "nilai": 79,
       "kategori": "Cukup",
       "catatan": "pendiam susah berkomunikasi yang baik",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050154",
@@ -16862,7 +17548,9 @@
       "nilai": 82,
       "kategori": "Direkomendasikan",
       "catatan": "pemahaman konsepnya baik. tapi perlu penegasan diiawal pada saat sebelum pendataan. kadang agak ngeyel kalo dikasih tau oleh PML yang sesama mitra",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050026",
@@ -16911,7 +17599,9 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050023",
@@ -16960,7 +17650,9 @@
       "nilai": 86,
       "kategori": "Direkomendasikan",
       "catatan": "pemahaman konsep baik, tapi kadang gagal paham. pengerjaan lapangan agak lambat",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050156",
@@ -17009,7 +17701,9 @@
       "nilai": 76,
       "kategori": "Cukup",
       "catatan": "Sudah agak tua, sakit sakit, tapi semangat",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050030",
@@ -17058,7 +17752,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050029",
@@ -17107,14 +17803,16 @@
       "nilai": 95,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050160",
       "sobatId": "610426050160",
       "email": "saryanto240580@gmail.com",
       "nama": "Saryanto",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Anjongan",
       "desa": "Dema",
@@ -17156,7 +17854,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050038",
@@ -17205,7 +17905,9 @@
       "nilai": 92,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "komunikasi sangat baik",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050042",
@@ -17254,7 +17956,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Pemahaman konsep dan cara komunikasi oke. Tanggung jawab dan kooperatif juga",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050062",
@@ -17303,7 +18007,9 @@
       "nilai": 40,
       "kategori": "Blacklist",
       "catatan": "tidak sesuai sop",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050167",
@@ -17352,7 +18058,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "Lumayan, tapi diakhir progress agak slow",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050168",
@@ -17401,14 +18109,16 @@
       "nilai": 60,
       "kategori": "Cukup",
       "catatan": "cukup saja",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050170",
       "sobatId": "610426050170",
       "email": "salsabila1656372@gmail.com",
       "nama": "Salsabila",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Pinyuh",
       "desa": "Peniraman",
@@ -17450,7 +18160,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050065",
@@ -17499,7 +18211,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050173",
@@ -17548,7 +18262,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050190",
@@ -17597,7 +18313,9 @@
       "nilai": 78,
       "kategori": "Cukup",
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050066",
@@ -17646,7 +18364,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "bagus , sering bertanya",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050196",
@@ -17695,7 +18415,9 @@
       "nilai": 70,
       "kategori": "Cukup",
       "catatan": "sebenenrya bagus, tapi kadanag terkendala di waktu",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050067",
@@ -17744,7 +18466,9 @@
       "nilai": 80,
       "kategori": "Direkomendasikan",
       "catatan": "apasih suruh nambah catatan, bising jak",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050070",
@@ -17793,14 +18517,16 @@
       "nilai": 89,
       "kategori": "Direkomendasikan",
       "catatan": "Boleh untuk diikutkan kegiatan BPS, tapi sering pelatihan di tempat kerjanya",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050071",
       "sobatId": "610426050071",
       "email": "jwarashintaamelliya2705@gmail.com",
       "nama": "Jwarashinta Amelliya",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Mempawah Hilir",
       "desa": "Kuala Secapah",
@@ -17842,7 +18568,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050180",
@@ -17891,7 +18619,9 @@
       "nilai": 90,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "Cantik, baru lulus, bisa selesai target sebelum magang",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050182",
@@ -17940,7 +18670,9 @@
       "nilai": 76,
       "kategori": "Cukup",
       "catatan": "Kurang probing, kurang sopan di rumah responden, kurang mengerti konsep, tidak optimis",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050191",
@@ -17989,7 +18721,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "kerja tidak teliti awal nya cepat terakhirnya lama",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050189",
@@ -18038,14 +18772,16 @@
       "nilai": 98,
       "kategori": "Sangat Direkomendasikan",
       "catatan": "cepat menguasai fasih dan kerjaan sesui target",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050186",
       "sobatId": "610426050186",
       "email": "venesautami3112@gmail.com",
       "nama": "VENESA UTAMI ASRI",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Jongkat",
       "desa": "Wajok Hilir",
@@ -18087,7 +18823,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050187",
@@ -18136,14 +18874,16 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "pintar dan komunikasinya baik, tetapi sempat menghindar ketika progres stuck karna sibuk di desa",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050194",
       "sobatId": "610426050194",
       "email": "nataria67776@gmail.com",
       "nama": "Vivi andani",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "-",
       "kecamatan": "Sungai Pinyuh",
       "desa": "Sungai Bakau Besar Laut",
@@ -18185,7 +18925,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050198",
@@ -18234,7 +18976,9 @@
       "nilai": 85,
       "kategori": "Direkomendasikan",
       "catatan": "komunikasi baik",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050193",
@@ -18283,7 +19027,9 @@
       "nilai": 83,
       "kategori": "Direkomendasikan",
       "catatan": "Lambat di awal",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050188",
@@ -18332,7 +19078,9 @@
       "nilai": 79,
       "kategori": "Cukup",
       "catatan": "sibuk kuliah sehingga agak lambat pengerjaannya",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050192",
@@ -18381,7 +19129,9 @@
       "nilai": 70,
       "kategori": "Cukup",
       "catatan": "kurang di pemahaman konsep dan progress lama",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426050197",
@@ -18430,7 +19180,9 @@
       "nilai": 88,
       "kategori": "Direkomendasikan",
       "catatan": "dalam pengerjaan sudah baik dan sesuai target",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426070001",
@@ -18479,14 +19231,16 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426070002",
       "sobatId": "610426070002",
       "email": "kheisyaazzahra12@gmail.com",
       "nama": "Kheisya Azzahra Jayani",
-      "role": "Mitra Pendataan",
+      "role": "PPL",
       "pj": "Ahmad Aulia Rahman",
       "kecamatan": "Mempawah Hilir",
       "desa": "Terusan",
@@ -18528,7 +19282,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426070007",
@@ -18577,7 +19333,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426070004",
@@ -18626,7 +19384,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426070003",
@@ -18675,7 +19435,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426070005",
@@ -18724,7 +19486,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426070006",
@@ -18773,7 +19537,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426070008",
@@ -18822,7 +19588,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426070009",
@@ -18871,7 +19639,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426070010",
@@ -18920,7 +19690,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426070011",
@@ -18969,7 +19741,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     },
     {
       "id": "610426080001",
@@ -19018,7 +19792,9 @@
       "nilai": null,
       "kategori": null,
       "catatan": "",
-      "penilai": null
+      "penilai": null,
+      "isDuplicate": false,
+      "updatedAt": "2026-11-15T08:10:35.009Z"
     }
   ]
 }
