@@ -1127,8 +1127,8 @@ router.get('/records/:id', async (req, res) => {
 });
 
 // Helper: Auto-sync ke Google Sheet (Two-Way Sync Engine)
-async function triggerGoogleSheetWebhook(form, record, rowId, data, status, latitude, longitude, submittedBy) {
-  if (!form) return;
+async function triggerGoogleSheetWebhook(form, record, rowId, data, status, latitude, longitude, submittedBy, customSheetUrl, customSheetName) {
+  if (!form) return { success: false, reason: 'Form tidak ditemukan' };
 
   try {
     const payload = {
@@ -1140,12 +1140,18 @@ async function triggerGoogleSheetWebhook(form, record, rowId, data, status, lati
       submittedBy: submittedBy
     };
 
+    const targetForm = {
+      ...form,
+      sheetUrl: customSheetUrl || form.sheetUrl,
+      sheetName: customSheetName || form.sheetName || 'Sheet1'
+    };
+
     // Jalankan push ke Google Sheet via service Master Sync Engine
-    pushRecordToGoogleSheet(form, payload).catch(err => {
-      console.warn(`[MasterSync Push] Background sync note for row ${rowId}:`, err.message);
-    });
+    const result = await pushRecordToGoogleSheet(targetForm, payload);
+    return result;
   } catch (e) {
     console.warn('[MasterSync Push] Error:', e.message);
+    return { success: false, error: e.message };
   }
 }
 
@@ -1153,11 +1159,20 @@ async function triggerGoogleSheetWebhook(form, record, rowId, data, status, lati
 router.post('/forms/:formId/records', async (req, res) => {
   try {
     const { formId } = req.params;
-    const { id, rowId, data, status, latitude, longitude, submittedBy } = req.body;
+    const { id, rowId, data, status, latitude, longitude, submittedBy, sheetUrl, sheetName } = req.body;
 
     const [forms] = await pool.query('SELECT * FROM laporan_forms WHERE id = ?', [formId]);
     if (forms.length === 0) return res.status(404).json({ error: 'Formulir tidak ditemukan' });
     const form = forms[0];
+
+    // Jika form belum memiliki sheetUrl/sheetName atau client mengirimkan sheetUrl/sheetName terbaru
+    const effectiveSheetUrl = sheetUrl || form.sheetUrl;
+    const effectiveSheetName = sheetName || form.sheetName || 'Sheet1';
+    if ((sheetUrl && sheetUrl !== form.sheetUrl) || (sheetName && sheetName !== form.sheetName)) {
+      form.sheetUrl = effectiveSheetUrl;
+      form.sheetName = effectiveSheetName;
+      pool.query('UPDATE laporan_forms SET sheetUrl = ?, sheetName = ? WHERE id = ?', [effectiveSheetUrl, effectiveSheetName, formId]).catch(() => {});
+    }
 
     // Cek apakah kegiatan form ini sedang dibuka oleh admin
     const [acts] = await pool.query('SELECT * FROM laporan_activities WHERE id = ?', [form.activityId]);
@@ -1170,6 +1185,8 @@ router.post('/forms/:formId/records', async (req, res) => {
     const cleanStatus = status === 'submitted' ? 'submitted' : 'draft';
 
     const [existing] = await pool.query('SELECT id, data FROM laporan_records WHERE id = ?', [recordId]);
+
+    let googleSyncResult = null;
 
     if (existing.length > 0) {
       let existingData = {};
@@ -1194,14 +1211,15 @@ router.post('/forms/:formId/records', async (req, res) => {
         [JSON.stringify(mergedData), cleanStatus, latitude || null, longitude || null, submittedBy || null, recordId]
       );
 
-      // Trigger Webhook ke Google Sheet di latar belakang
-      triggerGoogleSheetWebhook(form, existing[0], effectiveRowId, mergedData, cleanStatus, latitude, longitude, submittedBy);
+      // Trigger Sinkronisasi ke Google Sheet
+      googleSyncResult = await triggerGoogleSheetWebhook(form, existing[0], effectiveRowId, mergedData, cleanStatus, latitude, longitude, submittedBy, effectiveSheetUrl, effectiveSheetName);
 
       res.json({
         success: true,
         message: cleanStatus === 'submitted' ? 'Laporan berhasil dikirim!' : 'Draf berhasil disimpan!',
         id: recordId,
-        status: cleanStatus
+        status: cleanStatus,
+        googleSync: googleSyncResult
       });
     } else {
       const fullData = { ...data };
@@ -1225,13 +1243,14 @@ router.post('/forms/:formId/records', async (req, res) => {
         ]
       );
 
-      triggerGoogleSheetWebhook(form, null, effectiveRowId, fullData, cleanStatus, latitude, longitude, submittedBy);
+      googleSyncResult = await triggerGoogleSheetWebhook(form, null, effectiveRowId, fullData, cleanStatus, latitude, longitude, submittedBy, effectiveSheetUrl, effectiveSheetName);
 
       res.status(201).json({
         success: true,
         message: cleanStatus === 'submitted' ? 'Laporan berhasil dikirim!' : 'Draf berhasil disimpan!',
         id: recordId,
-        status: cleanStatus
+        status: cleanStatus,
+        googleSync: googleSyncResult
       });
     }
   } catch (err) {

@@ -81,7 +81,7 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         devOptions: {
-          enabled: true
+          enabled: false
         },
         workbox: {
           globPatterns: ['**/*.{js,css,ico,png,svg}'],

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { LogOut, Settings, BookOpenCheck, Briefcase, User, Menu, X, Home, BookOpen, Map, FileEdit, Users, TrendingUp, 
   MonitorPlay, Ruler, Search, Moon, Bell, Activity, Database, WifiOff, RefreshCw, 
   MapPin, ScanLine, Award, ChevronLeft, ChevronRight, HelpCircle, Sun, Palette, Sparkles,
@@ -173,7 +173,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     ] : []),
     { id: 'imputation', title: 'Imputasi Susenas-Seruti', desc: 'Panduan nilai imputasi lapangan', keywords: ['imputasi', 'susenas', 'seruti', 'nilai', 'batas'] },
     { id: 'infrastructure', title: 'Infrastruktur Desa', desc: 'Monitoring infrastruktur pendukung desa', keywords: ['infrastruktur', 'desa', 'fasilitas', 'pasar', 'sekolah'] },
-    { id: 'monitoring', title: 'Monitoring Dashboard', desc: 'Pantau akumulasi progres lapangan, pencapaian target, dan performa petugas secara real-time', keywords: ['monitoring', 'dashboard', 'progres', 'kinerja', 'petugas', 'lapangan', 'target'] },
+    { id: 'monitoring', title: 'Dashboad Monitoing', desc: 'Pantau akumulasi progres lapangan, pencapaian target, dan performa petugas secara real-time', keywords: ['monitoring', 'dashboard', 'progres', 'kinerja', 'petugas', 'lapangan', 'target'] },
     { id: 'kbli-kbji', title: 'KBLI dan KBJI Mempawah', desc: 'Pencarian kode klasifikasi KBLI/KBJI lokal Mempawah', keywords: ['kbli', 'kbji', 'klasifikasi', 'kode', 'industri', 'pekerjaan'] },
     { id: 'building-area', title: 'Pengukuran Luas Bangunan', desc: 'Kalkulator area bangunan via satelit', keywords: ['bangunan', 'luas', 'atap', 'pengukuran', 'peta', 'satelit', 'geospasial'] },
     { id: 'laporan-pendataan', title: 'Laporan Pendataan', desc: 'Laporan progres pendataan lapangan', keywords: ['laporan', 'pendataan', 'formulir', 'progress', 'progres', 'lapangan'] },
@@ -202,7 +202,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
            item.keywords.some(k => k.includes(query));
   });
 
-  const menuGroups = [
+  const hiddenAppsForPetugas = useMemo<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem('garda_hidden_apps_petugas');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const rawMenuGroups = [
     {
       title: 'UMUM',
       items: [
@@ -232,7 +242,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         ] : []),
         { id: 'imputation', label: 'Imputasi Susenas-Seruti', icon: FileEdit },
         { id: 'infrastructure', label: 'Infrastruktur Desa', icon: Map },
-        { id: 'monitoring', label: 'Monitoring Dashboard', icon: Activity },
+        { id: 'monitoring', label: 'Dashboad Monitoing', icon: Activity },
         { id: 'kbli-kbji', label: 'KBLI dan KBJI Mempawah', icon: BookOpen },
         { id: 'building-area', label: 'Pengukuran Luas Bangunan', icon: Ruler },
         { id: 'laporan-pendataan', label: 'Laporan Pendataan', icon: FileEdit, isDev: true }
@@ -262,6 +272,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
       ]
     }] : [])
   ];
+
+  const menuGroups = useMemo(() => {
+    if (user?.role !== 'petugas') return rawMenuGroups;
+    return rawMenuGroups.map(group => ({
+      ...group,
+      items: group.items.filter(item => !hiddenAppsForPetugas.includes(item.id))
+    })).filter(group => group.items.length > 0);
+  }, [rawMenuGroups, user?.role, hiddenAppsForPetugas]);
 
   const handleNav = (id: string) => {
     if (onNavigate) {

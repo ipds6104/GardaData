@@ -21,14 +21,22 @@ export const LaporanModule: React.FC<LaporanModuleProps> = ({ onBack }) => {
     ? (sessionStorage.getItem('garda_laporan_target_form') || undefined) 
     : undefined;
 
-  if (user?.role === 'admin') {
-    return <AdminLaporanManager onBack={onBack} user={user} initialActivityId={targetActivityId} />;
+  const effectiveUser = user || {
+    id: 'guest_petugas_direct',
+    username: 'petugas_langsung',
+    name: 'Petugas Lapangan',
+    role: 'petugas' as const,
+    isGuestDirect: true
+  };
+
+  if (effectiveUser.role === 'admin') {
+    return <AdminLaporanManager onBack={onBack} user={effectiveUser} initialActivityId={targetActivityId} />;
   }
 
   return (
     <PetugasLaporanModule 
       onBack={onBack} 
-      user={user} 
+      user={effectiveUser} 
       initialActivityId={targetActivityId}
       initialFormId={targetFormId}
     />

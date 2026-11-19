@@ -11,7 +11,7 @@ export const DATA_TYPES = [
   { id: 'Number', label: 'Number', desc: 'Angka, kuantitas, atau nilai rupiah', icon: Hash },
   { id: 'Enum', label: 'Enum (Dropdown)', desc: 'Pilihan opsi tunggal dari daftar', icon: CheckSquare },
   { id: 'Date', label: 'Date', desc: 'Pemilih tanggal kalender', icon: Calendar },
-  { id: 'Time', label: 'Time', desc: 'Pemilih waktu (format 24 jam)', icon: Clock },
+  { id: 'Time', label: 'Time / Timestamp', desc: 'Pemilih waktu atau timestamp (Jam, Menit, Detik format 24 jam)', icon: Clock },
   { id: 'LatLong', label: 'LatLong (GPS)', desc: 'Koordinat lokasi Latitude & Longitude', icon: MapPin },
   { id: 'Image', label: 'Image (Foto)', desc: 'Foto lapangan dari kamera / galeri', icon: UploadCloud },
   { id: 'File', label: 'File / Dokumen', desc: 'Dokumen lampiran (PDF/DOC)', icon: Folder },
@@ -25,7 +25,7 @@ export const normalizeDataType = (rawType?: string): string => {
   if (['angka', 'number', 'int', 'float', 'double', 'numeric', 'integer', 'decimal'].includes(t)) return 'Number';
   if (['lokasi', 'latlong', 'gps', 'koordinat', 'geotag', 'point'].includes(t)) return 'LatLong';
   if (['tanggal', 'date', 'datetime'].includes(t)) return 'Date';
-  if (['jam', 'time', 'waktu'].includes(t)) return 'Time';
+  if (['jam', 'time', 'waktu', 'timestamp'].includes(t)) return 'Time';
   if (['pilihan', 'enum', 'dropdown', 'select'].includes(t)) return 'Enum';
   if (['image', 'foto', 'gambar', 'photo'].includes(t)) return 'Image';
   if (['file', 'dokumen', 'berkas', 'pdf'].includes(t)) return 'File';
@@ -93,6 +93,7 @@ export const SEMANTIC_ALIASES: Record<string, string[]> = {
   pml: ['pml', 'namapml', 'pengawas', 'namapengawas', 'pemeriksa'],
   kecamatan: ['kecamatan', 'namakecamatan', 'kec', 'kodekec', 'kodekecamatan'],
   desa: ['desa', 'namadesa', 'kelurahan', 'namakelurahan', 'desakelurahan', 'desakel', 'kodedesa'],
+  ketua_sls: ['ketuasls', 'namaketuasls', 'ketuart', 'namaketuart', 'ketuarw', 'ketuadusun', 'ketualingkungan', 'namaketua'],
   sls: ['sls', 'namasls', 'slsrt', 'slsrtrw', 'rt', 'rw', 'rtrw', 'kodesls', 'satuanlingkungansetempat', 'dusun'],
   krt: ['krt', 'namakrt', 'responden', 'namaresponden', 'kepalakeluarga', 'namakk', 'namausahakrt', 'usaha', 'namapemilik'],
   gps: ['gps', 'lokasi', 'lokasigps', 'titiklokasi', 'latlong', 'koordinat', 'latitude', 'longitude', 'titikkoordinat'],
@@ -126,10 +127,16 @@ export const getRecordVal = (data: Record<string, any>, keyName: string): any =>
     }
   }
   
-  // 4. Semantic alias matching
+  // 4. Semantic alias matching (Strict equality or guarded prefix, NEVER loose substring on short terms)
   let matchedGroup: string[] | null = null;
-  for (const group of Object.values(SEMANTIC_ALIASES)) {
-    if (group.some(alias => normTarget.includes(alias) || alias.includes(normTarget))) {
+  const isKetua = normTarget.includes('ketua');
+
+  for (const [groupKey, group] of Object.entries(SEMANTIC_ALIASES)) {
+    // Guard: If looking for ketua, NEVER match generic sls group!
+    if (isKetua && groupKey === 'sls') continue;
+    if (!isKetua && groupKey === 'ketua_sls') continue;
+
+    if (group.some(alias => normTarget === alias || (alias.length >= 6 && normTarget === alias))) {
       matchedGroup = group;
       break;
     }
@@ -138,7 +145,10 @@ export const getRecordVal = (data: Record<string, any>, keyName: string): any =>
   if (matchedGroup) {
     for (const [k, v] of Object.entries(data)) {
       const normK = normalizeKey(k);
-      if (matchedGroup.some(alias => normK === alias || normK.includes(alias) || alias.includes(normK))) {
+      if (isKetua && !normK.includes('ketua')) continue;
+      if (!isKetua && normK.includes('ketua')) continue;
+
+      if (matchedGroup.some(alias => normK === alias)) {
         if (v !== undefined && v !== null && v !== '') return cleanText(v);
       }
     }

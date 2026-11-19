@@ -12,7 +12,7 @@ import {
   Trash2, Settings, Edit3, Type, Hash, UploadCloud, Save, Sliders,
   HelpCircle, MoreVertical, Download, ShieldAlert, CheckSquare,
   Compass, Eye, ArrowUpRight, BookOpen, Menu, User, Image as ImageIcon, Camera,
-  Lock, LocateFixed, Navigation
+  Lock, LocateFixed, Navigation, Shield, Grid, List
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme';
 import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES, getRecordVal, cleanText, normalizeKey, normalizeStringVal, isRecordMatchStep } from './laporanConstants';
@@ -431,308 +431,211 @@ const SmoothDatePicker: React.FC<{
 };
 
 // Ultra Smooth 24-Hour Time Picker Component (Format 24 Jam)
-const SmoothTimePicker24h: React.FC<{
-  value: string; // "HH:mm" in 24-hour format
+// Komponen Input Manual Jam, Menit, dan Detik dengan Validasi Real-Time (24 Jam & 60 Menit/Detik)
+const ManualTimestampInput24h: React.FC<{
+  value: string; // "HH:mm:ss" atau "HH:mm"
   onChange: (val: string) => void;
   disabled?: boolean;
+  label?: string;
   placeholder?: string;
-}> = ({ value, onChange, disabled = false, placeholder = 'Pilih Jam (Format 24 Jam)...' }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [openUpward, setOpenUpward] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+}> = ({ value, onChange, disabled = false, label = 'Waktu / Timestamp' }) => {
+  const parseVal = (v: string) => {
+    if (!v || typeof v !== 'string') return { h: '', m: '', s: '' };
+    const clean = v.trim();
+    const parts = clean.split(':');
+    return {
+      h: parts[0] || '',
+      m: parts[1] || '',
+      s: parts[2] || ''
+    };
+  };
 
-  const [selectedHour, setSelectedHour] = useState<string>(() => {
-    if (value && value.includes(':')) {
-      const h = parseInt(value.split(':')[0]);
-      return isNaN(h) ? '08' : String(h).padStart(2, '0');
-    }
-    return '08';
-  });
-
-  const [selectedMinute, setSelectedMinute] = useState<string>(() => {
-    if (value && value.includes(':')) {
-      const m = parseInt(value.split(':')[1]);
-      return isNaN(m) ? '00' : String(m).padStart(2, '0');
-    }
-    return '00';
-  });
-
-  const [activeTab, setActiveTab] = useState<'hour' | 'minute'>('hour');
+  const [h, setH] = useState(() => parseVal(value).h);
+  const [m, setM] = useState(() => parseVal(value).m);
+  const [s, setS] = useState(() => parseVal(value).s);
 
   useEffect(() => {
-    if (value && value.includes(':')) {
-      const parts = value.split(':');
-      const h = parseInt(parts[0]);
-      const m = parseInt(parts[1]);
-      if (!isNaN(h)) setSelectedHour(String(h).padStart(2, '0'));
-      if (!isNaN(m)) setSelectedMinute(String(m).padStart(2, '0'));
-    }
+    const parsed = parseVal(value);
+    setH(parsed.h);
+    setM(parsed.m);
+    setS(parsed.s);
   }, [value]);
 
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+  const hourNum = h !== '' ? parseInt(h, 10) : null;
+  const minuteNum = m !== '' ? parseInt(m, 10) : null;
+  const secondNum = s !== '' ? parseInt(s, 10) : null;
 
-  useEffect(() => {
-    if (isOpen && ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      const windowHeight = window.innerHeight || document.documentElement.clientHeight;
-      const spaceBelow = windowHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      if (spaceBelow < 350 && spaceAbove > 300) {
-        setOpenUpward(true);
-      } else {
-        setOpenUpward(false);
-      }
+  let validationError = '';
+  if (hourNum !== null && (isNaN(hourNum) || hourNum < 0 || hourNum > 24)) {
+    validationError = 'Jam tidak boleh lebih dari 24 (maksimal 24:00:00).';
+  } else if (minuteNum !== null && (isNaN(minuteNum) || minuteNum < 0 || minuteNum > 60)) {
+    validationError = 'Menit tidak boleh lebih dari 60.';
+  } else if (secondNum !== null && (isNaN(secondNum) || secondNum < 0 || secondNum > 60)) {
+    validationError = 'Detik tidak boleh lebih dari 60.';
+  }
+
+  const handleUpdate = (newH: string, newM: string, newS: string) => {
+    setH(newH);
+    setM(newM);
+    setS(newS);
+
+    if (newH || newM || newS) {
+      const formattedH = newH ? newH.padStart(2, '0') : '00';
+      const formattedM = newM ? newM.padStart(2, '0') : '00';
+      const formattedS = newS ? newS.padStart(2, '0') : '00';
+      onChange(`${formattedH}:${formattedM}:${formattedS}`);
+    } else {
+      onChange('');
     }
-  }, [isOpen]);
-
-  const commitTime = (h: string, m: string) => {
-    const formatted = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
-    onChange(formatted);
   };
 
-  const handleSetCurrentTime = () => {
+  const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valStr = e.target.value.replace(/\D/g, '').slice(0, 2);
+    handleUpdate(valStr, m, s);
+  };
+
+  const handleMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valStr = e.target.value.replace(/\D/g, '').slice(0, 2);
+    handleUpdate(h, valStr, s);
+  };
+
+  const handleSecondChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valStr = e.target.value.replace(/\D/g, '').slice(0, 2);
+    handleUpdate(h, m, valStr);
+  };
+
+  const handleSetNow = () => {
     const now = new Date();
-    const h = String(now.getHours()).padStart(2, '0');
-    const m = String(now.getMinutes()).padStart(2, '0');
-    setSelectedHour(h);
-    setSelectedMinute(m);
-    commitTime(h, m);
-    setIsOpen(false);
+    const curH = String(now.getHours()).padStart(2, '0');
+    const curM = String(now.getMinutes()).padStart(2, '0');
+    const curS = String(now.getSeconds()).padStart(2, '0');
+    handleUpdate(curH, curM, curS);
   };
 
-  const handleSelectHour = (h: number) => {
-    const hStr = String(h).padStart(2, '0');
-    setSelectedHour(hStr);
-    commitTime(hStr, selectedMinute);
-    setActiveTab('minute');
+  const handleClear = () => {
+    handleUpdate('', '', '');
   };
-
-  const handleSelectMinute = (m: number) => {
-    const mStr = String(m).padStart(2, '0');
-    setSelectedMinute(mStr);
-    commitTime(selectedHour, mStr);
-    setIsOpen(false);
-  };
-
-  const quickPresets = [
-    { label: '08:00 (Pagi)', h: '08', m: '00' },
-    { label: '10:30', h: '10', m: '30' },
-    { label: '13:00 (Siang)', h: '13', m: '00' },
-    { label: '15:30 (Sore)', h: '15', m: '30' },
-    { label: '19:00 (Malam)', h: '19', m: '00' },
-  ];
 
   return (
-    <div ref={ref} className={`relative ${isOpen ? 'z-50' : ''}`}>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 flex items-center justify-between transition-all cursor-pointer font-medium ${
-          disabled ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 border-dashed' : 'hover:bg-slate-100/80 dark:hover:bg-slate-700/80 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-primary-300'
-        }`}
-      >
-        <div className="flex items-center gap-2 truncate">
-          <Clock className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0" />
-          <span className={value ? 'font-mono font-bold text-slate-900 dark:text-slate-100 text-xs' : 'text-slate-400'}>
-            {value ? `${value} WIB (24 Jam)` : placeholder}
-          </span>
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Box Input Manual 3 Kolom: Jam, Menit, Detik */}
+        <div className={`inline-flex items-center gap-1.5 p-1.5 rounded-2xl border transition-all ${
+          validationError 
+            ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800' 
+            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus-within:ring-2 focus-within:ring-primary-300'
+        }`}>
+          {/* Kolom Jam */}
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-0.5">Jam</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              disabled={disabled}
+              placeholder="JJ"
+              maxLength={2}
+              value={h}
+              onChange={handleHourChange}
+              className={`w-12 text-center py-1.5 rounded-xl text-xs font-mono font-bold outline-none transition-all ${
+                hourNum !== null && (hourNum > 24 || hourNum < 0)
+                  ? 'bg-rose-100 text-rose-700 border border-rose-300'
+                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:border-primary-500'
+              }`}
+            />
+          </div>
+
+          <span className="text-sm font-bold text-slate-400 mt-3">:</span>
+
+          {/* Kolom Menit */}
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-0.5">Menit</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              disabled={disabled}
+              placeholder="MM"
+              maxLength={2}
+              value={m}
+              onChange={handleMinuteChange}
+              className={`w-12 text-center py-1.5 rounded-xl text-xs font-mono font-bold outline-none transition-all ${
+                minuteNum !== null && (minuteNum > 60 || minuteNum < 0)
+                  ? 'bg-rose-100 text-rose-700 border border-rose-300'
+                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:border-primary-500'
+              }`}
+            />
+          </div>
+
+          <span className="text-sm font-bold text-slate-400 mt-3">:</span>
+
+          {/* Kolom Detik */}
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-0.5">Detik</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              disabled={disabled}
+              placeholder="DD"
+              maxLength={2}
+              value={s}
+              onChange={handleSecondChange}
+              className={`w-12 text-center py-1.5 rounded-xl text-xs font-mono font-bold outline-none transition-all ${
+                secondNum !== null && (secondNum > 60 || secondNum < 0)
+                  ? 'bg-rose-100 text-rose-700 border border-rose-300'
+                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:border-primary-500'
+              }`}
+            />
+          </div>
         </div>
-        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: openUpward ? -6 : 6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: openUpward ? -4 : 4, scale: 0.98 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className={`absolute left-0 sm:left-auto right-0 ${
-              openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
-            } z-[100] w-full min-w-[300px] max-w-[350px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-3.5 ring-1 ring-black/10 backdrop-blur-md`}
-          >
-            {/* Header with 24-hour display & Tab Switcher */}
-            <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-2.5 mb-3 flex items-center justify-between border border-slate-200/80 dark:border-slate-700">
-              <div className="flex items-center gap-1.5 font-mono text-base font-black">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('hour')}
-                  className={`px-2.5 py-1 rounded-xl transition-all ${
-                    activeTab === 'hour'
-                      ? 'bg-primary-600 text-white shadow-sm'
-                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {selectedHour}
-                </button>
-                <span className="text-slate-400">:</span>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('minute')}
-                  className={`px-2.5 py-1 rounded-xl transition-all ${
-                    activeTab === 'minute'
-                      ? 'bg-primary-600 text-white shadow-sm'
-                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {selectedMinute}
-                </button>
-                <span className="text-[10px] text-slate-400 font-sans font-bold ml-1">24 Jam</span>
-              </div>
-
+        {/* Tombol Cepat: Waktu Sekarang & Hapus */}
+        {!disabled && (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleSetNow}
+              className="px-3 py-2 bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/60 dark:hover:bg-primary-900/60 text-primary-700 dark:text-primary-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-primary-200 dark:border-primary-800 cursor-pointer shadow-2xs"
+              title="Isi otomatis dengan waktu jam, menit, detik saat ini"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Sekarang</span>
+            </button>
+            {(h || m || s) && (
               <button
                 type="button"
-                onClick={handleSetCurrentTime}
-                className="px-2.5 py-1 text-[11px] font-bold rounded-xl bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-900 transition-colors flex items-center gap-1"
+                onClick={handleClear}
+                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer"
+                title="Hapus isian waktu"
               >
-                <Clock className="w-3 h-3" />
-                <span>Sekarang</span>
+                <X className="w-4 h-4" />
               </button>
-            </div>
-
-            {/* Quick Preset Chips */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2 custom-scrollbar">
-              {quickPresets.map((p) => (
-                <button
-                  key={p.label}
-                  type="button"
-                  onClick={() => {
-                    setSelectedHour(p.h);
-                    setSelectedMinute(p.m);
-                    commitTime(p.h, p.m);
-                    setIsOpen(false);
-                  }}
-                  className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-semibold whitespace-nowrap transition-colors shrink-0"
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Tab: Hours Selector (00 - 23) in 24h Grid */}
-            {activeTab === 'hour' ? (
-              <div>
-                <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 mb-1.5 tracking-wider">
-                  PILIH JAM (00 - 23):
-                </div>
-                <div className="grid grid-cols-6 gap-1 max-h-44 overflow-y-auto custom-scrollbar p-0.5">
-                  {Array.from({ length: 24 }).map((_, i) => {
-                    const hStr = String(i).padStart(2, '0');
-                    const isSel = hStr === selectedHour;
-                    return (
-                      <button
-                        key={hStr}
-                        type="button"
-                        onClick={() => handleSelectHour(i)}
-                        className={`py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
-                          isSel
-                            ? 'bg-primary-600 text-white shadow-md shadow-primary-500/30 scale-105'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        {hStr}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              /* Tab: Minutes Selector (00 - 55 in steps of 5, plus precision stepper) */
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">
-                    PILIH MENIT (00 - 59):
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = Math.max(0, parseInt(selectedMinute) - 1);
-                        const mStr = String(next).padStart(2, '0');
-                        setSelectedMinute(mStr);
-                        commitTime(selectedHour, mStr);
-                      }}
-                      className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700"
-                    >
-                      -
-                    </button>
-                    <span className="font-mono text-xs font-bold w-6 text-center">{selectedMinute}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = Math.min(59, parseInt(selectedMinute) + 1);
-                        const mStr = String(next).padStart(2, '0');
-                        setSelectedMinute(mStr);
-                        commitTime(selectedHour, mStr);
-                      }}
-                      className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 gap-1.5 p-0.5">
-                  {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => {
-                    const mStr = String(m).padStart(2, '0');
-                    const isSel = mStr === selectedMinute;
-                    return (
-                      <button
-                        key={mStr}
-                        type="button"
-                        onClick={() => handleSelectMinute(m)}
-                        className={`py-2 rounded-xl text-xs font-mono font-bold transition-all ${
-                          isSel
-                            ? 'bg-primary-600 text-white shadow-md shadow-primary-500/30 scale-105'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        :{mStr}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             )}
-
-            {/* Footer Clear & Done */}
-            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => {
-                  onChange('');
-                  setIsOpen(false);
-                }}
-                className="text-[11px] text-rose-500 hover:underline font-medium"
-              >
-                Hapus
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  commitTime(selectedHour, selectedMinute);
-                  setIsOpen(false);
-                }}
-                className="px-3 py-1 bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-bold rounded-xl shadow-xs transition-colors"
-              >
-                Selesai
-              </button>
-            </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </div>
+
+      {/* Pesan Validasi Rule: Jam <= 24, Menit <= 60, Detik <= 60 */}
+      {validationError ? (
+        <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 text-xs font-bold bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-xl px-3 py-1.5">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+          <span>{validationError}</span>
+        </div>
+      ) : (h || m || s) ? (
+        <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+          Tersimpan: <span className="font-bold text-slate-700 dark:text-slate-300">{value}</span> (Format 24 Jam: JJ:MM:DD)
+        </p>
+      ) : (
+        <p className="text-[10px] text-slate-400">
+          Ketik angka: Jam (0-24), Menit (0-60), Detik (0-60)
+        </p>
+      )}
     </div>
   );
 };
+
+const SmoothTimePicker24h = ManualTimestampInput24h;
 
 interface PetugasLaporanModuleProps {
   onBack?: () => void;
@@ -765,6 +668,13 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
   const [selectedActivity, setSelectedActivity] = useState<any>(activityOverride || null);
   const [forms, setForms] = useState<any[]>(formsOverride || []);
   const [activeFormIndex, setActiveFormIndex] = useState<number>(0);
+  const [petugasViewLayout, setPetugasViewLayout] = useState<'card' | 'list'>(() => {
+    try {
+      return (localStorage.getItem('garda_petugas_app_layout') as any) || 'card';
+    } catch (e) {
+      return 'card';
+    }
+  });
 
   // Grouping Navigation Drill Stack (Supports up to Level 4)
   // Each entry: { levelIndex: number, levelKey: string, value: string }
@@ -946,7 +856,9 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        const open = isAdmin ? parsed : parsed.filter((a: any) => a.isOpen !== false);
+        const open = isAdmin 
+          ? parsed 
+          : parsed.filter((a: any) => a.isOpen !== false && a.showToPetugas !== false && a.isVisibleToPetugas !== false);
         if (Array.isArray(open) && open.length > 0) {
           setActivities(open);
           if (resolvedTargetId) {
@@ -962,7 +874,9 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     try {
       setIsLoading(true);
       const data = await getCloudActivities();
-      const openActivities = isAdmin ? data : data.filter((a: any) => a.isOpen !== false);
+      const openActivities = isAdmin 
+        ? data 
+        : data.filter((a: any) => a.isOpen !== false && a.showToPetugas !== false && a.isVisibleToPetugas !== false);
       if (Array.isArray(openActivities) && (openActivities.length > 0 || !cached)) {
         setActivities(openActivities);
         if (openActivities.length > 0) {
@@ -993,28 +907,34 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setForms(parsed);
-          let targetIndex = 0;
-          if (initialFormId) {
-            const foundIdx = parsed.findIndex((f: any) => f.id === initialFormId);
-            if (foundIdx !== -1) targetIndex = foundIdx;
+        if (Array.isArray(parsed)) {
+          const activeCached = parsed.filter((f: any) => !f.isDeleted);
+          if (activeCached.length > 0) {
+            setForms(activeCached);
+            let targetIndex = 0;
+            if (initialFormId) {
+              const foundIdx = activeCached.findIndex((f: any) => f.id === initialFormId);
+              if (foundIdx !== -1) targetIndex = foundIdx;
+            }
+            setActiveFormIndex(targetIndex);
+            setDrillStack([]);
+            setViewMode('grouping_view');
+            hasCached = true;
           }
-          setActiveFormIndex(targetIndex);
-          setDrillStack([]);
-          setViewMode('grouping_view');
-          hasCached = true;
         }
       } catch (e) {}
     }
 
     try {
       const data = await getCloudForms(actId);
-      if (Array.isArray(data) && data.length > 0) {
-        setForms(data);
+      if (Array.isArray(data)) {
+        const activeForms = data.filter((f: any) => !f.isDeleted);
+        setForms(activeForms);
+        localStorage.setItem(`garda_laporan_forms_${actId}`, JSON.stringify(activeForms));
+
         let targetIndex = 0;
         if (initialFormId) {
-          const foundIdx = data.findIndex((f: any) => f.id === initialFormId);
+          const foundIdx = activeForms.findIndex((f: any) => f.id === initialFormId);
           if (foundIdx !== -1) targetIndex = foundIdx;
         }
         setActiveFormIndex(targetIndex);
@@ -1023,7 +943,6 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
 
         // Clean session redirection markers once loaded
         try {
-          // Simpan activityId ke localStorage agar tidak hilang saat refresh
           if (actId) {
             localStorage.setItem('garda_laporan_last_activity', actId);
           }
@@ -1180,13 +1099,16 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
       .filter((g: string) => g !== '' && g !== '-- Tidak Digunakan (Kosong) --' && g !== 'undefined' && g !== 'null');
   }, [rawGroupings]);
 
-  // Dynamic Form Fields - Priority given to published schema
+  // Dynamic Form Fields - Priority given to live configured fields so live review & updates reflect immediately
   const activeFormFields = useMemo(() => {
     if (!currentForm) return [];
+    if (Array.isArray(currentForm.fields) && currentForm.fields.length > 0) {
+      return currentForm.fields;
+    }
     if (Array.isArray(currentForm.publishedSchema) && currentForm.publishedSchema.length > 0) {
       return currentForm.publishedSchema;
     }
-    return Array.isArray(currentForm.fields) ? currentForm.fields : [];
+    return [];
   }, [currentForm]);
 
   // Cek apakah admin mengkonfigurasi pertanyaan / kolom Titik Koordinat GPS pada formulir
@@ -1421,9 +1343,13 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
       setEditingRecord(record);
       let initialValues = { ...(record.data || {}) };
 
-      // Pastikan semua kolom pada skema terpetakan nilainya dari data Google Sheet/record
+      // Pastikan semua kolom pada skema terpetakan nilainya dari data Google Sheet/record (Prioritas Utama: Direct Column)
       (activeFormFields || []).forEach((f: any) => {
-        const val = getRecordVal(record.data || {}, f.columnName) || getRecordVal(record.data || {}, f.label);
+        const directCol = f.columnName || '';
+        const directVal = (directCol && record.data && record.data[directCol] !== undefined && record.data[directCol] !== null)
+          ? cleanText(record.data[directCol])
+          : '';
+        const val = directVal || getRecordVal(record.data || {}, f.columnName) || (f.label ? getRecordVal(record.data || {}, f.label) : '');
         if (val !== undefined && val !== null && val !== '') {
           initialValues[f.columnName] = val;
         }
@@ -1666,8 +1592,23 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
           } else if (vRule.operator === '==' && vRule.value && strVal !== vRule.value) {
             validationErrors.push(`${label}: Tanggal harus ${vRule.value}`);
           }
-        } else if (dt === 'time' || dt === 'jam') {
-          const strVal = String(val);
+        } else if (dt === 'time' || dt === 'jam' || dt === 'timestamp' || dt === 'waktu') {
+          const strVal = String(val).trim();
+          if (strVal) {
+            const parts = strVal.split(':');
+            const h = parseInt(parts[0], 10);
+            const m = parts[1] !== undefined ? parseInt(parts[1], 10) : 0;
+            const s = parts[2] !== undefined ? parseInt(parts[2], 10) : 0;
+            if (!isNaN(h) && (h < 0 || h > 24)) {
+              validationErrors.push(`${label}: Jam tidak boleh lebih dari 24 (maksimal 24:00:00)`);
+            }
+            if (!isNaN(m) && (m < 0 || m > 60)) {
+              validationErrors.push(`${label}: Menit tidak boleh lebih dari 60`);
+            }
+            if (!isNaN(s) && (s < 0 || s > 60)) {
+              validationErrors.push(`${label}: Detik tidak boleh lebih dari 60`);
+            }
+          }
           if (vRule.operator === 'range') {
             if (vRule.min && strVal < vRule.min) validationErrors.push(`${label}: Jam tidak boleh sebelum ${vRule.min}`);
             if (vRule.max && strVal > vRule.max) validationErrors.push(`${label}: Jam tidak boleh setelah ${vRule.max}`);
@@ -1716,11 +1657,15 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
         status: targetStatus,
         latitude: gpsLocation?.lat || null,
         longitude: gpsLocation?.lng || null,
-        submittedBy: user?.name || user?.username || 'Petugas'
+        submittedBy: user?.name || user?.username || 'Petugas',
+        sheetUrl: currentForm.sheetUrl || selectedActivity?.sheetUrl || '',
+        sheetName: currentForm.sheetName || 'Sheet1',
+        activityId: currentForm.activityId || selectedActivity?.id
       };
 
       let networkSuccess = false;
       let serverErrorMsg: string | null = null;
+      let googleSyncWarning: string | null = null;
 
       try {
         const res = await fetch(`${baseUrl}/api/laporan/forms/${currentForm.id}/records`, {
@@ -1731,6 +1676,10 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
 
         if (res.ok) {
           networkSuccess = true;
+          const resData = await res.json().catch(() => ({}));
+          if (resData.googleSync && resData.googleSync.success === false) {
+            googleSyncWarning = resData.googleSync.reason || resData.googleSync.error;
+          }
         } else {
           const errData = await res.json().catch(() => ({}));
           if (res.status === 403) {
@@ -1772,7 +1721,8 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
       } catch (e) {}
 
       if (targetStatus === 'submitted') {
-        setSaveSuccessMsg(networkSuccess ? 'Laporan berhasil dikirim ke server!' : 'Laporan tersimpan di memori lokal (Mode Offline)');
+        const baseMsg = networkSuccess ? 'Laporan berhasil dikirim ke server!' : 'Laporan tersimpan di memori lokal (Mode Offline)';
+        setSaveSuccessMsg(googleSyncWarning ? `${baseMsg} (Info Sync: ${googleSyncWarning})` : baseMsg);
       } else {
         setSaveSuccessMsg('Draf berhasil disimpan!');
       }
@@ -1911,6 +1861,16 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
         </div>
       </div>
 
+      {/* Banner Mode Akses Langsung / Petugas Tamu */}
+      {user?.isGuestDirect && (
+        <div className="bg-emerald-50 dark:bg-emerald-950/40 border-b border-emerald-200 dark:border-emerald-800 px-4 py-2 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300 shrink-0">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-semibold text-[11px]">Mode Pengisian Langsung Aktif: Anda dapat langsung mengisi & mengirimkan formulir tanpa login akun.</span>
+          </div>
+        </div>
+      )}
+
       {/* Collapsible Search Input Bar */}
       <AnimatePresence>
         {isSearchVisible && selectedActivity && viewMode === 'grouping_view' && (
@@ -2018,21 +1978,53 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
               </p>
             </div>
 
-            {/* Search Box Kegiatan */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Cari kegiatan survei / pendataan..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary-300 font-medium shadow-2xs"
-              />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <X className="w-3.5 h-3.5" />
+            {/* Search Box Kegiatan & Layout Toggle (Card vs Daftar) */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Cari kegiatan survei / pendataan..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-primary-300 font-medium shadow-2xs"
+                />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Toggle Tampilan Card vs Daftar */}
+              <div className="flex items-center bg-white dark:bg-slate-850 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setPetugasViewLayout('card')}
+                  className={`p-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    petugasViewLayout === 'card' 
+                      ? 'bg-slate-900 text-white dark:bg-slate-700 shadow-2xs' 
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                  }`}
+                  title="Tampilan Kartu (Card)"
+                >
+                  <Grid className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline text-[10px]">Card</span>
                 </button>
-              )}
+                <button
+                  type="button"
+                  onClick={() => setPetugasViewLayout('list')}
+                  className={`p-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    petugasViewLayout === 'list' 
+                      ? 'bg-slate-900 text-white dark:bg-slate-700 shadow-2xs' 
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                  }`}
+                  title="Tampilan Daftar (List)"
+                >
+                  <List className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline text-[10px]">Daftar</span>
+                </button>
+              </div>
             </div>
 
             {/* List / Grid Card Kegiatan */}
@@ -2047,8 +2039,9 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                 <p className="font-bold text-slate-700 dark:text-slate-200">Tidak ada kegiatan yang ditemukan</p>
                 <p className="text-[11px] text-slate-400">Pastikan kegiatan telah diaktifkan oleh admin.</p>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3.5">
+            ) : petugasViewLayout === 'card' ? (
+              /* CARD VIEW */
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {activities
                   .filter(a => !searchQuery || a.title.toLowerCase().includes(searchQuery.toLowerCase()) || (a.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
                   .map((act) => {
@@ -2064,10 +2057,9 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                           setSelectedActivity(act);
                           setDrillStack([]);
                           setViewMode('grouping_view');
-                          // Simpan ke localStorage agar halaman dapat dipulihkan setelah refresh
                           try { localStorage.setItem('garda_laporan_last_activity', act.id); } catch(e) {}
                         }}
-                        className="p-4 bg-white dark:bg-slate-900 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col gap-3 group relative overflow-hidden"
+                        className="p-4 bg-white dark:bg-slate-900 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between gap-3 group relative overflow-hidden"
                       >
                         {/* Accent Top Bar */}
                         <div 
@@ -2105,17 +2097,61 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                             <span>Aktif</span>
                           </span>
 
-                          {act.connectedSheetUrl && (
-                            <span className="px-2 py-0.5 rounded-full font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                              <ExternalLink className="w-3 h-3 text-slate-400" />
-                              <span>Google Sheets</span>
-                            </span>
-                          )}
-
                           <span className="ml-auto text-[11px] font-bold text-primary-600 dark:text-primary-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
                             <span>Buka E-Form</span>
                             <ArrowRight className="w-3.5 h-3.5" />
                           </span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+              </div>
+            ) : (
+              /* LIST VIEW */
+              <div className="space-y-2">
+                {activities
+                  .filter(a => !searchQuery || a.title.toLowerCase().includes(searchQuery.toLowerCase()) || (a.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((act) => {
+                    const ActIcon = getIconComponent(act.icon, ClipboardList);
+                    const actColor = act.settings?.themeColor || '#10b981';
+
+                    return (
+                      <motion.div
+                        key={act.id}
+                        whileHover={{ scale: 1.005 }}
+                        whileTap={{ scale: 0.995 }}
+                        onClick={() => {
+                          setSelectedActivity(act);
+                          setDrillStack([]);
+                          setViewMode('grouping_view');
+                          try { localStorage.setItem('garda_laporan_last_activity', act.id); } catch(e) {}
+                        }}
+                        className="p-3.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div 
+                            className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-2xs"
+                            style={{ backgroundColor: actColor }}
+                          >
+                            <ActIcon className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
+                              {act.title}
+                            </h4>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                              {act.description || act.category || 'Formulir pendataan lapangan'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            Aktif
+                          </span>
+                          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-primary-50 dark:group-hover:bg-primary-950/50 group-hover:text-primary-600 flex items-center justify-center text-slate-400 transition-colors">
+                            <ChevronRight className="w-4 h-4" />
+                          </div>
                         </div>
                       </motion.div>
                     );
@@ -2285,10 +2321,18 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                       const configuredTitleCol = currentForm?.titleColumn || currentForm?.settings?.assignmentTitleColumn;
                       const configuredSubtitleCol = currentForm?.subtitleColumn || currentForm?.settings?.assignmentSubtitleColumn;
 
-                      const labelField = (currentForm?.fields || []).find((f: any) => f.isLabel);
-                      const fallbackLabelKey = labelField?.columnName || labelField?.label;
+                      // Prioritaskan kolom nama/responden murni sebagai label judul
+                      const labelField = (currentForm?.fields || []).find((f: any) => f.isLabel && !f.isKey && f.columnName?.toLowerCase() !== 'id');
+                      const fallbackLabelKey = labelField?.columnName || labelField?.label || (currentForm?.fields || []).find((f: any) => {
+                        const cl = (f.columnName || f.label || '').toLowerCase();
+                        return cl.includes('nama') || cl.includes('krt') || cl.includes('responden') || cl.includes('usaha');
+                      })?.columnName;
 
-                      const keyField = (currentForm?.fields || []).find((f: any) => f.isKey && f.columnName !== fallbackLabelKey);
+                      // Prioritaskan kolom id/sls/alamat sebagai sub-judul keterangan
+                      const keyField = (currentForm?.fields || []).find((f: any) => {
+                        const cl = (f.columnName || f.label || '').toLowerCase();
+                        return (f.isKey || cl === 'id' || cl.includes('kode') || cl.includes('sls') || cl.includes('alamat')) && f.columnName !== fallbackLabelKey;
+                      });
                       const fallbackKeyCol = keyField?.columnName || keyField?.label;
 
                       const photoField = (currentForm?.fields || []).find((f: any) => f.dataType === 'Image' || f.type === 'Image');
@@ -2296,8 +2340,12 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                       const effectiveTitleKey = activeDisplayColumn || configuredTitleCol || fallbackLabelKey;
                       const effectiveSubtitleKey = configuredSubtitleCol || fallbackKeyCol;
 
-                      const title = (effectiveTitleKey ? getRecordVal(d, effectiveTitleKey) : '') || getRecordVal(d, 'Nama KRT') || getRecordVal(d, 'Nama Responden') || getRecordVal(d, 'Nama PPL') || `Assignment #${idx + 1}`;
-                      const subtitle = (effectiveSubtitleKey ? getRecordVal(d, effectiveSubtitleKey) : '') || getRecordVal(d, 'SLS') || getRecordVal(d, 'Desa') || getRecordVal(d, 'Alamat') || getRecordVal(d, 'Kecamatan') || (sample.id ? `ID: ${sample.id}` : `Assignment #${idx + 1}`);
+                      let title = (effectiveTitleKey ? getRecordVal(d, effectiveTitleKey) : '') || getRecordVal(d, 'Nama KRT') || getRecordVal(d, 'Nama Responden') || getRecordVal(d, 'Nama PPL') || `Assignment #${idx + 1}`;
+                      let subtitle = (effectiveSubtitleKey && effectiveSubtitleKey !== effectiveTitleKey ? getRecordVal(d, effectiveSubtitleKey) : '');
+
+                      if (!subtitle) {
+                        subtitle = getRecordVal(d, 'SLS') || getRecordVal(d, 'Desa') || getRecordVal(d, 'Alamat') || getRecordVal(d, 'Kecamatan') || (sample.rowId ? `ID: ${sample.rowId}` : (sample.id ? `ID: ${sample.id}` : ''));
+                      }
                       const photoUrl = (photoField ? getRecordVal(d, photoField.columnName) : '') || getRecordVal(d, 'Foto Lapangan') || getRecordVal(d, 'Foto');
                       const isSubmitted = sample.status === 'submitted';
 
@@ -2434,16 +2482,64 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
             <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3.5 shadow-2xs">
               {activeFormFields && activeFormFields.length > 0 ? (
                 activeFormFields.map((field: any, idx: number) => {
-                  const rawVal = getRecordVal(formData, field.columnName) || 
-                                 getRecordVal(formData, field.label) || 
-                                 (editingRecord?.data ? (getRecordVal(editingRecord.data, field.columnName) || getRecordVal(editingRecord.data, field.label)) : '');
-                  const val = rawVal !== undefined && rawVal !== null ? rawVal : '';
+                  // Strict check: if formData has this field (even empty string ""), preserve it without fallback to editingRecord!
+                  const getFieldValue = () => {
+                    const col = field.columnName;
+                    const lbl = field.label;
+
+                    // 1. Direct key match in formData (preserves empty string "" when deleted!)
+                    if (col && Object.prototype.hasOwnProperty.call(formData, col)) {
+                      const v = formData[col];
+                      return (v !== undefined && v !== null) ? String(v) : '';
+                    }
+                    if (lbl && Object.prototype.hasOwnProperty.call(formData, lbl)) {
+                      const v = formData[lbl];
+                      return (v !== undefined && v !== null) ? String(v) : '';
+                    }
+
+                    // 2. Fuzzy match in formData (only if formData has a value)
+                    const fromFormVal = getRecordVal(formData, col) || (lbl ? getRecordVal(formData, lbl) : '');
+                    if (fromFormVal !== '') return fromFormVal;
+
+                    // 3. If formData is already populated with fields (i.e. editing existing record or new form),
+                    // check if ANY normalized key matches. If user cleared it, NEVER fall back to editingRecord!
+                    const hasKeyInForm = Object.keys(formData).some(k => 
+                      normalizeKey(k) === normalizeKey(col) || (lbl && normalizeKey(k) === normalizeKey(lbl))
+                    );
+                    if (hasKeyInForm) {
+                      return '';
+                    }
+
+                    // 4. Initial fallback only when formData has not been initialized for this field
+                    if (editingRecord?.data) {
+                      if (col && Object.prototype.hasOwnProperty.call(editingRecord.data, col)) {
+                        const recVal = editingRecord.data[col];
+                        return (recVal !== undefined && recVal !== null) ? String(recVal) : '';
+                      }
+                      const fromRecVal = getRecordVal(editingRecord.data, col) || (lbl ? getRecordVal(editingRecord.data, lbl) : '');
+                      if (fromRecVal !== undefined && fromRecVal !== null && fromRecVal !== '') {
+                        return String(fromRecVal);
+                      }
+                    }
+                    return '';
+                  };
+
+                  const val = getFieldValue();
                   const fieldType = String(field.dataType || field.type || 'Text').toLowerCase();
                   const isFieldReadOnly = isFormLocked || field.isEditable === false || field.isReadOnly === true;
 
                   const fieldOptions = (Array.isArray(field.options) && field.options.length > 0)
                     ? field.options
-                    : Array.from(new Set(records.map(r => String(getRecordVal(r.data, field.columnName) || getRecordVal(r.data, field.label) || '').trim()).filter(Boolean)));
+                    : Array.from(new Set(records.map(r => {
+                        const targetCol = field.columnName || '';
+                        let cellVal = (targetCol && r.data && r.data[targetCol] !== undefined && r.data[targetCol] !== null)
+                          ? cleanText(r.data[targetCol])
+                          : '';
+                        if (!cellVal) {
+                          cellVal = getRecordVal(r.data, targetCol) || (field.label ? getRecordVal(r.data, field.label) : '');
+                        }
+                        return String(cellVal || '').trim();
+                      }).filter(Boolean)));
 
                   return (
                     <div key={field.id || idx} className="space-y-1">
@@ -2497,27 +2593,44 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                           value={String(val || '')}
                           label={field.label}
                           options={fieldOptions}
-                          onChange={(v) => setFormData(prev => ({ ...prev, [field.columnName]: v }))}
+                          onChange={(v) => setFormData(prev => ({ 
+                            ...prev, 
+                            [field.columnName]: v,
+                            ...(field.label && field.label !== field.columnName ? { [field.label]: v } : {})
+                          }))}
                         />
                       ) : fieldType === 'angka' || fieldType === 'number' ? (
                         <input
                           type="number"
                           value={val}
-                          onChange={(e) => setFormData(prev => ({ ...prev, [field.columnName]: e.target.value }))}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            [field.columnName]: e.target.value,
+                            ...(field.label && field.label !== field.columnName ? { [field.label]: e.target.value } : {})
+                          }))}
                           placeholder="0"
                           className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-300"
                         />
                       ) : fieldType === 'tanggal' || fieldType === 'date' ? (
                         <SmoothDatePicker
                           value={typeof val === 'string' ? val : ''}
-                          onChange={(dateStr) => setFormData(prev => ({ ...prev, [field.columnName]: dateStr }))}
+                          onChange={(dateStr) => setFormData(prev => ({ 
+                            ...prev, 
+                            [field.columnName]: dateStr,
+                            ...(field.label && field.label !== field.columnName ? { [field.label]: dateStr } : {})
+                          }))}
                           placeholder="Pilih Tanggal..."
                         />
-                      ) : fieldType === 'jam' || fieldType === 'time' ? (
-                        <SmoothTimePicker24h
+                      ) : fieldType === 'jam' || fieldType === 'time' || fieldType === 'timestamp' || fieldType === 'waktu' ? (
+                        <ManualTimestampInput24h
                           value={typeof val === 'string' ? val : ''}
-                          onChange={(timeStr) => setFormData(prev => ({ ...prev, [field.columnName]: timeStr }))}
-                          placeholder="Pilih Jam (Format 24 Jam)..."
+                          onChange={(timeStr) => setFormData(prev => ({ 
+                            ...prev, 
+                            [field.columnName]: timeStr,
+                            ...(field.label && field.label !== field.columnName ? { [field.label]: timeStr } : {})
+                          }))}
+                          disabled={isFieldReadOnly}
+                          label={field.label}
                         />
                       ) : fieldType === 'latlong' || fieldType === 'lokasi' || fieldType === 'gps' || fieldType === 'koordinat' ? (
                         <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
@@ -2804,7 +2917,13 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                           disabled={isFieldReadOnly}
                           readOnly={isFieldReadOnly}
                           value={val}
-                          onChange={(e) => setFormData(prev => ({ ...prev, [field.columnName]: e.target.value }))}
+                          onChange={(e) => {
+                            const nextVal = e.target.value;
+                            setFormData(prev => ({
+                              ...prev,
+                              [field.columnName]: nextVal
+                            }));
+                          }}
                           placeholder={isFieldReadOnly ? 'Data terkunci (Hanya Baca)' : `Isi ${field.label}...`}
                           className={`w-full px-3.5 py-2 border rounded-xl text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-300 ${
                             isFieldReadOnly 
@@ -2823,7 +2942,7 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                     <input
                       type="text"
                       disabled={isFormLocked}
-                      value={formData[k] || ''}
+                      value={formData[k] !== undefined && formData[k] !== null ? formData[k] : ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, [k]: e.target.value }))}
                       className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-300 disabled:opacity-60"
                     />

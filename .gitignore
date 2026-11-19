@@ -20,6 +20,8 @@ Batas SLS/**
 # Data Direktori & Berkas Rahasia / Template Lokal
 /data/
 /data/**
+data developer/
+data developer/**
 *.xlsx
 *.docx
 *Implementation Plan*
@@ -27,6 +29,7 @@ Batas SLS/**
 *.plan.md
 
 # Server Secret Config & Local Storage
+scratch/
 server/config/
 server/config/**
 server/data/

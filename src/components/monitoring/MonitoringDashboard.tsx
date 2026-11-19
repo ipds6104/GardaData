@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { ChevronLeft, Loader2, RefreshCw, Filter, TrendingUp, Users, MapPin, Search, CheckCircle2, AlertCircle, Target, Clock, Star, BarChart3, Calendar, Target as TargetIcon, Trophy, ArrowUpDown, ChevronDown, ChevronUp, Maximize2, Minimize2 } from 'lucide-react';
+import { ChevronLeft, Loader2, RefreshCw, Filter, TrendingUp, Users, MapPin, Search, CheckCircle2, AlertCircle, Target, Clock, Star, BarChart3, Calendar, Target as TargetIcon, Trophy, ArrowUpDown, ChevronDown, ChevronUp, Maximize2, Minimize2, ShieldCheck } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MonitoringConfig } from './AdminMonitoring';
 import { MonitoringRow } from '../../services/monitoringParser';
@@ -309,9 +309,12 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
   // Untuk card KPI kita pakai totalSubmit (semua yg disubmit)
   const totalSubmitAll = headerFilteredData.reduce((acc, curr) => acc + curr.totalSubmit, 0);
   const totalDraft = headerFilteredData.reduce((acc, curr) => acc + curr.draft, 0);
+  const totalApproveAll = headerFilteredData.reduce((acc, curr) => acc + (curr.approve ?? 0), 0);
   const progressPct = totalTarget > 0 ? ((totalSubmitAll / totalTarget) * 100).toFixed(1) : '0';
   const submitPct = totalTarget > 0 ? ((dailyDiff.submit / totalTarget) * 100).toFixed(2) : '0';
   const draftPct = totalTarget > 0 ? ((totalDraft / totalTarget) * 100).toFixed(2) : '0';
+  const approvePct = totalTarget > 0 ? ((totalApproveAll / totalTarget) * 100).toFixed(1) : '0';
+  const approveOfSubmitPct = totalSubmitAll > 0 ? ((totalApproveAll / totalSubmitAll) * 100).toFixed(1) : '0';
 
   const expectedTargetPct = useMemo(() => {
     const startDate = new Date(config.startDate).getTime(); 
@@ -627,6 +630,46 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
     });
   }, [tableData, tableSearch, tableSort]);
 
+  const tableTotals = useMemo(() => {
+    let target = 0;
+    let submit = 0;
+    let totalSubmit = 0;
+    let draft = 0;
+    let approve = 0;
+    let reject = 0;
+    let open = 0;
+    let submitLive = 0;
+
+    tableData.forEach((row: any) => {
+      target += Number(row.target || 0);
+      submit += Number(row.submit || 0);
+      totalSubmit += Number(row.totalSubmit || 0);
+      draft += Number(row.draft || 0);
+      approve += Number(row.approve || 0);
+      reject += Number(row.reject || 0);
+      open += Number(row.open || 0);
+      submitLive += Number(row.submitLive || 0);
+    });
+
+    const approvePct = target > 0 ? (approve / target) * 100 : 0;
+    const pct = target > 0 ? (totalSubmit / target) * 100 : 0;
+    const rataRata = hariBerjalan > 0 ? (totalSubmit / hariBerjalan).toFixed(2) : '0.00';
+
+    return {
+      target,
+      submit,
+      totalSubmit,
+      draft,
+      approve,
+      approvePct,
+      reject,
+      open,
+      submitLive,
+      rataRata,
+      pct
+    };
+  }, [tableData, hariBerjalan]);
+
   const paginatedTableData = useMemo(() => sortedTableData.slice((tablePage - 1) * tableLimit, tablePage * tableLimit), [sortedTableData, tablePage, tableLimit]);
   const totalTablePages = Math.ceil(sortedTableData.length / tableLimit) || 1;
 
@@ -779,7 +822,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
           <div className="absolute -right-4 -top-4 text-emerald-50"><CheckCircle2 className="w-24 h-24" /></div>
           <div className="relative">
@@ -796,6 +839,7 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
             </div>
           </div>
         </div>
+
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
           <div className="absolute -right-4 -top-4 text-amber-50"><AlertCircle className="w-24 h-24" /></div>
           <div className="relative">
@@ -812,6 +856,27 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
             </div>
           </div>
         </div>
+
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 text-sky-50"><ShieldCheck className="w-24 h-24 text-sky-100" /></div>
+          <div className="relative">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Approved PML (Disetujui)</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-3xl font-black text-sky-600">{totalApproveAll.toLocaleString()}</h3>
+                <span className="text-xs font-medium text-slate-500">berkas terverifikasi</span>
+              </div>
+              <div className="bg-sky-50 px-2 py-1 rounded text-sky-700 text-[11px] font-bold">{approvePct}%</div>
+            </div>
+            <div className="flex items-center justify-between mt-4 text-[10px] font-bold">
+              <span className="text-sky-600 flex items-center gap-1">
+                <span>●</span> {approveOfSubmitPct}% DARI HASIL SUBMIT
+              </span>
+              <span className="text-slate-400 font-semibold">{totalApproveAll}/{totalSubmitAll} Dok</span>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
           <div className="absolute -right-4 -top-4 text-blue-50"><Target className="w-24 h-24" /></div>
           <div className="relative flex flex-col h-full justify-between">
@@ -1274,8 +1339,46 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ config
                   </td>
                 </tr>
               ))}
-              {paginatedTableData.length === 0 && <tr><td colSpan={10} className="px-5 py-10 text-center text-slate-500">Tidak ada data.</td></tr>}
+              {paginatedTableData.length === 0 && <tr><td colSpan={11} className="px-5 py-10 text-center text-slate-500">Tidak ada data.</td></tr>}
             </tbody>
+            {tableData.length > 0 && (
+              <tfoot className="bg-slate-100 text-slate-800 font-extrabold border-t-2 border-slate-300">
+                <tr className="border-t border-slate-300">
+                  <td className="px-5 py-3.5 text-xs uppercase tracking-wider text-slate-900 font-black">
+                    TOTAL KABUPATEN / KESELURUHAN
+                  </td>
+                  <td className="px-5 py-3.5 text-center text-slate-400 font-normal">-</td>
+                  <td className="px-5 py-3.5 text-center font-black text-slate-800">{tableTotals.target.toLocaleString()}</td>
+                  <td className="px-5 py-3.5 text-center font-black text-emerald-600">{tableTotals.submit.toLocaleString()}</td>
+                  <td className="px-5 py-3.5 text-center font-black text-amber-500">{tableTotals.draft.toLocaleString()}</td>
+                  <td className="px-5 py-3.5 text-center">
+                    <span className={tableTotals.approvePct >= 100 ? 'text-emerald-600 font-black' : 'text-blue-600 font-black'}>
+                      {tableTotals.approve.toLocaleString()}
+                    </span>
+                    <span className="text-[11px] ml-1.5 font-bold text-slate-500">
+                      ({tableTotals.approvePct.toFixed(1)}%)
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-center text-rose-600 font-black">{tableTotals.reject.toLocaleString()}</td>
+                  <td className="px-5 py-3.5 text-center text-purple-600 font-black">{tableTotals.open.toLocaleString()}</td>
+                  <td className="px-5 py-3.5 text-center text-slate-700 font-black">{tableTotals.submitLive.toLocaleString()}</td>
+                  <td className="px-5 py-3.5 text-center text-slate-700 font-black">{tableTotals.rataRata}</td>
+                  <td className="px-5 py-3.5 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <span className={`font-black text-xs ${tableTotals.pct >= 100 ? 'text-emerald-600' : 'text-slate-800'}`}>
+                        {tableTotals.pct.toFixed(1)}%
+                      </span>
+                      <div className="w-16 h-2 bg-slate-300 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full ${tableTotals.pct >= 100 ? 'bg-emerald-500' : 'bg-blue-600'}`} 
+                          style={{ width: `${Math.min(100, tableTotals.pct)}%` }} 
+                        />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
         {totalTablePages > 1 && (

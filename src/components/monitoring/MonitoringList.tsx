@@ -72,7 +72,7 @@ export const MonitoringList: React.FC<MonitoringListProps> = ({ onNavigateToDash
       <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[2.5rem] p-8 md:p-12 text-white shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2"></div>
         <div className="relative z-10">
-          <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">Monitoring Dashboard</h1>
+          <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">Dashboad Monitoing</h1>
           <p className="text-indigo-100 max-w-xl text-lg font-medium">Pantau akumulasi progres lapangan, pencapaian target, dan performa petugas secara real-time.</p>
         </div>
       </div>

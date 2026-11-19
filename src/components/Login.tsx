@@ -133,7 +133,7 @@ const LATEST_UPDATES: FeatureUpdate[] = [
 ];
 
 export const Login: React.FC = () => {
-  const { login, loginWithSso, mockSsoLogin, loginAsVisitor, lockoutRemainingSeconds, ssoConfigured } = useAuth();
+  const { login, loginWithSso, mockSsoLogin, loginDevUser, loginAsVisitor, lockoutRemainingSeconds, ssoConfigured } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -213,7 +213,9 @@ export const Login: React.FC = () => {
     e.preventDefault();
     if (lockoutRemainingSeconds > 0) return;
 
-    if (username.trim().toLowerCase() === 'admin') {
+    const isLocalDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    if (username.trim().toLowerCase() === 'admin' && !isLocalDev) {
       setError('Akun Administrator BPS kini telah distandarkan menggunakan SSO rIDM. Silakan klik tombol "Login Pegawai BPS (SSO rIDM)".');
       return;
     }
@@ -543,6 +545,45 @@ export const Login: React.FC = () => {
                     <span>Masuk sebagai Tamu</span>
                   </button>
                 </div>
+
+                {/* Mode Pengujian Lokal (HANYA MUNCUL DI LOCALHOST/DEV, TIDAK MUNCUL DI GITHUB/SERVER PRODUKSI) */}
+                {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '0.0.0.0') && (
+                  <div className="mt-4 pt-3 border-t border-dashed border-amber-300 bg-amber-50/70 rounded-2xl p-3 text-left">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-800">
+                        Akses Cepat Pengujian Lokal (Khusus Localhost)
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => loginDevUser('admin')}
+                        className="px-2.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-bold transition-all text-center cursor-pointer shadow-xs col-span-2 flex items-center justify-center gap-1.5"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-blue-200" />
+                        <span>Masuk Instan: Admin (Ahmad Aulia)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => loginDevUser('petugas')}
+                        className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl text-[10px] font-bold transition-all text-center cursor-pointer shadow-2xs"
+                      >
+                        📋 Petugas (Lapangan)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => loginDevUser('petugas_pengolahan')}
+                        className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl text-[10px] font-bold transition-all text-center cursor-pointer shadow-2xs"
+                      >
+                        💻 Petugas (Pengolahan)
+                      </button>
+                    </div>
+                    <p className="text-[9px] text-amber-700 mt-2 text-center font-medium">
+                      Mode pengujian lokal aktif. Tidak akan muncul setelah dideploy ke server.
+                    </p>
+                  </div>
+                )}
               </form>
             </div>
           </div>

@@ -246,6 +246,38 @@ async function fetchSheetData(sheetUrl, sheetName = 'Sheet1', options = {}) {
   };
 }
 
+// Helper Google Sheets Client
+function getGoogleSheetsClient() {
+  const possibleKeyPaths = [
+    path.join(__dirname, '../config/google-service-account.json'),
+    path.join(__dirname, '../../server/config/google-service-account.json')
+  ];
+  const keyFile = possibleKeyPaths.find(p => fs.existsSync(p));
+  if (!keyFile) return null;
+
+  try {
+    let googleModule = null;
+    try {
+      googleModule = require('googleapis').google;
+    } catch (e1) {
+      try {
+        const resolved = path.resolve(__dirname, '../../server/node_modules/googleapis');
+        googleModule = require(resolved).google;
+      } catch (e2) {}
+    }
+    if (!googleModule) return null;
+
+    const auth = new googleModule.auth.GoogleAuth({
+      keyFile: keyFile,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    });
+    return googleModule.sheets({ version: 'v4', auth });
+  } catch (err) {
+    console.error('[MasterSync] Error initializing Google Sheets API Client:', err.message);
+    return null;
+  }
+}
+
 /**
  * Write / Push data ke Google Sheet (Kirim Laporan)
  */
@@ -259,6 +291,10 @@ async function pushRecordToGoogleSheet(form, recordPayload) {
     return { success: false, reason: 'ID Google Sheet tidak valid' };
   }
 
+  const sName = (form.sheetName || 'Sheet1').trim();
+  const spreadsheetId = parsed.documentId;
+  const dataObj = { ...(recordPayload.data || {}) };
+
   // 1. Jika form memiliki Webhook URL khusus Google Apps Script
   if (form.webhookUrl && form.webhookUrl.trim().startsWith('http')) {
     try {
@@ -269,9 +305,10 @@ async function pushRecordToGoogleSheet(form, recordPayload) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          documentId: parsed.documentId,
-          sheetName: form.sheetName || 'Sheet1',
-          data: recordPayload.data,
+          documentId: spreadsheetId,
+          sheetName: sName,
+          rowId: recordPayload.rowId,
+          data: dataObj,
           status: recordPayload.status,
           latitude: recordPayload.latitude,
           longitude: recordPayload.longitude,
@@ -282,20 +319,134 @@ async function pushRecordToGoogleSheet(form, recordPayload) {
       });
 
       clearTimeout(timeout);
-      return { success: res.ok, status: res.status, via: 'webhook' };
+      if (res.ok) {
+        return { success: true, status: res.status, via: 'webhook' };
+      }
     } catch (err) {
-      console.warn('[MasterSync] Webhook push notice:', err.message);
-      return { success: false, error: err.message, via: 'webhook_failed' };
+      console.warn('[MasterSync] Webhook push failed, attempting Direct API v4:', err.message);
     }
   }
 
-  // 2. Default: Berhasil tersimpan di antrian lokal database Garda Data
-  return { 
-    success: true, 
-    status: 200, 
-    via: 'local_queue', 
-    note: 'Tersimpan di antrian database Garda Data & siap disinkronkan ke Google Sheet' 
-  };
+  // 2. Direct Google Sheets API v4
+  const sheets = getGoogleSheetsClient();
+  if (!sheets) {
+    return { 
+      success: false, 
+      status: 200, 
+      via: 'local_queue', 
+      note: 'Tersimpan di antrian database Garda Data (Service account belum dikonfigurasi)' 
+    };
+  }
+
+  try {
+    // A. Read existing headers & data from Sheet
+    const getRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sName}!A1:ZZ`
+    });
+
+    let rows = getRes.data.values || [];
+    let headers = rows.length > 0 ? [...rows[0]] : [];
+
+    // Wajib identifikasi unik: Pastikan ID terisi
+    const targetId = recordPayload.rowId || recordPayload.id || dataObj['id'] || dataObj['ID'] || dataObj['Id'] || dataObj['Kode'] || dataObj['kode'];
+    if (targetId && !dataObj['id']) {
+      dataObj['id'] = targetId;
+    }
+
+    // Pastikan kolom 'id' selalu ada sebagai primary key unik di Sheet (Kolom A)
+    let headersUpdated = false;
+    let idColIdx = headers.findIndex(h => h && h.toLowerCase().trim() === 'id');
+    if (idColIdx === -1) {
+      headers.unshift('id');
+      idColIdx = 0;
+      headersUpdated = true;
+    }
+
+    // Auto-tambah cakupan kolom jika ada variabel baru di dataObj yang belum ada di header
+    const keys = Object.keys(dataObj);
+    keys.forEach(k => {
+      if (k && !headers.includes(k) && k !== 'data') {
+        headers.push(k);
+        headersUpdated = true;
+      }
+    });
+
+    if (headersUpdated || rows.length === 0) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sName}!A1:ZZ1`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [headers] }
+      });
+    }
+
+    // B. Find row index by matching ID / rowId secara presisi
+    let targetRowIndex = -1;
+    if (targetId && rows.length > 1) {
+      for (let r = 1; r < rows.length; r++) {
+        const rowData = rows[r] || [];
+        const cellAtId = rowData[idColIdx] !== undefined ? String(rowData[idColIdx]).trim() : '';
+        if (cellAtId === String(targetId).trim()) {
+          targetRowIndex = r + 1; // 1-indexed for sheets
+          break;
+        }
+        if (rowData[0] && String(rowData[0]).trim() === String(targetId).trim()) {
+          targetRowIndex = r + 1;
+          break;
+        }
+        if (rowData[1] && String(rowData[1]).trim() === String(targetId).trim()) {
+          targetRowIndex = r + 1;
+          break;
+        }
+      }
+    }
+
+    if (targetRowIndex > 1) {
+      // In-place update tanpa menambah baris baru
+      const existingRow = rows[targetRowIndex - 1] || [];
+      const updatedRowValues = headers.map((h, cIdx) => {
+        if (dataObj[h] !== undefined && dataObj[h] !== null) {
+          const val = dataObj[h];
+          return typeof val === 'object' ? JSON.stringify(val) : String(val);
+        }
+        return existingRow[cIdx] !== undefined ? existingRow[cIdx] : '';
+      });
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sName}!A${targetRowIndex}:ZZ${targetRowIndex}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [updatedRowValues] }
+      });
+      return { success: true, via: 'google_sheets_api_v4', action: 'UPDATED', row: targetRowIndex };
+    } else {
+      // Append row baru
+      const newRowValues = headers.map(h => {
+        const val = dataObj[h] !== undefined ? dataObj[h] : '';
+        return typeof val === 'object' ? JSON.stringify(val) : String(val);
+      });
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: `${sName}!A:A`,
+        valueInputOption: 'USER_ENTERED',
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: { values: [newRowValues] }
+      });
+      return { success: true, via: 'google_sheets_api_v4', action: 'APPENDED' };
+    }
+  } catch (apiErr) {
+    console.error('[MasterSync] Google Sheets API write error:', apiErr.message);
+    return { 
+      success: false, 
+      via: 'google_sheets_api_v4', 
+      error: apiErr.message,
+      reason: apiErr.message.includes('permission') || apiErr.message.includes('403')
+        ? 'Akses ditolak (403). Pastikan spreadsheet telah dibagikan ke garda-sheets-bot@ornate-entropy-510006-j6.iam.gserviceaccount.com sebagai Editor.'
+        : apiErr.message
+    };
+  }
 }
 
 module.exports = {

@@ -177,50 +177,134 @@ export const openReportPrintWindow = (payload: ReportGenerationPayload) => {
 };
 
 /**
+ * XML helper for Word MailMerge
+ */
+function fillWordMailMerge(zip: PizZip, data: Record<string, any>) {
+  let xml = zip.file('word/document.xml')?.asText() || '';
+
+  // 1. Replace fldSimple MERGEFIELD structures
+  xml = xml.replace(/<w:fldSimple[^>]*w:instr="[^"]*MERGEFIELD\s+([a-zA-Z0-9_]+)[^"]*"[^>]*>[\s\S]*?<\/w:fldSimple>/g, (_match, fieldName) => {
+    const val = data[fieldName] !== undefined ? String(data[fieldName]) : '';
+    return `<w:r><w:t>${escapeXml(val)}</w:t></w:r>`;
+  });
+
+  // 2. Replace any raw «FieldName» or {FieldName} in text tags
+  Object.keys(data).forEach(key => {
+    const val = escapeXml(String(data[key] !== undefined ? data[key] : ''));
+    const guillemetRegex = new RegExp(`«${key}»`, 'g');
+    const braceRegex = new RegExp(`\\{${key}\\}`, 'g');
+    xml = xml.replace(guillemetRegex, val).replace(braceRegex, val);
+  });
+
+  zip.file('word/document.xml', xml);
+}
+
+function escapeXml(unsafe: string): string {
+  return unsafe.replace(/[<>&'"]/g, c => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
+}
+
+/**
  * Generate and download standard Word (.docx) report using template
  */
 export const downloadDocxReport = async (payload: ReportGenerationPayload) => {
   try {
-    // If no custom template provided, generate a formatted XML-based docx container or trigger print window
-    if (!payload.customTemplateDocxBase64) {
+    let zip: PizZip | null = null;
+
+    if (payload.customTemplateDocxBase64) {
+      const binaryString = atob(payload.customTemplateDocxBase64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      zip = new PizZip(bytes);
+    } else {
+      // Coba unduh template resmi BPS dari server
+      try {
+        const res = await fetch('/api/laporan/template-docx');
+        if (res.ok) {
+          const arrayBuffer = await res.arrayBuffer();
+          zip = new PizZip(arrayBuffer);
+        }
+      } catch (e) {
+        console.warn('Gagal memuat template dari server:', e);
+      }
+    }
+
+    if (!zip) {
       openReportPrintWindow(payload);
       return;
     }
 
-    const binaryString = atob(payload.customTemplateDocxBase64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
+    const firstItem = payload.items[0];
+    const gpsParts = (firstItem?.gps || '').split(',');
+    const lat = gpsParts[0]?.trim() || '-';
+    const lng = gpsParts[1]?.trim() || '-';
 
-    const zip = new PizZip(bytes);
-    const doc = new Docxtemplater(zip, {
-      paragraphLoop: true,
-      linebreaks: true,
-    });
-
-    const docxData = {
+    const mergeData: Record<string, any> = {
       Nama_PPL: payload.namaPpl,
+      Desa: firstItem?.desa || '-',
+      Kecamatan: firstItem?.kecamatan || 'Mempawah',
       Kegiatan: payload.activityTitle,
-      Periode: payload.periode,
-      Tanggal: payload.tanggalLaporan,
-      Total_Sampel: payload.items.length,
-      Total_Selesai: payload.items.filter(i => i.status === 'submitted').length,
-      daftar_responden: payload.items.map((item, idx) => ({
-        no: idx + 1,
-        nama_krt: item.namaKrt,
-        nus: item.nus || '-',
-        kecamatan: item.kecamatan,
-        desa: item.desa,
-        sls: item.sls,
-        gps: item.gps,
-        status: item.status === 'submitted' ? 'Selesai' : 'Draf'
-      }))
+      Tanggal_TTD_Visum: payload.tanggalLaporan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+      Jabatan_Pejabat_Setempat: firstItem?.customFields?.['Jabatan Pejabat Setempat'] || 'Ketua RT Setempat',
+      Nama_Ketua_SLS: firstItem?.customFields?.['Nama Ketua SLS'] || firstItem?.customFields?.['Nama Ketua RT'] || 'Tokoh Setempat',
+      SLS: firstItem?.sls || '-',
+      Longitude: lng,
+      Latitude: lat,
+      Timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     };
 
-    doc.render(docxData);
+    // 1. Eksekusi pengisian tag MailMerge BPS
+    fillWordMailMerge(zip, mergeData);
 
-    const out = doc.getZip().generate({
+    // 2. Jika ada foto dokumentasi lapangan, sematkan ke word/media/image1.jpeg
+    const photoItem = payload.items.find(i => i.fotoUrl && (i.fotoUrl.startsWith('data:image') || i.fotoUrl.startsWith('http')));
+    if (photoItem?.fotoUrl && photoItem.fotoUrl.startsWith('data:image')) {
+      try {
+        const base64Data = photoItem.fotoUrl.split(',')[1];
+        if (base64Data) {
+          const photoBin = atob(base64Data);
+          const photoBytes = new Uint8Array(photoBin.length);
+          for (let p = 0; p < photoBin.length; p++) photoBytes[p] = photoBin.charCodeAt(p);
+          zip.file('word/media/image1.jpeg', photoBytes);
+        }
+      } catch (err) {
+        console.warn('Gagal menyematkan foto ke Word:', err);
+      }
+    }
+
+    // 3. Fallback jika template menggunakan sintaks docxtemplater
+    try {
+      const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+      doc.render({
+        ...mergeData,
+        Total_Sampel: payload.items.length,
+        Total_Selesai: payload.items.filter(i => i.status === 'submitted').length,
+        daftar_responden: payload.items.map((item, idx) => ({
+          no: idx + 1,
+          nama_krt: item.namaKrt,
+          nus: item.nus || '-',
+          kecamatan: item.kecamatan,
+          desa: item.desa,
+          sls: item.sls,
+          gps: item.gps,
+          status: item.status === 'submitted' ? 'Selesai' : 'Draf'
+        }))
+      });
+    } catch (e) {
+      // Abaikan jika template murni MailMerge
+    }
+
+    const out = zip.generate({
       type: 'blob',
       mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     });
@@ -228,7 +312,7 @@ export const downloadDocxReport = async (payload: ReportGenerationPayload) => {
     const url = URL.createObjectURL(out);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Laporan_${payload.namaPpl.replace(/\s+/g, '_')}_${payload.periode.replace(/\s+/g, '_')}.docx`;
+    a.download = `Laporan_Pendataan_${payload.namaPpl.replace(/\s+/g, '_')}_${payload.periode.replace(/\s+/g, '_')}.docx`;
     a.click();
     URL.revokeObjectURL(url);
   } catch (error) {

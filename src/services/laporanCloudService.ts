@@ -201,7 +201,9 @@ export async function getCloudForms(activityId: string): Promise<CloudForm[]> {
     const q = query(collection(db, 'laporan_forms'), where('activityId', '==', activityId));
     const snap = await getDocs(q);
     if (!snap.empty) {
-      formsFromFirestore = snap.docs.map(d => ({ id: d.id, ...d.data() })) as CloudForm[];
+      formsFromFirestore = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as CloudForm))
+        .filter(f => !f.isDeleted);
     }
   } catch (firestoreErr) {
     console.warn('Firebase Firestore forms fetch fallback:', firestoreErr);
@@ -216,7 +218,7 @@ export async function getCloudForms(activityId: string): Promise<CloudForm[]> {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
-        formsFromMySQL = data;
+        formsFromMySQL = data.filter((f: any) => !f.isDeleted);
       }
     }
   } catch (mysqlErr) {
@@ -226,13 +228,19 @@ export async function getCloudForms(activityId: string): Promise<CloudForm[]> {
   // 3. Gabungkan hasil (Merge: Firestore skema/setting + MySQL stats/counts)
   if (formsFromFirestore.length > 0 || formsFromMySQL.length > 0) {
     const map = new Map<string, CloudForm>();
-    formsFromMySQL.forEach(f => map.set(f.id, f));
+    formsFromMySQL.forEach(f => {
+      if (!f.isDeleted) map.set(f.id, f);
+    });
     formsFromFirestore.forEach(f => {
+      if (f.isDeleted) return;
       const existing = map.get(f.id);
       if (existing) {
+        // Pertahankan judul form terbaru dan tidak tertimpa default
+        const preferredTitle = f.title && !f.title.toLowerCase().includes('template') ? f.title : (existing.title || f.title);
         map.set(f.id, {
           ...existing,
           ...f,
+          title: preferredTitle,
           fields: (Array.isArray(f.fields) && f.fields.length > 0) ? f.fields : existing.fields,
           stats: existing.stats || f.stats
         });
@@ -251,7 +259,7 @@ export async function getCloudForms(activityId: string): Promise<CloudForm[]> {
   // 4. Fallback ke Local Storage jika offline
   try {
     const raw = localStorage.getItem(`garda_laporan_forms_${activityId}`);
-    return raw ? JSON.parse(raw) : [];
+    return raw ? JSON.parse(raw).filter((f: any) => !f.isDeleted) : [];
   } catch {
     return [];
   }
@@ -262,9 +270,11 @@ export async function saveCloudForm(form: CloudForm): Promise<void> {
   const actId = form.activityId || 'default';
   const clean = sanitizeForFirestore(form);
 
-  // 1. Simpan ke Cache Lokal (Instan)
+  // 1. Simpan ke Cache Lokal (Instan langsung dari memori tanpa re-fetch cloud yang merusak judul lama)
   try {
-    const current = await getCloudForms(actId);
+    const raw = localStorage.getItem(`garda_laporan_forms_${actId}`);
+    let current: CloudForm[] = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(current)) current = [];
     const idx = current.findIndex(f => f.id === form.id);
     if (idx >= 0) {
       current[idx] = { ...current[idx], ...form };
@@ -331,17 +341,23 @@ export async function saveCloudFormsBatch(activityId: string, forms: CloudForm[]
 export async function deleteCloudForm(activityId: string, formId: string): Promise<void> {
   if (!formId) return;
 
-  // 1. Hapus dari Local Storage
+  // 1. Hapus SEKETIKA dari Local Storage (Mencegah tampilan tertunda/muncul kembali)
   try {
-    const current = await getCloudForms(activityId);
-    const filtered = current.filter(f => f.id !== formId);
-    localStorage.setItem(`garda_laporan_forms_${activityId}`, JSON.stringify(filtered));
+    const raw = localStorage.getItem(`garda_laporan_forms_${activityId}`);
+    if (raw) {
+      const current = JSON.parse(raw);
+      if (Array.isArray(current)) {
+        const filtered = current.filter((f: any) => f.id !== formId);
+        localStorage.setItem(`garda_laporan_forms_${activityId}`, JSON.stringify(filtered));
+      }
+    }
   } catch (e) {
     console.error('Failed to delete form from local cache:', e);
   }
 
-  // 2. DUAL-DELETE: Hapus dari Firebase Firestore
+  // 2. DUAL-DELETE: Hapus dan tandai isDeleted di Firebase Firestore
   try {
+    await updateDoc(doc(db, 'laporan_forms', formId), { isDeleted: true }).catch(() => {});
     await deleteDoc(doc(db, 'laporan_forms', formId));
   } catch (firestoreErr) {
     console.warn('Firebase Firestore delete form warning:', firestoreErr);

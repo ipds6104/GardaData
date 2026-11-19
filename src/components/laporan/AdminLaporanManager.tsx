@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { 
-  Plus, Trash2, Save, Download, RefreshCw, Eye, 
+  Plus, Trash2, Save, Download, RefreshCw, Eye, EyeOff, Grid, List,
   Layers, Power, Settings,
   FileSpreadsheet, ChevronRight, ChevronDown, ChevronUp, ChevronLeft, CheckCircle2,
   AlertCircle, Copy, Info, BarChart3, Check, Type, Hash,
@@ -274,10 +274,14 @@ const CustomDropdown: React.FC<{
 };
 
 export function getLaporanAuthHeaders(customHeaders: Record<string, string> = {}): Record<string, string> {
-  const token = localStorage.getItem('navigasi_token') || localStorage.getItem('token');
+  const token = typeof window !== 'undefined' ? (localStorage.getItem('navigasi_token') || localStorage.getItem('token')) : null;
+  const directToken = typeof window !== 'undefined' ? sessionStorage.getItem('garda_laporan_direct_token') : null;
   const headers: Record<string, string> = { ...customHeaders };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  }
+  if (directToken) {
+    headers['X-Laporan-Direct-Token'] = directToken;
   }
   return headers;
 }
@@ -305,12 +309,51 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   const [homeSearchQuery, setHomeSearchQuery] = useState<string>('');
   const [homeSortOrder, setHomeSortOrder] = useState<string>('recent');
 
+  // App List View Layout for Admin ('card' vs 'list') & Petugas Default
+  const [adminAppViewLayout, setAdminAppViewLayout] = useState<'card' | 'list'>('card');
+  const [petugasDefaultLayout, setPetugasDefaultLayout] = useState<'card' | 'list'>(() => {
+    try {
+      return (localStorage.getItem('garda_petugas_app_layout') as any) || 'card';
+    } catch (e) {
+      return 'card';
+    }
+  });
+
+  // Toggle App Visibility for Role Petugas
+  const handleToggleShowToPetugas = async (act: any) => {
+    const nextStatus = !(act.showToPetugas !== false);
+    const updatedAct = {
+      ...act,
+      showToPetugas: nextStatus
+    };
+    if (selectedActivity?.id === act.id) setSelectedActivity(updatedAct);
+    const updatedList = activities.map(a => a.id === act.id ? updatedAct : a);
+    setActivities(updatedList);
+    localStorage.setItem('garda_laporan_activities', JSON.stringify(updatedList));
+    await saveCloudActivity(updatedAct);
+
+    try {
+      await fetch(`${baseUrl}/api/laporan/activities/${act.id}`, {
+        method: 'PUT',
+        headers: getLaporanAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ showToPetugas: nextStatus })
+      });
+    } catch (err) {}
+
+    setSyncAlert({
+      type: 'success',
+      message: `Aplikasi "${act.title}" ${nextStatus ? 'kini DIMUNCULKAN pada daftar petugas' : 'kini DISEMBUNYIKAN dari daftar petugas'}.`
+    });
+    setTimeout(() => setSyncAlert(null), 3500);
+  };
+
   // Share Shortcut Modal State
   const [shareModalData, setShareModalData] = useState<{
     isOpen: boolean;
     activity: any;
     form?: any;
     copied: boolean;
+    requireLogin?: boolean;
   } | null>(null);
 
   // Activities State
@@ -1021,6 +1064,57 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     return opts;
   };
 
+  // Kumpulan seluruh nama kolom yang terdeteksi dari sumber data (Google Sheet, Record DB, dan Skema Form)
+  const availableDataSourceColumns = useMemo(() => {
+    const colSet = new Set<string>();
+
+    // 1. Prioritas Utama: Kolom dari sinkronisasi Google Sheet terakhir (Urutan asli kolom A, B, C, ...)
+    try {
+      const cachedSheetCols = localStorage.getItem(`garda_sheet_columns_${selectedFormId}`);
+      if (cachedSheetCols) {
+        const parsed = JSON.parse(cachedSheetCols);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((c: any) => {
+            if (c && typeof c === 'string' && c.trim()) colSet.add(c.trim());
+          });
+        }
+      }
+    } catch {}
+
+    // 2. Kolom dari sourceColumns yang tersimpan pada selectedForm
+    if (Array.isArray(selectedForm?.sourceColumns)) {
+      selectedForm.sourceColumns.forEach((c: any) => {
+        if (c && typeof c === 'string' && c.trim()) colSet.add(c.trim());
+      });
+    }
+
+    // 3. Kolom dari record data yang tersimpan di localStorage
+    try {
+      const cachedRecs = localStorage.getItem(`garda_laporan_records_${selectedFormId}`);
+      if (cachedRecs) {
+        const records = JSON.parse(cachedRecs);
+        if (Array.isArray(records)) {
+          records.slice(0, 100).forEach((r: any) => {
+            if (r?.data && typeof r.data === 'object') {
+              Object.keys(r.data).forEach(k => {
+                if (k && !k.startsWith('_') && k.trim()) colSet.add(k.trim());
+              });
+            }
+          });
+        }
+      }
+    } catch {}
+
+    // 4. Kolom dari seluruh fields yang ada saat ini
+    fields.forEach((f: any) => {
+      if (f.columnName && typeof f.columnName === 'string' && f.columnName.trim()) {
+        colSet.add(f.columnName.trim());
+      }
+    });
+
+    return Array.from(colSet);
+  }, [selectedFormId, selectedForm?.sourceColumns, fields]);
+
   // Toggle Activity Status
   const handleToggleActivityOpen = async (targetAct?: any) => {
     const act = targetAct || selectedActivity;
@@ -1140,7 +1234,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     const updatedForms = [...forms, newFormObj];
     setForms(updatedForms);
     localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
-    await saveCloudForm(newFormObj);
+    await saveCloudFormsBatch(selectedActivity.id, updatedForms);
     setSelectedFormId(newFormObj.id);
     setIsNewFormModalOpen(false);
     setNewFormTitle('');
@@ -1225,14 +1319,18 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       const options = uniqueVals.length > 0 && uniqueVals.length <= 100 ? uniqueVals : [];
       if (options.length > 0 && options.length <= 15 && type === 'Text') type = 'Enum';
 
+      // Presisi kolom identitas unik vs kolom nama tampilan (mencegah judul dan subjudul tertukar)
+      const isKey = hLower === 'id' || hLower.startsWith('id_') || hLower.includes('kode') || (i === 0 && !hLower.includes('nama'));
+      const isLabel = (hLower.includes('nama') || hLower.includes('krt') || hLower.includes('responden') || hLower.includes('usaha')) && !isKey;
+
       return {
         id: `fld_${Date.now()}_${i}`,
         columnName: h,
         label: h,
         dataType: type,
-        isRequired: i === 0 || hLower.includes('nama') || hLower.includes('krt'),
-        isLabel: i === 0 || hLower.includes('nama') || hLower.includes('krt'),
-        isKey: i === 0 && (hLower.includes('id') || hLower.includes('kode')),
+        isRequired: isKey || isLabel,
+        isLabel: isLabel,
+        isKey: isKey,
         options
       };
     });
@@ -1319,28 +1417,58 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           const data = await res.json();
           const extractedFields = data.fields || data.schema || [];
           if (Array.isArray(extractedFields) && extractedFields.length > 0) {
+            const detectedCols = (data.headers || extractedFields.map((f: any) => f.columnName || f.label)).filter(Boolean);
+            try {
+              localStorage.setItem(`garda_sheet_columns_${selectedFormId}`, JSON.stringify(detectedCols));
+            } catch {}
+            if (selectedForm) {
+              selectedForm.sourceColumns = detectedCols;
+            }
+
             const merged = mergeFieldsPreservingConfig(fields, extractedFields);
             setFields(merged);
             syncSuccess = true;
 
             if (Array.isArray(data.records) && data.records.length > 0) {
-              const formattedRecords = data.records.map((r: any, idx: number) => ({
-                id: `${selectedFormId || 'form'}_${r.rowId || idx + 1}`,
-                rowId: r.rowId || `row_${idx + 1}`,
-                formId: selectedFormId,
-                activityId: selectedActivity?.id,
-                data: r.data || {},
-                latitude: r.latitude || null,
-                longitude: r.longitude || null,
-                status: 'draft',
-                createdAt: new Date().toISOString()
-              }));
-              localStorage.setItem(`garda_laporan_records_${selectedFormId}`, JSON.stringify(formattedRecords));
+              let existingRecords: any[] = [];
+              try {
+                const cachedRecs = localStorage.getItem(`garda_laporan_records_${selectedFormId}`);
+                if (cachedRecs) existingRecords = JSON.parse(cachedRecs);
+              } catch {}
+
+              data.records.forEach((r: any, idx: number) => {
+                const rowUniqueId = r.rowId || `row_${idx + 1}`;
+                const targetRecId = `${selectedFormId || 'form'}_${rowUniqueId}`;
+                const exIdx = existingRecords.findIndex(ex => ex.id === targetRecId || ex.rowId === rowUniqueId);
+                if (exIdx !== -1) {
+                  existingRecords[exIdx] = {
+                    ...existingRecords[exIdx],
+                    data: { ...existingRecords[exIdx].data, ...(r.data || {}) },
+                    latitude: r.latitude || existingRecords[exIdx].latitude,
+                    longitude: r.longitude || existingRecords[exIdx].longitude,
+                    updatedAt: new Date().toISOString()
+                  };
+                } else {
+                  existingRecords.push({
+                    id: targetRecId,
+                    rowId: rowUniqueId,
+                    formId: selectedFormId,
+                    activityId: selectedActivity?.id,
+                    data: r.data || {},
+                    latitude: r.latitude || null,
+                    longitude: r.longitude || null,
+                    status: 'draft',
+                    createdAt: new Date().toISOString()
+                  });
+                }
+              });
+
+              localStorage.setItem(`garda_laporan_records_${selectedFormId}`, JSON.stringify(existingRecords));
             }
 
             setSyncAlert({ 
               type: 'success', 
-              message: `Berhasil sinkronisasi ${merged.length} kolom & data ke server (Tipe data lama tetap dipertahankan)!` 
+              message: `Berhasil sinkronisasi ${merged.length} kolom & data ke server (Tipe data lama tetap dipertahankan, baris diperbarui)!` 
             });
           }
         }
@@ -1352,6 +1480,16 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       if (!syncSuccess) {
         const clientResult = await parseGoogleSheetDirectly(formConfig.sheetUrl, formConfig.sheetName || 'Sheet1');
         if (clientResult.schema.length > 0) {
+          const detectedCols = (clientResult.headers && clientResult.headers.length > 0)
+            ? clientResult.headers
+            : clientResult.schema.map((f: any) => f.columnName || f.label).filter(Boolean);
+          try {
+            localStorage.setItem(`garda_sheet_columns_${selectedFormId}`, JSON.stringify(detectedCols));
+          } catch {}
+          if (selectedForm) {
+            selectedForm.sourceColumns = detectedCols;
+          }
+
           const merged = mergeFieldsPreservingConfig(fields, clientResult.schema);
           setFields(merged);
           
@@ -1363,7 +1501,17 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           // Simpan record data sampel ke penyimpanan lokal & server (Preserve all columns!)
           let mysqlSaveFailed = false;
           if (validRecords.length > 0) {
-            const formattedRecords = validRecords.map((r, idx) => {
+            let existingRecords: any[] = [];
+            try {
+              const cachedRecs = localStorage.getItem(`garda_laporan_records_${selectedFormId}`);
+              if (cachedRecs) existingRecords = JSON.parse(cachedRecs);
+            } catch {}
+
+            // Upsert records by unique ID from Google Sheet
+            let updatedCount = 0;
+            let appendedCount = 0;
+
+            validRecords.forEach((r, idx) => {
               const cleanData: Record<string, any> = { ...r };
               merged.forEach((f: any) => {
                 const rawVal = getRecordVal(r, f.columnName) || getRecordVal(r, f.label);
@@ -1386,18 +1534,43 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 }
               }
 
-              return {
-                id: `${selectedFormId || 'form'}_row_${idx + 1}`,
-                rowId: `row_${idx + 1}`,
-                formId: selectedFormId,
-                activityId: selectedActivity?.id,
-                data: cleanData,
-                latitude: lat,
-                longitude: lng,
-                status: 'draft',
-                createdAt: new Date().toISOString()
-              };
+              // Wajib identifikasi unik: Ambil ID dari Sheet
+              const idKey = Object.keys(cleanData).find(k => k && k.toLowerCase().trim() === 'id');
+              const rawRowId = (idKey && cleanData[idKey]) ? String(cleanData[idKey]).trim() : (cleanData['Kode'] || cleanData['kode'] || `row_${idx + 1}`);
+              const targetRecordId = `${selectedFormId || 'form'}_${rawRowId}`;
+
+              const exIdx = existingRecords.findIndex(ex => ex.id === targetRecordId || ex.rowId === rawRowId);
+              if (exIdx !== -1) {
+                // Perbarui variabel baris yang ada (In-place Update variabel yang sama)
+                existingRecords[exIdx] = {
+                  ...existingRecords[exIdx],
+                  data: {
+                    ...existingRecords[exIdx].data,
+                    ...cleanData
+                  },
+                  latitude: lat || existingRecords[exIdx].latitude,
+                  longitude: lng || existingRecords[exIdx].longitude,
+                  updatedAt: new Date().toISOString()
+                };
+                updatedCount++;
+              } else {
+                // Tambah cakupan baris baru (Append baris baru yang belum ada)
+                existingRecords.push({
+                  id: targetRecordId,
+                  rowId: rawRowId,
+                  formId: selectedFormId,
+                  activityId: selectedActivity?.id,
+                  data: cleanData,
+                  latitude: lat,
+                  longitude: lng,
+                  status: 'draft',
+                  createdAt: new Date().toISOString()
+                });
+                appendedCount++;
+              }
             });
+
+            const formattedRecords = existingRecords;
             localStorage.setItem(`garda_laporan_records_${selectedFormId}`, JSON.stringify(formattedRecords));
 
             // Simpan ke database server Garda Data (MySQL) agar dapat diakses oleh semua petugas di mobile!
@@ -1422,7 +1595,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
           } else {
             setSyncAlert({ 
               type: 'success', 
-              message: `Berhasil sinkronisasi ${merged.length} kolom & ${validRecords.length} baris data ke server! (Konfigurasi tipe data tidak berubah)` 
+              message: `Berhasil sinkronisasi ${merged.length} kolom (${updatedCount} baris diperbarui, ${appendedCount} baris baru)! (Tipe data lama tetap dipertahankan)` 
             });
           }
 
@@ -1508,12 +1681,17 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     if (selectedFormId && selectedActivity?.id) {
       const updatedForms = forms.map(f => {
         if (f.id === selectedFormId) {
-          return { ...f, fields: updated };
+          return { 
+            ...f, 
+            fields: updated,
+            publishedSchema: updated
+          };
         }
         return f;
       });
       setForms(updatedForms);
       localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
+      setSimulatorKey(Date.now());
     }
   };
 
@@ -2010,7 +2188,13 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const actId = shareModalData.activity?.id || '';
     const formId = shareModalData.form?.id || '';
-    const shortcutUrl = `${origin}/?page=laporan-pendataan&activityId=${actId}${formId ? `&formId=${formId}` : ''}`;
+    const requireLogin = shareModalData.requireLogin !== false; // Default: true (wajib login)
+
+    // Token akses langsung untuk pengisian publik tanpa login
+    const directToken = btoa(`direct_${actId}_${formId || 'all'}_garda_public`).replace(/=/g, '');
+    const shortcutUrl = requireLogin
+      ? `${origin}/?page=laporan-pendataan&activityId=${actId}${formId ? `&formId=${formId}` : ''}`
+      : `${origin}/?page=laporan-pendataan&activityId=${actId}${formId ? `&formId=${formId}` : ''}&allowGuest=true&directToken=${directToken}`;
 
     return (
       <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs font-sans">
@@ -2027,7 +2211,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
-                  Shortcut Akses Petugas Lapangan
+                  Bagikan Link Formulir Laporan
                 </h3>
                 <p className="text-xs text-slate-400 truncate">
                   {shareModalData.activity?.title}
@@ -2044,10 +2228,54 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Pilihan Opsi Akses: Wajib Login vs Langsung Mengisi */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Tautan Pintas (Direct URL)
+                Metode Akses Pengisian Petugas
+              </label>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShareModalData(prev => prev ? { ...prev, requireLogin: true } : null)}
+                  className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                    requireLogin
+                      ? 'border-primary-500 bg-primary-50/60 dark:bg-primary-950/40 text-primary-900 dark:text-primary-200 ring-2 ring-primary-500/20'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Shield className="w-4 h-4 text-primary-600 shrink-0" />
+                    <span className="text-xs font-bold">Wajib Login</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 leading-tight">
+                    Petugas harus login akun BPS terlebih dahulu (Sangat Aman).
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShareModalData(prev => prev ? { ...prev, requireLogin: false } : null)}
+                  className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                    !requireLogin
+                      ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="text-xs font-bold">Langsung Isi Form</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 leading-tight">
+                    Bisa langsung isi tanpa login via token aman terproteksi.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Tautan Pintas ({requireLogin ? 'Mode Autentikasi Login' : 'Mode Akses Cepat Langsung'})
               </label>
               <div className="flex items-center gap-2">
                 <input
@@ -2077,27 +2305,31 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
               </div>
             </div>
 
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-2.5 text-slate-600 dark:text-slate-300">
-              <div className="flex items-start gap-2.5">
-                <Shield className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-100">Mekanisme Autentikasi Aman:</span>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                    Petugas yang membuka tautan ini tetap harus login terlebih dahulu. Setelah berhasil login, sistem langsung mengarahkan petugas ke formulir kegiatan ini secara otomatis.
-                  </p>
+            {requireLogin ? (
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs space-y-2 text-slate-600 dark:text-slate-300">
+                <div className="flex items-start gap-2.5">
+                  <Shield className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-slate-800 dark:text-slate-100">Autentikasi Terverifikasi:</span>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                      Pengguna diarahkan login terlebih dahulu. Setelah berhasil login, sistem langsung mengarahkan ke formulir kegiatan ini secara otomatis.
+                    </p>
+                  </div>
                 </div>
               </div>
-
-              <div className="flex items-start gap-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <Compass className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-100">Akses Manual Tetap Tersedia:</span>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                    Petugas juga dapat membuka formulir ini secara manual kapan saja melalui menu <b>Laporan Pendataan</b> di Garda Data.
-                  </p>
+            ) : (
+              <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 text-xs space-y-2 text-emerald-800 dark:text-emerald-300">
+                <div className="flex items-start gap-2.5">
+                  <Shield className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Keamanan Akses Langsung Aktif:</span>
+                    <p className="text-[11px] text-emerald-700 dark:text-emerald-300/80 mt-0.5 leading-relaxed">
+                      Pengguna dapat langsung mengisi tanpa login akun. Sistem mengunci hak akses pengisi <b>hanya untuk submit record kegiatan ini</b>, tanpa izin akses menu admin, tanpa izin melihat data responden petugas lain, dan dilengkapi proteksi token anti-tamper.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="pt-2 flex items-center justify-end border-t border-slate-100 dark:border-slate-800">
@@ -2429,104 +2661,314 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                 </div>
               </div>
             ) : (
-              /* TAB 3: OWNED APPS GRID */
+              /* TAB 3: OWNED APPS (GRID / LIST VIEW & VISIBILITY TOGGLE) */
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                    Owned ({filteredActivities.length})
-                  </h3>
-                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200/60 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                      Owned Apps ({filteredActivities.length})
+                    </h3>
+                    <span className="text-[10px] text-slate-400">| Atur Tampilan &amp; Visibilitas Petugas</span>
+                  </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                  {filteredActivities.map((act) => {
-                    const ActIcon = getIconComponent(act.icon, Layers);
-
-                    return (
-                      <motion.div
-                        key={act.id}
-                        whileHover={{ y: -3 }}
-                        onClick={() => handleOpenStudio(act)}
-                        className="bg-white dark:bg-slate-800/95 rounded-2xl border border-slate-200/90 dark:border-slate-700 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between p-5 group min-h-[175px] relative"
+                  <div className="flex items-center flex-wrap gap-2">
+                    {/* Switcher Tampilan Admin (Card vs Daftar) */}
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/60 dark:border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => setAdminAppViewLayout('card')}
+                        className={`p-1.5 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          adminAppViewLayout === 'card' 
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs' 
+                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                        title="Tampilkan Bentuk Kartu (Card Grid)"
                       >
-                        <div className="flex items-center justify-between">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${act.isOpen ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800'}`}>
-                            {act.isOpen ? 'Live' : 'Closed'}
-                          </span>
+                        <Grid className="w-3.5 h-3.5" />
+                        <span className="text-[11px]">Card</span>
+                      </button>
 
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenShareModal(act);
-                              }}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer"
-                              title="Bagikan Shortcut Link Petugas"
-                            >
-                              <Share2 className="w-4 h-4" />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteBackupModal({
-                                  isOpen: true,
-                                  type: 'activity',
-                                  item: act,
-                                  hasDownloaded: false,
-                                  isDeleting: false,
-                                  downloading: false
-                                });
-                              }}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                              title="Hapus Kegiatan (Wajib Unduh Cadangan Excel)"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="my-3 flex items-center justify-center">
-                          <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-700/60 border border-slate-100 dark:border-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 group-hover:scale-105 group-hover:border-primary-200 transition-all shadow-2xs">
-                            <ActIcon className="w-8 h-8 text-slate-700 dark:text-slate-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors" />
-                          </div>
-                        </div>
-
-                        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between">
-                          <div className="min-w-0 pr-2">
-                            <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                              {act.title}
-                            </h4>
-                            <span className="text-[11px] text-slate-400 dark:text-slate-400 block truncate">
-                              {act.category || 'Survei Lapangan'}
-                            </span>
-                          </div>
-
-                          <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
-                            Shared
-                          </span>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-
-                  {/* + Create New App Card */}
-                  <div
-                    onClick={() => setIsNewActivityModalOpen(true)}
-                    className="rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 bg-white/60 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[175px] group"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-700 group-hover:bg-primary-50 dark:group-hover:bg-primary-950/60 text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 flex items-center justify-center mb-2 transition-colors">
-                      <Plus className="w-6 h-6" />
+                      <button
+                        type="button"
+                        onClick={() => setAdminAppViewLayout('list')}
+                        className={`p-1.5 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          adminAppViewLayout === 'list' 
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-2xs' 
+                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                        title="Tampilkan Bentuk Daftar (List Table)"
+                      >
+                        <List className="w-3.5 h-3.5" />
+                        <span className="text-[11px]">Daftar</span>
+                      </button>
                     </div>
-                    <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-primary-700 dark:group-hover:text-primary-400">
-                      Buat Aplikasi Baru
-                    </span>
-                    <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-                      Dari Google Sheet / Template
-                    </span>
+
+                    {/* Pengatur Tampilan Default untuk Role Petugas */}
+                    <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-700 text-[11px] text-slate-500">
+                      <span className="hidden md:inline text-[10px] font-semibold text-slate-400">Tampilan Petugas:</span>
+                      <select
+                        value={petugasDefaultLayout}
+                        onChange={(e) => {
+                          const nextL = e.target.value as 'card' | 'list';
+                          setPetugasDefaultLayout(nextL);
+                          try {
+                            localStorage.setItem('garda_petugas_app_layout', nextL);
+                            setSyncAlert({
+                              type: 'success',
+                              message: `Format daftar app untuk role Petugas diubah menjadi: ${nextL === 'card' ? 'KARTU (Card)' : 'DAFTAR (List)'}`
+                            });
+                            setTimeout(() => setSyncAlert(null), 3000);
+                          } catch (err) {}
+                        }}
+                        className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                        title="Atur tampilan daftar app yang akan dibuka oleh Petugas"
+                      >
+                        <option value="card">📱 Petugas: Card (Kotak)</option>
+                        <option value="list">📋 Petugas: Daftar (List)</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
+
+                {adminAppViewLayout === 'card' ? (
+                  /* CARD GRID VIEW */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                    {filteredActivities.map((act) => {
+                      const ActIcon = getIconComponent(act.icon, Layers);
+                      const isShownToPetugas = act.showToPetugas !== false;
+
+                      return (
+                        <motion.div
+                          key={act.id}
+                          whileHover={{ y: -3 }}
+                          onClick={() => handleOpenStudio(act)}
+                          className="bg-white dark:bg-slate-800/95 rounded-2xl border border-slate-200/90 dark:border-slate-700 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between p-5 group min-h-[185px] relative"
+                        >
+                          <div className="flex items-center justify-between gap-1 flex-wrap">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${act.isOpen ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800'}`}>
+                                {act.isOpen ? 'Live' : 'Closed'}
+                              </span>
+
+                              {/* Toggle Munculkan / Sembunyikan dari Petugas */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleShowToPetugas(act);
+                                }}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                                  isShownToPetugas 
+                                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100' 
+                                    : 'bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 border border-slate-200 dark:border-slate-600 hover:bg-slate-200'
+                                }`}
+                                title={isShownToPetugas ? 'Aplikasi terlihat di daftar petugas. Klik untuk menyembunyikan.' : 'Aplikasi disembunyikan dari petugas. Klik untuk memunculkan.'}
+                              >
+                                {isShownToPetugas ? <Eye className="w-2.5 h-2.5" /> : <EyeOff className="w-2.5 h-2.5" />}
+                                <span>{isShownToPetugas ? 'Petugas: ON' : 'Petugas: OFF'}</span>
+                              </button>
+                            </div>
+
+                            <div className="flex items-center gap-1 ml-auto">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenShareModal(act);
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer"
+                                title="Bagikan Shortcut Link Petugas"
+                              >
+                                <Share2 className="w-4 h-4" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteBackupModal({
+                                    isOpen: true,
+                                    type: 'activity',
+                                    item: act,
+                                    hasDownloaded: false,
+                                    isDeleting: false,
+                                    downloading: false
+                                  });
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                title="Hapus Kegiatan (Wajib Unduh Cadangan Excel)"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="my-3 flex items-center justify-center">
+                            <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-700/60 border border-slate-100 dark:border-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 group-hover:scale-105 group-hover:border-primary-200 transition-all shadow-2xs">
+                              <ActIcon className="w-7 h-7 text-slate-700 dark:text-slate-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors" />
+                            </div>
+                          </div>
+
+                          <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/70 flex items-center justify-between">
+                            <div className="min-w-0 pr-2">
+                              <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                {act.title}
+                              </h4>
+                              <span className="text-[11px] text-slate-400 dark:text-slate-400 block truncate">
+                                {act.category || 'Survei Lapangan'}
+                              </span>
+                            </div>
+
+                            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
+                              App
+                            </span>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+
+                    {/* + Create New App Card */}
+                    <div
+                      onClick={() => setIsNewActivityModalOpen(true)}
+                      className="rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 bg-white/60 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all min-h-[185px] group"
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-700 group-hover:bg-primary-50 dark:group-hover:bg-primary-950/60 text-slate-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 flex items-center justify-center mb-2 transition-colors">
+                        <Plus className="w-6 h-6" />
+                      </div>
+                      <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-primary-700 dark:group-hover:text-primary-400">
+                        Buat Aplikasi Baru
+                      </span>
+                      <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                        Dari Google Sheet / Template
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* DAFTAR / LIST TABLE VIEW */
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+                        <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400">
+                          <tr>
+                            <th className="py-3 px-4">Nama Aplikasi / Survei</th>
+                            <th className="py-3 px-3">Kategori</th>
+                            <th className="py-3 px-3 text-center">Status App</th>
+                            <th className="py-3 px-3 text-center">Visibilitas Petugas</th>
+                            <th className="py-3 px-4 text-right">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                          {filteredActivities.map((act) => {
+                            const ActIcon = getIconComponent(act.icon, Layers);
+                            const isShownToPetugas = act.showToPetugas !== false;
+
+                            return (
+                              <tr 
+                                key={act.id} 
+                                onClick={() => handleOpenStudio(act)}
+                                className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+                              >
+                                <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 shrink-0">
+                                      <ActIcon className="w-5 h-5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <span className="block truncate text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 hover:text-primary-600 transition-colors">
+                                        {act.title}
+                                      </span>
+                                      <span className="text-[11px] text-slate-400 font-normal block truncate">
+                                        {act.description || 'Formulir survei lapangan'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td className="py-3 px-3 text-slate-500 text-[11px]">
+                                  {act.category || 'Survei'}
+                                </td>
+
+                                <td className="py-3 px-3 text-center">
+                                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase inline-block ${act.isOpen ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800'}`}>
+                                    {act.isOpen ? 'Live' : 'Closed'}
+                                  </span>
+                                </td>
+
+                                <td className="py-3 px-3 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleShowToPetugas(act);
+                                    }}
+                                    className={`px-3 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
+                                      isShownToPetugas 
+                                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100' 
+                                        : 'bg-slate-100 text-slate-500 dark:bg-slate-700/60 dark:text-slate-400 border border-slate-200 dark:border-slate-600 hover:bg-slate-200'
+                                    }`}
+                                    title={isShownToPetugas ? 'Klik untuk sembunyikan dari role petugas' : 'Klik untuk munculkan di role petugas'}
+                                  >
+                                    {isShownToPetugas ? <Eye className="w-3 h-3 text-blue-600" /> : <EyeOff className="w-3 h-3 text-slate-400" />}
+                                    <span>{isShownToPetugas ? 'Dimunculkan' : 'Disembunyikan'}</span>
+                                  </button>
+                                </td>
+
+                                <td className="py-3 px-4 text-right">
+                                  <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenShareModal(act)}
+                                      className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer"
+                                      title="Bagikan Shortcut Link Petugas"
+                                    >
+                                      <Share2 className="w-4 h-4" />
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenStudio(act)}
+                                      className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                                    >
+                                      <span>Studio</span>
+                                      <ChevronRight className="w-3.5 h-3.5" />
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeleteBackupModal({
+                                        isOpen: true,
+                                        type: 'activity',
+                                        item: act,
+                                        hasDownloaded: false,
+                                        isDeleting: false,
+                                        downloading: false
+                                      })}
+                                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                      title="Hapus"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setIsNewActivityModalOpen(true)}
+                        className="px-3.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Buat Aplikasi Baru</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -3238,13 +3680,14 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                     <thead className="sticky top-0 z-30 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 uppercase font-black tracking-wider text-[10px] shadow-sm">
                       <tr>
                         <th className="sticky top-0 z-30 py-3 px-3 w-10 text-center bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">#</th>
-                        <th className="sticky top-0 z-30 py-3 px-3 min-w-[160px] bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">NAME</th>
-                        <th className="sticky top-0 z-30 py-3 px-3 min-w-[150px] bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">TYPE</th>
+                        <th className="sticky top-0 z-30 py-3 px-3 min-w-[170px] bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">NAMA PERTANYAAN / VARIABEL</th>
+                        <th className="sticky top-0 z-30 py-3 px-3 min-w-[190px] bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs" title="Tentukan secara pasti variabel atau pertanyaan mengacu pada kolom mana di data sumber">MENGACU KE KOLOM (DATA)</th>
+                        <th className="sticky top-0 z-30 py-3 px-3 min-w-[130px] bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">TYPE</th>
                         <th className="sticky top-0 z-30 py-3 px-2 text-center w-14 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs" title="Primary Key unik baris">KEY?</th>
                         <th className="sticky top-0 z-30 py-3 px-2 text-center w-14 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs" title="Judul kartu sampel">LABEL?</th>
                         <th className="sticky top-0 z-30 py-3 px-2 text-center w-14 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs" title="Wajib diisi petugas">REQ?</th>
                         <th className="sticky top-0 z-30 py-3 px-2 text-center w-14 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs" title="Bisa diedit petugas di lapangan">EDIT?</th>
-                        <th className="sticky top-0 z-30 py-3 px-3 min-w-[280px] bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">OPTIONS / VALIDASI</th>
+                        <th className="sticky top-0 z-30 py-3 px-3 min-w-[260px] bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs">OPTIONS / VALIDASI</th>
                         <th className="sticky top-0 z-30 py-3 px-2 text-center w-10 bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 shadow-xs"></th>
                       </tr>
                     </thead>
@@ -3252,7 +3695,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {fields.length === 0 ? (
                           <tr>
-                            <td colSpan={9} className="py-16 text-center text-slate-400">
+                            <td colSpan={10} className="py-16 text-center text-slate-400">
                               <div className="flex flex-col items-center justify-center gap-3">
                                 <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
                                   <Database className="w-6 h-6" />
@@ -3294,13 +3737,60 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                               {idx + 1}
                             </td>
 
+                            {/* 1. Nama Pertanyaan / Label Variabel */}
                             <td className="py-2 px-3">
                               <input
                                 type="text"
+                                placeholder="Cth: Nama Responden / KRT..."
                                 value={field.label || field.columnName || ''}
                                 onChange={(e) => handleUpdateColumnRow(idx, 'label', e.target.value)}
                                 className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-primary-300"
                               />
+                            </td>
+
+                            {/* 2. Dropdown Nama Kolom Sumber Data (Menentukan Mengacu ke Kolom Mana) */}
+                            <td className="py-2 px-3">
+                              <div className="space-y-1">
+                                <CustomDropdown
+                                  size="sm"
+                                  value={field.columnName || ''}
+                                  options={[
+                                    ...(field.columnName && !availableDataSourceColumns.includes(field.columnName) ? [{
+                                      value: field.columnName,
+                                      label: field.columnName,
+                                      desc: 'Kolom Saat Ini'
+                                    }] : []),
+                                    ...availableDataSourceColumns.map(col => ({
+                                      value: col,
+                                      label: col,
+                                      desc: 'Kolom Sumber Data'
+                                    })),
+                                    {
+                                      value: '__custom__',
+                                      label: '✏️ Ketik Kolom Kustom...',
+                                      desc: 'Tulis nama kolom data secara manual'
+                                    }
+                                  ]}
+                                  onChange={(selectedCol) => {
+                                    if (selectedCol === '__custom__') {
+                                      const manualCol = prompt('Tentukan nama kolom di Google Sheet / Database:', field.columnName || field.label || '');
+                                      if (manualCol && manualCol.trim()) {
+                                        handleUpdateColumnRow(idx, 'columnName', manualCol.trim());
+                                      }
+                                    } else {
+                                      handleUpdateColumnRow(idx, 'columnName', selectedCol);
+                                    }
+                                  }}
+                                  placeholder="Pilih Kolom Data..."
+                                  searchable={availableDataSourceColumns.length > 5}
+                                />
+                                <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono truncate">
+                                  <span className="text-slate-400">Target:</span>
+                                  <span className="font-bold text-slate-600 dark:text-slate-300 truncate">
+                                    {field.columnName || field.label || '(Belum dipilih)'}
+                                  </span>
+                                </div>
+                              </div>
                             </td>
 
                             <td className="py-2 px-3">
@@ -3721,8 +4211,12 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                     value={selectedForm?.title || ''}
                     onChange={(e) => {
                       const newTitle = e.target.value;
-                      if (!selectedForm) return;
-                      setForms(prev => prev.map(f => f.id === selectedForm.id ? { ...f, title: newTitle } : f));
+                      if (!selectedForm || !selectedActivity) return;
+                      setFormConfig(prev => ({ ...prev, title: newTitle }));
+                      const updatedForms = forms.map(f => f.id === selectedForm.id ? { ...f, title: newTitle } : f);
+                      setForms(updatedForms);
+                      localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
+                      saveCloudForm({ ...selectedForm, title: newTitle, activityId: selectedActivity.id }).catch(() => {});
                     }}
                     placeholder="Nama Formulir..."
                     className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary-500"
@@ -3742,8 +4236,11 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
                       icon: ic.icon
                     }))}
                     onChange={(val) => {
-                      if (!selectedForm) return;
-                      setForms(prev => prev.map(f => f.id === selectedForm.id ? { ...f, icon: val } : f));
+                      if (!selectedForm || !selectedActivity) return;
+                      const updatedForms = forms.map(f => f.id === selectedForm.id ? { ...f, icon: val } : f);
+                      setForms(updatedForms);
+                      localStorage.setItem(`garda_laporan_forms_${selectedActivity.id}`, JSON.stringify(updatedForms));
+                      saveCloudForm({ ...selectedForm, icon: val, activityId: selectedActivity.id }).catch(() => {});
                     }}
                   />
                 </div>

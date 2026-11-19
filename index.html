@@ -8,7 +8,7 @@
     <meta http-equiv="Expires" content="0" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com https://*.googleapis.com; connect-src 'self' https://auth.dvlpid.my.id https://gardadata.dvlpid.my.id http://gardadata.dvlpid.my.id https://api.garda-data.com https://docs.google.com https://*.google.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.tile.openstreetmap.org https://server.arcgisonline.com https://mt1.google.com; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; object-src 'none'; base-uri 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com https://*.googleapis.com; connect-src 'self' ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:* https://auth.dvlpid.my.id https://gardadata.dvlpid.my.id http://gardadata.dvlpid.my.id https://api.garda-data.com https://docs.google.com https://*.google.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.tile.openstreetmap.org https://server.arcgisonline.com https://mt1.google.com; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; object-src 'none'; base-uri 'self';" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <title>Garda Data</title>
   </head>
@@ -48,6 +48,17 @@
     <!-- PWA & Stale Cache Auto-Recovery Watchdog -->
     <script>
       (function() {
+        // Pada pengujian localhost, bersihkan service worker yang tersisa agar tidak memblokir Vite dev server
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              for (var i = 0; i < regs.length; i++) {
+                regs[i].unregister();
+              }
+            }).catch(function() {});
+          }
+        }
+
         function forceBypassCacheAndReload(reason) {
           console.warn('[Garda Data Auto-Recovery] Membersihkan stale cache:', reason);
           try {

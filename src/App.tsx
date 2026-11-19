@@ -63,12 +63,18 @@ function AppContent() {
       const pageParam = params.get('page');
       const actIdParam = params.get('activityId') || params.get('actId');
       const formIdParam = params.get('formId');
+      const allowGuestParam = params.get('allowGuest');
+      const directTokenParam = params.get('directToken');
 
       if (actIdParam) {
         sessionStorage.setItem('garda_laporan_target_activity', actIdParam);
       }
       if (formIdParam) {
         sessionStorage.setItem('garda_laporan_target_form', formIdParam);
+      }
+      if (allowGuestParam === 'true' && directTokenParam) {
+        sessionStorage.setItem('garda_laporan_allow_guest', 'true');
+        sessionStorage.setItem('garda_laporan_direct_token', directTokenParam);
       }
 
       const effectivePage = (actIdParam && !pageParam) ? 'laporan-pendataan' : pageParam;
@@ -140,6 +146,46 @@ function AppContent() {
           setAuthCallbackDone(true);
         }}
       />
+    );
+  }
+
+  const isGuestDirect = typeof window !== 'undefined' && 
+    (sessionStorage.getItem('garda_laporan_allow_guest') === 'true' || new URLSearchParams(window.location.search).get('allowGuest') === 'true') &&
+    Boolean(sessionStorage.getItem('garda_laporan_direct_token') || new URLSearchParams(window.location.search).get('directToken'));
+
+  if (!user && isGuestDirect) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col font-sans">
+        <header className="bg-white dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-primary-600 flex items-center justify-center text-white font-black text-sm shadow-xs">
+              GD
+            </div>
+            <div>
+              <h1 className="text-sm font-bold leading-tight">Garda Data Mempawah</h1>
+              <p className="text-[10px] text-slate-400 font-medium">Pengisian Formulir Laporan Langsung Petugas</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              sessionStorage.removeItem('garda_laporan_allow_guest');
+              sessionStorage.removeItem('garda_laporan_direct_token');
+              window.location.href = '/';
+            }}
+            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            Halaman Login
+          </button>
+        </header>
+        <main className="flex-1 p-4 sm:p-6 max-w-5xl mx-auto w-full">
+          <LaporanModule onBack={() => {
+            sessionStorage.removeItem('garda_laporan_allow_guest');
+            sessionStorage.removeItem('garda_laporan_direct_token');
+            window.location.href = '/';
+          }} />
+        </main>
+      </div>
     );
   }
 
@@ -219,7 +265,7 @@ function AppContent() {
         }
         return <PetaRespondenSE2026 onBack={() => setCurrentPage('landing')} />;
       case 'rasionalitas-ntb':
-        if (user?.role !== 'admin') {
+        if (user?.role !== 'admin') { 
           return (
             <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6">
               <h2 className="text-xl font-black text-slate-800 tracking-tight">Akses Ditolak</h2>

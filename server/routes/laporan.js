@@ -9,7 +9,7 @@ const authMiddleware = require('../middleware/auth');
 
 // Role-based Access Control Middlewares
 function requireAdmin(req, res, next) {
-  if (!req.user || req.user.role !== 'admin') {
+  if (!req.user || req.user.role !== 'admin' || req.user.isGuestDirect) {
     return res.status(403).json({ message: 'Akses ditolak: Hanya Administrator yang berwenang.' });
   }
   next();
@@ -19,6 +19,42 @@ function blockVisitor(req, res, next) {
   if (req.user && req.user.role === 'pengunjung') {
     return res.status(403).json({ message: 'Akses ditolak: Pengunjung hanya memiliki izin baca data.' });
   }
+  next();
+}
+
+// Middleware: Resolve Auth via standard JWT or Public Direct Form Token
+function resolveLaporanAuth(req, res, next) {
+  const directToken = req.headers['x-laporan-direct-token'] || req.query.directToken;
+  if (directToken) {
+    try {
+      const decoded = Buffer.from(String(directToken), 'base64').toString('utf8');
+      if (decoded.startsWith('direct_') && decoded.endsWith('_garda_public')) {
+        req.user = {
+          id: 'guest_petugas_direct',
+          username: 'petugas_langsung',
+          role: 'petugas',
+          isGuestDirect: true
+        };
+        return next();
+      }
+    } catch (e) {}
+  }
+  return authMiddleware(req, res, next);
+}
+
+// Rate Limiting untuk proteksi spam form publik
+const guestSubmissionTracker = new Map();
+function rateLimitGuestSubmissions(req, res, next) {
+  if (!req.user || !req.user.isGuestDirect) return next();
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const userLogs = guestSubmissionTracker.get(ip) || [];
+  const recent = userLogs.filter(t => now - t < 60000);
+  if (recent.length >= 30) {
+    return res.status(429).json({ error: 'Terlalu banyak pengiriman formulir dalam waktu singkat. Harap tunggu 1 menit.' });
+  }
+  recent.push(now);
+  guestSubmissionTracker.set(ip, recent);
   next();
 }
 
@@ -78,14 +114,28 @@ async function syncToGoogleSheetsAPI(sheetUrl, sheetName = 'Sheet1', recordData,
     });
 
     let rows = getRes.data.values || [];
-    let headers = rows.length > 0 ? rows[0] : [];
-    const dataObj = recordData.data || recordData;
+    let headers = rows.length > 0 ? [...rows[0]] : [];
+    const dataObj = { ...(recordData.data || recordData) };
 
-    // Auto-append missing headers if header is empty or missing keys
-    const keys = Object.keys(dataObj);
+    // Wajib identifikasi unik: Pastikan ID terisi
+    const targetId = recordData.rowId || recordData.id || dataObj['id'] || dataObj['ID'] || dataObj['Id'] || dataObj['Kode'] || dataObj['kode'];
+    if (targetId) {
+      if (!dataObj['id']) dataObj['id'] = targetId;
+    }
+
+    // Pastikan kolom 'id' selalu ada sebagai primary key unik di Sheet (Kolom A)
     let headersUpdated = false;
+    let idColIdx = headers.findIndex(h => h && h.toLowerCase().trim() === 'id');
+    if (idColIdx === -1) {
+      headers.unshift('id');
+      idColIdx = 0;
+      headersUpdated = true;
+    }
+
+    // Auto-tambah cakupan kolom jika ada variabel baru di dataObj yang belum ada di header
+    const keys = Object.keys(dataObj);
     keys.forEach(k => {
-      if (k && !headers.includes(k)) {
+      if (k && !headers.includes(k) && k !== 'data') {
         headers.push(k);
         headersUpdated = true;
       }
@@ -100,41 +150,59 @@ async function syncToGoogleSheetsAPI(sheetUrl, sheetName = 'Sheet1', recordData,
       });
     }
 
-    // 2. Find row index by matching ID / rowId (Col 1 or header match)
-    const targetId = recordData.rowId || recordData.id || dataObj['id'] || dataObj['ID'];
+    // 2. Find row index by matching ID / rowId secara presisi
     let targetRowIndex = -1;
-
     if (targetId && rows.length > 1) {
       for (let r = 1; r < rows.length; r++) {
-        if (String(rows[r][0]) === String(targetId) || String(rows[r][1]) === String(targetId)) {
+        const rowData = rows[r] || [];
+        const cellAtId = rowData[idColIdx] !== undefined ? String(rowData[idColIdx]).trim() : '';
+        if (cellAtId === String(targetId).trim()) {
           targetRowIndex = r + 1; // 1-indexed for sheets
+          break;
+        }
+        // Fallback cek kolom 0 dan 1
+        if (rowData[0] && String(rowData[0]).trim() === String(targetId).trim()) {
+          targetRowIndex = r + 1;
+          break;
+        }
+        if (rowData[1] && String(rowData[1]).trim() === String(targetId).trim()) {
+          targetRowIndex = r + 1;
           break;
         }
       }
     }
 
-    const rowValues = headers.map(h => {
-      const val = dataObj[h] !== undefined ? dataObj[h] : '';
-      return typeof val === 'object' ? JSON.stringify(val) : String(val);
-    });
-
     if (targetRowIndex > 1) {
-      // Update existing row
+      // PERBARUI VARIABEL / KOLOM YANG ADA (In-place update tanpa menambah baris baru)
+      const existingRow = rows[targetRowIndex - 1] || [];
+      const updatedRowValues = headers.map((h, cIdx) => {
+        if (dataObj[h] !== undefined && dataObj[h] !== null) {
+          const val = dataObj[h];
+          return typeof val === 'object' ? JSON.stringify(val) : String(val);
+        }
+        return existingRow[cIdx] !== undefined ? existingRow[cIdx] : '';
+      });
+
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: `${sName}!A${targetRowIndex}:ZZ${targetRowIndex}`,
         valueInputOption: 'USER_ENTERED',
-        requestBody: { values: [rowValues] }
+        requestBody: { values: [updatedRowValues] }
       });
       return { success: true, action: 'UPDATED', row: targetRowIndex };
     } else {
-      // Append new row
+      // TAMBAH CAKUPAN BARIS BARU (Jika ID belum pernah ada)
+      const newRowValues = headers.map(h => {
+        const val = dataObj[h] !== undefined ? dataObj[h] : '';
+        return typeof val === 'object' ? JSON.stringify(val) : String(val);
+      });
+
       await sheets.spreadsheets.values.append({
         spreadsheetId,
         range: `${sName}!A:A`,
         valueInputOption: 'USER_ENTERED',
         insertDataOption: 'INSERT_ROWS',
-        requestBody: { values: [rowValues] }
+        requestBody: { values: [newRowValues] }
       });
       return { success: true, action: 'APPENDED' };
     }
@@ -334,8 +402,20 @@ router.post('/google-sheets/test-sync', authMiddleware, requireAdmin, async (req
 // 1. ACTIVITIES ENDPOINTS (CRUD & LIVE TOGGLE)
 // -------------------------------------------------------------
 
-// GET /api/laporan/activities (Authenticated users: Admin, Petugas, Pengunjung)
-router.get('/activities', authMiddleware, (req, res) => {
+// GET /api/laporan/template-docx (Download template docx)
+router.get('/template-docx', (req, res) => {
+  const templatePath = path.join(__dirname, '../../data developer/Template Laporan Pendataan PPL.docx');
+  if (fs.existsSync(templatePath)) {
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', 'attachment; filename="Template_Laporan_Pendataan_PPL.docx"');
+    fs.createReadStream(templatePath).pipe(res);
+  } else {
+    res.status(404).json({ error: 'Template docx belum tersedia di server.' });
+  }
+});
+
+// GET /api/laporan/activities (Authenticated users: Admin, Petugas, Pengunjung, atau Guest Direct)
+router.get('/activities', resolveLaporanAuth, (req, res) => {
   const store = readStore();
   res.json(store.activities);
 });
@@ -429,8 +509,8 @@ router.delete('/activities/:id', authMiddleware, requireAdmin, (req, res) => {
 // 2. FORMS ENDPOINTS (DRAFT & PUBLISH)
 // -------------------------------------------------------------
 
-// GET /api/laporan/activities/:actId/forms (Authenticated users)
-router.get('/activities/:actId/forms', authMiddleware, (req, res) => {
+// GET /api/laporan/activities/:actId/forms (Authenticated users & Guest Direct)
+router.get('/activities/:actId/forms', resolveLaporanAuth, (req, res) => {
   const store = readStore();
   const forms = store.forms.filter(f => f.activityId === req.params.actId);
   res.json(forms);
@@ -534,19 +614,126 @@ router.delete('/forms/:formId', authMiddleware, requireAdmin, (req, res) => {
   res.json({ success: true, message: 'Form deleted' });
 });
 
+// GET /api/laporan/sheets-status (Diagnostic for Google Sheets API)
+router.get('/sheets-status', (req, res) => {
+  const keyExists = fs.existsSync(SERVICE_ACCOUNT_KEY_FILE);
+  let clientEmail = null;
+  let projectId = null;
+  if (keyExists) {
+    try {
+      const sa = JSON.parse(fs.readFileSync(SERVICE_ACCOUNT_KEY_FILE, 'utf8'));
+      clientEmail = sa.client_email;
+      projectId = sa.project_id;
+    } catch (e) {}
+  }
+  res.json({
+    configured: keyExists,
+    clientEmail: clientEmail || 'garda-sheets-bot@ornate-entropy-510006-j6.iam.gserviceaccount.com',
+    projectId: projectId || 'ornate-entropy-510006-j6',
+    instruction: 'Pastikan spreadsheet Google Sheets telah di-share ke email robot sebagai Editor agar sinkronisasi 2 arah berjalan lancar.'
+  });
+});
+
+// POST /api/laporan/forms/:formId/sync-sheet (Admin only - Pull columns and records from Google Sheets)
+router.post('/forms/:formId/sync-sheet', authMiddleware, requireAdmin, async (req, res) => {
+  const { sheetUrl, sheetName, activityId } = req.body;
+  const sheets = getGoogleSheetsClient();
+  if (!sheets) {
+    return res.status(400).json({ error: 'Service account credentials belum dikonfigurasi di server.' });
+  }
+
+  const spreadsheetId = extractSpreadsheetId(sheetUrl);
+  if (!spreadsheetId) {
+    return res.status(400).json({ error: 'Format URL Google Sheets tidak valid.' });
+  }
+
+  try {
+    const sName = sheetName || 'Sheet1';
+    const getRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sName}!A1:ZZ`
+    });
+
+    const rows = getRes.data.values || [];
+    if (rows.length === 0) {
+      return res.status(400).json({ error: 'Google Sheet kosong, tidak ada baris yang terbaca.' });
+    }
+
+    const headers = rows[0] || [];
+    const idColIdx = headers.findIndex(h => h && h.toLowerCase().trim() === 'id');
+
+    const fields = headers.map((h, i) => {
+      const hLower = String(h).toLowerCase();
+      let type = 'Text';
+      if (hLower.includes('foto') || hLower.includes('gambar') || hLower.includes('image')) type = 'Image';
+      else if (hLower.includes('gps') || hLower.includes('lokasi') || hLower.includes('lat') || hLower.includes('long')) type = 'LatLong';
+      else if (hLower.includes('tgl') || hLower.includes('tanggal') || hLower.includes('date')) type = 'Date';
+      else if (hLower.includes('jam') || hLower.includes('waktu') || hLower.includes('time')) type = 'Time';
+      else if (hLower.includes('jumlah') || hLower.includes('total') || hLower.includes('nilai') || hLower.includes('luas') || hLower.includes('umur') || hLower.includes('harga') || hLower.includes('pendapatan')) type = 'Number';
+      else if (hLower.includes('status') || hLower.includes('jenis') || hLower.includes('kategori')) type = 'Enum';
+
+      const isKey = hLower === 'id' || hLower.startsWith('id_') || hLower.includes('kode') || (i === 0 && !hLower.includes('nama'));
+      const isLabel = (hLower.includes('nama') || hLower.includes('krt') || hLower.includes('responden') || hLower.includes('usaha')) && !isKey;
+
+      return {
+        id: `fld_${Date.now()}_${i}`,
+        columnName: h,
+        label: h,
+        dataType: type,
+        isKey: isKey,
+        isLabel: isLabel,
+        isRequired: isKey || isLabel,
+        options: []
+      };
+    });
+
+    const records = [];
+    for (let r = 1; r < rows.length; r++) {
+      const row = rows[r];
+      if (!row || row.every(c => c === '' || c === null || c === undefined)) continue;
+      const dataObj = {};
+      headers.forEach((h, cIdx) => {
+        dataObj[h] = row[cIdx] !== undefined ? row[cIdx] : '';
+      });
+
+      const rowUniqueId = (idColIdx !== -1 && row[idColIdx]) ? String(row[idColIdx]).trim() : `row_${r}`;
+      records.push({
+        id: `${req.params.formId}_${rowUniqueId}`,
+        rowId: rowUniqueId,
+        formId: req.params.formId,
+        activityId: activityId,
+        data: dataObj,
+        status: 'draft',
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    res.json({
+      success: true,
+      headers,
+      fields,
+      records,
+      totalRows: records.length
+    });
+  } catch (err) {
+    console.error('sync-sheet error:', err.message);
+    res.status(500).json({ error: `Gagal membaca Google Sheet: ${err.message}. Pastikan spreadsheet telah di-share ke email robot.` });
+  }
+});
+
 // -------------------------------------------------------------
 // 3. RECORDS ENDPOINTS (TRANSACTIONS & 2-WAY SYNC)
 // -------------------------------------------------------------
 
-// GET /api/laporan/forms/:formId/records (Authenticated users)
-router.get('/forms/:formId/records', authMiddleware, (req, res) => {
+// GET /api/laporan/forms/:formId/records (Authenticated users & Guest Direct)
+router.get('/forms/:formId/records', resolveLaporanAuth, (req, res) => {
   const store = readStore();
   const records = store.records.filter(r => r.formId === req.params.formId);
   res.json(records);
 });
 
-// POST /api/laporan/forms/:formId/records (Create/Upsert Record - Petugas & Admin only)
-router.post('/forms/:formId/records', authMiddleware, blockVisitor, (req, res) => {
+// POST /api/laporan/forms/:formId/records (Create/Upsert Record - Petugas, Admin, & Direct Guest)
+router.post('/forms/:formId/records', resolveLaporanAuth, blockVisitor, rateLimitGuestSubmissions, (req, res) => {
   const store = readStore();
   const recordData = req.body;
   const newId = recordData.id || `${req.params.formId}_rec_${Date.now()}`;
@@ -571,8 +758,8 @@ router.post('/forms/:formId/records', authMiddleware, blockVisitor, (req, res) =
   // Sync to Google Sheet (Method A: Google Sheets API v4, Method B: Webhook)
   const targetForm = store.forms.find(f => f.id === req.params.formId);
   const targetAct = targetForm ? store.activities.find(a => a.id === targetForm.activityId) : null;
-  const sheetUrl = targetForm?.sheetUrl || targetAct?.sheetUrl;
-  const sheetName = targetForm?.sheetName || targetAct?.sheetName || 'Sheet1';
+  const sheetUrl = req.body.sheetUrl || targetForm?.sheetUrl || targetAct?.sheetUrl;
+  const sheetName = req.body.sheetName || targetForm?.sheetName || targetAct?.sheetName || 'Sheet1';
   const webhookUrl = targetAct?.settings?.webhookUrl || targetAct?.webhookUrl;
 
   // 1. Google Sheets API v4 Automatic Sync
