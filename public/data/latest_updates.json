@@ -1,5 +1,15 @@
 [
   {
+    "title": "Laporan Pendataan & Sync Sheet",
+    "date": "19 Nov 2026",
+    "desc": "Optimasi laporan pendataan, pemetaan kolom presisi, direct sync Google Sheets, dan integrasi skill pentesting."
+  },
+  {
+    "title": "Pembaruan Fitur Terkini",
+    "date": "15 Nov 2026",
+    "desc": "Selaraskan 5 rilis pembaruan fitur terkini secara dinamis dengan commit terbaru repositori GitHub."
+  },
+  {
     "title": "Penilaian Kinerja Mitra",
     "date": "15 Nov 2026",
     "desc": "Pemulihan data diri lengkap mitra dari Kepka BPS, perbaikan tampilan angka 0 pada nama, dan penambahan endpoint profil admin."
@@ -13,15 +23,5 @@
     "title": "Pemulihan Evaluasi & Fail-Safe Mitra",
     "date": "10 Nov 2026",
     "desc": "Pemulihan nilai & catatan kinerja mitra dari cadangan Excel serta arsitektur snapshot master independen fail-safe."
-  },
-  {
-    "title": "Hierarki Wilayah & SOBAT ID Mitra",
-    "date": "10 Nov 2026",
-    "desc": "Integrasi hierarki alamat lengkap, ID SOBAT sebagai primary key, filter desa dependen, dan basis data 388 mitra."
-  },
-  {
-    "title": "Direktori Penawaran Kerja Mitra",
-    "date": "10 Nov 2026",
-    "desc": "Multi-select filter untuk kategori rekomendasi, posisi (PPL/PML), dan kecamatan untuk penawaran kerja lanjutan."
   }
 ]

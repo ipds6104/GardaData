@@ -106,6 +106,16 @@ function parseGitHubCommit(commitObj: any): FeatureUpdate {
 
 const LATEST_UPDATES: FeatureUpdate[] = [
   {
+    title: 'Laporan Pendataan & Sync Sheet',
+    date: '19 Nov 2026',
+    desc: 'Optimasi laporan pendataan, pemetaan kolom presisi, direct sync Google Sheets, dan integrasi skill pentesting.',
+  },
+  {
+    title: 'Pembaruan Fitur Terkini',
+    date: '15 Nov 2026',
+    desc: 'Selaraskan 5 rilis pembaruan fitur terkini secara dinamis dengan commit terbaru repositori GitHub.',
+  },
+  {
     title: 'Penilaian Kinerja Mitra',
     date: '15 Nov 2026',
     desc: 'Pemulihan data diri lengkap mitra dari Kepka BPS, perbaikan tampilan angka 0 pada nama, dan penambahan endpoint profil admin.',
@@ -119,16 +129,6 @@ const LATEST_UPDATES: FeatureUpdate[] = [
     title: 'Pemulihan Evaluasi & Fail-Safe Mitra',
     date: '10 Nov 2026',
     desc: 'Pemulihan nilai & catatan kinerja mitra dari cadangan Excel serta arsitektur snapshot master independen fail-safe.',
-  },
-  {
-    title: 'Hierarki Wilayah & SOBAT ID Mitra',
-    date: '10 Nov 2026',
-    desc: 'Integrasi hierarki alamat lengkap, ID SOBAT sebagai primary key, filter desa dependen, dan basis data 388 mitra.',
-  },
-  {
-    title: 'Direktori Penawaran Kerja Mitra',
-    date: '10 Nov 2026',
-    desc: 'Multi-select filter untuk kategori rekomendasi, posisi (PPL/PML), dan kecamatan untuk penawaran kerja lanjutan.',
   },
 ];
 
@@ -147,13 +147,13 @@ export const Login: React.FC = () => {
   // 5 Update Fitur Terbaru Dinamis dari Repositori GitHub & Static Asset
   const [updates, setUpdates] = useState<FeatureUpdate[]>(() => {
     try {
-      localStorage.removeItem('garda_latest_github_updates'); // Hapus cache usang
-      const cached = localStorage.getItem('garda_latest_github_updates_v2');
+      localStorage.removeItem('garda_latest_github_updates');
+      localStorage.removeItem('garda_latest_github_updates_v2');
+      const cached = localStorage.getItem('garda_latest_github_updates_v3');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasRecent = parsed.some((u: any) => u.date && (u.date.includes('15 Nov') || u.date.includes('12 Nov') || u.date.includes('10 Nov')));
-          if (hasRecent) return parsed;
+          return parsed;
         }
       }
     } catch {}
@@ -166,29 +166,31 @@ export const Login: React.FC = () => {
       setIsFetchingUpdates(true);
       let fetched: FeatureUpdate[] | null = null;
 
-      // 1. Ambil dari static asset lokal repository (instan < 5ms, 100% andal, bebas batas rate GitHub)
+      // 1. Coba live fetch ke GitHub Commits API langsung (agar selalu sinkron real-time)
       try {
-        const staticRes = await fetch(`/data/latest_updates.json?t=${Date.now()}`);
-        if (staticRes.ok) {
-          const data = await staticRes.json();
-          if (Array.isArray(data) && data.length > 0) {
-            fetched = data;
+        const res = await fetch('https://api.github.com/repos/ipds6104/GardaData/commits?per_page=5', {
+          headers: {
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        if (res.ok) {
+          const commits = await res.json();
+          if (Array.isArray(commits) && commits.length > 0) {
+            fetched = commits.map(parseGitHubCommit);
           }
         }
-      } catch (err) {}
+      } catch (err) {
+        console.warn('GitHub API live fetch unavailable, falling back to static asset:', err);
+      }
 
-      // 2. Fallback live fetch ke GitHub Commits API
-      if (!fetched) {
+      // 2. Fallback jika offline/rate-limited: ambil dari static asset lokal repository
+      if (!fetched || fetched.length === 0) {
         try {
-          const res = await fetch('https://api.github.com/repos/ipds6104/GardaData/commits?per_page=5', {
-            headers: {
-              'Accept': 'application/vnd.github.v3+json'
-            }
-          });
-          if (res.ok) {
-            const commits = await res.json();
-            if (Array.isArray(commits) && commits.length > 0) {
-              fetched = commits.map(parseGitHubCommit);
+          const staticRes = await fetch(`/data/latest_updates.json?t=${Date.now()}`);
+          if (staticRes.ok) {
+            const data = await staticRes.json();
+            if (Array.isArray(data) && data.length > 0) {
+              fetched = data;
             }
           }
         } catch (err) {}
@@ -196,7 +198,7 @@ export const Login: React.FC = () => {
 
       if (fetched && fetched.length > 0) {
         setUpdates(fetched);
-        localStorage.setItem('garda_latest_github_updates_v2', JSON.stringify(fetched));
+        localStorage.setItem('garda_latest_github_updates_v3', JSON.stringify(fetched));
       }
     } catch (e) {
       console.warn('Could not fetch latest updates:', e);

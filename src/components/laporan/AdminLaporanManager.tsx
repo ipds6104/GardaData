@@ -60,9 +60,28 @@ export function sanitizeOptions(raw: any): string[] {
 }
 
 // Helper to normalize and sanitize field loaded from DB/cache with intelligent defaults
-export function sanitizeLoadedField(field: any, index: number): any {
+export function sanitizeLoadedField(field: any, index: number, availableCols?: string[]): any {
   const normType = normalizeDataType(field.dataType || field.type);
-  const colName = field.columnName || field.label || `Kolom_${index + 1}`;
+  let colName = field.columnName || field.label || `Kolom_${index + 1}`;
+
+  // Auto-bind ke nama kolom yang sama persis di Google Sheet jika tersedia
+  if (Array.isArray(availableCols) && availableCols.length > 0) {
+    const exactMatch = availableCols.find(c => c === colName || c === field.columnName || c === field.label);
+    if (exactMatch) {
+      colName = exactMatch;
+    } else {
+      const caseMatch = availableCols.find(c => 
+        c.trim().toLowerCase() === colName.trim().toLowerCase() ||
+        (field.columnName && c.trim().toLowerCase() === field.columnName.trim().toLowerCase()) ||
+        (field.label && c.trim().toLowerCase() === field.label.trim().toLowerCase()) ||
+        normalizeKey(c) === normalizeKey(colName)
+      );
+      if (caseMatch) {
+        colName = caseMatch;
+      }
+    }
+  }
+
   const colLower = colName.toLowerCase();
 
   const isKey = field.isKey !== undefined 
@@ -941,9 +960,18 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
         ? selectedForm.fields 
         : (Array.isArray(selectedForm.publishedSchema) && selectedForm.publishedSchema.length > 0 ? selectedForm.publishedSchema : []);
 
+      let detectedSheetCols: string[] = [];
+      try {
+        const cached = localStorage.getItem(`garda_sheet_columns_${selectedForm.id}`);
+        if (cached) detectedSheetCols = JSON.parse(cached);
+      } catch {}
+      if (detectedSheetCols.length === 0 && Array.isArray(selectedForm.sourceColumns)) {
+        detectedSheetCols = selectedForm.sourceColumns;
+      }
+
       const cleanFields = rawFields
         .filter((f: any) => !(Array.isArray(f.options) && f.options.includes('Dandy')))
-        .map((f: any, idx: number) => sanitizeLoadedField(f, idx));
+        .map((f: any, idx: number) => sanitizeLoadedField(f, idx, detectedSheetCols));
 
       setFields(cleanFields);
     }

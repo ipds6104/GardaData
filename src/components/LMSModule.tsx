@@ -1027,7 +1027,26 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
              <HelpCircle className="w-4 h-4 shrink-0" />
              <p>Jika layar di bawah ini kosong/error, browser Anda memblokir tampilannya. Silakan klik tombol <strong>"Buka di Tab Baru"</strong> di atas.</p>
            </div>
-           <div className="flex-1 w-full h-full overflow-y-auto iframe-container bg-slate-50/50" style={{ WebkitOverflowScrolling: 'touch' }} dangerouslySetInnerHTML={{ __html: (iframeUrl || '').replace(/width="[^"]*"/, 'width="100%"') }} />
+           {(() => {
+             const match = (iframeUrl || '').match(/src="([^"]+)"/);
+             const srcUrl = match ? match[1] : (iframeUrl && iframeUrl.startsWith('http') ? iframeUrl : '');
+             if (srcUrl) {
+               return (
+                 <iframe
+                   src={srcUrl}
+                   title="Materi Pelatihan"
+                   className="flex-1 w-full h-full border-0 bg-white"
+                   sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                   loading="lazy"
+                 />
+               );
+             }
+             return (
+               <div className="flex-1 w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                 Format sematan tidak valid. Silakan periksa URL sumber materi.
+               </div>
+             );
+           })()}
         </motion.div>
       ) : null}
 

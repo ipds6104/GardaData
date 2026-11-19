@@ -1099,16 +1099,49 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
       .filter((g: string) => g !== '' && g !== '-- Tidak Digunakan (Kosong) --' && g !== 'undefined' && g !== 'null');
   }, [rawGroupings]);
 
-  // Dynamic Form Fields - Priority given to live configured fields so live review & updates reflect immediately
+  // Dynamic Form Fields - Priority given to live configured fields with precise Google Sheet column binding
   const activeFormFields = useMemo(() => {
     if (!currentForm) return [];
+    let fieldsList: any[] = [];
     if (Array.isArray(currentForm.fields) && currentForm.fields.length > 0) {
-      return currentForm.fields;
+      fieldsList = currentForm.fields;
+    } else if (Array.isArray(currentForm.publishedSchema) && currentForm.publishedSchema.length > 0) {
+      fieldsList = currentForm.publishedSchema;
     }
-    if (Array.isArray(currentForm.publishedSchema) && currentForm.publishedSchema.length > 0) {
-      return currentForm.publishedSchema;
+
+    if (fieldsList.length === 0) return [];
+
+    let sheetCols: string[] = [];
+    try {
+      const cached = localStorage.getItem(`garda_sheet_columns_${currentForm.id}`);
+      if (cached) sheetCols = JSON.parse(cached);
+    } catch {}
+    if (sheetCols.length === 0 && Array.isArray(currentForm.sourceColumns)) {
+      sheetCols = currentForm.sourceColumns;
     }
-    return [];
+
+    // Auto-bind kolom sumber data Google Sheet secara presisi
+    return fieldsList.map((f: any, idx: number) => {
+      let boundCol = f.columnName || f.label || `Kolom_${idx + 1}`;
+      if (sheetCols.length > 0) {
+        const exact = sheetCols.find(c => c === boundCol || c === f.columnName || c === f.label);
+        if (exact) {
+          boundCol = exact;
+        } else {
+          const matched = sheetCols.find(c => 
+            c.trim().toLowerCase() === boundCol.trim().toLowerCase() ||
+            (f.columnName && c.trim().toLowerCase() === f.columnName.trim().toLowerCase()) ||
+            (f.label && c.trim().toLowerCase() === f.label.trim().toLowerCase()) ||
+            normalizeKey(c) === normalizeKey(boundCol)
+          );
+          if (matched) boundCol = matched;
+        }
+      }
+      return {
+        ...f,
+        columnName: boundCol
+      };
+    });
   }, [currentForm]);
 
   // Cek apakah admin mengkonfigurasi pertanyaan / kolom Titik Koordinat GPS pada formulir
