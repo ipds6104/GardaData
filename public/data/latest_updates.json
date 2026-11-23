@@ -1,5 +1,15 @@
 [
   {
+    "title": "Pembaruan Sistem",
+    "date": "24 Nov 2026",
+    "desc": "config(ts): exclude backend directory and restrict include to src in tsconfig"
+  },
+  {
+    "title": "sync",
+    "date": "24 Nov 2026",
+    "desc": "Update latest_updates.json"
+  },
+  {
     "title": "lms,laporan",
     "date": "24 Nov 2026",
     "desc": "Resolve query string formatting and fix scope of count variables in admin laporan"
@@ -13,15 +23,5 @@
     "title": "lms & backup",
     "date": "23 Nov 2026",
     "desc": "Implement direct LMS sharing with guest isolation, category redesign, and secure SQL backup logging"
-  },
-  {
-    "title": "Fitur Baru",
-    "date": "19 Nov 2026",
-    "desc": "Integrasi claude-pentest-skills, remediasi xss lms, perbaikan pembaruan fitur terkini login, dan auto-binding kolom laporan"
-  },
-  {
-    "title": "Fitur Baru",
-    "date": "19 Nov 2026",
-    "desc": "Optimasi laporan pendataan, pemetaan kolom presisi, direct sync google sheets, dan pembaruan monitoring"
   }
 ]
