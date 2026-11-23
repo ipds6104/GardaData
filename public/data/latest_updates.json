@@ -1,5 +1,10 @@
 [
   {
+    "title": "sync",
+    "date": "24 Nov 2026",
+    "desc": "Update latest_updates.json with tsconfig fix"
+  },
+  {
     "title": "Pembaruan Sistem",
     "date": "24 Nov 2026",
     "desc": "config(ts): exclude backend directory and restrict include to src in tsconfig"
@@ -18,10 +23,5 @@
     "title": "LMS Pelatihan",
     "date": "24 Nov 2026",
     "desc": "Update pinterest background presets, tone styles, header branding and distribution icon"
-  },
-  {
-    "title": "lms & backup",
-    "date": "23 Nov 2026",
-    "desc": "Implement direct LMS sharing with guest isolation, category redesign, and secure SQL backup logging"
   }
 ]
