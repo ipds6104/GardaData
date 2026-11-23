@@ -1529,16 +1529,15 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
 
           // Simpan record data sampel ke penyimpanan lokal & server (Preserve all columns!)
           let mysqlSaveFailed = false;
+          let updatedCount = 0;
+          let appendedCount = 0;
+
           if (validRecords.length > 0) {
             let existingRecords: any[] = [];
             try {
               const cachedRecs = localStorage.getItem(`garda_laporan_records_${selectedFormId}`);
               if (cachedRecs) existingRecords = JSON.parse(cachedRecs);
             } catch {}
-
-            // Upsert records by unique ID from Google Sheet
-            let updatedCount = 0;
-            let appendedCount = 0;
 
             validRecords.forEach((r, idx) => {
               const cleanData: Record<string, any> = { ...r };

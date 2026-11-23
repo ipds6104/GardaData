@@ -22,8 +22,7 @@ router.post('/configs', async (req, res) => {
     const id = crypto.randomUUID();
     
     await pool.query(
-      `INSERT INTO lms_trainings (id, name, startDate, endDate, period, icon, isActive, buttons, bgImage, themeTone) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      'INSERT INTO lms_trainings (id, name, startDate, endDate, period, icon, isActive, buttons, bgImage, themeTone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [id, name, startDate || null, endDate || null, period || '', icon || 'pendidikan', isActive !== false, JSON.stringify(buttons || []), bgImage || '/images/lms/lms-bg-1.jpg', themeTone || 'indigo_twilight']
     );
     
