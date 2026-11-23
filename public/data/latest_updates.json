@@ -1,5 +1,15 @@
 [
   {
+    "title": "Otentikasi & SSO",
+    "date": "24 Nov 2026",
+    "desc": "Isolate guest role to dedicated under-development page with bps portal reference"
+  },
+  {
+    "title": "sync",
+    "date": "24 Nov 2026",
+    "desc": "Sync latest_updates.json to include latest commits"
+  },
+  {
     "title": "sync",
     "date": "24 Nov 2026",
     "desc": "Update latest_updates.json with tsconfig fix"
@@ -13,15 +23,5 @@
     "title": "sync",
     "date": "24 Nov 2026",
     "desc": "Update latest_updates.json"
-  },
-  {
-    "title": "lms,laporan",
-    "date": "24 Nov 2026",
-    "desc": "Resolve query string formatting and fix scope of count variables in admin laporan"
-  },
-  {
-    "title": "LMS Pelatihan",
-    "date": "24 Nov 2026",
-    "desc": "Update pinterest background presets, tone styles, header branding and distribution icon"
   }
 ]
