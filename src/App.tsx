@@ -172,9 +172,11 @@ function AppContent() {
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col font-sans">
         <header className="bg-white dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-primary-600 flex items-center justify-center text-white font-black text-sm shadow-xs">
-              GD
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Logo Garda Data" 
+              className="w-9 h-9 object-contain drop-shadow-xs shrink-0" 
+            />
             <div>
               <h1 className="text-sm font-bold leading-tight">Garda Data Mempawah</h1>
               <p className="text-[10px] text-slate-400 font-medium">LMS — Akses Terarah Pelatihan Petugas</p>
@@ -213,9 +215,11 @@ function AppContent() {
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col font-sans">
         <header className="bg-white dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-primary-600 flex items-center justify-center text-white font-black text-sm shadow-xs">
-              GD
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Logo Garda Data" 
+              className="w-9 h-9 object-contain drop-shadow-xs shrink-0" 
+            />
             <div>
               <h1 className="text-sm font-bold leading-tight">Garda Data Mempawah</h1>
               <p className="text-[10px] text-slate-400 font-medium">Pengisian Formulir Laporan Langsung Petugas</p>

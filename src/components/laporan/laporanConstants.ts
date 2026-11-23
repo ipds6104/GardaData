@@ -5,6 +5,7 @@ import {
   HeartPulse, GraduationCap, DollarSign, Sparkles, HelpCircle,
   Briefcase, Landmark, Factory, Settings, Tag, Cpu, BookOpen, Award, Lightbulb
 } from 'lucide-react';
+import { DistribusiIcon } from '../common/DistribusiIcon';
 
 export const DATA_TYPES = [
   { id: 'Text', label: 'Text', desc: 'Jawaban teks atau uraian kalimat', icon: Type },
@@ -43,7 +44,8 @@ export const AVAILABLE_ICONS = [
   { id: 'Wheat', label: 'Pertanian / Pangan', icon: Wheat },
   { id: 'Factory', label: 'Produksi / Industri', icon: Factory },
   { id: 'Tag', label: 'Harga / Komoditas', icon: Tag },
-  { id: 'Truck', label: 'Distribusi / Logistik', icon: Truck },
+  { id: 'Distribusi', label: 'Distribusi & Niaga (E-Commerce)', icon: DistribusiIcon },
+  { id: 'Truck', label: 'Distribusi / Logistik', icon: DistribusiIcon },
   { id: 'Building2', label: 'Bangunan & Konstruksi', icon: Building2 },
   { id: 'Home', label: 'Rumah Tangga', icon: Home },
   { id: 'MapPin', label: 'Lokasi & Geospasial', icon: MapPin },

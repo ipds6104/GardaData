@@ -17,6 +17,7 @@ import {
   Tablet, Monitor, Undo2, Redo2, Share2, Compass, Navigation
 } from 'lucide-react';
 import { useTheme } from '../../lib/theme';
+import { DistribusiIcon } from '../common/DistribusiIcon';
 import { getIconComponent, AVAILABLE_ICONS, DATA_TYPES, normalizeDataType, getRecordVal, cleanText, normalizeKey, normalizeStringVal } from './laporanConstants';
 import { PetugasLaporanModule } from './PetugasLaporanModule';
 import { 
@@ -2168,7 +2169,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
       title: 'Survei Harga Konsumen Pasar (SHK)',
       category: 'Statistik Distribusi & Harga',
       desc: 'Formulir pemantauan komoditas pangan pokok, pasar tradisional, dan distributor harian.',
-      icon: DollarSign,
+      icon: DistribusiIcon,
       fieldsCount: 8
     },
     {
@@ -2198,7 +2199,7 @@ export const AdminLaporanManager: React.FC<AdminLaporanManagerProps> = ({ onBack
   ];
 
   const CATEGORY_OPTIONS = [
-    { value: 'Statistik Distribusi & Harga', label: 'Statistik Distribusi & Harga', icon: DollarSign },
+    { value: 'Statistik Distribusi & Harga', label: 'Statistik Distribusi & Harga', icon: DistribusiIcon },
     { value: 'Statistik Sosial & Kependudukan', label: 'Statistik Sosial & Kependudukan', icon: Users },
     { value: 'Statistik Produksi & Pertanian', label: 'Statistik Produksi & Pertanian', icon: Wheat },
     { value: 'Sensus Ekonomi & Bisnis', label: 'Sensus Ekonomi & Bisnis', icon: Building2 },

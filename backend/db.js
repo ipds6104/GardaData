@@ -104,9 +104,19 @@ async function initDB() {
         icon VARCHAR(50) DEFAULT 'pendidikan',
         isActive BOOLEAN DEFAULT true,
         buttons JSON,
+        bgImage VARCHAR(500) NULL,
+        themeTone VARCHAR(100) NULL,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Auto-migrate columns bgImage & themeTone jika belum ada
+    try {
+      await connection.query(`ALTER TABLE lms_trainings ADD COLUMN bgImage VARCHAR(500) NULL`);
+    } catch (e) {}
+    try {
+      await connection.query(`ALTER TABLE lms_trainings ADD COLUMN themeTone VARCHAR(100) NULL`);
+    } catch (e) {}
 
     // Tabel Laporan Report Links
     await connection.query(`

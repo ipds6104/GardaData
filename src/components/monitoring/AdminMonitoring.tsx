@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, Plus, Save, Trash2, Download, AlertCircle, Edit, Link as LinkIcon, Loader2, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, RefreshCw, CheckCircle } from 'lucide-react';
+import { DistribusiIcon } from '../common/DistribusiIcon';
 
 export const ICON_MAP: Record<string, React.ElementType> = {
   'ketenagakerjaan': Briefcase,
@@ -10,7 +11,7 @@ export const ICON_MAP: Record<string, React.ElementType> = {
   'produksi': Factory,
   'pengolahan': Settings,
   'harga': Tag,
-  'distribusi': Truck,
+  'distribusi': DistribusiIcon,
   'analisis': BarChart2,
   'pemerintahan': Landmark,
   'pendidikan': GraduationCap,

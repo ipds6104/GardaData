@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink, GripVertical, Clock, Copy, RotateCcw, Sparkles, Layers, AlertCircle, Check, Share2, CheckCheck, X, ArrowRight, ChevronRight, Target, TrendingUp, Bell, FileText } from 'lucide-react';
+import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink, GripVertical, Clock, Copy, RotateCcw, Sparkles, Layers, AlertCircle, Check, Share2, CheckCheck, X, ArrowRight, ChevronRight, Target, TrendingUp, Bell, FileText, Palette, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useTheme } from '../lib/theme';
+import { DistribusiIcon } from './common/DistribusiIcon';
 import { IndonesianDateTimePicker } from './common/IndonesianDateTimePicker';
 import { IndonesianCategorySelect } from './common/IndonesianCategorySelect';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
@@ -30,7 +31,34 @@ interface LMSTraining {
   icon: string;
   isActive: boolean;
   buttons: LMSButton[];
+  bgImage?: string;
+  themeTone?: string;
 }
+
+// Preset Opsi Tone Warna Pelatihan untuk Admin
+export const LMS_THEME_OPTIONS = [
+  { id: 'indigo_twilight', name: 'Indigo Twilight Dreams', color: '#4f46e5', badgeBg: 'bg-indigo-100 text-indigo-800', desc: 'Indigo lavender & ungu senja (pin.it/20DyPHjCp)' },
+  { id: 'dusty_rose', name: 'Dusty Rose & Midnight Teal', color: '#af7a80', badgeBg: 'bg-rose-100 text-rose-800', desc: 'Dusty rose mauve & midnight teal (pin.it/6OBEFCPMK)' },
+  { id: 'deep_navy', name: 'Deep Navy Sapphire', color: '#1e3a8a', badgeBg: 'bg-blue-100 text-blue-900', desc: 'Midnight navy & biru safir (pin.it/1Hf5r4aYI)' },
+  { id: 'botanical_green', name: 'Botanical Forest Sage', color: '#15803d', badgeBg: 'bg-emerald-100 text-emerald-800', desc: 'Forest sage & zaitun botanical (pin.it/7gm666a88)' },
+  { id: 'warm_amber', name: 'Warm Amber Terracotta', color: '#d97706', badgeBg: 'bg-amber-100 text-amber-900', desc: 'Terracotta pasir amber hangat (pin.it/27vxZKqNu)' },
+  { id: 'persik', name: 'Persik Segar (Peach)', color: '#8b5cf6', badgeBg: 'bg-purple-100 text-purple-800', desc: 'Ungu modern lavender dan peach lembut' },
+  { id: 'greentea', name: 'Greentea / Emerald BPS', color: '#22c55e', badgeBg: 'bg-emerald-100 text-emerald-800', desc: 'Hijau segar dan teal khas statistik' },
+  { id: 'sky', name: 'Sky Blue', color: '#007BFF', badgeBg: 'bg-sky-100 text-sky-800', desc: 'Biru langit cerah dan segar' },
+  { id: 'auntum', name: 'Autumn Gold', color: '#eab308', badgeBg: 'bg-yellow-100 text-yellow-800', desc: 'Kuning keemasan hangat' },
+  { id: 'notebook', name: 'Soft Rose / Notebook', color: '#ec4899', badgeBg: 'bg-pink-100 text-pink-800', desc: 'Merah muda pastel feminin dan ceria' },
+  { id: 'original', name: 'BPS Classic Navy & Amber', color: '#f17e3a', badgeBg: 'bg-amber-100 text-amber-800', desc: 'Oranye dan biru tua klasik institusi' }
+];
+
+// Preset 5 Gambar Latar Pelatihan Pinterest & Standar Bersih
+export const LMS_BACKGROUND_PRESETS = [
+  { id: '/images/lms/lms-bg-1.jpg', name: '1. Indigo Twilight Dreams', preview: '/images/lms/lms-bg-1.jpg', defaultTone: 'indigo_twilight', desc: 'Ungu senja & lavender' },
+  { id: '/images/lms/lms-bg-2.jpg', name: '2. Dusty Rose & Teal', preview: '/images/lms/lms-bg-2.jpg', defaultTone: 'dusty_rose', desc: 'Mawar mauve & midnight teal' },
+  { id: '/images/lms/lms-bg-3.jpg', name: '3. Deep Navy Sapphire', preview: '/images/lms/lms-bg-3.jpg', defaultTone: 'deep_navy', desc: 'Biru safir & oceanic navy' },
+  { id: '/images/lms/lms-bg-4.jpg', name: '4. Botanical Forest Sage', preview: '/images/lms/lms-bg-4.jpg', defaultTone: 'botanical_green', desc: 'Hijau hutan & zaitun' },
+  { id: '/images/lms/lms-bg-5.jpg', name: '5. Warm Amber Terracotta', preview: '/images/lms/lms-bg-5.jpg', defaultTone: 'warm_amber', desc: 'Terracotta pasir amber' },
+  { id: '', name: '6. Standar Bersih (Tanpa Latar)', preview: '', defaultTone: 'persik', desc: 'Gradien polos minimalis' }
+];
 
 const DEFAULT_CATEGORIES = ['Absensi', 'Administrasi', 'Materi dan Instrumen Pelatihan', 'Jadwal Pelatihan', 'Kuis dan Pendalaman'];
 
@@ -55,7 +83,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'produksi': Factory,
   'pengolahan': Settings,
   'harga': Tag,
-  'distribusi': Truck,
+  'distribusi': DistribusiIcon,
   'analisis': BarChart2,
   'pemerintahan': Landmark,
   'pendidikan': GraduationCap,
@@ -171,6 +199,62 @@ const getActionLabel = (category: string, isLocked: boolean) => {
 
 const getThemeHeroStyles = (preset: string) => {
   switch (preset) {
+    case 'indigo_twilight':
+      return {
+        cardBg: 'bg-gradient-to-br from-indigo-100 via-purple-50 to-blue-50',
+        cardBorder: 'border-indigo-300',
+        badgeBg: 'bg-indigo-500/20 text-indigo-900 border-indigo-300',
+        accentColor: '#4f46e5',
+        activePill: 'bg-indigo-600 text-white font-black shadow-xs',
+        sliderBg: 'bg-white/90 hover:bg-white text-slate-800 border border-indigo-300',
+        sliderCircle: 'bg-indigo-600 text-white',
+        highlightDot: 'bg-indigo-500'
+      };
+    case 'dusty_rose':
+      return {
+        cardBg: 'bg-gradient-to-br from-rose-100 via-stone-50 to-teal-50',
+        cardBorder: 'border-rose-300',
+        badgeBg: 'bg-rose-500/20 text-rose-900 border-rose-300',
+        accentColor: '#af7a80',
+        activePill: 'bg-[#af7a80] text-white font-black shadow-xs',
+        sliderBg: 'bg-white/90 hover:bg-white text-slate-800 border border-rose-300',
+        sliderCircle: 'bg-[#af7a80] text-white',
+        highlightDot: 'bg-[#af7a80]'
+      };
+    case 'deep_navy':
+      return {
+        cardBg: 'bg-gradient-to-br from-blue-100 via-sky-50 to-indigo-50',
+        cardBorder: 'border-blue-300',
+        badgeBg: 'bg-blue-600/20 text-blue-900 border-blue-300',
+        accentColor: '#1e3a8a',
+        activePill: 'bg-blue-900 text-white font-black shadow-xs',
+        sliderBg: 'bg-white/90 hover:bg-white text-slate-800 border border-blue-300',
+        sliderCircle: 'bg-blue-900 text-white',
+        highlightDot: 'bg-blue-600'
+      };
+    case 'botanical_green':
+      return {
+        cardBg: 'bg-gradient-to-br from-emerald-100 via-green-50 to-lime-50',
+        cardBorder: 'border-emerald-300',
+        badgeBg: 'bg-emerald-600/20 text-emerald-900 border-emerald-300',
+        accentColor: '#15803d',
+        activePill: 'bg-emerald-700 text-white font-black shadow-xs',
+        sliderBg: 'bg-white/90 hover:bg-white text-slate-800 border border-emerald-300',
+        sliderCircle: 'bg-emerald-700 text-white',
+        highlightDot: 'bg-emerald-600'
+      };
+    case 'warm_amber':
+    case 'pinterest_warm':
+      return {
+        cardBg: 'bg-gradient-to-br from-amber-100 via-orange-50 to-stone-50',
+        cardBorder: 'border-amber-300',
+        badgeBg: 'bg-amber-600/20 text-amber-900 border-amber-300',
+        accentColor: '#d97706',
+        activePill: 'bg-amber-600 text-white font-black shadow-xs',
+        sliderBg: 'bg-white/90 hover:bg-white text-slate-800 border border-amber-300',
+        sliderCircle: 'bg-amber-600 text-white',
+        highlightDot: 'bg-amber-500'
+      };
     case 'original':
       return {
         cardBg: 'bg-gradient-to-br from-amber-200 via-orange-100 to-amber-50',
@@ -243,12 +327,78 @@ const getThemeHeroStyles = (preset: string) => {
 
 const getAdminThemeCategoryStyles = (preset: string) => {
   switch (preset) {
+    case 'indigo_twilight':
+      return {
+        cardBorder: 'border-indigo-200 dark:border-indigo-800/80',
+        cardBg: 'bg-white dark:bg-slate-900 shadow-sm',
+        headerBorder: 'border-indigo-100 dark:border-indigo-800/60',
+        badgeBg: 'bg-indigo-50 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+        iconBg: 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-indigo-500/20',
+        eyebrowColor: 'text-indigo-700 dark:text-indigo-400',
+        itemHoverTitle: 'group-hover:text-indigo-600 dark:group-hover:text-indigo-400',
+        itemHoverBorder: 'hover:border-indigo-300 dark:hover:border-indigo-700',
+        buttonHoverBg: 'group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600',
+        accentColor: '#4f46e5'
+      };
+    case 'dusty_rose':
+      return {
+        cardBorder: 'border-rose-200 dark:border-rose-800/80',
+        cardBg: 'bg-white dark:bg-slate-900 shadow-sm',
+        headerBorder: 'border-rose-100 dark:border-rose-800/60',
+        badgeBg: 'bg-rose-50 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border-rose-200 dark:border-rose-800',
+        iconBg: 'bg-gradient-to-tr from-[#af7a80] to-[#8d5b62] text-white shadow-rose-500/20',
+        eyebrowColor: 'text-[#8d5b62] dark:text-rose-400',
+        itemHoverTitle: 'group-hover:text-[#af7a80] dark:group-hover:text-rose-400',
+        itemHoverBorder: 'hover:border-rose-300 dark:hover:border-rose-700',
+        buttonHoverBg: 'group-hover:bg-[#af7a80] group-hover:text-white group-hover:border-[#af7a80]',
+        accentColor: '#af7a80'
+      };
+    case 'deep_navy':
+      return {
+        cardBorder: 'border-blue-200 dark:border-blue-800/80',
+        cardBg: 'bg-white dark:bg-slate-900 shadow-sm',
+        headerBorder: 'border-blue-100 dark:border-blue-800/60',
+        badgeBg: 'bg-blue-50 text-blue-900 dark:bg-blue-950/80 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+        iconBg: 'bg-gradient-to-tr from-blue-900 to-indigo-800 text-white shadow-blue-500/20',
+        eyebrowColor: 'text-blue-900 dark:text-blue-400',
+        itemHoverTitle: 'group-hover:text-blue-700 dark:group-hover:text-blue-400',
+        itemHoverBorder: 'hover:border-blue-300 dark:hover:border-blue-700',
+        buttonHoverBg: 'group-hover:bg-blue-900 group-hover:text-white group-hover:border-blue-900',
+        accentColor: '#1e3a8a'
+      };
+    case 'botanical_green':
+      return {
+        cardBorder: 'border-emerald-200 dark:border-emerald-800/80',
+        cardBg: 'bg-white dark:bg-slate-900 shadow-sm',
+        headerBorder: 'border-emerald-100 dark:border-emerald-800/60',
+        badgeBg: 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+        iconBg: 'bg-gradient-to-tr from-emerald-700 to-teal-800 text-white shadow-emerald-500/20',
+        eyebrowColor: 'text-emerald-800 dark:text-emerald-400',
+        itemHoverTitle: 'group-hover:text-emerald-700 dark:group-hover:text-emerald-400',
+        itemHoverBorder: 'hover:border-emerald-300 dark:hover:border-emerald-700',
+        buttonHoverBg: 'group-hover:bg-emerald-700 group-hover:text-white group-hover:border-emerald-700',
+        accentColor: '#15803d'
+      };
+    case 'warm_amber':
+    case 'pinterest_warm':
+      return {
+        cardBorder: 'border-amber-200 dark:border-amber-800/80',
+        cardBg: 'bg-white dark:bg-slate-900 shadow-sm',
+        headerBorder: 'border-amber-100 dark:border-amber-800/60',
+        badgeBg: 'bg-amber-50 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+        iconBg: 'bg-gradient-to-tr from-amber-600 to-orange-600 text-white shadow-amber-500/20',
+        eyebrowColor: 'text-amber-800 dark:text-amber-400',
+        itemHoverTitle: 'group-hover:text-amber-700 dark:group-hover:text-amber-400',
+        itemHoverBorder: 'hover:border-amber-300 dark:hover:border-amber-700',
+        buttonHoverBg: 'group-hover:bg-amber-600 group-hover:text-white group-hover:border-amber-600',
+        accentColor: '#d97706'
+      };
     case 'original':
       return {
-        cardBorder: 'border-amber-200 dark:border-amber-900/40',
-        cardBg: 'bg-gradient-to-b from-amber-50/40 via-white to-white dark:from-amber-950/20 dark:via-slate-900 dark:to-slate-900',
-        headerBorder: 'border-amber-200/60 dark:border-amber-900/40',
-        badgeBg: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-200 dark:border-amber-800/60',
+        cardBorder: 'border-amber-200 dark:border-amber-800/80',
+        cardBg: 'bg-white dark:bg-slate-900 shadow-sm',
+        headerBorder: 'border-amber-100 dark:border-amber-800/60',
+        badgeBg: 'bg-amber-50 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-200 dark:border-amber-800',
         iconBg: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-amber-500/20',
         eyebrowColor: 'text-amber-700 dark:text-amber-400',
         itemHoverTitle: 'group-hover:text-amber-600 dark:group-hover:text-amber-400',
@@ -258,10 +408,10 @@ const getAdminThemeCategoryStyles = (preset: string) => {
       };
     case 'sky':
       return {
-        cardBorder: 'border-sky-200 dark:border-sky-900/40',
-        cardBg: 'bg-gradient-to-b from-sky-50/40 via-white to-white dark:from-sky-950/20 dark:via-slate-900 dark:to-slate-900',
-        headerBorder: 'border-sky-200/60 dark:border-sky-900/40',
-        badgeBg: 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border-sky-200 dark:border-sky-800/60',
+        cardBorder: 'border-sky-200 dark:border-sky-800/80',
+        cardBg: 'bg-white dark:bg-slate-900 shadow-sm',
+        headerBorder: 'border-sky-100 dark:border-sky-800/60',
+        badgeBg: 'bg-sky-50 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border-sky-200 dark:border-sky-800',
         iconBg: 'bg-gradient-to-tr from-sky-500 to-blue-600 text-white shadow-sky-500/20',
         eyebrowColor: 'text-sky-700 dark:text-sky-400',
         itemHoverTitle: 'group-hover:text-sky-600 dark:group-hover:text-sky-400',
@@ -271,10 +421,10 @@ const getAdminThemeCategoryStyles = (preset: string) => {
       };
     case 'greentea':
       return {
-        cardBorder: 'border-emerald-200 dark:border-emerald-900/40',
-        cardBg: 'bg-gradient-to-b from-emerald-50/40 via-white to-white dark:from-emerald-950/20 dark:via-slate-900 dark:to-slate-900',
-        headerBorder: 'border-emerald-200/60 dark:border-emerald-900/40',
-        badgeBg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60',
+        cardBorder: 'border-emerald-200 dark:border-emerald-800/80',
+        cardBg: 'bg-white dark:bg-slate-900 shadow-sm',
+        headerBorder: 'border-emerald-100 dark:border-emerald-800/60',
+        badgeBg: 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
         iconBg: 'bg-gradient-to-tr from-emerald-500 to-teal-600 text-white shadow-emerald-500/20',
         eyebrowColor: 'text-emerald-700 dark:text-emerald-400',
         itemHoverTitle: 'group-hover:text-emerald-600 dark:group-hover:text-emerald-400',
@@ -284,10 +434,10 @@ const getAdminThemeCategoryStyles = (preset: string) => {
       };
     case 'auntum':
       return {
-        cardBorder: 'border-yellow-200 dark:border-yellow-900/40',
-        cardBg: 'bg-gradient-to-b from-yellow-50/40 via-white to-white dark:from-yellow-950/20 dark:via-slate-900 dark:to-slate-900',
-        headerBorder: 'border-yellow-200/60 dark:border-yellow-900/40',
-        badgeBg: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/70 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800/60',
+        cardBorder: 'border-yellow-200 dark:border-yellow-800/80',
+        cardBg: 'bg-white dark:bg-slate-900 shadow-sm',
+        headerBorder: 'border-yellow-100 dark:border-yellow-800/60',
+        badgeBg: 'bg-yellow-50 text-yellow-800 dark:bg-yellow-950/80 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
         iconBg: 'bg-gradient-to-tr from-yellow-500 to-amber-500 text-white shadow-yellow-500/20',
         eyebrowColor: 'text-yellow-700 dark:text-yellow-400',
         itemHoverTitle: 'group-hover:text-yellow-600 dark:group-hover:text-yellow-400',
@@ -297,10 +447,10 @@ const getAdminThemeCategoryStyles = (preset: string) => {
       };
     case 'notebook':
       return {
-        cardBorder: 'border-pink-200 dark:border-pink-900/40',
-        cardBg: 'bg-gradient-to-b from-pink-50/40 via-white to-white dark:from-pink-950/20 dark:via-slate-900 dark:to-slate-900',
-        headerBorder: 'border-pink-200/60 dark:border-pink-900/40',
-        badgeBg: 'bg-pink-100 text-pink-800 dark:bg-pink-950/70 dark:text-pink-300 border-pink-200 dark:border-pink-800/60',
+        cardBorder: 'border-pink-200 dark:border-pink-800/80',
+        cardBg: 'bg-white dark:bg-slate-900 shadow-sm',
+        headerBorder: 'border-pink-100 dark:border-pink-800/60',
+        badgeBg: 'bg-pink-50 text-pink-800 dark:bg-pink-950/80 dark:text-pink-300 border-pink-200 dark:border-pink-800',
         iconBg: 'bg-gradient-to-tr from-pink-500 to-rose-500 text-white shadow-pink-500/20',
         eyebrowColor: 'text-pink-700 dark:text-pink-400',
         itemHoverTitle: 'group-hover:text-pink-600 dark:group-hover:text-pink-400',
@@ -311,10 +461,10 @@ const getAdminThemeCategoryStyles = (preset: string) => {
     case 'persik':
     default:
       return {
-        cardBorder: 'border-purple-200 dark:border-purple-900/40',
-        cardBg: 'bg-gradient-to-b from-purple-50/40 via-white to-white dark:from-purple-950/20 dark:via-slate-900 dark:to-slate-900',
-        headerBorder: 'border-purple-200/60 dark:border-purple-900/40',
-        badgeBg: 'bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 border-purple-200 dark:border-purple-800/60',
+        cardBorder: 'border-purple-200 dark:border-purple-800/80',
+        cardBg: 'bg-white dark:bg-slate-900 shadow-sm',
+        headerBorder: 'border-purple-100 dark:border-purple-800/60',
+        badgeBg: 'bg-purple-50 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border-purple-200 dark:border-purple-800',
         iconBg: 'bg-gradient-to-tr from-purple-500 to-indigo-600 text-white shadow-purple-500/20',
         eyebrowColor: 'text-purple-700 dark:text-purple-400',
         itemHoverTitle: 'group-hover:text-purple-600 dark:group-hover:text-purple-400',
@@ -504,8 +654,6 @@ export const LMSModule: React.FC<{
 }> = ({ onBack, directTrainingId, initialTrainingId, isGuestDirect = false }) => {
   const { user } = useAuth();
   const { presetInfo } = useTheme();
-  const heroTheme = getThemeHeroStyles(presetInfo?.id || 'persik');
-  const catTheme = getAdminThemeCategoryStyles(presetInfo?.id || 'persik');
   const isAdmin = user?.role === 'admin';
   const [trainings, setTrainings] = useState<LMSTraining[]>([]);
   const [loading, setLoading] = useState(true);
@@ -523,9 +671,15 @@ export const LMSModule: React.FC<{
 
   // Form states
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState<{ id?: string, name: string, startDate: string, endDate: string, icon: string, isActive: boolean }>({
-    name: '', startDate: '', endDate: '', icon: 'pendidikan', isActive: true
+  const [formData, setFormData] = useState<{ id?: string, name: string, startDate: string, endDate: string, icon: string, isActive: boolean, bgImage?: string, themeTone?: string }>({
+    name: '', startDate: '', endDate: '', icon: 'pendidikan', isActive: true, bgImage: '/images/lms/lms-bg-1.jpg', themeTone: 'indigo_twilight'
   });
+
+  // Modal Tone & Background states
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [themeToneSelect, setThemeToneSelect] = useState<string>('indigo_twilight');
+  const [bgImageSelect, setBgImageSelect] = useState<string>('/images/lms/lms-bg-1.jpg');
+  const [savingTheme, setSavingTheme] = useState(false);
 
   // Button form states
   const [showButtonForm, setShowButtonForm] = useState(false);
@@ -595,12 +749,20 @@ export const LMSModule: React.FC<{
           } else if (Array.isArray(d.buttons)) {
             parsedButtons = d.buttons;
           }
+          let savedTheme: any = null;
+          try {
+            const local = localStorage.getItem(`lms_training_theme_${d.id}`);
+            if (local) savedTheme = JSON.parse(local);
+          } catch (e) {}
+
           return {
             ...d,
             startDate: d.startDate ? d.startDate.split('T')[0] : '',
             endDate: d.endDate ? d.endDate.split('T')[0] : '',
             isActive: Boolean(d.isActive),
-            buttons: parsedButtons
+            buttons: parsedButtons,
+            bgImage: (d.bgImage && d.bgImage !== '/images/lms-training-bg.jpg') ? d.bgImage : (savedTheme?.bgImage && savedTheme.bgImage !== '/images/lms-training-bg.jpg' ? savedTheme.bgImage : '/images/lms/lms-bg-1.jpg'),
+            themeTone: (d.themeTone && d.themeTone !== 'pinterest_warm') ? d.themeTone : (savedTheme?.themeTone && savedTheme.themeTone !== 'pinterest_warm' ? savedTheme.themeTone : 'indigo_twilight')
           };
         }) as LMSTraining[];
         setTrainings(formatted);
@@ -662,6 +824,56 @@ export const LMSModule: React.FC<{
     fetchTrainings();
   }, []);
 
+  const handleOpenThemeModal = (t: LMSTraining) => {
+    const currentTone = (t.themeTone && t.themeTone !== 'pinterest_warm') ? t.themeTone : 'indigo_twilight';
+    const currentBg = (t.bgImage && t.bgImage !== '/images/lms-training-bg.jpg') ? t.bgImage : (t.bgImage === '' ? '' : '/images/lms/lms-bg-1.jpg');
+    setThemeToneSelect(currentTone);
+    setBgImageSelect(currentBg);
+    setShowThemeModal(true);
+  };
+
+  const handleSaveTrainingTheme = async (newTone: string, newBg: string) => {
+    if (!activeTraining) return;
+    setSavingTheme(true);
+    try {
+      const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+      const payload: any = {
+        name: activeTraining.name,
+        startDate: activeTraining.startDate || null,
+        endDate: activeTraining.endDate || null,
+        period: activeTraining.period || '',
+        icon: activeTraining.icon || 'pendidikan',
+        isActive: activeTraining.isActive,
+        buttons: activeTraining.buttons || [],
+        themeTone: newTone,
+        bgImage: newBg
+      };
+
+      await fetch(`${baseUrl}/api/lms/configs/${activeTraining.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      // Update state secara instan
+      setTrainings(prev => prev.map(t => t.id === activeTraining.id ? { ...t, themeTone: newTone, bgImage: newBg } : t));
+      try {
+        localStorage.setItem(`lms_training_theme_${activeTraining.id}`, JSON.stringify({ themeTone: newTone, bgImage: newBg }));
+      } catch {}
+      setShowThemeModal(false);
+    } catch (err) {
+      console.error('Gagal menyimpan tone & background pelatihan:', err);
+      // Fallback lokal
+      setTrainings(prev => prev.map(t => t.id === activeTraining.id ? { ...t, themeTone: newTone, bgImage: newBg } : t));
+      try {
+        localStorage.setItem(`lms_training_theme_${activeTraining.id}`, JSON.stringify({ themeTone: newTone, bgImage: newBg }));
+      } catch {}
+      setShowThemeModal(false);
+    } finally {
+      setSavingTheme(false);
+    }
+  };
+
   const handleSaveTraining = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -675,7 +887,9 @@ export const LMSModule: React.FC<{
         startDate: formData.startDate,
         endDate: formData.endDate,
         icon: formData.icon,
-        isActive: formData.isActive
+        isActive: formData.isActive,
+        bgImage: formData.bgImage || existing?.bgImage || '/images/lms/lms-bg-1.jpg',
+        themeTone: formData.themeTone || existing?.themeTone || 'indigo_twilight'
       };
       if (existing && existing.buttons) {
         payload.buttons = existing.buttons;
@@ -689,7 +903,7 @@ export const LMSModule: React.FC<{
 
       if (res.ok) {
         setShowForm(false);
-        setFormData({ name: '', startDate: '', endDate: '', icon: 'pendidikan', isActive: true });
+        setFormData({ name: '', startDate: '', endDate: '', icon: 'pendidikan', isActive: true, bgImage: '/images/lms/lms-bg-1.jpg', themeTone: 'indigo_twilight' });
         fetchTrainings();
       } else {
         throw new Error('Server error');
@@ -1078,6 +1292,10 @@ export const LMSModule: React.FC<{
 
   const visibleTrainings = trainings; // Admin sees all, Petugas sees all but inactive are labeled
   const activeTraining = trainings.find(t => t.id === selectedTrainingId);
+  const activeTone = (activeTraining?.themeTone && activeTraining.themeTone !== 'pinterest_warm') ? activeTraining.themeTone : 'indigo_twilight';
+  const activeBg = (activeTraining?.bgImage && activeTraining.bgImage !== '/images/lms-training-bg.jpg') ? activeTraining.bgImage : (activeTraining?.bgImage === '' ? '' : '/images/lms/lms-bg-1.jpg');
+  const heroTheme = getThemeHeroStyles(activeTone);
+  const catTheme = getAdminThemeCategoryStyles(activeTone);
 
   // Kumpulkan semua kategori unik dari pelatihan yang sedang dibuka
   let currentCategories: string[] = [...DEFAULT_CATEGORIES];
@@ -1096,9 +1314,23 @@ export const LMSModule: React.FC<{
           <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> {view === 'list' ? 'Kembali' : 'Kembali ke Daftar Pelatihan'}
         </button>
       ) : (
-        <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-primary-600 font-semibold group transition-colors cursor-pointer">
-          <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Keluar ke Halaman Login
-        </button>
+        <div className="flex items-center justify-between gap-4 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <img 
+              src="/logo.png" 
+              alt="Logo Garda Data" 
+              className="w-8 h-8 object-contain shrink-0" 
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+            <div>
+              <div className="text-xs font-black text-slate-800 dark:text-white leading-tight">Garda Data LMS</div>
+              <div className="text-[10px] text-slate-500 font-medium">Pelatihan &amp; Instrumen Lapangan BPS</div>
+            </div>
+          </div>
+          <button onClick={onBack} className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-primary-600 font-bold px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700">
+            <ChevronLeft className="w-4 h-4" /> Keluar ke Halaman Login
+          </button>
+        </div>
       )}
 
       {/* Header */}
@@ -1167,7 +1399,14 @@ export const LMSModule: React.FC<{
                           <button onClick={() => toggleTrainingStatus(t)} className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors" title="Ubah Status">
                             {t.isActive ? <Unlock className="w-4 h-4"/> : <Lock className="w-4 h-4"/>}
                           </button>
-                          <button onClick={() => { setFormData({...t, startDate: t.startDate||'', endDate: t.endDate||''}); setShowForm(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors" title="Edit">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setSelectedTrainingId(t.id); handleOpenThemeModal(t); }} 
+                            className="p-1.5 text-slate-400 hover:text-amber-500 transition-colors cursor-pointer" 
+                            title="Atur Tone Warna & Latar Belakang"
+                          >
+                            <Palette className="w-4 h-4"/>
+                          </button>
+                          <button onClick={() => { setFormData({...t, startDate: t.startDate||'', endDate: t.endDate||'', bgImage: t.bgImage || '/images/lms/lms-bg-1.jpg', themeTone: t.themeTone || 'indigo_twilight'}); setShowForm(true); }} className="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors" title="Edit Data Pelatihan">
                             <Edit2 className="w-4 h-4"/>
                           </button>
                           <button onClick={() => handleDeleteTraining(t.id)} className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors" title="Hapus">
@@ -1246,30 +1485,60 @@ export const LMSModule: React.FC<{
         </div>
       ) : view === 'detail' && activeTraining ? (
         // ======================= VIEW: DETAIL (Desain Sesuai Gambar Referensi & Tone Warna Admin) =======================
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 md:space-y-8 max-w-6xl mx-auto">
-          {(() => {
-            const heroTheme = getThemeHeroStyles(presetInfo?.id || 'persik');
-            const allAvailableButtons = isAdmin 
-              ? (activeTraining.buttons || []) 
-              : (activeTraining.buttons || []).filter(b => b && b.isActive);
+        <div 
+          className="relative p-2 sm:p-5 md:p-7 rounded-[2.5rem] transition-all duration-300 overflow-hidden"
+          style={
+            activeBg 
+              ? {
+                  backgroundImage: `url(${activeBg})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center top',
+                  backgroundAttachment: 'local'
+                }
+              : undefined
+          }
+        >
+          {activeBg && (
+            <div className="absolute inset-0 bg-[#f8f6ee]/85 dark:bg-slate-950/90 backdrop-blur-[3px] rounded-[2.5rem] pointer-events-none" />
+          )}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 space-y-6 md:space-y-8 max-w-6xl mx-auto">
+            {(() => {
+              const allAvailableButtons = isAdmin 
+                ? (activeTraining.buttons || []) 
+                : (activeTraining.buttons || []).filter(b => b && b.isActive);
 
-            return (
-              <>
-                {/* 1. TOP PROFILE & GREETING BAR (Sesuai Layar Kiri Referensi: Hello Sarah Wilson) */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 dark:bg-slate-900/60 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xs backdrop-blur-sm">
+              return (
+                <>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
                   <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-400 to-orange-400 p-0.5 shadow-xs shrink-0">
-                      <div className="w-full h-full rounded-full bg-white dark:bg-slate-800 flex items-center justify-center font-black text-slate-800 dark:text-slate-100 text-sm">
-                        {user?.name ? user.name.slice(0, 2).toUpperCase() : 'PS'}
+                    {/* Logomark Resmi: BPS & Garda Data (Menggantikan Icon PS) */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 p-2 shadow-xs flex items-center justify-center hover:scale-105 transition-transform" title="Badan Pusat Statistik (BPS)">
+                        <img 
+                          src="/bps-logo.svg" 
+                          alt="Logo Badan Pusat Statistik (BPS)" 
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/2/28/Lambang_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg';
+                          }}
+                        />
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 p-1.5 shadow-xs flex items-center justify-center hover:scale-105 transition-transform" title="Garda Data - BPS Mempawah">
+                        <img 
+                          src="/logo.png" 
+                          alt="Logo Garda Data" 
+                          className="w-full h-full object-contain" 
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-400 font-medium flex items-center gap-1">
-                        <span>Halo</span>
-                        <span>👋</span>
-                      </div>
-                      <div className="text-base font-black text-slate-800 dark:text-white leading-tight">
-                        {user?.name || (isGuestDirect ? 'Petugas Lapangan' : 'Petugas Sensus & Survei')}
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight">
+                        Welcome to the Learning Management System of BPS Mempawah
+                      </h2>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 mt-0.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                        <span>Portal Resmi Pembelajaran &amp; Instrumen Pelatihan Mandiri</span>
                       </div>
                     </div>
                   </div>
@@ -1286,6 +1555,14 @@ export const LMSModule: React.FC<{
                           <Share2 className="w-3.5 h-3.5" />
                           <span>Bagikan Tautan</span>
                         </button>
+                        <button 
+                          onClick={() => handleOpenThemeModal(activeTraining)} 
+                          className="px-3.5 py-2 bg-gradient-to-r from-[#f89777] to-amber-500 hover:from-[#e77e5d] hover:to-amber-600 text-white rounded-2xl font-bold flex items-center gap-1.5 transition-all shadow-xs text-xs cursor-pointer"
+                          title="Atur Tone Warna & Latar Belakang (Background) Kegiatan Pelatihan"
+                        >
+                          <Palette className="w-3.5 h-3.5" />
+                          <span>Tone &amp; Background</span>
+                        </button>
                         <button onClick={() => { setButtonFormData({ title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true }); setIsCustomCategory(false); setShowButtonForm(true); }} className="px-3.5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-bold flex items-center gap-1.5 transition-colors shadow-xs text-xs cursor-pointer">
                           <Plus className="w-3.5 h-3.5" /> Tautan Baru
                         </button>
@@ -1301,7 +1578,7 @@ export const LMSModule: React.FC<{
                         >
                           <Copy className="w-3.5 h-3.5" /> Salin
                         </button>
-                        <button onClick={() => { setFormData({...activeTraining, startDate: activeTraining.startDate||'', endDate: activeTraining.endDate||''}); setShowForm(true); }} className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-2xl transition-colors cursor-pointer" title="Edit Data Pelatihan"><Edit2 className="w-4 h-4"/></button>
+                        <button onClick={() => { setFormData({...activeTraining, startDate: activeTraining.startDate||'', endDate: activeTraining.endDate||'', bgImage: (activeTraining.bgImage && activeTraining.bgImage !== '/images/lms-training-bg.jpg') ? activeTraining.bgImage : '/images/lms/lms-bg-1.jpg', themeTone: (activeTraining.themeTone && activeTraining.themeTone !== 'pinterest_warm') ? activeTraining.themeTone : 'indigo_twilight'}); setShowForm(true); }} className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-2xl transition-colors cursor-pointer" title="Edit Data Pelatihan"><Edit2 className="w-4 h-4"/></button>
                       </>
                     )}
                   </div>
@@ -1382,10 +1659,10 @@ export const LMSModule: React.FC<{
                         </div>
                       </div>
 
-                      {/* Logo BPS + Tombol Frosted Glass Slider */}
-                      <div className="pt-2 flex flex-wrap items-center gap-4">
+                      {/* Logo BPS + Logo Garda Data + Tombol Frosted Glass Slider */}
+                      <div className="pt-2 flex flex-wrap items-center gap-3 sm:gap-4">
                         {/* Logo Resmi Badan Pusat Statistik (BPS) */}
-                        <div className="w-14 h-14 rounded-2xl bg-white/95 dark:bg-slate-900 border border-white/80 shadow-xs flex items-center justify-center p-2.5 shrink-0 hover:scale-105 transition-transform" title="Badan Pusat Statistik (BPS)">
+                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 shadow-xs flex items-center justify-center p-2.5 shrink-0 hover:scale-105 transition-transform" title="Badan Pusat Statistik (BPS)">
                           <img 
                             src="/bps-logo.svg" 
                             alt="Logo Badan Pusat Statistik (BPS)" 
@@ -1393,6 +1670,16 @@ export const LMSModule: React.FC<{
                             onError={(e) => {
                               e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/2/28/Lambang_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg';
                             }}
+                          />
+                        </div>
+
+                        {/* Logo Resmi Garda Data */}
+                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 shadow-xs flex items-center justify-center p-2 shrink-0 hover:scale-105 transition-transform" title="Garda Data - BPS Mempawah">
+                          <img 
+                            src="/logo.png" 
+                            alt="Logo Garda Data" 
+                            className="w-full h-full object-contain"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
                           />
                         </div>
 
@@ -1417,11 +1704,14 @@ export const LMSModule: React.FC<{
                     </div>
 
                     {/* Dekorasi Visual Grafis Kanan (Sesuai gambar referensi) */}
-                    <div className="hidden sm:flex flex-col items-center justify-center w-40 h-40 md:w-52 md:h-52 rounded-[2.5rem] bg-white/60 backdrop-blur-sm border border-white/80 shadow-md p-4 text-center shrink-0">
+                    <div className="hidden sm:flex flex-col items-center justify-center w-40 h-40 md:w-52 md:h-52 rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md p-4 text-center shrink-0">
                       <div className={`w-20 h-20 rounded-3xl ${heroTheme.cardBg} border ${heroTheme.cardBorder} flex items-center justify-center shadow-xs mb-2`}>
                         {React.createElement(ICON_MAP[activeTraining.icon] || BookOpen, { className: "w-10 h-10 text-slate-800" })}
                       </div>
-                      <div className="text-xs font-black text-slate-800">LMS BPS</div>
+                      <div className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5 justify-center">
+                        <img src="/logo.png" alt="Garda Data" className="w-3.5 h-3.5 object-contain" />
+                        <span>Garda Data LMS</span>
+                      </div>
                       <div className="text-[10px] font-bold text-slate-500 uppercase">{activeTraining.icon}</div>
                     </div>
                   </div>
@@ -1637,8 +1927,9 @@ export const LMSModule: React.FC<{
                 );
               });
             })()}
-          </div>
-        </motion.div>
+            </div>
+          </motion.div>
+        </div>
       ) : view === 'iframe' ? (
         // ======================= VIEW: IFRAME =======================
          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed inset-0 z-[100] flex flex-col bg-white overflow-hidden">
@@ -1731,6 +2022,79 @@ export const LMSModule: React.FC<{
                     })}
                   </div>
                 </div>
+
+                {/* Tone Warna Pelatihan */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">Tone Warna Pelatihan</label>
+                    {(() => {
+                      const activeToneObj = LMS_THEME_OPTIONS.find(o => o.id === (formData.themeTone || 'indigo_twilight'));
+                      return activeToneObj ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs" style={{ backgroundColor: activeToneObj.color }} />
+                          {activeToneObj.name}
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
+                  <select
+                    value={formData.themeTone || 'indigo_twilight'}
+                    onChange={e => setFormData({ ...formData, themeTone: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100 text-xs outline-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer"
+                  >
+                    {LMS_THEME_OPTIONS.map(opt => (
+                      <option key={opt.id} value={opt.id}>{opt.name} — {opt.desc}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Gambar Latar Pelatihan */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">Gambar Latar (Background)</label>
+                    <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400">Pilih Preset</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-52 overflow-y-auto p-1.5 border border-slate-200 dark:border-slate-700 rounded-2xl bg-slate-50/70 dark:bg-slate-850/60">
+                    {LMS_BACKGROUND_PRESETS.map(p => {
+                      const isSelected = (formData.bgImage !== undefined ? formData.bgImage : '/images/lms/lms-bg-1.jpg') === p.id;
+                      return (
+                        <button
+                          key={p.id || 'clean-bg'}
+                          type="button"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              bgImage: p.id,
+                              themeTone: p.defaultTone || formData.themeTone || 'indigo_twilight'
+                            });
+                          }}
+                          className={`p-2 rounded-xl border text-left transition-all cursor-pointer flex flex-col items-center gap-1.5 relative ${
+                            isSelected
+                              ? 'bg-amber-50/90 dark:bg-amber-950/50 border-[#f89777] ring-2 ring-[#f89777]/40 shadow-xs'
+                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="w-full h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0">
+                            {p.preview ? (
+                              <img src={p.preview} alt={p.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <ImageIcon className="w-5 h-5 text-slate-400" />
+                            )}
+                          </div>
+                          <div className="w-full text-center">
+                            <div className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">{p.name}</div>
+                          </div>
+                          {isSelected && (
+                            <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#f89777] text-white flex items-center justify-center shadow-xs">
+                              <Check className="w-2.5 h-2.5" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="flex gap-4 pt-4 mt-4 border-t border-slate-100">
                   <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-colors">Batal</button>
                   <button type="submit" className="flex-1 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-colors shadow-md">Simpan</button>
@@ -2130,6 +2494,168 @@ export const LMSModule: React.FC<{
                   className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors"
                 >
                   Tutup
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* MODAL TONE WARNA & BACKGROUND KEGIATAN PELATIHAN (ADMIN) */}
+        {showThemeModal && activeTraining && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto"
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-[2rem] p-6 md:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 my-8 space-y-6"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#f89777] to-amber-500 text-white flex items-center justify-center shadow-md shadow-[#f89777]/20 shrink-0">
+                    <Palette className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-800 dark:text-white text-base sm:text-lg">
+                      Tone Warna &amp; Background Pelatihan
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Kustomisasi estetika laman kegiatan pelatihan untuk petugas
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowThemeModal(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* 1. Pilih Tone Warna */}
+              <div className="space-y-3">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                  1. Pilih Tone Warna Pelatihan
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                  {LMS_THEME_OPTIONS.map(opt => {
+                    const isSelected = themeToneSelect === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setThemeToneSelect(opt.id)}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
+                          isSelected 
+                            ? 'bg-amber-50/60 dark:bg-amber-950/30 border-[#f89777] ring-2 ring-[#f89777]/30 shadow-xs' 
+                            : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span 
+                          className="w-4 h-4 rounded-full mt-0.5 shrink-0 shadow-2xs" 
+                          style={{ backgroundColor: opt.color }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                              {opt.name}
+                            </span>
+                            {isSelected && (
+                              <Check className="w-3.5 h-3.5 text-[#f89777] shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                            {opt.desc}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. Pilih Background Gambar */}
+              <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                  2. Gambar Latar Belakang (Background)
+                </label>
+
+                {/* Preset Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-1">
+                  {LMS_BACKGROUND_PRESETS.map((preset) => {
+                    const isSelected = bgImageSelect === preset.id;
+                    return (
+                      <button
+                        key={preset.id || 'clean-bg'}
+                        type="button"
+                        onClick={() => {
+                          setBgImageSelect(preset.id);
+                          if (preset.defaultTone) {
+                            setThemeToneSelect(preset.defaultTone);
+                          }
+                        }}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3 ${
+                          isSelected
+                            ? 'bg-amber-50/60 dark:bg-amber-950/30 border-[#f89777] ring-2 ring-[#f89777]/30'
+                            : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-slate-200 dark:border-slate-600 shadow-2xs bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                          {preset.preview ? (
+                            <img 
+                              src={preset.preview} 
+                              alt={preset.name} 
+                              className="w-full h-full object-cover" 
+                            />
+                          ) : (
+                            <ImageIcon className="w-5 h-5 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-bold text-slate-800 dark:text-white truncate">{preset.name}</div>
+                          <div className="text-[10px] text-slate-500 font-medium">
+                            {preset.desc || (preset.preview ? 'Klik untuk terapkan tone & bg' : 'Gradien Polos Minimalis')}
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-[#f89777] text-white flex items-center justify-center shadow-xs shrink-0">
+                            <Check className="w-3 h-3" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowThemeModal(false)}
+                  className="flex-1 py-3 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={savingTheme}
+                  onClick={() => handleSaveTrainingTheme(themeToneSelect, bgImageSelect)}
+                  className="flex-1 py-3 bg-gradient-to-r from-[#f89777] to-amber-500 hover:from-[#e77e5d] hover:to-amber-600 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-[#f89777]/20 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {savingTheme ? (
+                    <span>Menyimpan...</span>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Terapkan &amp; Simpan</span>
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>
