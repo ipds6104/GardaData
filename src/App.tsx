@@ -56,7 +56,7 @@ const VALID_PAGES = new Set([
 ]);
 
 function AppContent() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -250,6 +250,16 @@ function AppContent() {
 
   if (!user) {
     return <Login />;
+  }
+
+  // Jika masuk sebagai tamu / pengunjung umum, arahkan langsung ke halaman informasi bahwa fitur sedang dalam pengembangan
+  // Isolasi penuh: jangan tampilkan Layout, navbar admin, atau sidebar modul internal
+  if (user.role === 'pengunjung') {
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900"><Loader2 className="w-10 h-10 animate-spin text-primary-600" /></div>}>
+        <VisitorDashboard onBack={logout} />
+      </Suspense>
+    );
   }
 
   const renderContent = () => {

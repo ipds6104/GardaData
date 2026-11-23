@@ -1,111 +1,145 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { TrendingUp, Users, Briefcase, Factory, BarChart3, ChevronRight, Download, Activity } from 'lucide-react';
+import React from 'react';
+import { motion } from 'motion/react';
+import { ExternalLink, ArrowLeft, Construction, Info, ShieldAlert, Globe } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-const categories = [
-  { id: 'ekonomi', label: 'Indikator Ekonomi & Keuangan Daerah', icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
-  { id: 'sosial', label: 'Sosial, Kependudukan, & Kemiskinan', icon: Users, color: 'text-rose-600', bg: 'bg-rose-50' },
-  { id: 'naker', label: 'Indikator Ketenagakerjaan', icon: Briefcase, color: 'text-amber-600', bg: 'bg-amber-50' },
-  { id: 'produksi', label: 'Indikator Produksi & Sektor Riil', icon: Factory, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-];
+interface VisitorDashboardProps {
+  onBack?: () => void;
+}
 
-export const VisitorDashboard: React.FC = () => {
-  const { user } = useAuth();
-  const [activeCategory, setActiveCategory] = useState(categories[0].id);
+export const VisitorDashboard: React.FC<VisitorDashboardProps> = ({ onBack }) => {
+  const { logout } = useAuth();
 
-  // Mocked Data, in a real app this would come from a backend or local state managed by Admin
-  const data = JSON.parse(localStorage.getItem('garda_strategic_data') || 'null') || {
-    ekonomi: [
-      { year: 2023, pdrbADHK: '4.5%', pdrbADHB: 'Rp 12.5T', pdrbKapita: 'Rp 45 Juta', pad: 'Rp 300M' },
-      { year: 2022, pdrbADHK: '4.2%', pdrbADHB: 'Rp 11.8T', pdrbKapita: 'Rp 43 Juta', pad: 'Rp 280M' },
-      { year: 2021, pdrbADHK: '3.8%', pdrbADHB: 'Rp 11.2T', pdrbKapita: 'Rp 40 Juta', pad: 'Rp 250M' },
-      { year: 2020, pdrbADHK: '-1.5%', pdrbADHB: 'Rp 10.5T', pdrbKapita: 'Rp 38 Juta', pad: 'Rp 210M' },
-      { year: 2019, pdrbADHK: '5.1%', pdrbADHB: 'Rp 10.8T', pdrbKapita: 'Rp 39 Juta', pad: 'Rp 270M' },
-    ],
-    sosial: [
-      { year: 2023, ipm: 68.5, kemiskinan: '4.2%', gini: 0.312, penduduk: '312.450 Jiwa' },
-      { year: 2022, ipm: 67.9, kemiskinan: '4.5%', gini: 0.315, penduduk: '308.210 Jiwa' },
-      { year: 2021, ipm: 67.4, kemiskinan: '5.1%', gini: 0.318, penduduk: '304.500 Jiwa' },
-      { year: 2020, ipm: 67.0, kemiskinan: '5.5%', gini: 0.320, penduduk: '301.200 Jiwa' },
-      { year: 2019, ipm: 66.8, kemiskinan: '4.8%', gini: 0.310, penduduk: '298.100 Jiwa' },
-    ],
-    naker: [
-      { year: 2023, tpt: '5.2%', tpak: '65.4%', angkatanKerja: '150.200', pekerja: '142.300' },
-      { year: 2022, tpt: '5.8%', tpak: '64.8%', angkatanKerja: '148.500', pekerja: '139.800' },
-      { year: 2021, tpt: '6.5%', tpak: '64.2%', angkatanKerja: '145.200', pekerja: '135.700' },
-      { year: 2020, tpt: '7.2%', tpak: '63.5%', angkatanKerja: '142.100', pekerja: '131.800' },
-      { year: 2019, tpt: '4.9%', tpak: '66.1%', angkatanKerja: '140.500', pekerja: '133.600' },
-    ],
-    produksi: [
-      { year: 2023, padi: '45.200 Ton', sawit: '120.500 Ton', wisatawan: '25.400', industri: '1.250 Unit' },
-      { year: 2022, padi: '44.800 Ton', sawit: '118.200 Ton', wisatawan: '20.100', industri: '1.210 Unit' },
-      { year: 2021, padi: '43.500 Ton', sawit: '115.000 Ton', wisatawan: '12.500', industri: '1.180 Unit' },
-      { year: 2020, padi: '42.100 Ton', sawit: '110.500 Ton', wisatawan: '5.200', industri: '1.150 Unit' },
-      { year: 2019, padi: '46.500 Ton', sawit: '105.200 Ton', wisatawan: '28.900', industri: '1.100 Unit' },
-    ]
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      logout();
+    }
   };
-
-  const currentData = data[activeCategory] || [];
-
-  // Helper untuk mengekstrak angka dari string (contoh: "Rp 12.5T" -> 12.5)
-  const parseToNumber = (val: any) => {
-    if (typeof val === 'number') return val;
-    if (!val) return 0;
-    const match = String(val).match(/[-+]?[0-9]*\.?[0-9]+/);
-    return match ? parseFloat(match[0]) : 0;
-  };
-
-  // Menyiapkan data untuk grafik dan diurutkan dari tahun terkecil ke terbesar
-  const chartData = [...currentData].sort((a, b) => a.year - b.year).map(row => {
-    const newRow: any = { year: row.year };
-    Object.keys(row).filter(k => k !== 'year').forEach(k => {
-      newRow[k] = parseToNumber(row[k]);
-    });
-    return newRow;
-  });
-
-  // Mengambil 2 metrik pertama untuk ditampilkan di grafik
-  const availableKeys = Object.keys(currentData[0] || {}).filter(k => k !== 'year');
-  const primaryKey = availableKeys[0];
-  const secondaryKey = availableKeys[1];
 
   return (
-    <div className="space-y-8 min-h-[85vh] bg-slate-50/50 dark:bg-slate-950/50 pb-12">
-      <header className="relative bg-gradient-to-r from-primary-900 via-primary-800 to-slate-900 rounded-[2.5rem] p-8 md:p-12 overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 blur-[80px] rounded-full" />
-        <div className="absolute bottom-0 left-10 w-40 h-40 bg-primary-400 opacity-10 blur-[60px] rounded-full" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-4 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full text-primary-100 text-sm font-bold border border-white/10">
-              <BarChart3 className="w-4 h-4" />
-              <span>Data Strategis Terbuka</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-              Dashboard Statistik <br />
-              <span className="text-primary-300">Kabupaten Mempawah</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-primary-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
+      {/* Top Header */}
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <img 
+              src="/bps-logo.svg" 
+              alt="Logo BPS" 
+              className="w-8 h-8 object-contain drop-shadow-xs shrink-0" 
+              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+            />
+            <img 
+              src="/logo.png" 
+              alt="Logo Garda Data" 
+              className="w-8 h-8 object-contain drop-shadow-xs shrink-0" 
+              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+            />
+          </div>
+          <div>
+            <h1 className="text-sm font-black leading-tight text-slate-900 dark:text-white">
+              Garda Data Mempawah
             </h1>
-            <p className="text-primary-100/80 text-lg font-medium max-w-xl">
-              Akses cepat dan transparan ke indikator makro pembangunan daerah selama 5 tahun terakhir.
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              BPS Kabupaten Mempawah
             </p>
           </div>
-          
-          <button className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-primary-900 font-bold rounded-xl hover:bg-slate-50 transition-colors shadow-lg">
-            <Download className="w-5 h-5" />
-            Unduh Laporan PDF
-          </button>
         </div>
+
+        <button
+          type="button"
+          onClick={handleBack}
+          className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Kembali ke Halaman Login</span>
+        </button>
       </header>
 
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl p-16 text-center mt-12 max-w-4xl mx-auto">
-        <BarChart3 className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">Fitur Masih Dalam Pengembangan</h2>
-        <p className="text-slate-500 dark:text-slate-400 font-medium max-w-lg mx-auto">
-          Mohon maaf, fitur penayangan Data Strategis BPS sedang dalam tahap penyempurnaan dan belum dapat diakses untuk sementara waktu. Silakan cek kembali di waktu mendatang.
-        </p>
-      </div>
+      {/* Main Container */}
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          className="max-w-2xl w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl p-6 sm:p-10 text-center relative overflow-hidden"
+        >
+          {/* Subtle Decorative Ambient Glow */}
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-amber-400/10 dark:bg-amber-400/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-primary-500/10 dark:bg-primary-500/5 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Badge Status */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-black bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 uppercase tracking-wider mb-5">
+            <Construction className="w-3.5 h-3.5 animate-bounce" />
+            <span>Fitur Masih Dalam Pengembangan</span>
+          </div>
+
+          {/* Heading */}
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-3">
+            Layanan Tamu Sedang Disempurnakan
+          </h2>
+
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-lg mx-auto mb-6">
+            Mohon maaf, saat ini Anda <strong>belum dapat masuk sebagai Tamu</strong> karena modul penayangan data publik Garda Data masih dalam tahap pengembangan teknis oleh tim BPS Kabupaten Mempawah.
+          </p>
+
+          {/* Card Rekomendasi Portal Resmi BPS */}
+          <div className="bg-gradient-to-br from-blue-50/80 via-primary-50/50 to-indigo-50/60 dark:from-slate-850 dark:via-slate-850 dark:to-slate-800 rounded-2xl p-5 sm:p-6 border border-blue-200/80 dark:border-blue-900/40 text-left mb-6 shadow-xs">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                <Globe className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white mb-1">
+                  Akses Data Resmi BPS Kabupaten Mempawah
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
+                  Seluruh data publik, indikator strategis (inflasi, kemiskinan, PDRB, ketenagakerjaan), Berita Resmi Statistik (BRS), dan publikasi digital Kabupaten Mempawah dapat diakses langsung secara terbuka melalui website resmi:
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                  <a
+                    href="https://mempawahkab.bps.go.id/id"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all hover:shadow-md cursor-pointer group"
+                  >
+                    <span>Kunjungi mempawahkab.bps.go.id</span>
+                    <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </a>
+
+                  <a
+                    href="https://mempawahkab.bps.go.id/id"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-700 dark:text-blue-300 font-semibold underline underline-offset-2 px-2 py-1 text-center truncate hover:text-blue-800 dark:hover:text-blue-200"
+                  >
+                    https://mempawahkab.bps.go.id/id
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Back Button */}
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.98]"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Kembali ke Halaman Login</span>
+            </button>
+          </div>
+        </motion.div>
+      </main>
+
+      {/* Footer */}
+      <footer className="text-center py-4 text-xs text-slate-400 dark:text-slate-500 font-medium border-t border-slate-200/60 dark:border-slate-850">
+        &copy; {new Date().getFullYear()} BPS Kabupaten Mempawah — Badan Pusat Statistik
+      </footer>
     </div>
   );
 };

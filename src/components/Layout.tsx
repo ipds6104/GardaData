@@ -274,6 +274,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
   ];
 
   const menuGroups = useMemo(() => {
+    if (user?.role === 'pengunjung') return [];
     if (user?.role !== 'petugas') return rawMenuGroups;
     return rawMenuGroups.map(group => ({
       ...group,
