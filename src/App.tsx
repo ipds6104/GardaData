@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, Suspense, lazy } from 'react';
-import { Loader2, ScanLine, Award } from 'lucide-react';
+import { Loader2, ScanLine, Award, LogIn } from 'lucide-react';
 import { AuthProvider, useAuth } from './lib/auth';
 import { Layout } from './components/Layout';
 import { LandingPage } from './components/LandingPage';
@@ -65,6 +65,7 @@ function AppContent() {
       const formIdParam = params.get('formId');
       const allowGuestParam = params.get('allowGuest');
       const directTokenParam = params.get('directToken');
+      const trainingIdParam = params.get('trainingId') || params.get('lmsId');
 
       if (actIdParam) {
         sessionStorage.setItem('garda_laporan_target_activity', actIdParam);
@@ -76,8 +77,15 @@ function AppContent() {
         sessionStorage.setItem('garda_laporan_allow_guest', 'true');
         sessionStorage.setItem('garda_laporan_direct_token', directTokenParam);
       }
+      if (trainingIdParam) {
+        sessionStorage.setItem('garda_lms_target_training', trainingIdParam);
+      }
 
-      const effectivePage = (actIdParam && !pageParam) ? 'laporan-pendataan' : pageParam;
+      const effectivePage = (actIdParam && !pageParam) 
+        ? 'laporan-pendataan' 
+        : (trainingIdParam && !pageParam)
+          ? 'lms'
+          : pageParam;
 
       if (effectivePage && VALID_PAGES.has(effectivePage)) {
         sessionStorage.setItem('garda_current_page', effectivePage);
@@ -152,6 +160,53 @@ function AppContent() {
   const isGuestDirect = typeof window !== 'undefined' && 
     (sessionStorage.getItem('garda_laporan_allow_guest') === 'true' || new URLSearchParams(window.location.search).get('allowGuest') === 'true') &&
     Boolean(sessionStorage.getItem('garda_laporan_direct_token') || new URLSearchParams(window.location.search).get('directToken'));
+
+  const targetLmsTrainingId = typeof window !== 'undefined' ? (
+    sessionStorage.getItem('garda_lms_target_training') ||
+    new URLSearchParams(window.location.search).get('trainingId') ||
+    new URLSearchParams(window.location.search).get('lmsId')
+  ) : null;
+
+  if (!user && targetLmsTrainingId) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col font-sans">
+        <header className="bg-white dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-primary-600 flex items-center justify-center text-white font-black text-sm shadow-xs">
+              GD
+            </div>
+            <div>
+              <h1 className="text-sm font-bold leading-tight">Garda Data Mempawah</h1>
+              <p className="text-[10px] text-slate-400 font-medium">LMS — Akses Terarah Pelatihan Petugas</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              sessionStorage.removeItem('garda_lms_target_training');
+              window.location.href = '/';
+            }}
+            className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-primary-600 hover:bg-primary-700 text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Halaman Login</span>
+          </button>
+        </header>
+        <main className="flex-1 p-3 sm:p-6 max-w-6xl mx-auto w-full">
+          <Suspense fallback={<div className="text-center py-20 text-slate-500 font-bold">Memuat kegiatan pelatihan...</div>}>
+            <LMSModule 
+              directTrainingId={targetLmsTrainingId}
+              isGuestDirect={true}
+              onBack={() => {
+                sessionStorage.removeItem('garda_lms_target_training');
+                window.location.href = '/';
+              }} 
+            />
+          </Suspense>
+        </main>
+      </div>
+    );
+  }
 
   if (!user && isGuestDirect) {
     return (
@@ -243,7 +298,15 @@ function AppContent() {
       case 'laporan-pendataan':
         return <LaporanModule onBack={() => setCurrentPage('landing')} />;
       case 'lms':
-        return <LMSModule onBack={() => setCurrentPage('landing')} />;
+        return (
+          <LMSModule 
+            initialTrainingId={targetLmsTrainingId}
+            onBack={() => {
+              sessionStorage.removeItem('garda_lms_target_training');
+              setCurrentPage('landing');
+            }} 
+          />
+        );
       case 'admin-strategic-data':
         return <AdminStrategicData onBack={() => setCurrentPage('landing')} />;
       case 'monitoring':
@@ -352,11 +415,11 @@ function AppContent() {
         }
         return <AnalyticsDashboard onBack={() => setCurrentPage('landing')} />;
       case 'backup-system':
-        if (!isAhmadAuliaUser(user)) {
+        if (!isAhmadAuliaUser(user) && user.role !== 'admin') {
           return (
             <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6">
               <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">Akses Ditolak</h2>
-              <p className="text-sm text-slate-500 mt-2">Halaman Cadangan & Log Sistem khusus untuk akun ahmad.aulia.</p>
+              <p className="text-sm text-slate-500 mt-2">Halaman Cadangan & Log Sistem khusus untuk Administrator.</p>
               <button 
                 onClick={() => setCurrentPage('landing')} 
                 className="mt-4 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"

@@ -166,24 +166,45 @@ export const Login: React.FC = () => {
       setIsFetchingUpdates(true);
       let fetched: FeatureUpdate[] | null = null;
 
-      // 1. Coba live fetch ke GitHub Commits API langsung (agar selalu sinkron real-time)
+      // 1. Coba fetch melalui endpoint proxy internal backend (aman dari CSP & rate-limiting)
       try {
-        const res = await fetch('https://api.github.com/repos/ipds6104/GardaData/commits?per_page=5', {
-          headers: {
-            'Accept': 'application/vnd.github.v3+json'
-          }
-        });
-        if (res.ok) {
-          const commits = await res.json();
-          if (Array.isArray(commits) && commits.length > 0) {
-            fetched = commits.map(parseGitHubCommit);
+        const baseUrl = (import.meta as any).env.VITE_API_URL || '';
+        const proxyRes = await fetch(`${baseUrl}/api/github-updates?t=${Date.now()}`);
+        if (proxyRes.ok) {
+          const proxyData = await proxyRes.json();
+          if (proxyData.updates && Array.isArray(proxyData.updates) && proxyData.updates.length > 0) {
+            fetched = proxyData.updates.map((item: any) => {
+              if (item.title && item.desc) {
+                return { title: item.title, date: item.date || 'Terbaru', desc: item.desc };
+              }
+              return parseGitHubCommit(item);
+            });
           }
         }
-      } catch (err) {
-        console.warn('GitHub API live fetch unavailable, falling back to static asset:', err);
+      } catch (proxyErr) {
+        // Abaikan jika backend belum siap
       }
 
-      // 2. Fallback jika offline/rate-limited: ambil dari static asset lokal repository
+      // 2. Coba live fetch ke GitHub Commits API langsung (agar selalu sinkron real-time)
+      if (!fetched || fetched.length === 0) {
+        try {
+          const res = await fetch('https://api.github.com/repos/ipds6104/GardaData/commits?per_page=5', {
+            headers: {
+              'Accept': 'application/vnd.github.v3+json'
+            }
+          });
+          if (res.ok) {
+            const commits = await res.json();
+            if (Array.isArray(commits) && commits.length > 0) {
+              fetched = commits.map(parseGitHubCommit);
+            }
+          }
+        } catch (err) {
+          console.warn('GitHub API live fetch unavailable, falling back to static asset:', err);
+        }
+      }
+
+      // 3. Fallback jika offline/rate-limited: ambil dari static asset lokal repository
       if (!fetched || fetched.length === 0) {
         try {
           const staticRes = await fetch(`/data/latest_updates.json?t=${Date.now()}`);

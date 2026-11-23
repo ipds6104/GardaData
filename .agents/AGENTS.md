@@ -12,3 +12,6 @@
   2. Laporkan secara rinci temuan celah keamanan tersebut kepada pengguna (tingkat keparahan, file/endpoint terdampak, bukti temuan, dan rekomendasi perbaikan).
   3. **TUNGGU PERINTAH RESMI**: Jangan melakukan push ke GitHub sampai ada perintah eksplisit push ke GitHub berikutnya dari pengguna setelah celah diperbaiki.
 - **HANYA LAKUKAN PUSH** jika pentesting telah tervalidasi 100% aman (0 Vulnerabilities, 0 High/Critical Findings) dan pengguna telah memberikan instruksi lanjut.
+
+## Mandatory Commit Sync ke Database SQL (`system_github_commits`)
+- **SETIAP ADA COMMIT BARU / AKAN PUSH**: Jalankan `node scripts/sync_github_commits_to_sql.cjs` untuk menyalin log commit ke tabel SQL `system_github_commits` dan file `public/data/latest_updates.json` agar pembaruan fitur terkini di halaman login selalu tersinkronisasi presisi 100% dengan tetap menjaga keamanan data.

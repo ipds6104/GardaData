@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink, GripVertical, Clock, Copy, RotateCcw, Sparkles, Layers, AlertCircle, Check } from 'lucide-react';
+import { ChevronLeft, Plus, Edit2, Trash2, ShieldCheck, CheckCircle2, EyeOff, BookOpen, Briefcase, Users, Landmark, Wheat, Factory, Settings, Tag, Truck, BarChart2, GraduationCap, Cpu, Lock, Unlock, Link2, FolderOpen, Calendar, HelpCircle, FileCheck, ExternalLink, GripVertical, Clock, Copy, RotateCcw, Sparkles, Layers, AlertCircle, Check, Share2, CheckCheck, X, ArrowRight, ChevronRight, Target, TrendingUp, Bell, FileText } from 'lucide-react';
 import { useAuth } from '../lib/auth';
+import { useTheme } from '../lib/theme';
 import { IndonesianDateTimePicker } from './common/IndonesianDateTimePicker';
 import { IndonesianCategorySelect } from './common/IndonesianCategorySelect';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
@@ -93,70 +94,427 @@ const formatIndonesianTime24 = (isoStr?: string) => {
   }
 };
 
-// Component Sortable Item untuk Dnd-Kit
-const SortableLinkItem = ({ btn, isAdmin, theme, isLocked, lockLabel, isIframe, openIframe, toggleButtonStatus, setButtonFormData, setIsCustomCategory, setShowButtonForm, handleDeleteButton, activeTrainingId, DEFAULT_CATEGORIES }: any) => {
+// Palet warna pastel lembut untuk kartu materi (sesuai referensi desain modern)
+const PASTEL_CARD_THEMES = [
+  {
+    bg: 'bg-[#FCE7F3]', // Soft Rose / Pink
+    border: 'border-[#FBCFE8]',
+    text: 'text-[#831843]',
+    titleText: 'text-[#831843]',
+    badgeBg: 'bg-pink-200/60 text-[#831843]',
+    buttonBg: 'bg-white/95 hover:bg-white text-[#831843] hover:shadow-md',
+    iconCircle: 'bg-white/80 text-[#BE185D]',
+    tag: 'ABSENSI & PRESENSI'
+  },
+  {
+    bg: 'bg-[#FEF3C7]', // Soft Warm Yellow
+    border: 'border-[#FDE68A]',
+    text: 'text-[#78350F]',
+    titleText: 'text-[#78350F]',
+    badgeBg: 'bg-amber-200/60 text-[#78350F]',
+    buttonBg: 'bg-white/95 hover:bg-white text-[#78350F] hover:shadow-md',
+    iconCircle: 'bg-white/80 text-[#B45309]',
+    tag: 'ADMINISTRASI'
+  },
+  {
+    bg: 'bg-[#FFEDD5]', // Soft Peach / Orange
+    border: 'border-[#FED7AA]',
+    text: 'text-[#7C2D12]',
+    titleText: 'text-[#7C2D12]',
+    badgeBg: 'bg-orange-200/60 text-[#7C2D12]',
+    buttonBg: 'bg-white/95 hover:bg-white text-[#7C2D12] hover:shadow-md',
+    iconCircle: 'bg-white/80 text-[#C2410C]',
+    tag: 'MATERI & INSTRUMEN'
+  },
+  {
+    bg: 'bg-[#E0F2FE]', // Soft Sky Blue
+    border: 'border-[#BAE6FD]',
+    text: 'text-[#0C4A6E]',
+    titleText: 'text-[#0C4A6E]',
+    badgeBg: 'bg-sky-200/60 text-[#0C4A6E]',
+    buttonBg: 'bg-white/95 hover:bg-white text-[#0C4A6E] hover:shadow-md',
+    iconCircle: 'bg-white/80 text-[#0284C7]',
+    tag: 'JADWAL PELATIHAN'
+  },
+  {
+    bg: 'bg-[#EDE9FE]', // Soft Lilac / Purple
+    border: 'border-[#DDD6FE]',
+    text: 'text-[#4C1D95]',
+    titleText: 'text-[#4C1D95]',
+    badgeBg: 'bg-purple-200/60 text-[#4C1D95]',
+    buttonBg: 'bg-white/95 hover:bg-white text-[#4C1D95] hover:shadow-md',
+    iconCircle: 'bg-white/80 text-[#7C3AED]',
+    tag: 'KUIS & EVALUASI'
+  },
+  {
+    bg: 'bg-[#D1FAE5]', // Soft Mint / Emerald
+    border: 'border-[#A7F3D0]',
+    text: 'text-[#064E3B]',
+    titleText: 'text-[#064E3B]',
+    badgeBg: 'bg-emerald-200/60 text-[#064E3B]',
+    buttonBg: 'bg-white/95 hover:bg-white text-[#064E3B] hover:shadow-md',
+    iconCircle: 'bg-white/80 text-[#059669]',
+    tag: 'PANDUAN LAPANGAN'
+  }
+];
+
+const getActionLabel = (category: string, isLocked: boolean) => {
+  if (isLocked) return 'Tautan Terkunci';
+  const cat = (category || '').toLowerCase();
+  if (cat.includes('absen') || cat.includes('presensi')) return 'Isi Presensi';
+  if (cat.includes('materi') || cat.includes('pedoman') || cat.includes('definisi')) return 'Buka Materi';
+  if (cat.includes('jadwal') || cat.includes('agenda')) return 'Lihat Jadwal';
+  if (cat.includes('kuis') || cat.includes('test')) return 'Mulai Kuis';
+  if (cat.includes('admin') || cat.includes('tugas') || cat.includes('surat')) return 'Akses Berkas';
+  return 'Buka Tautan';
+};
+
+const getThemeHeroStyles = (preset: string) => {
+  switch (preset) {
+    case 'original':
+      return {
+        cardBg: 'bg-gradient-to-br from-amber-200 via-orange-100 to-amber-50',
+        cardBorder: 'border-amber-300',
+        badgeBg: 'bg-amber-400/20 text-amber-900 border-amber-300',
+        accentColor: '#f17e3a',
+        activePill: 'bg-amber-300 text-amber-950 font-black shadow-xs',
+        sliderBg: 'bg-white/85 hover:bg-white text-slate-800',
+        sliderCircle: 'bg-amber-500 text-white',
+        highlightDot: 'bg-orange-500'
+      };
+    case 'sky':
+      return {
+        cardBg: 'bg-gradient-to-br from-sky-200 via-blue-100 to-sky-50',
+        cardBorder: 'border-sky-300',
+        badgeBg: 'bg-sky-400/20 text-sky-900 border-sky-300',
+        accentColor: '#007BFF',
+        activePill: 'bg-sky-300 text-sky-950 font-black shadow-xs',
+        sliderBg: 'bg-white/85 hover:bg-white text-slate-800',
+        sliderCircle: 'bg-sky-600 text-white',
+        highlightDot: 'bg-blue-500'
+      };
+    case 'greentea':
+      return {
+        cardBg: 'bg-gradient-to-br from-emerald-200 via-green-100 to-emerald-50',
+        cardBorder: 'border-emerald-300',
+        badgeBg: 'bg-emerald-400/20 text-emerald-900 border-emerald-300',
+        accentColor: '#22c55e',
+        activePill: 'bg-emerald-300 text-emerald-950 font-black shadow-xs',
+        sliderBg: 'bg-white/85 hover:bg-white text-slate-800',
+        sliderCircle: 'bg-emerald-600 text-white',
+        highlightDot: 'bg-emerald-500'
+      };
+    case 'auntum':
+      return {
+        cardBg: 'bg-gradient-to-br from-yellow-200 via-amber-100 to-yellow-50',
+        cardBorder: 'border-yellow-300',
+        badgeBg: 'bg-yellow-400/20 text-yellow-900 border-yellow-300',
+        accentColor: '#eab308',
+        activePill: 'bg-yellow-300 text-yellow-950 font-black shadow-xs',
+        sliderBg: 'bg-white/85 hover:bg-white text-slate-800',
+        sliderCircle: 'bg-yellow-500 text-white',
+        highlightDot: 'bg-amber-500'
+      };
+    case 'notebook':
+      return {
+        cardBg: 'bg-gradient-to-br from-pink-200 via-rose-100 to-pink-50',
+        cardBorder: 'border-pink-300',
+        badgeBg: 'bg-pink-400/20 text-pink-900 border-pink-300',
+        accentColor: '#ec4899',
+        activePill: 'bg-pink-300 text-pink-950 font-black shadow-xs',
+        sliderBg: 'bg-white/85 hover:bg-white text-slate-800',
+        sliderCircle: 'bg-pink-600 text-white',
+        highlightDot: 'bg-rose-500'
+      };
+    case 'persik':
+    default:
+      return {
+        cardBg: 'bg-gradient-to-br from-violet-200 via-purple-100 to-rose-50',
+        cardBorder: 'border-purple-300',
+        badgeBg: 'bg-purple-400/20 text-purple-900 border-purple-300',
+        accentColor: '#8b5cf6',
+        activePill: 'bg-purple-200 text-purple-950 font-black shadow-xs',
+        sliderBg: 'bg-white/85 hover:bg-white text-slate-800',
+        sliderCircle: 'bg-purple-600 text-white',
+        highlightDot: 'bg-purple-500'
+      };
+  }
+};
+
+const getAdminThemeCategoryStyles = (preset: string) => {
+  switch (preset) {
+    case 'original':
+      return {
+        cardBorder: 'border-amber-200 dark:border-amber-900/40',
+        cardBg: 'bg-gradient-to-b from-amber-50/40 via-white to-white dark:from-amber-950/20 dark:via-slate-900 dark:to-slate-900',
+        headerBorder: 'border-amber-200/60 dark:border-amber-900/40',
+        badgeBg: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-200 dark:border-amber-800/60',
+        iconBg: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-amber-500/20',
+        eyebrowColor: 'text-amber-700 dark:text-amber-400',
+        itemHoverTitle: 'group-hover:text-amber-600 dark:group-hover:text-amber-400',
+        itemHoverBorder: 'hover:border-amber-300 dark:hover:border-amber-700',
+        buttonHoverBg: 'group-hover:bg-amber-600 group-hover:text-white group-hover:border-amber-600',
+        accentColor: '#f17e3a'
+      };
+    case 'sky':
+      return {
+        cardBorder: 'border-sky-200 dark:border-sky-900/40',
+        cardBg: 'bg-gradient-to-b from-sky-50/40 via-white to-white dark:from-sky-950/20 dark:via-slate-900 dark:to-slate-900',
+        headerBorder: 'border-sky-200/60 dark:border-sky-900/40',
+        badgeBg: 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border-sky-200 dark:border-sky-800/60',
+        iconBg: 'bg-gradient-to-tr from-sky-500 to-blue-600 text-white shadow-sky-500/20',
+        eyebrowColor: 'text-sky-700 dark:text-sky-400',
+        itemHoverTitle: 'group-hover:text-sky-600 dark:group-hover:text-sky-400',
+        itemHoverBorder: 'hover:border-sky-300 dark:hover:border-sky-700',
+        buttonHoverBg: 'group-hover:bg-sky-600 group-hover:text-white group-hover:border-sky-600',
+        accentColor: '#007BFF'
+      };
+    case 'greentea':
+      return {
+        cardBorder: 'border-emerald-200 dark:border-emerald-900/40',
+        cardBg: 'bg-gradient-to-b from-emerald-50/40 via-white to-white dark:from-emerald-950/20 dark:via-slate-900 dark:to-slate-900',
+        headerBorder: 'border-emerald-200/60 dark:border-emerald-900/40',
+        badgeBg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60',
+        iconBg: 'bg-gradient-to-tr from-emerald-500 to-teal-600 text-white shadow-emerald-500/20',
+        eyebrowColor: 'text-emerald-700 dark:text-emerald-400',
+        itemHoverTitle: 'group-hover:text-emerald-600 dark:group-hover:text-emerald-400',
+        itemHoverBorder: 'hover:border-emerald-300 dark:hover:border-emerald-700',
+        buttonHoverBg: 'group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600',
+        accentColor: '#22c55e'
+      };
+    case 'auntum':
+      return {
+        cardBorder: 'border-yellow-200 dark:border-yellow-900/40',
+        cardBg: 'bg-gradient-to-b from-yellow-50/40 via-white to-white dark:from-yellow-950/20 dark:via-slate-900 dark:to-slate-900',
+        headerBorder: 'border-yellow-200/60 dark:border-yellow-900/40',
+        badgeBg: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/70 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800/60',
+        iconBg: 'bg-gradient-to-tr from-yellow-500 to-amber-500 text-white shadow-yellow-500/20',
+        eyebrowColor: 'text-yellow-700 dark:text-yellow-400',
+        itemHoverTitle: 'group-hover:text-yellow-600 dark:group-hover:text-yellow-400',
+        itemHoverBorder: 'hover:border-yellow-300 dark:hover:border-yellow-700',
+        buttonHoverBg: 'group-hover:bg-yellow-500 group-hover:text-white group-hover:border-yellow-500',
+        accentColor: '#eab308'
+      };
+    case 'notebook':
+      return {
+        cardBorder: 'border-pink-200 dark:border-pink-900/40',
+        cardBg: 'bg-gradient-to-b from-pink-50/40 via-white to-white dark:from-pink-950/20 dark:via-slate-900 dark:to-slate-900',
+        headerBorder: 'border-pink-200/60 dark:border-pink-900/40',
+        badgeBg: 'bg-pink-100 text-pink-800 dark:bg-pink-950/70 dark:text-pink-300 border-pink-200 dark:border-pink-800/60',
+        iconBg: 'bg-gradient-to-tr from-pink-500 to-rose-500 text-white shadow-pink-500/20',
+        eyebrowColor: 'text-pink-700 dark:text-pink-400',
+        itemHoverTitle: 'group-hover:text-pink-600 dark:group-hover:text-pink-400',
+        itemHoverBorder: 'hover:border-pink-300 dark:hover:border-pink-700',
+        buttonHoverBg: 'group-hover:bg-pink-600 group-hover:text-white group-hover:border-pink-600',
+        accentColor: '#ec4899'
+      };
+    case 'persik':
+    default:
+      return {
+        cardBorder: 'border-purple-200 dark:border-purple-900/40',
+        cardBg: 'bg-gradient-to-b from-purple-50/40 via-white to-white dark:from-purple-950/20 dark:via-slate-900 dark:to-slate-900',
+        headerBorder: 'border-purple-200/60 dark:border-purple-900/40',
+        badgeBg: 'bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 border-purple-200 dark:border-purple-800/60',
+        iconBg: 'bg-gradient-to-tr from-purple-500 to-indigo-600 text-white shadow-purple-500/20',
+        eyebrowColor: 'text-purple-700 dark:text-purple-400',
+        itemHoverTitle: 'group-hover:text-purple-600 dark:group-hover:text-purple-400',
+        itemHoverBorder: 'hover:border-purple-300 dark:hover:border-purple-700',
+        buttonHoverBg: 'group-hover:bg-purple-600 group-hover:text-white group-hover:border-purple-600',
+        accentColor: '#8b5cf6'
+      };
+  }
+};
+
+const ITEM_ICON_SCHEMES = [
+  { bg: 'bg-purple-100 dark:bg-purple-950/70', text: 'text-purple-600 dark:text-purple-300', border: 'border-purple-200/80 dark:border-purple-800/60' },
+  { bg: 'bg-rose-100 dark:bg-rose-950/70', text: 'text-rose-600 dark:text-rose-300', border: 'border-rose-200/80 dark:border-rose-800/60' },
+  { bg: 'bg-amber-100 dark:bg-amber-950/70', text: 'text-amber-600 dark:text-amber-300', border: 'border-amber-200/80 dark:border-amber-800/60' },
+  { bg: 'bg-sky-100 dark:bg-sky-950/70', text: 'text-sky-600 dark:text-sky-300', border: 'border-sky-200/80 dark:border-sky-800/60' },
+  { bg: 'bg-emerald-100 dark:bg-emerald-950/70', text: 'text-emerald-600 dark:text-emerald-300', border: 'border-emerald-200/80 dark:border-emerald-800/60' },
+  { bg: 'bg-indigo-100 dark:bg-indigo-950/70', text: 'text-indigo-600 dark:text-indigo-300', border: 'border-indigo-200/80 dark:border-indigo-800/60' },
+];
+
+const getCategoryDescription = (category: string) => {
+  const cat = (category || '').toLowerCase();
+  if (cat.includes('absen') || cat.includes('presensi')) {
+    return 'Pencatatan dan presensi kehadiran peserta selama kegiatan pelatihan berlangsung.';
+  }
+  if (cat.includes('administrasi') || cat.includes('tugas') || cat.includes('surat')) {
+    return 'Kelengkapan berkas administrasi, surat tugas, dokumen kontrak, dan kelengkapan resmi.';
+  }
+  if (cat.includes('materi') || cat.includes('instrumen') || cat.includes('pedoman')) {
+    return 'Bahan tayang presentasi narasumber, buku pedoman teknis, konsep definisi, dan instrumen.';
+  }
+  if (cat.includes('jadwal') || cat.includes('agenda')) {
+    return 'Jadwal dan susunan agenda harian, alokasi sesi pelajaran, serta evaluasi pelatihan.';
+  }
+  if (cat.includes('kuis') || cat.includes('test') || cat.includes('evaluasi')) {
+    return 'Pre-test, post-test, kuis pemahaman materi, serta studi kasus lapangan.';
+  }
+  return 'Kumpulan materi, tautan, dan berkas panduan resmi untuk mendukung kegiatan pelatihan.';
+};
+
+const getItemSubtitle = (btn: LMSButton) => {
+  const cat = (btn.category || '').toLowerCase();
+  const title = (btn.title || '').toLowerCase();
+  
+  if (title.includes('masuk') || title.includes('pagi')) return 'Presensi kehadiran sesi pagi / masuk ruangan pelatihan.';
+  if (title.includes('pulang') || title.includes('sore')) return 'Presensi kehadiran sesi sore / akhir pelatihan.';
+  if (cat.includes('absen') || cat.includes('presensi')) return 'Pencatatan presensi kehadiran peserta sesuai jadwal sesi.';
+  if (title.includes('pre-test') || title.includes('pretest')) return 'Uji pemahaman awal sebelum materi pelatihan disampaikan.';
+  if (title.includes('post-test') || title.includes('posttest')) return 'Evaluasi penguasaan materi setelah seluruh sesi selesai.';
+  if (cat.includes('kuis') || cat.includes('evaluasi')) return 'Kuis pendalaman materi, latihan soal, dan lembar evaluasi.';
+  if (cat.includes('jadwal') || cat.includes('agenda')) return 'Susunan jadwal agenda, alokasi jam pelajaran, dan rundown.';
+  if (title.includes('pedoman') || title.includes('buku')) return 'Buku pedoman teknis pendataan dan acuan operasional resmi.';
+  if (title.includes('tayang') || title.includes('slide') || title.includes('ppt')) return 'Slide bahan tayang dan presentasi materi narasumber.';
+  if (cat.includes('materi') || cat.includes('instrumen')) return 'Akses berkas materi pembelajaran, panduan, dan instrumen.';
+  if (cat.includes('admin') || cat.includes('tugas') || cat.includes('surat')) return 'Dokumen kelengkapan administrasi, surat tugas, dan berkas resmi.';
+  return 'Akses tautan resmi kegiatan untuk mendukung kelancaran pelatihan.';
+};
+
+const getItemIcon = (btn: LMSButton, index: number) => {
+  const title = (btn.title || '').toLowerCase();
+
+  if (title.includes('jadwal') || title.includes('agenda') || title.includes('waktu') || title.includes('tanggal')) return Calendar;
+  if (title.includes('target') || title.includes('absen') || title.includes('presensi') || title.includes('hadir')) return Target;
+  if (title.includes('progress') || title.includes('grafik') || title.includes('evaluasi') || title.includes('nilai')) return TrendingUp;
+  if (title.includes('ingat') || title.includes('notifikasi') || title.includes('reminder') || title.includes('tenggat')) return Bell;
+  if (title.includes('kuis') || title.includes('test') || title.includes('ujian')) return CheckCircle2;
+  if (title.includes('pedoman') || title.includes('buku') || title.includes('modul')) return BookOpen;
+  if (title.includes('surat') || title.includes('tugas') || title.includes('dokumen') || title.includes('berkas')) return FileCheck;
+  if (title.includes('tayang') || title.includes('slide') || title.includes('materi')) return FileText;
+
+  const fallbackIcons = [Calendar, Target, TrendingUp, Bell, BookOpen, FileCheck];
+  return fallbackIcons[index % fallbackIcons.length] || (CATEGORY_ICONS[btn.category] || Link2);
+};
+
+// Component Sortable Item untuk Dnd-Kit (Modern Clean Row Card matching reference Smart Study Planner)
+const SortableLinkItem = ({ btn, index = 0, catTheme, isAdmin, isLocked, lockLabel, isIframe, openIframe, toggleButtonStatus, setButtonFormData, setIsCustomCategory, setShowButtonForm, handleDeleteButton, activeTrainingId, DEFAULT_CATEGORIES }: any) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: btn.id, disabled: !isAdmin });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
+  const scheme = ITEM_ICON_SCHEMES[index % ITEM_ICON_SCHEMES.length];
+  const ItemIcon = getItemIcon(btn, index);
+  const actionText = getActionLabel(btn.category, isLocked);
+  const subtitle = getItemSubtitle(btn);
+
+  const handleOpenMaterial = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (isLocked) return;
+    if (isIframe) {
+      openIframe(btn.url);
+    } else if (btn.url) {
+      window.open(btn.url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
-    <div ref={setNodeRef} style={style} className={`group relative bg-white border-2 rounded-2xl transition-all flex flex-col overflow-hidden shadow-sm ${!isLocked ? `border-white hover:shadow-xl hover:-translate-y-1 ${theme.linkHover}` : 'border-slate-200 opacity-70'}`}>
-      {isIframe ? (
-        <button onClick={() => !isLocked && openIframe(btn.url)} disabled={isLocked} className="flex-grow p-4 flex items-center gap-4 text-left w-full h-full">
-          <div className={`p-3 shrink-0 rounded-xl ${!isLocked ? `${theme.linkIconBg} ${theme.iconColor} ${theme.linkIconHover} group-hover:text-white transition-all` : 'bg-slate-100 text-slate-400'}`}>
-            <ExternalLink className="w-5 h-5" />
-          </div>
-          <div className="flex flex-col flex-grow">
-            <span className="font-bold text-slate-700 leading-tight pr-2 text-sm md:text-base">{btn.title}</span>
-            {lockLabel && <span className="text-xs font-bold text-rose-500 mt-1 uppercase flex items-center gap-1"><Lock className="w-3 h-3 shrink-0"/> {lockLabel}</span>}
-            {!lockLabel && (btn.startDate || btn.endDate) && (
-              <span className="text-[10px] font-semibold text-slate-400 mt-1 flex items-center gap-1">
-                <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-                {btn.endDate ? `Batas: ${formatIndonesianTime24(btn.endDate)}` : `Buka: ${formatIndonesianTime24(btn.startDate)}`}
-              </span>
-            )}
-          </div>
-        </button>
-      ) : (
-        <a href={isLocked ? '#' : btn.url} target={isLocked ? '_self' : '_blank'} rel="noreferrer" className={`flex-grow p-4 flex items-center gap-4 ${isLocked ? 'pointer-events-none' : ''}`}>
-          <div className={`p-3 shrink-0 rounded-xl ${!isLocked ? `${theme.linkIconBg} ${theme.iconColor} ${theme.linkIconHover} group-hover:text-white transition-all` : 'bg-slate-100 text-slate-400'}`}>
-            <ExternalLink className="w-5 h-5" />
-          </div>
-          <div className="flex flex-col flex-grow">
-            <span className="font-bold text-slate-700 leading-tight pr-2 text-sm md:text-base">{btn.title}</span>
-            {lockLabel && <span className="text-xs font-bold text-rose-500 mt-1 uppercase flex items-center gap-1"><Lock className="w-3 h-3 shrink-0"/> {lockLabel}</span>}
-            {!lockLabel && (btn.startDate || btn.endDate) && (
-              <span className="text-[10px] font-semibold text-slate-400 mt-1 flex items-center gap-1">
-                <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-                {btn.endDate ? `Batas: ${formatIndonesianTime24(btn.endDate)}` : `Buka: ${formatIndonesianTime24(btn.startDate)}`}
-              </span>
-            )}
-          </div>
-        </a>
-      )}
-      {isAdmin && (
-        <div className="flex border-t border-slate-100 bg-slate-50 shrink-0">
-          <div {...attributes} {...listeners} className="p-2 flex-1 text-slate-400 hover:bg-slate-200 transition-colors border-r border-slate-100 cursor-grab flex items-center justify-center touch-none" title="Geser (Drag)">
-            <GripVertical className="w-4 h-4" />
-          </div>
-          <button onClick={() => toggleButtonStatus(activeTrainingId, btn.id)} className={`p-2 flex-1 transition-colors border-r border-slate-100 ${btn.isActive ? 'text-emerald-600 hover:bg-emerald-100' : 'text-slate-400 hover:bg-slate-200'}`} title={btn.isActive ? "Matikan Tautan" : "Aktifkan Tautan"}>
-            {btn.isActive ? <Unlock className="w-4 h-4 mx-auto"/> : <Lock className="w-4 h-4 mx-auto"/>}
-          </button>
-          <button onClick={() => { setButtonFormData(btn); setIsCustomCategory(!DEFAULT_CATEGORIES.includes(btn.category)); setShowButtonForm(true); }} className="p-2 flex-1 text-indigo-600 hover:bg-indigo-100 transition-colors border-r border-slate-100" title="Edit"><Edit2 className="w-4 h-4 mx-auto"/></button>
-          <button onClick={() => handleDeleteButton(activeTrainingId, btn.id)} className="p-2 flex-1 text-rose-600 hover:bg-rose-100 transition-colors" title="Hapus"><Trash2 className="w-4 h-4 mx-auto"/></button>
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      onClick={handleOpenMaterial}
+      role={!isLocked ? "button" : undefined}
+      tabIndex={!isLocked ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (!isLocked && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          handleOpenMaterial(e);
+        }
+      }}
+      className={`group relative rounded-2xl sm:rounded-3xl p-4 sm:p-5 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none ${
+        isLocked 
+          ? 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-70 cursor-not-allowed'
+          : `bg-white dark:bg-slate-850/90 hover:bg-slate-50/90 dark:hover:bg-slate-800 border-slate-200/80 dark:border-slate-800 ${catTheme?.itemHoverBorder || 'hover:border-slate-300'} shadow-2xs hover:shadow-md cursor-pointer active:scale-[0.995]`
+      }`}
+      title={isLocked ? lockLabel : `Klik untuk ${actionText.toLowerCase()}`}
+    >
+      <div className="flex items-center gap-4 sm:gap-4.5 flex-grow min-w-0">
+        {/* Soft Pastel Squircle Icon (Sesuai Referensi Gambar) */}
+        <div className={`w-13 h-13 sm:w-14 h-14 rounded-2xl border ${scheme.border} ${scheme.bg} ${scheme.text} flex items-center justify-center shadow-2xs shrink-0 group-hover:scale-105 transition-transform`}>
+          <ItemIcon className="w-6 h-6 sm:w-7 h-7" />
         </div>
-      )}
+
+        {/* Title + Subtitle */}
+        <div className="min-w-0 flex-grow">
+          <h4 className={`text-base sm:text-lg font-black text-slate-800 dark:text-slate-100 leading-snug truncate transition-colors ${catTheme?.itemHoverTitle || 'group-hover:text-primary-600'}`}>
+            {btn.title}
+          </h4>
+          <p className="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 font-normal leading-relaxed mt-0.5 line-clamp-2">
+            {subtitle}
+          </p>
+
+          {/* Schedule / Lock Indicator */}
+          {lockLabel && (
+            <div className="text-[11px] font-bold text-rose-600 mt-1 uppercase flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 shrink-0"/>
+              <span>{lockLabel}</span>
+            </div>
+          )}
+          {!lockLabel && (btn.startDate || btn.endDate) && (
+            <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              <span>{btn.endDate ? `Batas: ${formatIndonesianTime24(btn.endDate)}` : `Buka: ${formatIndonesianTime24(btn.startDate)}`}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right Side: Action pill & Admin controls */}
+      <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
+        <div
+          className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center gap-2 transition-all ${
+            !isLocked 
+              ? `bg-slate-100 ${catTheme?.buttonHoverBg || 'group-hover:bg-primary-600 group-hover:text-white'} text-slate-700 dark:bg-slate-750 dark:text-slate-200 shadow-2xs` 
+              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+          }`}
+        >
+          {isLocked ? <Lock className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
+          <span>{actionText}</span>
+        </div>
+
+        {/* Admin Controls */}
+        {isAdmin && (
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            onKeyDown={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 pl-2 border-l border-slate-200 dark:border-slate-700 shrink-0"
+          >
+            <div {...attributes} {...listeners} className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-grab flex items-center justify-center touch-none rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800" title="Geser Urutan (Drag)">
+              <GripVertical className="w-4 h-4" />
+            </div>
+            <button onClick={() => toggleButtonStatus(activeTrainingId, btn.id)} className={`p-2 rounded-xl transition-colors ${btn.isActive ? 'text-emerald-700 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/40' : 'text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'}`} title={btn.isActive ? "Matikan Tautan" : "Aktifkan Tautan"}>
+              {btn.isActive ? <Unlock className="w-4 h-4 mx-auto"/> : <Lock className="w-4 h-4 mx-auto"/>}
+            </button>
+            <button onClick={() => { setButtonFormData(btn); setIsCustomCategory(!DEFAULT_CATEGORIES.includes(btn.category)); setShowButtonForm(true); }} className="p-2 rounded-xl text-indigo-700 hover:bg-indigo-100/50 dark:hover:bg-indigo-950/40 transition-colors" title="Edit Tautan"><Edit2 className="w-4 h-4 mx-auto"/></button>
+            <button onClick={() => handleDeleteButton(activeTrainingId, btn.id)} className="p-2 rounded-xl text-rose-700 hover:bg-rose-100/50 dark:hover:bg-rose-950/40 transition-colors" title="Hapus"><Trash2 className="w-4 h-4 mx-auto"/></button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+export const LMSModule: React.FC<{ 
+  onBack: () => void;
+  directTrainingId?: string | null;
+  initialTrainingId?: string | null;
+  isGuestDirect?: boolean;
+}> = ({ onBack, directTrainingId, initialTrainingId, isGuestDirect = false }) => {
   const { user } = useAuth();
+  const { presetInfo } = useTheme();
+  const heroTheme = getThemeHeroStyles(presetInfo?.id || 'persik');
+  const catTheme = getAdminThemeCategoryStyles(presetInfo?.id || 'persik');
   const isAdmin = user?.role === 'admin';
   const [trainings, setTrainings] = useState<LMSTraining[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Tab filter kategori aktif (untuk tombol pill horizontal)
+  const [activeCategoryTab, setActiveCategoryTab] = useState<string>('all');
+
+  // Target training ID dari direct link
+  const targetTrainingId = directTrainingId || initialTrainingId;
 
   // View state: 'list' or 'detail' or 'iframe'
   const [view, setView] = useState<'list' | 'detail' | 'iframe'>('list');
@@ -183,6 +541,41 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [selectedSourceId, setSelectedSourceId] = useState('');
   const [copyMode, setCopyMode] = useState<'merge' | 'replace'>('merge');
   const [isCopying, setIsCopying] = useState(false);
+
+  // Share Link Modal state
+  const [shareModalTraining, setShareModalTraining] = useState<LMSTraining | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const getDirectShareUrl = (trainingId: string) => {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}/?page=lms&trainingId=${encodeURIComponent(trainingId)}`;
+  };
+
+  const handleOpenShareModal = (t: LMSTraining) => {
+    setShareModalTraining(t);
+    setCopiedLink(false);
+    const url = getDirectShareUrl(t.id);
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 3000);
+      }).catch(() => {});
+    }
+  };
+
+  const handleCopyShareLink = (t: LMSTraining) => {
+    const url = getDirectShareUrl(t.id);
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 3000);
+      }).catch(() => {
+        prompt('Salin tautan ini:', url);
+      });
+    } else {
+      prompt('Salin tautan ini:', url);
+    }
+  };
 
   const fetchTrainings = async () => {
     setLoading(true);
@@ -211,6 +604,15 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           };
         }) as LMSTraining[];
         setTrainings(formatted);
+
+        // Jika ada targetTrainingId dari URL/direct link, langsung buka detail pelatihan tersebut
+        if (targetTrainingId) {
+          const found = formatted.find(t => t.id === targetTrainingId);
+          if (found) {
+            setSelectedTrainingId(found.id);
+            setView('detail');
+          }
+        }
       }
     } catch (err) {
       console.error('Gagal mengambil data pelatihan', err);
@@ -656,6 +1058,10 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   };
 
   const backToList = () => {
+    if (isGuestDirect) {
+      onBack();
+      return;
+    }
     setSelectedTrainingId(null);
     setView('list');
   };
@@ -685,9 +1091,15 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <button onClick={view === 'list' ? onBack : backToList} className="flex items-center gap-2 text-slate-500 hover:text-primary-600 font-semibold group transition-colors">
-        <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> {view === 'list' ? 'Kembali' : 'Kembali ke Daftar Pelatihan'}
-      </button>
+      {!isGuestDirect ? (
+        <button onClick={view === 'list' ? onBack : backToList} className="flex items-center gap-2 text-slate-500 hover:text-primary-600 font-semibold group transition-colors cursor-pointer">
+          <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> {view === 'list' ? 'Kembali' : 'Kembali ke Daftar Pelatihan'}
+        </button>
+      ) : (
+        <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-primary-600 font-semibold group transition-colors cursor-pointer">
+          <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Keluar ke Halaman Login
+        </button>
+      )}
 
       {/* Header */}
       {view === 'list' && (
@@ -745,6 +1157,13 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                           </span>
                         </td>
                         <td className="py-3 px-4 flex justify-end gap-2">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleOpenShareModal(t); }} 
+                            className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer" 
+                            title="Bagikan Tautan Pelatihan Langsung"
+                          >
+                            <Share2 className="w-4 h-4"/>
+                          </button>
                           <button onClick={() => toggleTrainingStatus(t)} className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors" title="Ubah Status">
                             {t.isActive ? <Unlock className="w-4 h-4"/> : <Lock className="w-4 h-4"/>}
                           </button>
@@ -793,9 +1212,23 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         <div className={`p-3 rounded-2xl ${t.isActive ? 'bg-white/60 shadow-sm' : 'bg-slate-200/50'}`}>
                           <IconComponent className="w-6 h-6" />
                         </div>
-                        <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider ${t.isActive ? 'bg-white/60' : 'bg-slate-200'}`}>
-                          {t.isActive ? 'Aktif' : 'Ditutup'}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {isAdmin && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenShareModal(t);
+                              }}
+                              className="p-1.5 rounded-xl bg-white/70 hover:bg-white text-slate-600 hover:text-emerald-600 shadow-2xs transition-colors cursor-pointer"
+                              title="Bagikan Tautan Pelatihan Langsung"
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider ${t.isActive ? 'bg-white/60' : 'bg-slate-200'}`}>
+                            {t.isActive ? 'Aktif' : 'Ditutup'}
+                          </span>
+                        </div>
                       </div>
                       <h3 className="text-lg md:text-xl font-black mb-2 leading-tight flex-grow pr-2">
                         {t.name}
@@ -812,49 +1245,232 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </div>
         </div>
       ) : view === 'detail' && activeTraining ? (
-        // ======================= VIEW: DETAIL =======================
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 md:space-y-8">
-          {/* Header Pelatihan */}
-          <div className={`bg-white border rounded-[2.5rem] p-6 md:p-10 transition-all relative overflow-hidden ${activeTraining.isActive ? 'border-primary-100 shadow-xl shadow-primary-50/50' : 'border-slate-200 opacity-90'}`}>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div className="flex items-center gap-5">
-                <div className={`p-5 rounded-3xl ${activeTraining.isActive ? 'bg-primary-50 text-primary-600' : 'bg-slate-100 text-slate-400'}`}>
-                  {React.createElement(ICON_MAP[activeTraining.icon] || BookOpen, { className: "w-10 h-10" })}
-                </div>
-                <div>
-                  <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">{activeTraining.name}</h2>
-                  <div className="flex flex-wrap items-center gap-3 mt-3">
-                    <span className="text-primary-600 font-bold bg-primary-50 px-3 py-1.5 rounded-xl text-xs md:text-sm uppercase tracking-wider flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4" /> {getPeriodString(activeTraining)}
-                    </span>
-                    {!activeTraining.isActive && <span className="text-rose-500 text-xs font-black bg-rose-50 px-3 py-1.5 rounded-xl uppercase flex items-center gap-1"><EyeOff className="w-4 h-4"/> Pelatihan Ditutup</span>}
+        // ======================= VIEW: DETAIL (Desain Sesuai Gambar Referensi & Tone Warna Admin) =======================
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 md:space-y-8 max-w-6xl mx-auto">
+          {(() => {
+            const heroTheme = getThemeHeroStyles(presetInfo?.id || 'persik');
+            const allAvailableButtons = isAdmin 
+              ? (activeTraining.buttons || []) 
+              : (activeTraining.buttons || []).filter(b => b && b.isActive);
+
+            return (
+              <>
+                {/* 1. TOP PROFILE & GREETING BAR (Sesuai Layar Kiri Referensi: Hello Sarah Wilson) */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 dark:bg-slate-900/60 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xs backdrop-blur-sm">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-400 to-orange-400 p-0.5 shadow-xs shrink-0">
+                      <div className="w-full h-full rounded-full bg-white dark:bg-slate-800 flex items-center justify-center font-black text-slate-800 dark:text-slate-100 text-sm">
+                        {user?.name ? user.name.slice(0, 2).toUpperCase() : 'PS'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-400 font-medium flex items-center gap-1">
+                        <span>Halo</span>
+                        <span>👋</span>
+                      </div>
+                      <div className="text-base font-black text-slate-800 dark:text-white leading-tight">
+                        {user?.name || (isGuestDirect ? 'Petugas Lapangan' : 'Petugas Sensus & Survei')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tombol Aksi Admin */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isAdmin && (
+                      <>
+                        <button 
+                          onClick={() => handleOpenShareModal(activeTraining)} 
+                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold flex items-center gap-1.5 transition-colors shadow-xs text-xs cursor-pointer"
+                          title="Bagikan Tautan Pelatihan Langsung ke Petugas"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          <span>Bagikan Tautan</span>
+                        </button>
+                        <button onClick={() => { setButtonFormData({ title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true }); setIsCustomCategory(false); setShowButtonForm(true); }} className="px-3.5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-bold flex items-center gap-1.5 transition-colors shadow-xs text-xs cursor-pointer">
+                          <Plus className="w-3.5 h-3.5" /> Tautan Baru
+                        </button>
+                        <button 
+                          onClick={() => { 
+                            const firstAvailable = trainings.find(t => t.id !== activeTraining.id && (t.buttons || []).length > 0);
+                            setSelectedSourceId(firstAvailable ? firstAvailable.id : 'template_bps_standard');
+                            setCopyMode('merge');
+                            setShowCopyModal(true); 
+                          }} 
+                          className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold flex items-center gap-1.5 transition-colors shadow-xs text-xs cursor-pointer" 
+                          title="Salin Materi dari Pelatihan Lain"
+                        >
+                          <Copy className="w-3.5 h-3.5" /> Salin
+                        </button>
+                        <button onClick={() => { setFormData({...activeTraining, startDate: activeTraining.startDate||'', endDate: activeTraining.endDate||''}); setShowForm(true); }} className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-2xl transition-colors cursor-pointer" title="Edit Data Pelatihan"><Edit2 className="w-4 h-4"/></button>
+                      </>
+                    )}
                   </div>
                 </div>
-              </div>
-              
-              {isAdmin && (
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <button onClick={() => { setButtonFormData({ title: '', url: '', category: DEFAULT_CATEGORIES[0], isActive: true }); setIsCustomCategory(false); setShowButtonForm(true); }} className="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold flex items-center gap-2 transition-colors shadow-md text-xs sm:text-sm">
-                    <Plus className="w-4 h-4" /> Tautan Baru
-                  </button>
-                  <button 
-                    onClick={() => { 
-                      const firstAvailable = trainings.find(t => t.id !== activeTraining.id && (t.buttons || []).length > 0);
-                      setSelectedSourceId(firstAvailable ? firstAvailable.id : 'template_bps_standard');
-                      setCopyMode('merge');
-                      setShowCopyModal(true); 
-                    }} 
-                    className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm text-xs sm:text-sm" 
-                    title="Salin Materi dari Pelatihan Lain"
-                  >
-                    <Copy className="w-4 h-4" /> Salin Materi
-                  </button>
-                  <button onClick={() => { setFormData({...activeTraining, startDate: activeTraining.startDate||'', endDate: activeTraining.endDate||''}); setShowForm(true); }} className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-colors" title="Edit Data Pelatihan"><Edit2 className="w-5 h-5"/></button>
+
+                {/* 2. JUDUL BESAR KEGIATAN & PERIODE (Welcome Title Style) */}
+                <div className="space-y-1">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                    {activeTraining.name}
+                  </h1>
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-xl">
+                      <Calendar className="w-3.5 h-3.5 text-primary-600" />
+                      <span>{getPeriodString(activeTraining)}</span>
+                    </span>
+                    {!activeTraining.isActive && (
+                      <span className="text-rose-600 text-xs font-black bg-rose-50 px-2.5 py-1 rounded-xl uppercase flex items-center gap-1">
+                        <EyeOff className="w-3.5 h-3.5"/> Pelatihan Ditutup
+                      </span>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
+
+                {/* 3. HORIZONTAL CATEGORY PILL FILTER (Welcome Offer, Wash & Iron pill buttons) */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none pt-1">
+                  <button
+                    onClick={() => setActiveCategoryTab('all')}
+                    className={`px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      activeCategoryTab === 'all'
+                        ? `${heroTheme.activePill} shadow-xs scale-105`
+                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    Semua Materi ({allAvailableButtons.length})
+                  </button>
+                  {currentCategories.map(cat => {
+                    const count = allAvailableButtons.filter(b => b.category === cat).length;
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setActiveCategoryTab(cat)}
+                        className={`px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                          activeCategoryTab === cat
+                            ? `${heroTheme.activePill} shadow-xs scale-105`
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {cat} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 4. HERO FEATURE CARD (Kartu Besar Mengikuti Tone Warna Admin Sesuai Gambar Referensi) */}
+                <div className={`rounded-[2.5rem] p-6 sm:p-8 md:p-10 border-2 ${heroTheme.cardBorder} ${heroTheme.cardBg} relative overflow-hidden shadow-sm`}>
+                  {/* Efek Ambient Glow */}
+                  <div className="absolute top-0 right-0 w-80 h-80 bg-white/40 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/3" />
+
+                  <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div className="space-y-4 max-w-xl">
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-800 leading-tight">
+                        Akses Terpadu Materi &amp; Instrumen Pelatihan
+                      </h2>
+
+                      {/* Checklist Butir Fitur dengan Titik Oranye */}
+                      <div className="space-y-2 text-xs sm:text-sm font-bold text-slate-700">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`w-2 h-2 rounded-full ${heroTheme.highlightDot} shrink-0`}></span>
+                          <span>Presensi Kehadiran Online &amp; Surat Tugas Lapangan</span>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <span className={`w-2 h-2 rounded-full ${heroTheme.highlightDot} shrink-0`}></span>
+                          <span>Buku Pedoman Pencacahan, Konsep Definisi &amp; Kuesioner</span>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <span className={`w-2 h-2 rounded-full ${heroTheme.highlightDot} shrink-0`}></span>
+                          <span>Jadwal Agenda Harian, Pre-Test &amp; Evaluasi Pelatihan</span>
+                        </div>
+                      </div>
+
+                      {/* Logo BPS + Tombol Frosted Glass Slider */}
+                      <div className="pt-2 flex flex-wrap items-center gap-4">
+                        {/* Logo Resmi Badan Pusat Statistik (BPS) */}
+                        <div className="w-14 h-14 rounded-2xl bg-white/95 dark:bg-slate-900 border border-white/80 shadow-xs flex items-center justify-center p-2.5 shrink-0 hover:scale-105 transition-transform" title="Badan Pusat Statistik (BPS)">
+                          <img 
+                            src="/bps-logo.svg" 
+                            alt="Logo Badan Pusat Statistik (BPS)" 
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/2/28/Lambang_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg';
+                            }}
+                          />
+                        </div>
+
+                        {/* Tombol Frosted Glass Slider (Order Now Style) */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const el = document.getElementById('lms-materials-section');
+                            if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          className={`rounded-full py-2 pl-2 pr-6 ${heroTheme.sliderBg} backdrop-blur-md flex items-center gap-3.5 shadow-sm hover:shadow-md transition-all cursor-pointer group`}
+                        >
+                          <div className={`w-9 h-9 rounded-full ${heroTheme.sliderCircle} flex items-center justify-center font-bold shadow-xs`}>
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                          <span className="font-black text-xs sm:text-sm text-slate-800">
+                            Buka Daftar Materi
+                          </span>
+                          <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Dekorasi Visual Grafis Kanan (Sesuai gambar referensi) */}
+                    <div className="hidden sm:flex flex-col items-center justify-center w-40 h-40 md:w-52 md:h-52 rounded-[2.5rem] bg-white/60 backdrop-blur-sm border border-white/80 shadow-md p-4 text-center shrink-0">
+                      <div className={`w-20 h-20 rounded-3xl ${heroTheme.cardBg} border ${heroTheme.cardBorder} flex items-center justify-center shadow-xs mb-2`}>
+                        {React.createElement(ICON_MAP[activeTraining.icon] || BookOpen, { className: "w-10 h-10 text-slate-800" })}
+                      </div>
+                      <div className="text-xs font-black text-slate-800">LMS BPS</div>
+                      <div className="text-[10px] font-bold text-slate-500 uppercase">{activeTraining.icon}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Banner Akses Langsung Petugas Bila Tanpa Login */}
+                {isGuestDirect && (
+                  <div className="p-4 md:p-5 rounded-3xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                    <div className="flex items-center gap-3.5">
+                      <div className="p-2.5 rounded-2xl bg-emerald-600 text-white shadow-xs shrink-0">
+                        <GraduationCap className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="text-xs md:text-sm font-black text-emerald-950 dark:text-emerald-200 flex items-center gap-2">
+                          <span>Laman Pelatihan Langsung Petugas</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">
+                            Mode Terarah Aktif
+                          </span>
+                        </div>
+                        <div className="text-[11px] md:text-xs text-emerald-800/80 dark:text-emerald-300/90 mt-0.5 leading-relaxed">
+                          Anda dapat mengakses materi, instrumen, dan jadwal kegiatan ini secara langsung. Untuk membuka fitur sistem Garda Data lainnya, silakan masuk ke akun Anda.
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onBack}
+                      className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-2xl shrink-0 transition-colors cursor-pointer shadow-xs whitespace-nowrap flex items-center justify-center gap-1.5"
+                    >
+                      <span>Masuk ke Garda Data</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Empty State bila Belum Ada Materi */}
+                {!isAdmin && allAvailableButtons.length === 0 && (
+                  <div className="text-center py-16 px-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto my-6 space-y-3">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center mx-auto shadow-2xs">
+                      <BookOpen className="w-7 h-7" />
+                    </div>
+                    <h3 className="text-base font-bold text-slate-800">Belum Ada Materi Tersedia</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Materi dan tautan kegiatan untuk pelatihan ini belum dipublikasikan oleh administrator. Silakan periksa kembali nanti atau hubungi panitia penyelenggara.
+                    </p>
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           {/* Helper Banner bila Belum Ada Materi */}
           {isAdmin && (activeTraining.buttons || []).length === 0 && (
@@ -918,85 +1534,109 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </div>
           )}
 
-          {/* Grup Elemen Pelatihan */}
-          <div className="space-y-6 md:space-y-8">
-            {currentCategories.map((category, idx) => {
-              const visibleButtons = isAdmin ? (activeTraining.buttons || []) : (activeTraining.buttons || []).filter(b => b && b.isActive);
-              const btns = visibleButtons.filter(b => b && b.category === category);
-              
-              if (btns.length === 0 && !isAdmin) return null;
-              
-              const CategoryIcon = CATEGORY_ICONS[category] || Link2;
-              
-              // Tentukan variasi warna berdasarkan index kategori
-              const colorSchemes = [
-                { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', linkHover: 'hover:border-emerald-300 hover:shadow-emerald-200', linkIconBg: 'bg-emerald-50', linkIconHover: 'group-hover:bg-emerald-500' },
-                { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200', iconBg: 'bg-blue-100', iconColor: 'text-blue-600', linkHover: 'hover:border-blue-300 hover:shadow-blue-200', linkIconBg: 'bg-blue-50', linkIconHover: 'group-hover:bg-blue-500' },
-                { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200', iconBg: 'bg-amber-100', iconColor: 'text-amber-600', linkHover: 'hover:border-amber-300 hover:shadow-amber-200', linkIconBg: 'bg-amber-50', linkIconHover: 'group-hover:bg-amber-500' },
-                { bg: 'bg-rose-50', text: 'text-rose-800', border: 'border-rose-200', iconBg: 'bg-rose-100', iconColor: 'text-rose-600', linkHover: 'hover:border-rose-300 hover:shadow-rose-200', linkIconBg: 'bg-rose-50', linkIconHover: 'group-hover:bg-rose-500' },
-                { bg: 'bg-indigo-50', text: 'text-indigo-800', border: 'border-indigo-200', iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600', linkHover: 'hover:border-indigo-300 hover:shadow-indigo-200', linkIconBg: 'bg-indigo-50', linkIconHover: 'group-hover:bg-indigo-500' },
-              ];
-              const theme = colorSchemes[idx % colorSchemes.length];
+          {/* Grup Elemen Pelatihan (Clean Modern Stack matching Reference Image) */}
+          <div id="lms-materials-section" className="space-y-8 pt-2">
+            {(() => {
+              const displayedCategories = activeCategoryTab === 'all'
+                ? currentCategories
+                : currentCategories.filter(c => c === activeCategoryTab);
 
-              return (
-                <div key={category} className={`${theme.bg} rounded-[2rem] p-5 md:p-8 border ${theme.border}`}>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                    <h3 className={`font-black ${theme.text} uppercase tracking-widest text-sm md:text-base flex items-center gap-3`}>
-                      <div className={`p-2 rounded-xl shadow-sm border border-white/50 ${theme.iconBg}`}>
-                        <CategoryIcon className={`w-5 h-5 ${theme.iconColor}`} />
-                      </div>
-                      {category}
-                    </h3>
-                  </div>
+              let globalCardIndex = 0;
 
-                  {btns.length > 0 ? (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, activeTraining.id, category)}>
-                      <SortableContext items={btns.map(b => b.id)} strategy={rectSortingStrategy}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                          {btns.map(btn => {
-                            const now = new Date();
-                            const sDate = btn.startDate ? new Date(btn.startDate) : null;
-                            const eDate = btn.endDate ? new Date(btn.endDate) : null;
-                            const isNotOpen = sDate && now < sDate;
-                            const isClosed = eDate && now > eDate;
-                            const isLocked = !isAdmin && (isNotOpen || isClosed || !btn.isActive);
-                            
-                            let lockLabel = '';
-                            if (isNotOpen) lockLabel = `Belum Dibuka (Buka: ${formatIndonesianTime24(btn.startDate)})`;
-                            else if (isClosed) lockLabel = `Sudah Ditutup (Berakhir: ${formatIndonesianTime24(btn.endDate)})`;
-                            else if (!btn.isActive) lockLabel = 'Nonaktif';
+              return displayedCategories.map((category, idx) => {
+                const visibleButtons = isAdmin ? (activeTraining.buttons || []) : (activeTraining.buttons || []).filter(b => b && b.isActive);
+                const btns = visibleButtons.filter(b => b && b.category === category);
+                
+                if (btns.length === 0 && !isAdmin) return null;
+                
+                const CategoryIcon = CATEGORY_ICONS[category] || Link2;
 
-                            const isIframe = (btn.url || '').trim().startsWith('<iframe');
-
-                            return (
-                              <SortableLinkItem 
-                                key={btn.id} 
-                                btn={btn} 
-                                isAdmin={isAdmin} 
-                                theme={theme} 
-                                isLocked={isLocked} 
-                                lockLabel={lockLabel} 
-                                isIframe={isIframe} 
-                                openIframe={openIframe} 
-                                toggleButtonStatus={toggleButtonStatus} 
-                                setButtonFormData={setButtonFormData} 
-                                setIsCustomCategory={setIsCustomCategory} 
-                                setShowButtonForm={setShowButtonForm} 
-                                handleDeleteButton={handleDeleteButton} 
-                                activeTrainingId={activeTraining.id}
-                                DEFAULT_CATEGORIES={DEFAULT_CATEGORIES} 
-                              />
-                            );
-                          })}
+                return (
+                  <div 
+                    key={category} 
+                    className={`rounded-[2.5rem] ${catTheme.cardBg} ${catTheme.cardBorder} shadow-sm border-2 p-6 sm:p-8 space-y-6 relative overflow-hidden`}
+                  >
+                    {/* Header Kategori Sesuai Gambar Referensi (Warna Sesuai Tema Admin, Tanpa Ikon ✨) */}
+                    <div className={`flex items-start justify-between gap-4 pb-4 border-b ${catTheme.headerBorder}`}>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-[10px] sm:text-[11px] font-black uppercase tracking-widest ${catTheme.eyebrowColor}`}>
+                            Kategori Pelatihan
+                          </span>
                         </div>
-                      </SortableContext>
-                    </DndContext>
-                  ) : (
-                    <div className="text-center py-8 text-sm text-slate-400 font-bold border-2 border-dashed border-slate-200 rounded-2xl bg-white/50">Belum ada tautan yang ditambahkan di elemen ini</div>
-                  )}
-                </div>
-              );
-            })}
+                        <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                          {category}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-1.5 max-w-xl">
+                          {getCategoryDescription(category)}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className={`px-4 py-1.5 rounded-full text-xs font-black border shadow-2xs ${catTheme.badgeBg}`}>
+                          {btns.length} Tautan
+                        </span>
+                        {/* Ikon Kategori Resmi Sesuai Warna Admin (Ikon ✨ Dihilangkan) */}
+                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-xs ${catTheme.iconBg}`}>
+                          <CategoryIcon className="w-5 h-5 text-white" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stack Kartu Item di Dalam Kategori (Sesuai Baris-Baris Pada Gambar Referensi) */}
+                    {btns.length > 0 ? (
+                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, activeTraining.id, category)}>
+                        <SortableContext items={btns.map(b => b.id)} strategy={rectSortingStrategy}>
+                          <div className="space-y-3 sm:space-y-3.5">
+                            {btns.map(btn => {
+                              const currentIdx = globalCardIndex++;
+                              const now = new Date();
+                              const sDate = btn.startDate ? new Date(btn.startDate) : null;
+                              const eDate = btn.endDate ? new Date(btn.endDate) : null;
+                              const isNotOpen = sDate && now < sDate;
+                              const isClosed = eDate && now > eDate;
+                              const isLocked = !isAdmin && (isNotOpen || isClosed || !btn.isActive);
+                              
+                              let lockLabel = '';
+                              if (isNotOpen) lockLabel = `Belum Dibuka (Buka: ${formatIndonesianTime24(btn.startDate)})`;
+                              else if (isClosed) lockLabel = `Sudah Ditutup (Berakhir: ${formatIndonesianTime24(btn.endDate)})`;
+                              else if (!btn.isActive) lockLabel = 'Nonaktif';
+
+                              const isIframe = (btn.url || '').trim().startsWith('<iframe');
+
+                              return (
+                                <SortableLinkItem 
+                                  key={btn.id} 
+                                  btn={btn} 
+                                  index={currentIdx}
+                                  catTheme={catTheme}
+                                  isAdmin={isAdmin} 
+                                  isLocked={isLocked} 
+                                  lockLabel={lockLabel} 
+                                  isIframe={isIframe} 
+                                  openIframe={openIframe} 
+                                  toggleButtonStatus={toggleButtonStatus} 
+                                  setButtonFormData={setButtonFormData} 
+                                  setIsCustomCategory={setIsCustomCategory} 
+                                  setShowButtonForm={setShowButtonForm} 
+                                  handleDeleteButton={handleDeleteButton} 
+                                  activeTrainingId={activeTraining.id}
+                                  DEFAULT_CATEGORIES={DEFAULT_CATEGORIES} 
+                                />
+                              );
+                            })}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    ) : (
+                      <div className="text-center py-8 text-xs font-bold text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-white/50 dark:bg-slate-900/40">
+                        Belum ada tautan materi yang ditambahkan di kategori ini
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         </motion.div>
       ) : view === 'iframe' ? (
@@ -1352,6 +1992,145 @@ export const LMSModule: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     {isCopying ? 'Menyalin Struktur...' : 'Salin Sekarang'}
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* MODAL SHARE TAUTAN PELATIHAN LANGSUNG */}
+        {shareModalTraining && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-slate-200"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 rounded-2xl bg-emerald-100 text-emerald-600">
+                    <Share2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-800 text-base">
+                      Bagikan Tautan Pelatihan
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Tautan terarah untuk dibagikan kepada petugas
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShareModalTraining(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 mb-4">
+                <div className="text-xs font-bold text-slate-800 mb-1">
+                  {shareModalTraining.name}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Periode: {getPeriodString(shareModalTraining)} • Status: {shareModalTraining.isActive ? 'Aktif' : 'Non Aktif'}
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-4">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Tautan Langsung (Direct Link):
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={getDirectShareUrl(shareModalTraining.id)}
+                    className="flex-1 px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 select-all outline-none"
+                    onClick={e => (e.target as HTMLInputElement).select()}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleCopyShareLink(shareModalTraining)}
+                    className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+                      copiedLink
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-primary-600 hover:bg-primary-700 text-white shadow-xs'
+                    }`}
+                  >
+                    {copiedLink ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Disalin!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Salin</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Tombol aksi cepat: WhatsApp & Buka Tab Baru */}
+              <div className="grid grid-cols-2 gap-2.5 mb-5">
+                <a
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Yth. Bapak/Ibu Petugas,\nBerikut tautan langsung materi & instrumen pelatihan *${shareModalTraining.name}*:\n\n${getDirectShareUrl(shareModalTraining.id)}\n\n(Dapat langsung diakses tanpa login untuk melihat materi kegiatan ini)`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Kirim ke WhatsApp</span>
+                </a>
+
+                <a
+                  href={getDirectShareUrl(shareModalTraining.id)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Uji di Tab Baru</span>
+                </a>
+              </div>
+
+              {/* Aturan Hak Akses Keamanan */}
+              <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-100 space-y-2 text-xs">
+                <div className="flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-sky-900">Petugas Tanpa Login:</span>
+                    <p className="text-[11px] text-sky-800/80 mt-0.5">
+                      Hanya dapat melihat dan mengakses tautan materi pelatihan ini saja. Seluruh navigasi dan modul Garda Data lainnya tertutup otomatis.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 pt-1 border-t border-sky-200/50">
+                  <Unlock className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-emerald-900">Petugas Sudah Login:</span>
+                    <p className="text-[11px] text-emerald-800/80 mt-0.5">
+                      Langsung membuka materi pelatihan ini sekaligus dapat membuka fitur Garda Data lainnya secara penuh sesuai hak akses akun.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 text-right">
+                <button
+                  type="button"
+                  onClick={() => setShareModalTraining(null)}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                >
+                  Tutup
+                </button>
               </div>
             </motion.div>
           </motion.div>

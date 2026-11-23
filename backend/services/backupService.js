@@ -79,8 +79,19 @@ async function createSystemBackup({ backupType = 'scheduled', scope = 'all', spe
   for (const table of tablesToDump) {
     try {
       const [rows] = await pool.query(`SELECT * FROM \`${table}\``);
-      dumpPayload.tables[table] = rows;
-      totalRecords += rows.length;
+      // Sanitasi Keamanan Data (Zero Credential Leakage): samarkan data sensitif password/token
+      const sanitizedRows = (rows || []).map(r => {
+        if (!r || typeof r !== 'object') return r;
+        const cleanRow = { ...r };
+        ['password', 'password_hash', 'salt', 'token', 'secret_key', 'access_token', 'refresh_token'].forEach(k => {
+          if (k in cleanRow && cleanRow[k]) {
+            cleanRow[k] = '[PROTECTED_SECURITY_DATA]';
+          }
+        });
+        return cleanRow;
+      });
+      dumpPayload.tables[table] = sanitizedRows;
+      totalRecords += sanitizedRows.length;
       tablesIncluded.push(table);
     } catch (err) {
       console.warn(`[BackupService] Lewati tabel ${table} (${err.message})`);

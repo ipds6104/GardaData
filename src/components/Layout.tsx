@@ -188,7 +188,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
     ...((user?.role === 'admin' || user?.role === 'petugas_pengolahan') ? [
       { id: 'peta-responden-se2026', title: 'Peta Responden SE2026', desc: 'Visualisasi sebaran koordinat responden SE2026 di Kabupaten Mempawah dengan overlay batas SLS, Desa, dan Kecamatan', keywords: ['peta', 'responden', 'se2026', 'pengolahan', 'koordinat', 'rumah', 'sls', 'desa', 'mempawah', 'geospasial'] }
     ] : []),
-    ...(isAhmadAuliaUser(user) ? [
+    ...((isAhmadAuliaUser(user) || user?.role === 'admin') ? [
       { id: 'analytics-ahmad', title: 'Statistik & Analisis Pengunjung', desc: 'Monitoring volume trafik, pengunjung unik, popularitas fitur, serta analisis kunjungan per hari dan jam khusus akun ahmad.aulia', keywords: ['statistik', 'analisis', 'pengunjung', 'traffic', 'ahmad', 'aulia', 'jam', 'hari', 'views', 'populer', 'telemetri'] },
       { id: 'backup-system', title: 'Cadangan & Pemulihan Sistem', desc: 'Pencadangan database otomatis & manual, riwayat revisi data seluruh fitur, log audit, serta unduh arsip data ZIP/JSON khusus akun ahmad.aulia', keywords: ['backup', 'cadangan', 'restore', 'pemulihan', 'zip', 'database', 'revisi', 'log', 'ahmad', 'aulia', 'developer'] }
     ] : []),
@@ -264,8 +264,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage = 'landing
         { id: 'admin-strategic-data', label: 'Data Strategis BPS', icon: TrendingUp }
       ]
     },
-    ...(isAhmadAuliaUser(user) ? [{
-      title: 'HALAMAN DEVELOPER',
+    ...((isAhmadAuliaUser(user) || user?.role === 'admin') ? [{
+      title: 'SUPERVISI & LOG SISTEM',
       items: [
         { id: 'analytics-ahmad', label: 'Statistik Pengunjung', icon: BarChart3 },
         { id: 'backup-system', label: 'Cadangan & Log Data', icon: ShieldCheck }

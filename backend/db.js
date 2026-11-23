@@ -719,7 +719,25 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
-    console.log('✅ Tabel Sistem Cadangan & Revisi Otomatis siap.');
+    // ========================================== 
+    // TABEL SALINAN COMMIT GITHUB & PEMBARUAN SISTEM
+    // ========================================== 
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS system_github_commits (
+        id VARCHAR(255) PRIMARY KEY,
+        commitHash VARCHAR(50) NOT NULL UNIQUE,
+        title VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        scope VARCHAR(100) DEFAULT NULL,
+        author VARCHAR(100) DEFAULT NULL,
+        commitDate DATETIME NOT NULL,
+        rawJson JSON NOT NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_commit_date (commitDate)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    console.log('✅ Tabel Sistem Cadangan, Revisi, dan Salinan Commit GitHub siap.');
     
     connection.release();
   } catch (error) {

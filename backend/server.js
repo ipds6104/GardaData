@@ -37,6 +37,7 @@ app.use(helmet({
         "https://api.garda-data.com", 
         "https://gardadata.dvlpid.my.id",
         "https://docs.google.com", 
+        "https://api.github.com",
         "https://firestore.googleapis.com", 
         "https://*.firebaseio.com", 
         "wss://*.firebaseio.com", 
@@ -83,8 +84,9 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
-// Parse JSON payload (maksimal 2MB untuk mengamankan dari payload raksasa)
-app.use(express.json({ limit: '2mb' }));
+// Parse JSON payload (maksimal 25MB untuk mendukung GeoJSON, batch data dan unggahan berkas laporan)
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ limit: '25mb', extended: true }));
 
 // ==========================================
 // ROUTES
@@ -105,6 +107,7 @@ const kbliRouter = require('./routes/kbli');
 const kbjiRouter = require('./routes/kbji');
 const analyticsRouter = require('./routes/analytics');
 const backupsRouter = require('./routes/backups');
+const pool = require('./db');
 app.use('/api/auth', authRouter);
 app.use('/api/kbli', kbliRouter);
 app.use('/api/kbji', kbjiRouter);
@@ -121,6 +124,91 @@ app.use('/api/sls', slsRouter);
 app.use('/api/mitra', mitraRouter);
 app.use('/api/pengolahan', pengolahanRouter);
 app.use('/api/backups', backupsRouter);
+
+// Endpoint update GitHub: Membaca dari tabel database SQL 'system_github_commits'
+let cachedGithubUpdates = null;
+let lastGithubFetch = 0;
+
+app.get('/api/github-updates', async (req, res) => {
+  try {
+    // 1. Prioritas Utama: Baca dari tabel database SQL 'system_github_commits'
+    try {
+      const [rows] = await pool.query(
+        'SELECT id, commitHash, title, description, scope, author, commitDate FROM system_github_commits ORDER BY commitDate DESC LIMIT 5'
+      );
+      if (rows && rows.length > 0) {
+        const sqlUpdates = rows.map(r => {
+          let dateStr = 'Terbaru';
+          try {
+            dateStr = new Date(r.commitDate).toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            });
+          } catch (e) {}
+
+          return {
+            title: r.title,
+            date: dateStr,
+            desc: r.description,
+            scope: r.scope,
+            commitHash: r.commitHash
+          };
+        });
+        return res.json({ success: true, source: 'sql-database', updates: sqlUpdates });
+      }
+    } catch (sqlErr) {
+      // Jika database offline atau belum di-seed, lanjutkan ke fallback
+    }
+
+    // 2. Fallback: baca dari file static json lokal repository
+    try {
+      const staticPath = path.join(__dirname, '../dist/data/latest_updates.json');
+      const publicPath = path.join(__dirname, '../public/data/latest_updates.json');
+      const targetFile = fs.existsSync(staticPath) ? staticPath : (fs.existsSync(publicPath) ? publicPath : null);
+      if (targetFile) {
+        const fileContent = fs.readFileSync(targetFile, 'utf-8');
+        const parsed = JSON.parse(fileContent);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return res.json({ success: true, source: 'static-json', updates: parsed });
+        }
+      }
+    } catch (fsErr) {}
+
+    // 3. Fallback: proxy live fetch ke GitHub API jika server memiliki akses internet
+    const now = Date.now();
+    if (cachedGithubUpdates && (now - lastGithubFetch < 10 * 60 * 1000)) {
+      return res.json({ success: true, source: 'cache', updates: cachedGithubUpdates });
+    }
+
+    const ghRes = await fetch('https://api.github.com/repos/ipds6104/GardaData/commits?per_page=5', {
+      headers: {
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'GardaData-App'
+      }
+    });
+
+    if (ghRes.ok) {
+      const commits = await ghRes.json();
+      if (Array.isArray(commits) && commits.length > 0) {
+        cachedGithubUpdates = commits;
+        lastGithubFetch = now;
+        return res.json({ success: true, source: 'live', updates: commits });
+      }
+    }
+    
+    if (cachedGithubUpdates) {
+      return res.json({ success: true, source: 'stale-cache', updates: cachedGithubUpdates });
+    }
+
+    res.status(500).json({ error: 'Gagal mengambil data pembaruan' });
+  } catch (err) {
+    if (cachedGithubUpdates) {
+      return res.json({ success: true, source: 'fallback-cache', updates: cachedGithubUpdates });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Root route for API verification (optional, can be removed)
 app.get('/api/status', (req, res) => {

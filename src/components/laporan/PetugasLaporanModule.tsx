@@ -1463,6 +1463,76 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
   // State for Watermark Warnings on Uploaded Photos
   const [watermarkWarnings, setWatermarkWarnings] = useState<Record<string, string>>({});
 
+  // Helper Kompresi Gambar agar ukuran berkas ringan (< 200KB) dan tidak melampaui kuota memori browser / server
+  const compressImageFile = (file: File, maxDim: number = 1280, quality: number = 0.75): Promise<{ file: File; base64: string }> => {
+    return new Promise((resolve) => {
+      if (!file.type || !file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ file, base64: (reader.result as string) || '' });
+        reader.onerror = () => resolve({ file, base64: '' });
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onerror = () => resolve({ file, base64: '' });
+      reader.onload = (readerEvent) => {
+        const rawBase64 = (readerEvent.target?.result as string) || '';
+        const img = new Image();
+        img.onerror = () => {
+          resolve({ file, base64: rawBase64 });
+        };
+        img.onload = () => {
+          try {
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              resolve({ file, base64: rawBase64 });
+              return;
+            }
+
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const outMime = 'image/jpeg';
+            const compressedBase64 = canvas.toDataURL(outMime, quality);
+
+            canvas.toBlob((blob) => {
+              if (blob) {
+                const cleanBase = (file.name || 'foto').replace(/\.[^/.]+$/, '');
+                const compressedFile = new File([blob], `${cleanBase}.jpg`, {
+                  type: outMime,
+                  lastModified: Date.now()
+                });
+                resolve({ file: compressedFile, base64: compressedBase64 });
+              } else {
+                resolve({ file, base64: compressedBase64 });
+              }
+            }, outMime, quality);
+          } catch (canvasErr) {
+            resolve({ file, base64: rawBase64 });
+          }
+        };
+        img.src = rawBase64;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Helper to Detect Third-Party Watermark / Timestamp on Uploaded Photos
   const checkImageForWatermark = (file: File, base64Url: string): Promise<{ hasWatermark: boolean; reason?: string }> => {
     return new Promise((resolve) => {
@@ -1745,7 +1815,27 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
         : [updatedRec, ...(records || [])];
 
       setRecords(updatedList);
-      localStorage.setItem(`garda_laporan_records_${currentForm.id}`, JSON.stringify(updatedList));
+      
+      // Simpan ke localStorage dengan proteksi QuotaExceededError
+      try {
+        localStorage.setItem(`garda_laporan_records_${currentForm.id}`, JSON.stringify(updatedList));
+      } catch (storageErr) {
+        console.warn('LocalStorage quota exceeded, attempting to prune heavy images from cached records:', storageErr);
+        try {
+          const sanitizedList = updatedList.map(item => {
+            const cleanData = { ...(item.data || {}) };
+            Object.keys(cleanData).forEach(k => {
+              if (typeof cleanData[k] === 'string' && cleanData[k].startsWith('data:image')) {
+                cleanData[k] = cleanData[k].substring(0, 100) + '...[cached_thumbnail]';
+              }
+            });
+            return { ...item, data: cleanData };
+          });
+          localStorage.setItem(`garda_laporan_records_${currentForm.id}`, JSON.stringify(sanitizedList));
+        } catch (innerErr) {
+          console.warn('Failed to cache sanitized records to localStorage:', innerErr);
+        }
+      }
 
       // Hapus draft tersimpan setelah berhasil disimpan / disubmit
       try {
@@ -2838,37 +2928,60 @@ export const PetugasLaporanModule: React.FC<PetugasLaporanModuleProps> = ({
                                   if (!file) return;
                                   try {
                                     setIsUploading(true);
-                                    const reader = new FileReader();
-                                    reader.onload = async () => {
-                                      const base64 = reader.result as string;
-                                      setFormData(prev => ({ ...prev, [field.columnName]: base64 }));
+                                    // 1. Kompresi gambar client-side (maksimal 1280px, quality 0.75, ~100-200KB)
+                                    const { file: compressedFile, base64: compressedBase64 } = await compressImageFile(file);
 
-                                      // Deteksi watermark jika konfigurasi laporan aktif
-                                      const repSt = selectedActivity?.settings?.reportSettings;
-                                      const isReportActive = repSt?.enableOfficialReport;
-                                      const shouldDetect = repSt?.detectWatermark !== false;
+                                    let finalPhotoVal = compressedBase64;
 
-                                      if (isReportActive && shouldDetect) {
-                                        const res = await checkImageForWatermark(file, base64);
-                                        if (res.hasWatermark) {
-                                          setWatermarkWarnings(prev => ({
-                                            ...prev,
-                                            [field.columnName]: 'Foto ini terdeteksi memiliki geotagging atau timestamp. Mohon unggah foto asli yang tidak ada geotagging atau timestamp. Geotagging dan timestamp resmi akan otomatis diambil dari isian Tanggal, Lokasi, dan Jam pada e-form.'
-                                          }));
-                                        } else {
-                                          setWatermarkWarnings(prev => {
-                                            const next = { ...prev };
-                                            delete next[field.columnName];
-                                            return next;
-                                          });
+                                    // 2. Unggah berkas yang sudah dikompresi ke server via REST API /api/laporan/upload
+                                    try {
+                                      const uploadBody = new FormData();
+                                      uploadBody.append('file', compressedFile);
+
+                                      const uploadRes = await fetch(`${baseUrl}/api/laporan/upload`, {
+                                        method: 'POST',
+                                        headers: getLaporanAuthHeaders(),
+                                        body: uploadBody
+                                      });
+
+                                      if (uploadRes.ok) {
+                                        const uploadData = await uploadRes.json();
+                                        if (uploadData.url) {
+                                          finalPhotoVal = uploadData.url;
                                         }
                                       }
-                                    };
-                                    reader.readAsDataURL(file);
+                                    } catch (upErr) {
+                                      console.warn('Gagal unggah foto ke server, fallback ke compressed base64:', upErr);
+                                    }
+
+                                    setFormData(prev => ({ ...prev, [field.columnName]: finalPhotoVal }));
+
+                                    // 3. Deteksi watermark jika konfigurasi laporan aktif (gunakan compressedBase64 untuk analisis)
+                                    const repSt = selectedActivity?.settings?.reportSettings;
+                                    const isReportActive = repSt?.enableOfficialReport;
+                                    const shouldDetect = repSt?.detectWatermark !== false;
+
+                                    if (isReportActive && shouldDetect) {
+                                      const res = await checkImageForWatermark(file, compressedBase64);
+                                      if (res.hasWatermark) {
+                                        setWatermarkWarnings(prev => ({
+                                          ...prev,
+                                          [field.columnName]: 'Foto ini terdeteksi memiliki geotagging atau timestamp. Mohon unggah foto asli yang tidak ada geotagging atau timestamp. Geotagging dan timestamp resmi akan otomatis diambil dari isian Tanggal, Lokasi, dan Jam pada e-form.'
+                                        }));
+                                      } else {
+                                        setWatermarkWarnings(prev => {
+                                          const next = { ...prev };
+                                          delete next[field.columnName];
+                                          return next;
+                                        });
+                                      }
+                                    }
                                   } catch (imgErr) {
                                     console.error('Error handling photo upload:', imgErr);
                                   } finally {
                                     setIsUploading(false);
+                                    // Reset input value agar dapat memilih file yang sama jika diperlukan
+                                    if (e.target) e.target.value = '';
                                   }
                                 }}
                               />

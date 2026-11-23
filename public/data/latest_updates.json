@@ -1,27 +1,27 @@
 [
   {
-    "title": "Laporan Pendataan & Sync Sheet",
+    "title": "lms & backup",
+    "date": "23 Nov 2026",
+    "desc": "Implement direct LMS sharing with guest isolation, category redesign, and secure SQL backup logging"
+  },
+  {
+    "title": "Fitur Baru",
     "date": "19 Nov 2026",
-    "desc": "Optimasi laporan pendataan, pemetaan kolom presisi, direct sync Google Sheets, dan integrasi skill pentesting."
+    "desc": "Integrasi claude-pentest-skills, remediasi xss lms, perbaikan pembaruan fitur terkini login, dan auto-binding kolom laporan"
+  },
+  {
+    "title": "Fitur Baru",
+    "date": "19 Nov 2026",
+    "desc": "Optimasi laporan pendataan, pemetaan kolom presisi, direct sync google sheets, dan pembaruan monitoring"
   },
   {
     "title": "Pembaruan Fitur Terkini",
     "date": "15 Nov 2026",
-    "desc": "Selaraskan 5 rilis pembaruan fitur terkini secara dinamis dengan commit terbaru repositori GitHub."
+    "desc": "Selaraskan 5 rilis pembaruan fitur terkini dengan commit terbaru github"
   },
   {
     "title": "Penilaian Kinerja Mitra",
     "date": "15 Nov 2026",
-    "desc": "Pemulihan data diri lengkap mitra dari Kepka BPS, perbaikan tampilan angka 0 pada nama, dan penambahan endpoint profil admin."
-  },
-  {
-    "title": "Keamanan Peta Responden SE2026",
-    "date": "12 Nov 2026",
-    "desc": "Sanitasi data frontend, proteksi database kuesioner backend, API detail admin aman dengan zero-cache HTTP headers."
-  },
-  {
-    "title": "Pemulihan Evaluasi & Fail-Safe Mitra",
-    "date": "10 Nov 2026",
-    "desc": "Pemulihan nilai & catatan kinerja mitra dari cadangan Excel serta arsitektur snapshot master independen fail-safe."
+    "desc": "Pulihkan profil data diri dari kepka, hilangkan 0 nama, dan tambah endpoint profile"
   }
 ]

@@ -250,67 +250,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
       {/* Categories Grid or List */}
       <div className="space-y-10 pt-2">
         
-        {/* Kategori Khusus: Halaman Developer Akun ahmad.aulia */}
-        {isAhmadAuliaUser(user) && (
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
-              <h2 className="text-lg font-black text-slate-800 dark:text-slate-100">
-                Halaman Developer
-              </h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 uppercase tracking-wide border border-indigo-200 dark:border-indigo-800/60">
-                Khusus Akun ahmad.aulia
-              </span>
-            </div>
-
-            <div className={viewMode === 'card' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-3"}>
-              {viewMode === 'card' ? (
-                <>
-                  <FeatureCard
-                    title="Statistik & Analisis Pengunjung"
-                    description="Pantau berapa kali Garda Data dibuka, pengunjung unik, popularitas fitur, serta visualisasi analitis menurut hari dan jam operasional."
-                    icon={BarChart3}
-                    iconColor="text-indigo-600 dark:text-indigo-400"
-                    bgColor="bg-indigo-50"
-                    badge="Analitik Live"
-                    onClick={() => onNavigate('analytics-ahmad')}
-                  />
-                  <FeatureCard
-                    title="Cadangan & Pemulihan Sistem"
-                    description="Pencadangan database berkala (6 jam & per jam), eksekusi backup manual, riwayat log audit, dan unduh arsip data ZIP/JSON."
-                    icon={ShieldCheck}
-                    iconColor="text-emerald-600 dark:text-emerald-400"
-                    bgColor="bg-emerald-50 dark:bg-emerald-950/40"
-                    badge="Auto-Backup & ZIP"
-                    onClick={() => onNavigate('backup-system')}
-                  />
-                </>
-              ) : (
-                <>
-                  <FeatureListItem
-                    title="Statistik & Analisis Pengunjung"
-                    description="Pantau berapa kali Garda Data dibuka, pengunjung unik, popularitas fitur, serta visualisasi analitis."
-                    icon={BarChart3}
-                    iconColor="text-indigo-600 dark:text-indigo-400"
-                    bgColor="bg-indigo-50"
-                    badge="Analitik Live"
-                    onClick={() => onNavigate('analytics-ahmad')}
-                  />
-                  <FeatureListItem
-                    title="Cadangan & Pemulihan Sistem"
-                    description="Pencadangan database berkala, eksekusi backup manual, riwayat log audit, dan arsip ZIP."
-                    icon={ShieldCheck}
-                    iconColor="text-emerald-600 dark:text-emerald-400"
-                    bgColor="bg-emerald-50 dark:bg-emerald-950/40"
-                    badge="Auto-Backup & ZIP"
-                    onClick={() => onNavigate('backup-system')}
-                  />
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Kategori: Persiapan Kegiatan (Khusus Admin) */}
         {user?.role === 'admin' && (
           <div>
@@ -714,6 +653,67 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             )}
           </div>
         </div>
+
+        {/* Kategori Khusus: Halaman Developer & Supervisi Sistem (Ditampilkan di Bagian Paling Bawah Beranda) */}
+        {(isAhmadAuliaUser(user) || user?.role === 'admin') && (
+          <div className="pt-4 border-t border-dashed border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+              <h2 className="text-lg font-black text-slate-800 dark:text-slate-100">
+                Halaman Developer &amp; Supervisi Sistem
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 uppercase tracking-wide border border-indigo-200 dark:border-indigo-800/60">
+                Akses Khusus Administrator
+              </span>
+            </div>
+
+            <div className={viewMode === 'card' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-3"}>
+              {viewMode === 'card' ? (
+                <>
+                  <FeatureCard
+                    title="Statistik & Analisis Pengunjung"
+                    description="Pantau berapa kali Garda Data dibuka, pengunjung unik, popularitas fitur, serta visualisasi analitis menurut hari dan jam operasional."
+                    icon={BarChart3}
+                    iconColor="text-indigo-600 dark:text-indigo-400"
+                    bgColor="bg-indigo-50"
+                    badge="Analitik Live"
+                    onClick={() => onNavigate('analytics-ahmad')}
+                  />
+                  <FeatureCard
+                    title="Cadangan & Pemulihan Sistem"
+                    description="Pencadangan database berkala (6 jam & per jam), eksekusi backup manual, riwayat log audit, dan unduh arsip data ZIP/JSON."
+                    icon={ShieldCheck}
+                    iconColor="text-emerald-600 dark:text-emerald-400"
+                    bgColor="bg-emerald-50 dark:bg-emerald-950/40"
+                    badge="Auto-Backup & ZIP"
+                    onClick={() => onNavigate('backup-system')}
+                  />
+                </>
+              ) : (
+                <>
+                  <FeatureListItem
+                    title="Statistik & Analisis Pengunjung"
+                    description="Pantau berapa kali Garda Data dibuka, pengunjung unik, popularitas fitur, serta visualisasi analitis."
+                    icon={BarChart3}
+                    iconColor="text-indigo-600 dark:text-indigo-400"
+                    bgColor="bg-indigo-50"
+                    badge="Analitik Live"
+                    onClick={() => onNavigate('analytics-ahmad')}
+                  />
+                  <FeatureListItem
+                    title="Cadangan & Pemulihan Sistem"
+                    description="Pencadangan database berkala, eksekusi backup manual, riwayat log audit, dan arsip ZIP."
+                    icon={ShieldCheck}
+                    iconColor="text-emerald-600 dark:text-emerald-400"
+                    bgColor="bg-emerald-50 dark:bg-emerald-950/40"
+                    badge="Auto-Backup & ZIP"
+                    onClick={() => onNavigate('backup-system')}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
       </div>
 

@@ -36,7 +36,23 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 25 * 1024 * 1024 } // Batas 25MB per berkas
+  limits: { fileSize: 25 * 1024 * 1024 }, // Batas 25MB per berkas
+  fileFilter: (req, file, cb) => {
+    // Validasi ekstensi dan tipe file aman untuk laporan survei lapangan
+    const allowedExts = /\.(jpg|jpeg|png|webp|gif|pdf|docx|xlsx)$/i;
+    const isImage = file.mimetype && file.mimetype.startsWith('image/');
+    const isDoc = file.mimetype && (
+      file.mimetype.includes('pdf') || 
+      file.mimetype.includes('word') || 
+      file.mimetype.includes('officedocument') ||
+      file.mimetype.includes('sheet')
+    );
+    if (allowedExts.test(file.originalname) || isImage || isDoc) {
+      cb(null, true);
+    } else {
+      cb(new Error('Format berkas tidak diizinkan. Hanya gambar (JPG, PNG, WEBP) atau dokumen yang diperbolehkan.'));
+    }
+  }
 });
 
 // Helper URL parser Google Sheet
@@ -1051,27 +1067,37 @@ router.get('/forms/:formId/export-csv', async (req, res) => {
 // 6. UPLOAD BERKAS KE SERVER (FOTO / DOKUMEN)
 // ==========================================
 
-router.post('/upload', upload.single('file'), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'Tidak ada file yang diunggah' });
+router.post('/upload', (req, res) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      console.warn('Upload rejected:', err.message);
+      return res.status(400).json({ error: err.message || 'Gagal mengunggah berkas' });
     }
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Tidak ada file yang diunggah' });
+      }
 
-    const host = req.get('host');
-    const protocol = req.protocol;
-    const fileUrl = `${protocol}://${host}/uploads/laporan/${req.file.filename}`;
+      const host = req.get('host');
+      const forwardedProto = req.headers['x-forwarded-proto'];
+      const protocol = (forwardedProto && typeof forwardedProto === 'string')
+        ? forwardedProto.split(',')[0].trim()
+        : req.protocol;
+      const fileUrl = `${protocol}://${host}/uploads/laporan/${req.file.filename}`;
 
-    res.json({
-      success: true,
-      url: fileUrl,
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      size: req.file.size
-    });
-  } catch (err) {
-    console.error('Error uploading file:', err);
-    res.status(500).json({ error: 'Gagal mengunggah file' });
-  }
+      res.json({
+        success: true,
+        url: fileUrl,
+        relativePath: `/uploads/laporan/${req.file.filename}`,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size
+      });
+    } catch (routeErr) {
+      console.error('Error uploading file:', routeErr);
+      res.status(500).json({ error: 'Gagal mengunggah berkas' });
+    }
+  });
 });
 
 // ==========================================
