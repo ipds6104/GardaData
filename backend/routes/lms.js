@@ -53,30 +53,38 @@ router.put('/configs/:id', async (req, res) => {
       action: 'UPDATE',
       previousData: current,
       changedBy: req.headers['x-user-nip'] || req.ip || 'admin'
-    });
+    }).catch(err => console.warn('[LMS] Revision record warning:', err.message));
+
     const finalName = name !== undefined ? name : current.name;
     const finalStartDate = startDate !== undefined ? (startDate || null) : current.startDate;
     const finalEndDate = endDate !== undefined ? (endDate || null) : current.endDate;
     const finalPeriod = period !== undefined ? (period || '') : current.period;
     const finalIcon = icon !== undefined ? (icon || 'pendidikan') : current.icon;
     const finalIsActive = isActive !== undefined ? (isActive !== false) : current.isActive;
-    const finalBgImage = bgImage !== undefined ? bgImage : (current.bgImage || '/images/lms/lms-bg-1.jpg');
+    const finalBgImage = bgImage !== undefined ? bgImage : (current.bgImage !== undefined && current.bgImage !== null ? current.bgImage : '/images/lms/lms-bg-1.jpg');
     const finalThemeTone = themeTone !== undefined ? themeTone : (current.themeTone || 'indigo_twilight');
 
     if (buttons !== undefined) {
-      // Buttons explicitly provided in payload: update buttons
+      let finalButtonsStr;
+      if (typeof buttons === 'string') {
+        try {
+          const parsed = JSON.parse(buttons);
+          finalButtonsStr = typeof parsed === 'string' ? parsed : buttons;
+        } catch {
+          finalButtonsStr = buttons;
+        }
+      } else {
+        finalButtonsStr = JSON.stringify(buttons || []);
+      }
+
       await pool.query(
-        `UPDATE lms_trainings 
-         SET name=?, startDate=?, endDate=?, period=?, icon=?, isActive=?, buttons=?, bgImage=?, themeTone=?
-         WHERE id=?`,
-        [finalName, finalStartDate, finalEndDate, finalPeriod, finalIcon, finalIsActive, JSON.stringify(buttons), finalBgImage, finalThemeTone, id]
+        'UPDATE lms_trainings SET name=?, startDate=?, endDate=?, period=?, icon=?, isActive=?, buttons=?, bgImage=?, themeTone=? WHERE id=?',
+        [finalName, finalStartDate, finalEndDate, finalPeriod, finalIcon, finalIsActive, finalButtonsStr, finalBgImage, finalThemeTone, id]
       );
     } else {
       // Buttons NOT provided in payload: PRESERVE EXISTING BUTTONS! Do NOT overwrite with []!
       await pool.query(
-        `UPDATE lms_trainings 
-         SET name=?, startDate=?, endDate=?, period=?, icon=?, isActive=?, bgImage=?, themeTone=?
-         WHERE id=?`,
+        'UPDATE lms_trainings SET name=?, startDate=?, endDate=?, period=?, icon=?, isActive=?, bgImage=?, themeTone=? WHERE id=?',
         [finalName, finalStartDate, finalEndDate, finalPeriod, finalIcon, finalIsActive, finalBgImage, finalThemeTone, id]
       );
     }
@@ -84,7 +92,7 @@ router.put('/configs/:id', async (req, res) => {
     res.json({ message: 'LMS Training updated successfully' });
   } catch (error) {
     console.error('Error updating LMS training:', error);
-    res.status(500).json({ error: 'Database error' });
+    res.status(500).json({ error: 'Database error', details: error.message });
   }
 });
 

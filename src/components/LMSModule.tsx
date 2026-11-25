@@ -677,6 +677,7 @@ export const LMSModule: React.FC<{
 
   // Modal Tone & Background states
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [themeModalTraining, setThemeModalTraining] = useState<LMSTraining | null>(null);
   const [themeToneSelect, setThemeToneSelect] = useState<string>('indigo_twilight');
   const [bgImageSelect, setBgImageSelect] = useState<string>('/images/lms/lms-bg-1.jpg');
   const [savingTheme, setSavingTheme] = useState(false);
@@ -761,7 +762,11 @@ export const LMSModule: React.FC<{
             endDate: d.endDate ? d.endDate.split('T')[0] : '',
             isActive: Boolean(d.isActive),
             buttons: parsedButtons,
-            bgImage: (d.bgImage && d.bgImage !== '/images/lms-training-bg.jpg') ? d.bgImage : (savedTheme?.bgImage && savedTheme.bgImage !== '/images/lms-training-bg.jpg' ? savedTheme.bgImage : '/images/lms/lms-bg-1.jpg'),
+            bgImage: (d.bgImage !== undefined && d.bgImage !== null && d.bgImage !== '/images/lms-training-bg.jpg') 
+              ? d.bgImage 
+              : (savedTheme?.bgImage !== undefined && savedTheme?.bgImage !== null && savedTheme.bgImage !== '/images/lms-training-bg.jpg' 
+                  ? savedTheme.bgImage 
+                  : '/images/lms/lms-bg-1.jpg'),
             themeTone: (d.themeTone && d.themeTone !== 'pinterest_warm') ? d.themeTone : (savedTheme?.themeTone && savedTheme.themeTone !== 'pinterest_warm' ? savedTheme.themeTone : 'indigo_twilight')
           };
         }) as LMSTraining[];
@@ -825,50 +830,60 @@ export const LMSModule: React.FC<{
   }, []);
 
   const handleOpenThemeModal = (t: LMSTraining) => {
+    setThemeModalTraining(t);
     const currentTone = (t.themeTone && t.themeTone !== 'pinterest_warm') ? t.themeTone : 'indigo_twilight';
-    const currentBg = (t.bgImage && t.bgImage !== '/images/lms-training-bg.jpg') ? t.bgImage : (t.bgImage === '' ? '' : '/images/lms/lms-bg-1.jpg');
+    const currentBg = (t.bgImage !== undefined && t.bgImage !== null && t.bgImage !== '/images/lms-training-bg.jpg') ? t.bgImage : '/images/lms/lms-bg-1.jpg';
     setThemeToneSelect(currentTone);
     setBgImageSelect(currentBg);
     setShowThemeModal(true);
   };
 
-  const handleSaveTrainingTheme = async (newTone: string, newBg: string) => {
-    if (!activeTraining) return;
+  const handleSaveTrainingTheme = async (targetId: string, newTone: string, newBg: string) => {
+    const target = trainings.find(t => t.id === targetId) || themeModalTraining || activeTraining;
+    if (!target) return;
     setSavingTheme(true);
     try {
       const baseUrl = (import.meta as any).env.VITE_API_URL || '';
       const payload: any = {
-        name: activeTraining.name,
-        startDate: activeTraining.startDate || null,
-        endDate: activeTraining.endDate || null,
-        period: activeTraining.period || '',
-        icon: activeTraining.icon || 'pendidikan',
-        isActive: activeTraining.isActive,
-        buttons: activeTraining.buttons || [],
+        name: target.name,
+        startDate: target.startDate || null,
+        endDate: target.endDate || null,
+        period: target.period || '',
+        icon: target.icon || 'pendidikan',
+        isActive: target.isActive,
+        buttons: target.buttons || [],
         themeTone: newTone,
         bgImage: newBg
       };
 
-      await fetch(`${baseUrl}/api/lms/configs/${activeTraining.id}`, {
+      const res = await fetch(`${baseUrl}/api/lms/configs/${target.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || errJson.details || `HTTP ${res.status}`);
+      }
+
       // Update state secara instan
-      setTrainings(prev => prev.map(t => t.id === activeTraining.id ? { ...t, themeTone: newTone, bgImage: newBg } : t));
+      setTrainings(prev => prev.map(t => t.id === target.id ? { ...t, themeTone: newTone, bgImage: newBg } : t));
       try {
-        localStorage.setItem(`lms_training_theme_${activeTraining.id}`, JSON.stringify({ themeTone: newTone, bgImage: newBg }));
+        localStorage.setItem(`lms_training_theme_${target.id}`, JSON.stringify({ themeTone: newTone, bgImage: newBg }));
       } catch {}
       setShowThemeModal(false);
-    } catch (err) {
+      setThemeModalTraining(null);
+      await fetchTrainings();
+    } catch (err: any) {
       console.error('Gagal menyimpan tone & background pelatihan:', err);
       // Fallback lokal
-      setTrainings(prev => prev.map(t => t.id === activeTraining.id ? { ...t, themeTone: newTone, bgImage: newBg } : t));
+      setTrainings(prev => prev.map(t => t.id === target.id ? { ...t, themeTone: newTone, bgImage: newBg } : t));
       try {
-        localStorage.setItem(`lms_training_theme_${activeTraining.id}`, JSON.stringify({ themeTone: newTone, bgImage: newBg }));
+        localStorage.setItem(`lms_training_theme_${target.id}`, JSON.stringify({ themeTone: newTone, bgImage: newBg }));
       } catch {}
       setShowThemeModal(false);
+      setThemeModalTraining(null);
     } finally {
       setSavingTheme(false);
     }
@@ -882,13 +897,14 @@ export const LMSModule: React.FC<{
       const url = formData.id ? `${baseUrl}/api/lms/configs/${formData.id}` : `${baseUrl}/api/lms/configs`;
       
       const existing = trainings.find(t => t.id === formData.id);
+      const effectiveBg = formData.bgImage !== undefined ? formData.bgImage : (existing?.bgImage !== undefined ? existing.bgImage : '/images/lms/lms-bg-1.jpg');
       const payload: any = {
         name: formData.name,
         startDate: formData.startDate,
         endDate: formData.endDate,
         icon: formData.icon,
         isActive: formData.isActive,
-        bgImage: formData.bgImage || existing?.bgImage || '/images/lms/lms-bg-1.jpg',
+        bgImage: effectiveBg,
         themeTone: formData.themeTone || existing?.themeTone || 'indigo_twilight'
       };
       if (existing && existing.buttons) {
@@ -2501,7 +2517,9 @@ export const LMSModule: React.FC<{
         )}
 
         {/* MODAL TONE WARNA & BACKGROUND KEGIATAN PELATIHAN (ADMIN) */}
-        {showThemeModal && activeTraining && (
+        {showThemeModal && (themeModalTraining || activeTraining) && (() => {
+          const modalTraining = (themeModalTraining || activeTraining)!;
+          return (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -2525,12 +2543,12 @@ export const LMSModule: React.FC<{
                       Tone Warna &amp; Background Pelatihan
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Kustomisasi estetika laman kegiatan pelatihan untuk petugas
+                      Pelatihan: <span className="font-bold text-[#f89777]">{modalTraining.name}</span>
                     </p>
                   </div>
                 </div>
                 <button 
-                  onClick={() => setShowThemeModal(false)}
+                  onClick={() => { setShowThemeModal(false); setThemeModalTraining(null); }}
                   className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer rounded-lg"
                 >
                   <X className="w-5 h-5" />
@@ -2637,7 +2655,7 @@ export const LMSModule: React.FC<{
               <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setShowThemeModal(false)}
+                  onClick={() => { setShowThemeModal(false); setThemeModalTraining(null); }}
                   className="flex-1 py-3 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-xs transition-colors cursor-pointer"
                 >
                   Batal
@@ -2645,7 +2663,7 @@ export const LMSModule: React.FC<{
                 <button
                   type="button"
                   disabled={savingTheme}
-                  onClick={() => handleSaveTrainingTheme(themeToneSelect, bgImageSelect)}
+                  onClick={() => handleSaveTrainingTheme(modalTraining.id, themeToneSelect, bgImageSelect)}
                   className="flex-1 py-3 bg-gradient-to-r from-[#f89777] to-amber-500 hover:from-[#e77e5d] hover:to-amber-600 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-[#f89777]/20 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   {savingTheme ? (
@@ -2660,7 +2678,8 @@ export const LMSModule: React.FC<{
               </div>
             </motion.div>
           </motion.div>
-        )}
+          );
+        })()}
       </AnimatePresence>
     </div>
   );
