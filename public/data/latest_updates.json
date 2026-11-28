@@ -2,6 +2,16 @@
   {
     "title": "kbli,kbji",
     "date": "28 Nov 2026",
+    "desc": "Flush search logs immediately and show real search count on leftmost summary card"
+  },
+  {
+    "title": "Pembaruan Rutin",
+    "date": "28 Nov 2026",
+    "desc": "Sinkronisasi latest_updates.json"
+  },
+  {
+    "title": "kbli,kbji",
+    "date": "28 Nov 2026",
     "desc": "Rekam riwayat pencarian & tampilkan statistik pada ringkasan"
   },
   {
@@ -13,15 +23,5 @@
     "title": "sync",
     "date": "24 Nov 2026",
     "desc": "Update latest_updates.json with guest isolation release"
-  },
-  {
-    "title": "sync",
-    "date": "24 Nov 2026",
-    "desc": "Sync latest_updates.json with guest fix"
-  },
-  {
-    "title": "Otentikasi & SSO",
-    "date": "24 Nov 2026",
-    "desc": "Isolate guest role to dedicated under-development page with bps portal reference"
   }
 ]
