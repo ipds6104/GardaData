@@ -1643,16 +1643,17 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                     </div>
                   </div>
 
-                  {/* Minimalist Vertical Bar Chart Decoration (Sesuai Gambar Referensi) */}
-                  <div className="pt-4 flex items-end gap-1.5 h-11">
-                    <div className="w-1.5 h-6 bg-[#282208]/30 rounded-full" />
-                    <div className="w-1.5 h-4 bg-[#282208]/30 rounded-full" />
-                    <div className="w-1.5 h-8 bg-[#282208] rounded-full" />
-                    <div className="w-1.5 h-5 bg-[#282208]/40 rounded-full" />
-                    <div className="w-1.5 h-10 bg-[#282208] rounded-full" />
-                    <div className="w-1.5 h-6 bg-[#282208]/40 rounded-full" />
-                    <div className="w-1.5 h-7 bg-[#282208] rounded-full" />
-                    <div className="w-1.5 h-3 bg-[#282208]/30 rounded-full" />
+                  {/* Riwayat Pencarian Terekam (Angka Real dari Server) */}
+                  <div className="pt-3 border-t border-[#282208]/15 mt-3 flex items-center justify-between gap-2 text-[10px] font-bold">
+                    <div className="flex items-center gap-1 opacity-70">
+                      <History className="w-3 h-3" />
+                      <span>Riwayat Pencarian</span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#282208]/12 text-[#282208] font-extrabold tabular-nums">
+                      {searchStats
+                        ? `${searchStats.recorded_searches.toLocaleString('id-ID')} cari`
+                        : '—'}
+                    </span>
                   </div>
                 </div>
 

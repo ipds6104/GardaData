@@ -1433,16 +1433,17 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                 </div>
               </div>
 
-              {/* Minimalist Vertical Bar Chart Decoration (Sesuai Fitur KBLI 2025) */}
-              <div className="pt-4 flex items-end gap-1.5 h-11">
-                <div className="w-1.5 h-6 bg-[#1E1B4B]/30 rounded-full" />
-                <div className="w-1.5 h-4 bg-[#1E1B4B]/30 rounded-full" />
-                <div className="w-1.5 h-8 bg-[#1E1B4B] rounded-full" />
-                <div className="w-1.5 h-5 bg-[#1E1B4B]/40 rounded-full" />
-                <div className="w-1.5 h-10 bg-[#1E1B4B] rounded-full" />
-                <div className="w-1.5 h-6 bg-[#1E1B4B]/40 rounded-full" />
-                <div className="w-1.5 h-7 bg-[#1E1B4B] rounded-full" />
-                <div className="w-1.5 h-3 bg-[#1E1B4B]/30 rounded-full" />
+              {/* Riwayat Pencarian Terekam (Angka Real dari Server) */}
+              <div className="pt-3 border-t border-[#1E1B4B]/15 mt-3 flex items-center justify-between gap-2 text-[10px] font-bold">
+                <div className="flex items-center gap-1 opacity-70">
+                  <History className="w-3 h-3" />
+                  <span>Riwayat Pencarian</span>
+                </div>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#1E1B4B]/12 text-[#1E1B4B] font-extrabold tabular-nums">
+                  {searchStats
+                    ? `${searchStats.recorded_searches.toLocaleString('id-ID')} cari`
+                    : '—'}
+                </span>
               </div>
             </div>
 

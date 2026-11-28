@@ -31,11 +31,11 @@ function queueSearchLog(entry) {
     if (pendingSearchLogs.length > 2000) {
         pendingSearchLogs = pendingSearchLogs.slice(pendingSearchLogs.length - 2000);
     }
-    if (!searchLogFlushTimer) {
-        searchLogFlushTimer = setTimeout(() => {
-            flushSearchLogsToDisk();
-            searchLogFlushTimer = null;
-        }, 15000);
+    // Flush segera ke disk (bukan tunggu 15 detik) agar log tidak hilang jika server restart
+    flushSearchLogsToDisk();
+    if (searchLogFlushTimer) {
+        clearTimeout(searchLogFlushTimer);
+        searchLogFlushTimer = null;
     }
 }
 
