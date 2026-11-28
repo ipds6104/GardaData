@@ -1,5 +1,10 @@
 [
   {
+    "title": "kbli,kbji",
+    "date": "28 Nov 2026",
+    "desc": "Rekam riwayat pencarian & tampilkan statistik pada ringkasan"
+  },
+  {
     "title": "LMS Pelatihan",
     "date": "25 Nov 2026",
     "desc": "Resolve theme and background configuration saving and list view selection bug"
@@ -18,10 +23,5 @@
     "title": "Otentikasi & SSO",
     "date": "24 Nov 2026",
     "desc": "Isolate guest role to dedicated under-development page with bps portal reference"
-  },
-  {
-    "title": "sync",
-    "date": "24 Nov 2026",
-    "desc": "Sync latest_updates.json to include latest commits"
   }
 ]
