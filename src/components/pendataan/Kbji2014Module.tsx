@@ -340,6 +340,25 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const [searchStats, setSearchStats] = useState<{
+    recorded_searches: number;
+    recorded_selections: number;
+    high_confidence_selections: number;
+    threshold: number;
+  } | null>(null);
+
+  const fetchSearchStats = async () => {
+    try {
+      const res = await fetch('/api/kbji/stats');
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.search_stats) {
+          setSearchStats(data.search_stats);
+        }
+      }
+    } catch (_) {}
+  };
+
   // Fetch Categories from Backend
   useEffect(() => {
     const fetchCats = async () => {
@@ -361,6 +380,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
       }
     };
     fetchCats();
+    fetchSearchStats();
   }, []);
 
   // Execute Search (VIEW 1)
@@ -395,6 +415,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
           setTotalPages(data.total_pages || 1);
           setSearchTimeMs(data.time_ms || 0);
           setBestRec(data.best_recommendation || null);
+          fetchSearchStats();
         }
       } catch (e) {
         console.error('Failed to search KBJI:', e);
@@ -483,7 +504,7 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
           is_last_in_session: payload.isLastInSession !== undefined ? payload.isLastInSession : true,
           timestamp: new Date().toISOString()
         })
-      }).catch(() => {});
+      }).then(() => fetchSearchStats()).catch(() => {});
     } catch (_) {}
   };
 
@@ -1506,8 +1527,13 @@ export const Kbji2014Module: React.FC<Kbji2014ModuleProps> = ({ onBack }) => {
                 </div>
               </div>
 
-              <div className="pt-4 flex items-center gap-2 text-[10px] font-bold opacity-75">
-                <span>Rujukan Baku Jabatan Indonesia &bull; Survei &amp; Sensus</span>
+              <div className="pt-3 flex items-center justify-between gap-2 text-[10px] font-bold">
+                <span className="opacity-75">Rujukan Baku Jabatan &bull; Survei &amp; Sensus</span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#431407]/12 text-[#431407] font-extrabold shrink-0">
+                  {searchStats
+                    ? `${searchStats.recorded_searches.toLocaleString('id-ID')} pencarian • ${searchStats.recorded_selections.toLocaleString('id-ID')} pilihan`
+                    : 'Memuat riwayat...'}
+                </span>
               </div>
             </div>
           </div>

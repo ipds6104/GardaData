@@ -53,6 +53,40 @@ function flushSearchLogsToDisk() {
     } catch (_) {}
 }
 
+function getSearchRecordingStats() {
+    const dataDir = path.join(__dirname, '../kbji_data');
+    let diskQueries = 0;
+    try {
+        const searchLogPath = path.join(dataDir, 'kbji_search_queries_dataset.json');
+        if (fs.existsSync(searchLogPath)) {
+            const parsed = JSON.parse(fs.readFileSync(searchLogPath, 'utf8'));
+            if (Array.isArray(parsed)) diskQueries = parsed.length;
+        }
+    } catch (_) {}
+
+    let totalSelections = 0;
+    let highConfidenceSelections = 0;
+    try {
+        const feedbackPath = path.join(dataDir, 'kbji_feedback_dataset.json');
+        if (fs.existsSync(feedbackPath)) {
+            const logs = JSON.parse(fs.readFileSync(feedbackPath, 'utf8'));
+            if (Array.isArray(logs)) {
+                totalSelections = logs.length;
+                highConfidenceSelections = logs.filter(
+                    l => l.confidence_level === 'VERY_HIGH' || l.confidence_level === 'HIGH' || l.is_copied
+                ).length;
+            }
+        }
+    } catch (_) {}
+
+    return {
+        recorded_searches: diskQueries + pendingSearchLogs.length,
+        recorded_selections: totalSelections,
+        high_confidence_selections: highConfidenceSelections,
+        threshold: HIGH_CONFIDENCE_THRESHOLD
+    };
+}
+
 // Level Priority (Operational specificity: Jabatan 5-digit and Sub-Golongan 4-digit highest)
 const LEVEL_PRIORITY = {
     'jabatan': 1,
@@ -191,7 +225,8 @@ router.get('/stats', (req, res) => {
         total_jabatan: allItems.filter(i => i.level === 'jabatan').length,
         total_sub_golongan: allItems.filter(i => i.level === 'sub_golongan').length,
         total_mempawah_rules: mempawahRules.length,
-        is_ready: isLoaded
+        is_ready: isLoaded,
+        search_stats: getSearchRecordingStats()
     });
 });
 

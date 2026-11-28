@@ -506,6 +506,25 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
     return null;
   }, [searchResults, debouncedQuery]);
 
+  const [searchStats, setSearchStats] = useState<{
+    recorded_searches: number;
+    recorded_selections: number;
+    high_confidence_selections: number;
+    threshold: number;
+  } | null>(null);
+
+  const fetchSearchStats = async () => {
+    try {
+      const res = await fetch('/api/kbli/stats');
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.search_stats) {
+          setSearchStats(data.search_stats);
+        }
+      }
+    } catch (_) {}
+  };
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -524,6 +543,7 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
       }
     };
     fetchCategories();
+    fetchSearchStats();
   }, []);
 
   useEffect(() => {
@@ -552,6 +572,7 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
         if (res.ok && !isCancelled) {
           const data = await res.json();
           setSearchResults(data);
+          fetchSearchStats();
         }
       } catch (err) {
         console.error('Gagal mencari KBLI:', err);
@@ -616,7 +637,7 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
           is_last_in_session: payload.isLastInSession !== undefined ? payload.isLastInSession : true,
           timestamp: new Date().toISOString()
         })
-      }).catch(() => {});
+      }).then(() => fetchSearchStats()).catch(() => {});
     } catch (_) {}
   };
 
@@ -1706,8 +1727,13 @@ export const Kbli2025Module: React.FC<Kbli2025ModuleProps> = ({ onBack }) => {
                     </div>
                   </div>
 
-                  <div className="pt-4 flex items-center gap-2 text-[10px] font-bold opacity-70">
-                    <span>Terhubung dengan Peraturan BPS No. 7 Tahun 2025</span>
+                  <div className="pt-3 flex items-center justify-between gap-2 text-[10px] font-bold">
+                    <span className="opacity-70">Peraturan BPS No. 7 Tahun 2025</span>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#1D2F0E]/12 text-[#1D2F0E] font-extrabold shrink-0">
+                      {searchStats
+                        ? `${searchStats.recorded_searches.toLocaleString('id-ID')} pencarian • ${searchStats.recorded_selections.toLocaleString('id-ID')} pilihan`
+                        : 'Memuat riwayat...'}
+                    </span>
                   </div>
                 </div>
               </div>

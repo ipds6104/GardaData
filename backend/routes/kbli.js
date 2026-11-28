@@ -22,6 +22,78 @@ let kbliLearnedModel = null;
 let kbliLearnedRules = [];
 const HIGH_CONFIDENCE_THRESHOLD = 500;
 
+// Non-blocking in-memory search telemetry buffer for KBLI search history
+let pendingSearchLogs = [];
+let searchLogFlushTimer = null;
+
+function queueSearchLog(entry) {
+    pendingSearchLogs.push(entry);
+    if (pendingSearchLogs.length > 2000) {
+        pendingSearchLogs = pendingSearchLogs.slice(pendingSearchLogs.length - 2000);
+    }
+    if (!searchLogFlushTimer) {
+        searchLogFlushTimer = setTimeout(() => {
+            flushSearchLogsToDisk();
+            searchLogFlushTimer = null;
+        }, 15000);
+    }
+}
+
+function flushSearchLogsToDisk() {
+    if (pendingSearchLogs.length === 0) return;
+    try {
+        const dataDir = path.join(__dirname, '../kbli_data');
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+        const searchLogPath = path.join(dataDir, 'kbli_search_queries_dataset.json');
+        let existingLogs = [];
+        if (fs.existsSync(searchLogPath)) {
+            try {
+                existingLogs = JSON.parse(fs.readFileSync(searchLogPath, 'utf8'));
+                if (!Array.isArray(existingLogs)) existingLogs = [];
+            } catch (_) { existingLogs = []; }
+        }
+        const merged = existingLogs.concat(pendingSearchLogs).slice(-2000);
+        pendingSearchLogs = [];
+        fs.writeFile(searchLogPath, JSON.stringify(merged, null, 2), 'utf8', () => {});
+    } catch (_) {}
+}
+
+function getSearchRecordingStats() {
+    const dataDir = path.join(__dirname, '../kbli_data');
+    let diskQueries = 0;
+    try {
+        const searchLogPath = path.join(dataDir, 'kbli_search_queries_dataset.json');
+        if (fs.existsSync(searchLogPath)) {
+            const parsed = JSON.parse(fs.readFileSync(searchLogPath, 'utf8'));
+            if (Array.isArray(parsed)) diskQueries = parsed.length;
+        }
+    } catch (_) {}
+
+    let totalSelections = 0;
+    let highConfidenceSelections = 0;
+    try {
+        const feedbackPath = path.join(dataDir, 'search_feedback_dataset.json');
+        if (fs.existsSync(feedbackPath)) {
+            const logs = JSON.parse(fs.readFileSync(feedbackPath, 'utf8'));
+            if (Array.isArray(logs)) {
+                totalSelections = logs.length;
+                highConfidenceSelections = logs.filter(
+                    l => l.confidence_level === 'VERY_HIGH' || l.confidence_level === 'HIGH' || l.is_copied
+                ).length;
+            }
+        }
+    } catch (_) {}
+
+    return {
+        recorded_searches: diskQueries + pendingSearchLogs.length,
+        recorded_selections: totalSelections,
+        high_confidence_selections: highConfidenceSelections,
+        threshold: HIGH_CONFIDENCE_THRESHOLD
+    };
+}
+
 // Honorifics, Stopwords & Corporate Prefixes for SE2026 Business Name Normalization
 const OWNER_HONORIFICS = new Set([
     'pak', 'bu', 'ibu', 'bapak', 'bpk', 'bang', 'bg', 'kak', 'dek', 'om', 'tante',
@@ -834,7 +906,8 @@ router.get('/stats', (req, res) => {
             golongan: allItems.filter(i => i.level === 'golongan').length,
             subgolongan: allItems.filter(i => i.level === 'subgolongan').length,
             kelompok: allItems.filter(i => i.level === 'kelompok').length
-        }
+        },
+        search_stats: getSearchRecordingStats()
     };
     res.json(stats);
 });
@@ -1142,6 +1215,20 @@ router.get('/search', (req, res) => {
             reason: `Diverifikasi dari ${learnedMatch.sample_count} konfirmasi petugas lapangan`,
             source: 'Hasil Pembelajaran Lapangan (500+ Konfirmasi)'
         };
+    }
+
+    // Buffer query telemetry for KBLI search history & future model training
+    if (q && q.length >= 2 && page === 1) {
+        queueSearchLog({
+            query: q,
+            kategori,
+            level,
+            total_results: total,
+            top_code: resultItems[0]?.kode || null,
+            top_title: resultItems[0]?.judul || null,
+            recommended_code: activeRecommendedKbli?.kbli || null,
+            timestamp: new Date().toISOString()
+        });
     }
 
     res.json({
